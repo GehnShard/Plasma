@@ -61,7 +61,7 @@ namespace Uru {
     static const wchar kCoreName[]  = L"UruLive";
     static const wchar kShortName[] = L"UruLive";
     static const wchar kLongName[]  = L"Uru Live";
-    static const plUUID  kId("ea489821-6c35-4bd0-9dae-bb17c585e680");
+    static const plUUID  kId(L"8cc6cc7c-611e-4cf7-b600-f49e283b5aed");
 }
 
 // @@@: add your product namespace here
