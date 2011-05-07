@@ -58,10 +58,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 namespace Product {
 
 namespace Uru {
-    static const wchar kCoreName[]  = L"UruLive";
-    static const wchar kShortName[] = L"UruLive";
-    static const wchar kLongName[]  = L"Uru Live";
-    static const plUUID  kId(L"8cc6cc7c-611e-4cf7-b600-f49e283b5aed");
+    static const wchar kCoreName[]  = L"UruGoW";
+    static const wchar kShortName[] = L"UruGoW";
+    static const wchar kLongName[]  = L"Uru - Guild of Writers";
+    static const Uuid  kId(L"8cc6cc7c-611e-4cf7-b600-f49e283b5aed");
 }
 
 // @@@: add your product namespace here
