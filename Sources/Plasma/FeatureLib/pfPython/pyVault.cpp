@@ -364,7 +364,10 @@ void pyVault::AddChronicleEntry( const char * name, UInt32 type, const char * va
     wchar * wEntryName = StrDupToUnicode(name);
     wchar * wEntryValue = StrDupToUnicode(value);
     
-    VaultAddChronicleEntry(wEntryName, type, wEntryValue);
+    // FIXME: We should ideally not block, but for now, the Python assumes that when 
+    //        we return, the chronicle exists and can be found with findChronicleEntry. 
+    //        Maybe we should insert a dummy into the tree? (currently hard)
+    VaultAddChronicleEntryAndWait(wEntryName, type, wEntryValue);
     
     FREE(wEntryName);
     FREE(wEntryValue);
@@ -552,7 +555,7 @@ void pyVault::RegisterMTStation( const char * stationName, const char * backLink
 
 void pyVault::RegisterOwnedAge( const pyAgeLinkStruct & link )
 {
-    VaultRegisterOwnedAge(link.GetAgeLink());
+    VaultRegisterOwnedAgeAndWait(link.GetAgeLink());
 }
 
 void pyVault::UnRegisterOwnedAge( const char * ageFilename )
