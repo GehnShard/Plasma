@@ -494,18 +494,29 @@ hsBool plAvBrainHuman::MsgReceive(plMessage * msg)
 hsBool plAvBrainHuman::IHandleClimbMsg(plClimbMsg *msg)
 {
     bool isStartClimb = msg->fCommand == plClimbMsg::kStartClimbing;
+
     if(isStartClimb)
     {
         //Warp the player to the Seekpoint
-        plSceneObject *localSO = plSceneObject::ConvertNoRef(plNetClientMgr::GetInstance()->GetLocalPlayer());
+        plSceneObject *avatarObj = plSceneObject::ConvertNoRef(plNetClientMgr::GetInstance()->GetLocalPlayer());
         plSceneObject *obj = plSceneObject::ConvertNoRef(msg->fTarget->ObjectIsLoaded());
+
+        //is it our avatar who has to seek?
+        hsPoint3 avatarPos = avatarObj->GetCoordinateInterface()->GetWorldPos();
+        hsPoint3 seekPos = obj->GetCoordinateInterface()->GetWorldPos();
+        hsVector3 vec = (hsVector3)avatarPos - (hsVector3)seekPos;
+        hsScalar dist = vec.Magnitude();
+
+        if (dist > 3)
+        {
+            return true; //You are not the avatar we are searching for
+        }
 
         hsMatrix44 target = obj->GetLocalToWorld();
 
-        plWarpMsg *warp = new plWarpMsg(nil, localSO->GetKey(), plWarpMsg::kFlushTransform, target);
+        plWarpMsg *warp = new plWarpMsg(nil, avatarObj->GetKey(), plWarpMsg::kFlushTransform, target);
         warp->SetBCastFlag(plMessage::kNetPropagate);
         plgDispatch::MsgSend(warp);
-
 
         // build the Climb brain
         plAvBrainClimb::Mode startMode;
