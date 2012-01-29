@@ -1,7 +1,7 @@
 /*==LICENSE==*
 
 CyanWorlds.com Engine - MMOG client, server and tools
-Copyright (C) 2011  Cyan Worlds, Inc.
+Copyright (C) 2011 Cyan Worlds, Inc.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -10,11 +10,11 @@ the Free Software Foundation, either version 3 of the License, or
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 Additional permissions under GNU GPL version 3 section 7
 
@@ -39,27 +39,32 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/CoreLibExe/Intern.h
-*   
-***/
+// Basic edit dialog stuff
+#ifndef _pfEditDlg_h
+#define _pfEditDlg_h
 
-#ifdef PLASMA20_SOURCES_PLASMA_CORELIBEXE_INTERN_H
-#error "Header $/Plasma20/Sources/Plasma/CoreLibExe/Intern.h included more than once"
+#include "HeadSpin.h"
+#include <string>
+
+// Little trick to show a wait cursor while something is working
+class plWaitCursor
+{
+    HCURSOR    fOrig;
+public:
+    plWaitCursor()
+    {
+        fOrig = SetCursor(LoadCursor(NULL, IDC_WAIT));
+    }
+
+    ~plWaitCursor()
+    {
+        SetCursor(fOrig);
+    }
+};
+
+void SplitLocalizationPath(std::wstring path, std::wstring &ageName, std::wstring &setName, std::wstring &locName, std::wstring &locLanguage);
+void SaveLocalizationText();
+void UpdateEditDlg(std::wstring subtitlePath);
+BOOL CALLBACK EditDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 #endif
-#define PLASMA20_SOURCES_PLASMA_CORELIBEXE_INTERN_H
-
-
-namespace ExeMalloc {
-/*****************************************************************************
-*
-*   hsExeMalloc
-*
-***/
-
-void MemSetLeakChecking (bool on);
-
-
-
-} using namespace ExeMalloc;

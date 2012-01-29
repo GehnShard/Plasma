@@ -1,7 +1,7 @@
 /*==LICENSE==*
 
 CyanWorlds.com Engine - MMOG client, server and tools
-Copyright (C) 2011  Cyan Worlds, Inc.
+Copyright (C) 2011 Cyan Worlds, Inc.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -10,11 +10,11 @@ the Free Software Foundation, either version 3 of the License, or
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 Additional permissions under GNU GPL version 3 section 7
 
@@ -39,34 +39,25 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/CoreLibExe/Pch.h
-*   
-***/
-
-#ifdef PLASMA20_SOURCES_PLASMA_CORELIBEXE_PCH_H
-#error "Header $/Plasma20/Sources/Plasma/CoreLibExe/Pch.h included more than once"
-#endif
-#define PLASMA20_SOURCES_PLASMA_CORELIBEXE_PCH_H
-
-#pragma warning(push, 3)
+#ifndef _plLocTreeView_h
+#define _plLocTreeView_h
 
 #include "HeadSpin.h"
-#include "hsConfig.h"
-#include "hsTypes.h"
-#include "hsWindows.h"
-#include "hsMalloc.h"
-#include "hsCritSect.h"
-#include "hsUtils.h"
-#include "hsWindows.h"
+#include <string>
 
-#pragma warning(pop)
+class plLocTreeView
+{
+protected:
+    static std::wstring fPath;
 
-#include "Intern.h"
+public:
+    static void    FillTreeViewFromData(HWND treeCtrl, std::wstring selectionPath);
+    static void    ClearTreeView(HWND treeCtrl);
 
-#include <malloc.h>
+    static void SelectionChanged(HWND treeCtrl);
+    static void    SelectionDblClicked(HWND treeCtrl);
 
-#if _MSC_VER
-#include <crtdbg.h>
-#endif
+    static std::wstring GetPath() {return fPath;}
+};
+
+#endif //_plLocTreeView_h

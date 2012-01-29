@@ -42,10 +42,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef HeadSpinHDefined
 #define HeadSpinHDefined
 
-#include "hsConfig.h"
-// Winsock2 compatibility; winsock2.h must always be included before windows.h =(
-#include "hsWindows.h"
+#if (defined(_DEBUG) || defined(UNIX_DEBUG))
+#   define HS_DEBUGGING
+#endif // defined(_DEBUG) || defined(UNIX_DENUG)
+
+// Internal Headers
+// These are only ever included here :)
 #include "hsTypes.h"
-#include "hsMalloc.h"
+#include "hsWindows.h"
+#include "hsUtils.h"
 
 #endif
