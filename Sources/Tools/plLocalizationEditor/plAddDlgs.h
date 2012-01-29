@@ -1,7 +1,7 @@
 /*==LICENSE==*
 
 CyanWorlds.com Engine - MMOG client, server and tools
-Copyright (C) 2011  Cyan Worlds, Inc.
+Copyright (C) 2011 Cyan Worlds, Inc.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -10,11 +10,11 @@ the Free Software Foundation, either version 3 of the License, or
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 Additional permissions under GNU GPL version 3 section 7
 
@@ -39,34 +39,44 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#ifndef hsMMIOStream_inc
-#define hsMMIOStream_inc
+// basic classes for encapsulating the add dialogs
+#ifndef __plAddDlgs_h__
+#define __plAddDlgs_h__
 
-#include "hsWindows.h"
-#include "hsStream.h"
+#include "HeadSpin.h"
+#include <string>
 
-#if HS_BUILD_FOR_WIN32
-#include <mmsystem.h>
+class plAddElementDlg
+{
+protected:
+    static BOOL CALLBACK IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
-class hsMMIOStream: public hsStream
-{   
-    HMMIO   fHmfr;
+    bool IInitDlg(HWND hDlg);
+    void IUpdateDlg(HWND hDlg, bool setFocus = true);
+
+    std::wstring fAgeName, fSetName, fElementName;
+    bool fAgeChanged;
 public:
+    plAddElementDlg(std::wstring parentPath);
 
-    virtual hsBool  Open(const char *, const char *)    { hsAssert(0, "hsMMIOStream::Open  NotImplemented"); return false; }
-    virtual hsBool  Close()             { hsAssert(0, "hsMMIOStream::Close  NotImplemented"); return false; }
-
-    virtual hsBool  AtEnd();
-    virtual UInt32  Read(UInt32 byteCount, void* buffer);
-    virtual UInt32  Write(UInt32 byteCount, const void* buffer);
-    virtual void    Skip(UInt32 deltaByteCount);
-    virtual void    Rewind();
-    virtual void    FastFwd();
-    virtual void    Truncate();
-
-    HMMIO   GetHandle() { return fHmfr; }
-    void    SetHandle(HMMIO handle) { fHmfr = handle; }
+    bool DoPick(HWND parent); // returns true if [Ok] clicked, false otherwise.
+    std::wstring GetValue() {return fAgeName + L"." + fSetName + L"." + fElementName;}
 };
-#endif
 
-#endif  // hsMMIOStream_inc
+class plAddLocalizationDlg
+{
+protected:
+    static BOOL CALLBACK IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+
+    bool IInitDlg(HWND hDlg);
+    void IUpdateDlg(HWND hDlg);
+
+    std::wstring fAgeName, fSetName, fElementName, fLanguageName;
+public:
+    plAddLocalizationDlg(std::wstring parentPath);
+
+    bool DoPick(HWND parent); // returns true if [Ok] clicked, false otherwise.
+    std::wstring GetValue() {return fLanguageName;}
+};
+
+#endif

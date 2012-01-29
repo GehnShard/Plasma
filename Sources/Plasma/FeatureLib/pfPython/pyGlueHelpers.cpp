@@ -39,67 +39,25 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "hsMMIOStream.h"
 
-//////////////////////////////////////////////////////////////////////////////////////
+#include "HeadSpin.h"
+#include "pyGlueHelpers.h"
 
-#if HS_BUILD_FOR_WIN32
-
-#include "hsExceptions.h"
-
-UInt32 hsMMIOStream::Read(UInt32 bytes,  void* buffer)
+char* PyString_AsStringEx(PyObject* obj) 
 {
-    fBytesRead += bytes;
-    fPosition += bytes;
-    int numItems = ::mmioRead(fHmfr, (char*)buffer, bytes);
-    if ((unsigned)numItems < bytes) 
+    if (PyString_Check(obj))
+        return hsStrcpy(PyString_AsString(obj));
+    else if (PyUnicode_Check(obj))
     {
-        if (numItems>=0 && ::mmioSeek(fHmfr,0,SEEK_CUR)==::mmioSeek(fHmfr,0,SEEK_END)) {
-            // EOF ocurred
-            char str[128];
-            sprintf(str, "Hit EOF on MMIO Read, only read %d out of requested %d bytes\n", numItems, bytes);
-            hsDebugMessage(str, 0);
-        }
-        else 
-        {
-            hsDebugMessage("Error on MMIO Read",0);
-        }
-    }
-    return numItems;
+        PyObject* utf8 = PyUnicode_AsUTF8String(obj);
+        char* buf = hsStrcpy(PyString_AsString(utf8));
+        Py_DECREF(utf8);
+        return buf;
+    } else
+        return NULL; // You suck.
 }
 
-hsBool  hsMMIOStream::AtEnd()
+bool PyString_CheckEx(PyObject* obj)
 {
-    return (::mmioSeek(fHmfr,0,SEEK_CUR)==::mmioSeek(fHmfr,0,SEEK_END));
+    return (PyString_Check(obj) || PyUnicode_Check(obj));
 }
-
-UInt32 hsMMIOStream::Write(UInt32 bytes, const void* buffer)
-{
-    fPosition += bytes;
-    return ::mmioWrite(fHmfr,(const char*)buffer,bytes);
-}
-
-void hsMMIOStream::Skip(UInt32 delta)
-{
-    fBytesRead += delta;
-    fPosition += delta;
-    (void)::mmioSeek(fHmfr, delta, SEEK_CUR);
-}
-
-void hsMMIOStream::Rewind()
-{
-    fBytesRead = 0;
-    fPosition = 0;
-    (void)::mmioSeek(fHmfr, 0, SEEK_SET);
-}
-
-void hsMMIOStream::FastFwd()
-{
-    fBytesRead = fPosition = ::mmioSeek(fHmfr, 0, SEEK_END);
-}
-
-void hsMMIOStream::Truncate()
-{
-    hsThrow("Truncate unimplemented by subclass of stream");
-}
-#endif

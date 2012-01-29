@@ -42,6 +42,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _pyGlueHelpers_h_
 #define _pyGlueHelpers_h_
 
+#include <Python.h>
+
+// Useful string functions
+char* PyString_AsStringEx(PyObject*);
+inline bool PyString_CheckEx(PyObject*);
+
 // A set of macros to take at least some of the tediousness out of creating straight python glue code
 
 /////////////////////////////////////////////////////////////////////
@@ -112,7 +118,7 @@ PyObject *pythonClassName##_new(PyTypeObject *type, PyObject *, PyObject *) \
     self = (pythonClassName*)type->tp_alloc(type, 0); \
     if (self != NULL) \
     { \
-        self->fThis = TRACKED_NEW glueClassName(); \
+        self->fThis = new glueClassName(); \
         if (self->fThis == NULL) \
         { \
             Py_DECREF(self); \
