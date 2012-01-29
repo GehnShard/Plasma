@@ -505,7 +505,7 @@ hsBool plAvBrainHuman::IHandleClimbMsg(plClimbMsg *msg)
         hsPoint3 avatarPos = avatarObj->GetCoordinateInterface()->GetWorldPos();
         hsPoint3 seekPos = obj->GetCoordinateInterface()->GetWorldPos();
         hsVector3 vec = (hsVector3)avatarPos - (hsVector3)seekPos;
-        hsScalar dist = vec.Magnitude();
+        float dist = vec.Magnitude();
 
         if (dist < 3) //Yes, it is our avatar
         {
