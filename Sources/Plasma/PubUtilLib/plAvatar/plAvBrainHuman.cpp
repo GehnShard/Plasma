@@ -507,16 +507,13 @@ hsBool plAvBrainHuman::IHandleClimbMsg(plClimbMsg *msg)
         hsVector3 vec = (hsVector3)avatarPos - (hsVector3)seekPos;
         hsScalar dist = vec.Magnitude();
 
-        if (dist > 3)
+        if (dist < 3) //Yes, it is our avatar
         {
-            return true; //You are not the avatar we are searching for
+            hsMatrix44 target = obj->GetLocalToWorld();
+            plWarpMsg *warp = new plWarpMsg(nil, avatarObj->GetKey(), plWarpMsg::kFlushTransform, target);
+            warp->SetBCastFlag(plMessage::kNetPropagate);
+            plgDispatch::MsgSend(warp);
         }
-
-        hsMatrix44 target = obj->GetLocalToWorld();
-
-        plWarpMsg *warp = new plWarpMsg(nil, avatarObj->GetKey(), plWarpMsg::kFlushTransform, target);
-        warp->SetBCastFlag(plMessage::kNetPropagate);
-        plgDispatch::MsgSend(warp);
 
         // build the Climb brain
         plAvBrainClimb::Mode startMode;
@@ -536,9 +533,8 @@ hsBool plAvBrainHuman::IHandleClimbMsg(plClimbMsg *msg)
             break;
         }
 
-        plArmatureMod *avatar = plAvatarMgr::GetInstance()->GetLocalAvatar();
         plAvBrainClimb *brain = new plAvBrainClimb(startMode);
-        avatar->PushBrain(brain);
+        plArmatureMod::ConvertNoRef(fArmature)->PushBrain(brain);
     }
     // ** potentially controversial:
     // It's fairly easy for a human brain to hit a climb trigger - like when falling off a wall.
