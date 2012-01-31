@@ -497,17 +497,13 @@ hsBool plAvBrainHuman::IHandleClimbMsg(plClimbMsg *msg)
 
     if(isStartClimb)
     {
-        //Warp the player to the Seekpoint
+        // Warp the player to the Seekpoint
         plSceneObject *avatarObj = plSceneObject::ConvertNoRef(plNetClientMgr::GetInstance()->GetLocalPlayer());
         plSceneObject *obj = plSceneObject::ConvertNoRef(msg->fTarget->ObjectIsLoaded());
 
-        //is it our avatar who has to seek?
-        hsPoint3 avatarPos = avatarObj->GetCoordinateInterface()->GetWorldPos();
-        hsPoint3 seekPos = obj->GetCoordinateInterface()->GetWorldPos();
-        hsVector3 vec = (hsVector3)avatarPos - (hsVector3)seekPos;
-        float dist = vec.Magnitude();
-
-        if (dist < 3) //Yes, it is our avatar
+        plArmatureMod *localAvatar = plAvatarMgr::GetInstance()->GetLocalAvatar();
+        plArmatureMod *climbAvatar = plArmatureMod::ConvertNoRef(fArmature);
+        if (climbAvatar == localAvatar) // is it our avatar who has to seek?
         {
             hsMatrix44 target = obj->GetLocalToWorld();
             plWarpMsg *warp = new plWarpMsg(nil, avatarObj->GetKey(), plWarpMsg::kFlushTransform, target);
@@ -534,7 +530,7 @@ hsBool plAvBrainHuman::IHandleClimbMsg(plClimbMsg *msg)
         }
 
         plAvBrainClimb *brain = new plAvBrainClimb(startMode);
-        plArmatureMod::ConvertNoRef(fArmature)->PushBrain(brain);
+        climbAvatar->PushBrain(brain);
     }
     // ** potentially controversial:
     // It's fairly easy for a human brain to hit a climb trigger - like when falling off a wall.
