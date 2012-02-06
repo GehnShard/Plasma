@@ -57,8 +57,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #define kNeighborhoodAgeFilename            "Neighborhood"
 #define kNeighborhoodAgeFilenameW           L"Neighborhood"
-#define kNeighborhoodAgeInstanceName        "Hood"
-#define kNeighborhoodAgeInstanceNameW       L"Hood"
+#define kNeighborhoodAgeInstanceName        "Neighborhood"
+#define kNeighborhoodAgeInstanceNameW       L"Neighborhood"
 #define kStartupNeighborhoodUserDefinedName  "GoW"
 #define kStartupNeighborhoodUserDefinedNameW L"GoW"
 
