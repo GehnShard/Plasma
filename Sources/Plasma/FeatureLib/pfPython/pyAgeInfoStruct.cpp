@@ -42,6 +42,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pyAgeInfoStruct.h"
 #include "hsStlUtils.h"
 #include "pnUtils/pnUtCrypt.h"
+#include "pnEncryption/plChecksum.h"
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -118,7 +119,7 @@ void pyAgeInfoStruct::SetAgeDescription( const char * v )
 
 const char * pyAgeInfoStruct::GetAgeInstanceGuid() const
 {
-    fAgeInstanceGuidStr = fAgeInfo.GetAgeInstanceGuid()->AsStdString();
+    fAgeInstanceGuidStr = fAgeInfo.GetAgeInstanceGuid()->AsString();
     return fAgeInstanceGuidStr.c_str();
 }
 
@@ -129,9 +130,23 @@ void pyAgeInfoStruct::SetAgeInstanceGuid( const char * guid )
         // if it starts with an @ then do a meta kind of GUID
         std::string curInst = fAgeInfo.GetAgeInstanceName();
         std::string y = curInst + guid;
-       
+
         plUUID instanceGuid;
-        CryptDigest(kCryptMd5,  instanceGuid.fData , y.length(), y.c_str());
+        plMD5Checksum hash;
+        hash.Start();
+        hash.AddTo(y.length(), (uint8_t*)y.c_str());
+        hash.Finish();
+
+        const char* md5sum = hash.GetAsHexString();
+        plStringStream ss;
+        for (size_t i = 0; i < 16; i++) {
+            ss << md5sum[2*i];
+            ss << md5sum[(2*i)+1];
+
+            if (i == 3 || i == 5 || i == 7 || i == 9)
+                ss << '-';
+        }
+        instanceGuid.FromString(ss.GetString());
         fAgeInfo.SetAgeInstanceGuid(&instanceGuid);
     }
     else {
@@ -164,9 +179,9 @@ const char * pyAgeInfoStruct::GetDisplayName() const
 {
     int32_t seq = GetAgeSequenceNumber();
     if ( seq>0 )
-        xtl::format( fDisplayName, "%s (%d) %s", GetAgeUserDefinedName(), seq, GetAgeInstanceName() );
+        fDisplayName = plString::Format( "%s (%d) %s", GetAgeUserDefinedName(), seq, GetAgeInstanceName() );
     else
-        xtl::format( fDisplayName, "%s %s", GetAgeUserDefinedName(), GetAgeInstanceName() );
+        fDisplayName = plString::Format( "%s %s", GetAgeUserDefinedName(), GetAgeInstanceName() );
     return fDisplayName.c_str();
 }
 
@@ -217,7 +232,7 @@ void pyAgeInfoStructRef::SetAgeUserDefinedName( const char * v )
 
 const char * pyAgeInfoStructRef::GetAgeInstanceGuid() const
 {
-    fAgeInstanceGuidStr = fAgeInfo.GetAgeInstanceGuid()->AsStdString();
+    fAgeInstanceGuidStr = fAgeInfo.GetAgeInstanceGuid()->AsString();
     return fAgeInstanceGuidStr.c_str();
 }
 
@@ -241,8 +256,8 @@ const char * pyAgeInfoStructRef::GetDisplayName() const
 {
     int32_t seq = GetAgeSequenceNumber();
     if ( seq>0 )
-        xtl::format( fDisplayName, "%s (%d) %s", GetAgeUserDefinedName(), seq, GetAgeInstanceName() );
+        fDisplayName = plString::Format( "%s (%d) %s", GetAgeUserDefinedName(), seq, GetAgeInstanceName() );
     else
-        xtl::format( fDisplayName, "%s %s", GetAgeUserDefinedName(), GetAgeInstanceName() );
+        fDisplayName = plString::Format( "%s %s", GetAgeUserDefinedName(), GetAgeInstanceName() );
     return fDisplayName.c_str();
 }

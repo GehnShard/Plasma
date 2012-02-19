@@ -39,27 +39,17 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/NucleusLib/pnCrashExe/Pch.h
-*   
-***/
+#ifndef PL_CHALLENGE_HASH_H
+#define PL_CHALLENGE_HASH_H
 
-#ifdef PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNCRASHEXE_PCH_H
-#error "Header $/Plasma20/Sources/Plasma/NucleusLib/pnCrashExe/Pch.h included more than once"
-#endif
-#define PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNCRASHEXE_PCH_H
+#include "HeadSpin.h"
+#include "plChecksum.h"
+#include "plString.h"
 
+void CryptCreateRandomSeed(size_t length, uint8_t* data);
 
-#include "pnUtils/pnUtils.h"
-#include "pnProduct/pnProduct.h"
-#include "pnNetBase/pnNetBase.h"
-#include "pnAsyncCore/pnAsyncCore.h"
-#include "pnMail/pnMail.h"
+void CryptHashPassword(const plString& username, const plString& password, ShaDigest dest);
 
-#include <ImageHlp.h>
-#include <process.h>
+void CryptHashPasswordChallenge(uint32_t clientChallenge, uint32_t serverChallenge, ShaDigest namePassHash, ShaDigest challengeHash);
 
-#ifdef HS_BUILD_FOR_WIN32
-#include "Win32/W32Int.h"
-#endif
+#endif //PL_CHALLENGE_HASH_H

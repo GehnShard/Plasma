@@ -200,30 +200,35 @@ PyObject* pyImage::LoadJPEGFromDisk(const wchar_t* filename, uint16_t width, uin
         }
 
         // let's create a nice name for this thing based on the filename
-        std::string name = "PtImageFromDisk_";
-        const wchar_t* i = filename;
-        int charsChecked = 0;
+        plString name = plString::Format("PtImageFromDisk_%S", filename);
 
-        while (*i != '\\' && *i != '\0' && charsChecked < 1024)
-        {
-            i++;
-            charsChecked++;
-        }
+        hsgResMgr::ResMgr()->NewKey(name, theMipmap, plLocation::kGlobalFixedLoc);
         
-        if (*i == '\0')
+        return pyImage::New( theMipmap );
+    }
+    else
+        PYTHON_RETURN_NONE;
+}
+
+PyObject* pyImage::LoadPNGFromDisk(const wchar_t* filename, uint16_t width, uint16_t height)
+{
+    plMipmap* theMipmap = plPNG::Instance().ReadFromFile(filename);
+    if (theMipmap)
+    {
+        if (width > 0 && height > 0)
         {
-            i = filename;
-        }
-        else
-        {
-            i++;
+            if (!theMipmap->ResizeNicely(width, height, plMipmap::kDefaultFilter))
+            {
+                delete theMipmap;
+                PYTHON_RETURN_NONE;
+            }
         }
 
-        char* cName = hsWStringToString(i);
-        name = name + cName;
+        // let's create a nice name for this thing based on the filename
+        plString name = plString::Format("PtImageFromDisk_%S", filename);
 
-        hsgResMgr::ResMgr()->NewKey(name.c_str(), theMipmap, plLocation::kGlobalFixedLoc);
-        
+        hsgResMgr::ResMgr()->NewKey(name, theMipmap, plLocation::kGlobalFixedLoc);
+
         return pyImage::New( theMipmap );
     }
     else
