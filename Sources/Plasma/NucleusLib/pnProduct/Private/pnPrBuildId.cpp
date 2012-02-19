@@ -57,7 +57,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 // This line must NEVER be modified manually; it is automatically updated
 // by the build server.
-#define BUILD_ID 3
+#define BUILD_ID 4
 COMPILER_ASSERT(BUILD_ID != 0);
 
 
