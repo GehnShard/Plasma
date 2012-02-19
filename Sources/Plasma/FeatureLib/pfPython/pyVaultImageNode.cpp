@@ -64,8 +64,7 @@ static unsigned s_keyseq;
 
 //============================================================================
 static plKey CreateAndRefImageKey (unsigned nodeId, plMipmap * mipmap) {
-    char keyName[MAX_PATH];
-    StrPrintf(keyName, arrsize(keyName), "VaultImg_%u_%u", nodeId, s_keyseq++);
+    plString keyName = plString::Format("VaultImg_%u_%u", nodeId, s_keyseq++);
 
     plKey key = hsgResMgr::ResMgr()->NewKey(keyName, mipmap, plLocation::kGlobalFixedLoc);
 
@@ -171,6 +170,8 @@ PyObject* pyVaultImageNode::Image_GetImage( void )
             else
                 fMipmapKey->RefObject();
         }
+        else
+            PYTHON_RETURN_NONE;
     }
     
     return pyImage::New(fMipmap);   

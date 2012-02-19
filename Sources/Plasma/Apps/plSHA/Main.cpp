@@ -39,48 +39,32 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/NucleusLib/pnSqlLib/Private/pnSqlUtil.h
-*   
-***/
 
-#ifdef PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNSQLLIB_PRIVATE_PNSQLUTIL_H
-#error "Header $/Plasma20/Sources/Plasma/NucleusLib/pnSqlLib/Private/pnSqlUtil.h included more than once"
-#endif
-#define PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNSQLLIB_PRIVATE_PNSQLUTIL_H
+#include "pnProduct/pnProduct.h"
+#include "pnEncryption/plChecksum.h"
 
+#include <stdio.h>
 
-/*****************************************************************************
-*
-*   SqlUtil API
-*
-***/
+int main (int argc, char** argv) {
 
-void SqlConnBindParameterInputGuid (
-    SqlStmt *       stmt,
-    Uuid *          uuid,
-    SQLINTEGER *    uuidLen
-);
-void SqlConnBindParameterOutputGuid (
-    SqlStmt *       stmt,
-    Uuid *          uuid,
-    SQLINTEGER *    uuidLen
-);
-void SqlConnBindParameterBigInt (
-    SqlStmt *       stmt,
-    SQLINTEGER      inputOutputType,
-    SQLBIGINT *     parameterValuePtr,
-    SQLINTEGER *    indPtr
-);
-bool SqlConnGetBlobData (
-    SqlStmt *       stmt,
-    unsigned        colIndex,
-    ARRAY(uint8_t) *   buffer,
-    unsigned *      bytesAdded
-);
-int SqlConnPutBlobData (
-    SqlStmt *   stmt,
-    unsigned    bytes,
-    const uint8_t  data[]
-);
+    if (argc < 2) {
+        fprintf(stderr, "ERROR: Please specify filename.\n");
+        return 1;
+    }
+
+    plSHAChecksum sha(argv[1]);
+    if (!sha.IsValid()) {
+        fprintf(stderr, "ERROR: SHA failed.\n");
+        return 1;
+    }
+
+    plSHA1Checksum sha1(argv[1]);
+    if (!sha1.IsValid()) {
+        fprintf(stderr, "ERROR: SHA1 failed.\n");
+        return 1;
+    }
+
+    fprintf(stdout, "%s\tSHA\n", sha.GetAsHexString());
+    fprintf(stdout, "%s\tSHA1\n", sha1.GetAsHexString());
+    return 0;
+}

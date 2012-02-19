@@ -44,7 +44,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "resource.h"
 #include "plComponent.h"
 #include "plComponentReg.h"
-#include "plMath/plRandom.h"
+#include "pnEncryption/plRandom.h"
 #include "plObjectFlockerComponent.h"
 #include "pnKeyedObject/plUoid.h"
 #include "MaxMain/plMaxNode.h"
@@ -271,7 +271,7 @@ hsBool plObjectFlockerComponent::PreConvert(plMaxNode *node, plErrorMsg *pErrMsg
 
 hsBool plObjectFlockerComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
 {
-    node->AddModifier(fFlocker, nil);
+    node->AddModifier(fFlocker, plString::Null);
 
     return true;
 }

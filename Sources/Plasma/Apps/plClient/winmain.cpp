@@ -65,6 +65,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plResMgr/plLocalization.h"
 #include "plFile/plEncryptedStream.h"
 
+#include "pnEncryption/plChallengeHash.h"
+
 #include "plStatusLog/plStatusLog.h"
 #include "pnProduct/pnProduct.h"
 #include "plNetGameLib/plNetGameLib.h"
@@ -936,16 +938,13 @@ BOOL CALLBACK UruTOSDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
             hsUNIXStream stream;
             if (stream.Open("TOS.txt", "rt"))
             {
-                char* eulaData = NULL;
-                unsigned dataLen = stream.GetSizeLeft();
-
-                eulaData = new char[dataLen + 1];
-                ZeroMemory(eulaData, dataLen + 1);
-
+                uint32_t dataLen = stream.GetSizeLeft();
+                char* eulaData = new char[dataLen + 1];
+                memset(eulaData, 0, dataLen + 1);
                 stream.Read(dataLen, eulaData);
 
-                SetDlgItemText(hwndDlg, IDC_URULOGIN_EULATEXT, eulaData);
-                delete [] eulaData;
+                plString str = plString::Steal(eulaData);
+                SetDlgItemTextW(hwndDlg, IDC_URULOGIN_EULATEXT, _TEMP_CONVERT_TO_WCHAR_T(str));
             }
             else // no TOS found, go ahead
                 EndDialog(hwndDlg, true);
@@ -989,21 +988,14 @@ static void SaveUserPass (LoginDialogParam *pLoginParam, char *password)
         PathSplitEmail(wusername, nil, 0, domain, arrsize(domain), nil, 0, nil, 0, 0);
 
         if (StrLen(domain) == 0 || StrCmpI(domain, L"gametap") == 0) {
-            CryptDigest(
-                kCryptSha1,
-                &pLoginParam->namePassHash,
-                StrLen(password) * sizeof(password[0]),
-                password
-                );
+            plSHA1Checksum shasum(StrLen(password) * sizeof(password[0]), (uint8_t*)password);
 
-                pLoginParam->namePassHash.data[0] = hsToBE32(pLoginParam->namePassHash.data[0]);
-                pLoginParam->namePassHash.data[1] = hsToBE32(pLoginParam->namePassHash.data[1]);
-                pLoginParam->namePassHash.data[2] = hsToBE32(pLoginParam->namePassHash.data[2]);
-                pLoginParam->namePassHash.data[3] = hsToBE32(pLoginParam->namePassHash.data[3]);
-                pLoginParam->namePassHash.data[4] = hsToBE32(pLoginParam->namePassHash.data[4]);
+            memcpy(pLoginParam->namePassHash, shasum.GetValue(), sizeof(ShaDigest));
         }
         else
-            CryptHashPassword(wusername, wpassword, &pLoginParam->namePassHash);
+        {
+            CryptHashPassword(_TEMP_CONVERT_FROM_WCHAR_T(wusername), _TEMP_CONVERT_FROM_WCHAR_T(wpassword), pLoginParam->namePassHash);
+        }
     }
 
     NetCommSetAccountUsernamePassword(wusername, pLoginParam->namePassHash);
@@ -1029,7 +1021,7 @@ static void SaveUserPass (LoginDialogParam *pLoginParam, char *password)
         stream->WriteSafeString(pLoginParam->username);
         stream->Writebool(pLoginParam->remember);
         if (pLoginParam->remember)
-            stream->Write(sizeof(pLoginParam->namePassHash.data), pLoginParam->namePassHash.data);
+            stream->Write(sizeof(pLoginParam->namePassHash), pLoginParam->namePassHash);
         stream->Close();
         delete stream;
     }
@@ -1076,7 +1068,7 @@ static void LoadUserPass (LoginDialogParam *pLoginParam)
 
             if (pLoginParam->remember)
             {
-                stream->Read(sizeof(pLoginParam->namePassHash.data), pLoginParam->namePassHash.data);
+                stream->Read(sizeof(pLoginParam->namePassHash), pLoginParam->namePassHash);
                 pLoginParam->focus = IDOK;
             }
             else
@@ -1129,8 +1121,8 @@ void StatusCallback(void *param)
         }
     }
 
-    delete [] statusUrl;
     curl_easy_cleanup(hCurl);
+    delete [] statusUrl;
 
     s_statusEvent.Signal();
 }
