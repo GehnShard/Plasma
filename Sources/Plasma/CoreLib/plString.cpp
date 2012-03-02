@@ -48,6 +48,23 @@ static inline size_t u16slen(const uint16_t *ustr, size_t max)
 }
 #endif
 
+/* Provide strnlen and wcsnlen for MinGW which doesn't have them */
+#ifdef __MINGW32__
+size_t strnlen(const char *s, size_t maxlen)
+{
+    size_t len;
+    for (len = 0; len < maxlen && *s; len++, s++) { }
+    return len;
+}
+
+size_t wcsnlen(const wchar_t *s, size_t maxlen)
+{
+    size_t len;
+    for (len = 0; len < maxlen && *s; len++, s++) { }
+    return len;
+}
+#endif
+
 #define BADCHAR_REPLACEMENT (0xFFFDul)
 
 void plString::IConvertFromUtf8(const char *utf8, size_t size, bool steal)
@@ -145,11 +162,11 @@ void plString::IConvertFromUtf16(const uint16_t *utf16, size_t size)
             *dp++ = 0x80 | ((unichar >>  6) & 0x3F);
             *dp++ = 0x80 | ((unichar      ) & 0x3F);
         } else if (*sp > 0x7FF) {
-            *dp++ = 0xF0 | ((*sp >> 12) & 0x0F);
+            *dp++ = 0xE0 | ((*sp >> 12) & 0x0F);
             *dp++ = 0x80 | ((*sp >>  6) & 0x3F);
             *dp++ = 0x80 | ((*sp      ) & 0x3F);
         } else if (*sp > 0x7F) {
-            *dp++ = 0xF0 | ((*sp >>  6) & 0x1F);
+            *dp++ = 0xC0 | ((*sp >>  6) & 0x1F);
             *dp++ = 0x80 | ((*sp      ) & 0x3F);
         } else {
             *dp++ = (char)(*sp);
@@ -210,11 +227,11 @@ void plString::IConvertFromWchar(const wchar_t *wstr, size_t size)
             *dp++ = 0x80 | ((*sp >>  6) & 0x3F);
             *dp++ = 0x80 | ((*sp      ) & 0x3F);
         } else if (*sp > 0x7FF) {
-            *dp++ = 0xF0 | ((*sp >> 12) & 0x0F);
+            *dp++ = 0xE0 | ((*sp >> 12) & 0x0F);
             *dp++ = 0x80 | ((*sp >>  6) & 0x3F);
             *dp++ = 0x80 | ((*sp      ) & 0x3F);
         } else if (*sp > 0x7F) {
-            *dp++ = 0xF0 | ((*sp >>  6) & 0x1F);
+            *dp++ = 0xC0 | ((*sp >>  6) & 0x1F);
             *dp++ = 0x80 | ((*sp      ) & 0x3F);
         } else {
             *dp++ = (char)(*sp);
