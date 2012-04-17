@@ -829,11 +829,6 @@ int __stdcall WinMain (
         // downloaded patcher that needs to be copied over to the "real" exe.. so do that,
         // exec it, and exit.
         if (isTempPatcher) {
-            // As a special one-time hack, we want to erase the old login.dat on our patch run.
-            wchar_t login_dat[MAX_PATH];
-            PathGetInitDirectory(login_dat, arrsize(login_dat));
-            PathAddFilename(login_dat, login_dat, L"login.dat", arrsize(login_dat));
-            PathDeleteFile(login_dat);
 //          MessageBox(nil, "Replacing patcher file", "Msg", MB_OK);
         
             // Wait for the other process to exit
