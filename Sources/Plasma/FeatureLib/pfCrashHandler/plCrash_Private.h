@@ -39,16 +39,33 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/NucleusLib/pnSimpleNet/Pch.h
-*   
-***/
 
-#ifdef PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNSIMPLENET_PCH_H
-#error "Header $/Plasma20/Sources/Plasma/NucleusLib/pnSimpleNet/Pch.h included more than once"
+#ifndef _pfCrash_Private_h_
+#define _pfCrash_Private_h_
+
+#include "HeadSpin.h"
+
+#define CRASH_NOTIFY_SUFFIX "CrashNotify"
+#define CRASH_HANDLE_SUFFIX "CrashHandled"
+
+#ifdef HS_BUILD_FOR_WIN32
+#   ifdef PLASMA_EXTERNAL_RELEASE
+#       define CRASH_HANDLER_EXE "UruCrashHandler.exe"
+#   else
+#       define CRASH_HANDLER_EXE "plCrashHandler.exe"
+#   endif // PLASMA_EXTERNAL_RELEASE
+#endif // HS_BUILD_FOR_WIN32
+
+struct plCrashMemLink
+{
+    bool fCrashed;
+    bool fSrvReady;
+#ifdef HS_BUILD_FOR_WIN32
+    HANDLE   fClientProcess;
+    uint32_t fClientProcessID;
+    uint32_t fClientThreadID;
+    PEXCEPTION_POINTERS fExceptionPtrs;
 #endif
-#define PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNSIMPLENET_PCH_H
+};
 
-
-#include "pnSimpleNet.h"
+#endif // _pfCrash_Private_h_

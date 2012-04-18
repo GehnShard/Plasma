@@ -39,25 +39,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/NucleusLib/pnUtils/Private/pnUtMath.cpp
-*   
-***/
 
-#include "pnUtMath.h"
+#ifndef _pnCrashCommon_h_
+#define _pnCrashCommon_h_
 
+#include "HeadSpin.h"
 
-/*****************************************************************************
-*
-*   Exported bit manipulation functions
-*
-***/
+struct plCrashLink
+{
+};
 
-//===========================================================================
-
-unsigned MathHighBitPos (uint32_t val) {
-    ASSERT(val);
-    double f = (double)val;
-    return (*((uint32_t *)&f + 1) >> 20) - 1023;
-}
+#endif // _pnCrashCommon_h_

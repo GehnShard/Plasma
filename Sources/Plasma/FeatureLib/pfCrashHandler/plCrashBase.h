@@ -39,44 +39,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/NucleusLib/pnUtils/Private/pnUtTls.cpp
-*   
-***/
 
-#include "pnUtTls.h"
+#ifndef _pfCrashBase_h_
+#define _pfCrashBase_h_
 
+#include "hsThread.h"
 
-/*****************************************************************************
-*
-*   Exports
-*
-***/
+class plCrashBase
+{
+protected:
+    hsSemaphore* fCrashed;
+    hsSemaphore* fHandled;
 
-#ifdef HS_BUILD_FOR_WIN32
+    ~plCrashBase();
+    void IInit(const char* file);
+};
 
-//============================================================================
-void ThreadLocalAlloc (unsigned * id) {
-    ASSERT(id);
-    *id = TlsAlloc();
-}
-
-//============================================================================
-void ThreadLocalFree (unsigned id) {
-    (void)TlsFree(id);
-}
-
-//============================================================================
-void * ThreadLocalGetValue (unsigned id) {
-    return TlsGetValue(id);
-}
-
-//============================================================================
-void ThreadLocalSetValue (unsigned id, void * value) {
-    TlsSetValue(id, value);
-}
-
-#else
-# error "TLS not implemented for this platform"
-#endif
+#endif // _pfCrashBase_h_

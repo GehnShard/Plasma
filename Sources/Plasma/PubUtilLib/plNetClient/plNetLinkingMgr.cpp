@@ -44,6 +44,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plNetCliAgeJoiner.h"
 #include "plNetCliAgeLeaver.h"
 
+#include <list>
+
 #include "plNetTransport/plNetTransportMember.h"        // OfferLinkToPlayer()
 
 #include "plgDispatch.h"
@@ -70,8 +72,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *
 ***/
 
-struct NlmOpNode;
-
 enum ENlmOp {
     kNlmOpNoOp,
     kNlmOpWaitOp,
@@ -82,7 +82,6 @@ enum ENlmOp {
 
 struct NlmOp {
     ENlmOp  opcode;
-    NlmOpNode * node;
     NlmOp (const ENlmOp & op)
     : opcode(op)
     { }
@@ -114,12 +113,6 @@ struct NlmLeaveAgeOp : NlmOp {
     { }
 };
 
-struct NlmOpNode {
-    LINK(NlmOpNode) link;
-    NlmOp *         op;
-    ~NlmOpNode () { delete op; }
-};
-    
 
 /*****************************************************************************
 *
@@ -129,7 +122,7 @@ struct NlmOpNode {
 
 static plNCAgeJoiner *              s_ageJoiner;
 static plNCAgeLeaver *              s_ageLeaver;
-static LISTDECL(NlmOpNode, link)    s_oplist;
+static std::list<NlmOp*>            s_opqueue;
 
 
 /*****************************************************************************
@@ -140,10 +133,11 @@ static LISTDECL(NlmOpNode, link)    s_oplist;
 
 //============================================================================
 static void QueueOp (NlmOp * op, bool front = false) {
-    NlmOpNode * node = NEWZERO(NlmOpNode);
-    node->op = op;
-    op->node = node;
-    s_oplist.Link(node, front ? kListHead : kListTail);
+    if (front) {
+        s_opqueue.push_front(op);
+    } else {
+        s_opqueue.push_back(op);
+    }
 }
 
 
@@ -165,11 +159,9 @@ void plNetLinkingMgr::NCAgeJoinerCallback (
     // Tell the user we failed to link.
     // In the future, we might want to try graceful recovery (link back to Relto?)
     if (!params->success) {
-        plNetClientMgr::StaticErrorMsg(params->msg);
-        hsMessageBox(params->msg, "Linking Error", hsMessageBoxNormal, hsMessageBoxIconError);
+        plNetClientApp::GetInstance()->ErrorMsg(params->msg);
 #ifdef PLASMA_EXTERNAL_RELEASE
-        plClientMsg* clientMsg = new plClientMsg(plClientMsg::kQuit);
-        clientMsg->Send(hsgResMgr::ResMgr()->FindKey(kClient_KEY));
+        plNetClientApp::GetInstance()->QueueDisableNet(true, params->msg);
 #endif
         return;
     }
@@ -186,8 +178,10 @@ void plNetLinkingMgr::NCAgeJoinerCallback (
             lm->SetEnabled(true);
             
             // Pull our wait op off exec queue
-            if (NlmOpWaitOp * waitOp = (NlmOpWaitOp *) userState)
-                delete waitOp->node;
+            if (NlmOpWaitOp * waitOp = (NlmOpWaitOp *) userState) {
+                s_opqueue.remove(waitOp);
+                delete waitOp;
+            }
         }
         break;
         
@@ -208,8 +202,10 @@ void plNetLinkingMgr::NCAgeLeaverCallback (
             s_ageLeaver = nil;
 
             // Pull our wait op off exec queue
-            if (NlmOpWaitOp * waitOp = (NlmOpWaitOp *) userState)
-                delete waitOp->node;
+            if (NlmOpWaitOp * waitOp = (NlmOpWaitOp *) userState) {
+                s_opqueue.remove(waitOp);
+                delete waitOp;
+            }
         }
         break;
         
@@ -221,28 +217,27 @@ void plNetLinkingMgr::NCAgeLeaverCallback (
 void plNetLinkingMgr::ExecNextOp () {
     plNetLinkingMgr * lm = plNetLinkingMgr::GetInstance();
 
-    NlmOpNode * opNode = s_oplist.Head();
-    if (!opNode)
+    if (!s_opqueue.size())
         return;
-        
-    switch (opNode->op->opcode) {
-        case kNlmOpNoOp: {
-        }
-        break;
-        
-        case kNlmOpWaitOp: {
-        }
-        return; // don't allow wait op to be unlinked/deleted from list
-        
+
+    NlmOp* op = s_opqueue.front();
+
+    switch (op->opcode) {
+        case kNlmOpNoOp:
+            break;
+
+        case kNlmOpWaitOp:
+            return; // don't allow wait op to be unlinked/deleted from list
+
         case kNlmOpJoinAgeOp: {
             ASSERT(!s_ageJoiner);
             ASSERT(!s_ageLeaver);
-            
+
             // Insert a wait operation into the exec queue
             NlmOpWaitOp * waitOp = NEWZERO(NlmOpWaitOp);
             QueueOp(waitOp, true);
-            
-            NlmJoinAgeOp * joinAgeOp = (NlmJoinAgeOp *) opNode->op;
+
+            NlmJoinAgeOp * joinAgeOp = (NlmJoinAgeOp *)op;
             NCAgeJoinerCreate(
                 &s_ageJoiner,
                 joinAgeOp->age,
@@ -251,7 +246,7 @@ void plNetLinkingMgr::ExecNextOp () {
             );
         }
         break;
-        
+
         case kNlmOpLeaveAgeOp: {
             ASSERT(!s_ageJoiner);
             ASSERT(!s_ageLeaver);
@@ -263,7 +258,7 @@ void plNetLinkingMgr::ExecNextOp () {
             lm->SetEnabled(false);
             lm->fLinkedIn = false;
 
-            NlmLeaveAgeOp * leaveAgeOp = (NlmLeaveAgeOp *) opNode->op;
+            NlmLeaveAgeOp * leaveAgeOp = (NlmLeaveAgeOp *)op;
             NCAgeLeaverCreate(
                 &s_ageLeaver,
                 leaveAgeOp->quitting,
@@ -273,8 +268,9 @@ void plNetLinkingMgr::ExecNextOp () {
         }
         break;
     }
-    
-    delete opNode;
+
+    s_opqueue.remove(op);
+    delete op;
 }
 
 

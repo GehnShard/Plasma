@@ -39,29 +39,22 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/NucleusLib/pnUtils/Private/pnUtRand.h
-*   
-***/
 
-#ifndef PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNUTILS_PRIVATE_PNUTRAND_H
-#define PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNUTILS_PRIVATE_PNUTRAND_H
+#include "plCrashBase.h"
+#include "plCrash_Private.h"
 
-#include "Pch.h"
+plCrashBase::~plCrashBase()
+{
+    delete fCrashed;
+    delete fHandled;
+}
 
-/*****************************************************************************
-*
-*   Psuedo-random number generator
-*
-***/
+void plCrashBase::IInit(const char* file)
+{
+    char sema[128];
+    snprintf(sema, arrsize(sema), "%s-%s", file, CRASH_NOTIFY_SUFFIX);
+    fCrashed = new hsSemaphore(0, sema);
 
-const uint32_t kRandomMax = 0x7fffffff;
-
-void     RandReset ();
-void     RandSetSeed (unsigned seed);
-float    RandFloat ();
-float    RandFloat (float minVal, float maxVal);
-unsigned RandUnsigned ();
-unsigned RandUnsigned (unsigned minVal, unsigned maxVal);
-#endif
+    snprintf(sema, arrsize(sema), "%s-%s", file, CRASH_HANDLE_SUFFIX);
+    fHandled = new hsSemaphore(0, sema);
+}
