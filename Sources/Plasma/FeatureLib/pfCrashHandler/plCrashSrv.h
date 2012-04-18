@@ -39,34 +39,30 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/NucleusLib/pnUtils/Private/pnUtTls.h
-*   
-***/
 
-#ifndef PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNUTILS_PRIVATE_PNUTTLS_H
-#define PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNUTILS_PRIVATE_PNUTTLS_H
+#ifndef _pfCrashSrv_h_
+#define _pfCrashSrv_h_
 
-#include "Pch.h"
+#include "HeadSpin.h"
+#include "plCrashBase.h"
 
-/*****************************************************************************
-*
-*   Thread local storage functions
-*
-***/
+struct plCrashMemLink;
 
-const unsigned kTlsInvalidValue = (unsigned) -1;
+class plCrashSrv : public plCrashBase
+{
+    plCrashMemLink* fLink;
 
-void ThreadLocalAlloc (unsigned * id);
-void ThreadLocalFree (unsigned id);
-void * ThreadLocalGetValue (unsigned id);
-void ThreadLocalSetValue (unsigned id, void * value);
-
-
-// Thread capability functions - prevents deadlocks and performance
-// bottlenecks by disallowing some threads certain operations.
-void ThreadAllowBlock ();
-void ThreadDenyBlock ();
-void ThreadAssertCanBlock (const char file[], int line);
+#ifdef HS_BUILD_FOR_WIN32
+    HANDLE fLinkH;
 #endif
+
+    void IHandleCrash();
+
+public:
+    plCrashSrv(const char* file);
+    ~plCrashSrv();
+
+    void HandleCrash();
+};
+
+#endif // _pfCrashSrv_h_

@@ -39,30 +39,32 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/NucleusLib/pnNetDiag/Pch.h
-*   
-***/
 
-#ifdef PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNNETDIAG_PCH_H
-#error "Header $/Plasma20/Sources/Plasma/NucleusLib/pnNetDiag/Pch.h included more than once"
+#ifndef _pfCrashCli_h_
+#define _pfCrashCli_h_
+
+#include "HeadSpin.h"
+#include "plCrashBase.h"
+
+struct plCrashMemLink;
+
+class plCrashCli : public plCrashBase
+{
+    plCrashMemLink* fLink;
+
+#ifdef HS_BUILD_FOR_WIN32
+    PROCESS_INFORMATION fCrashSrv;
+    HANDLE fLinkH;
 #endif
-#define PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNNETDIAG_PCH_H
 
-#include "pnUtils/pnUtils.h"
-#include "pnNetBase/pnNetBase.h"
-#include "pnAsyncCore/pnAsyncCore.h"
-#include "pnProduct/pnProduct.h"
-#include "pnNetCli/pnNetCli.h"
+public:
+    plCrashCli();
+    ~plCrashCli();
 
-#define USES_PROTOCOL_CLI2AUTH
-#define USES_PROTOCOL_CLI2FILE
-#include "pnNetProtocol/pnNetProtocol.h"
+#ifdef HS_BUILD_FOR_WIN32
+    void ReportCrash(PEXCEPTION_POINTERS);
+#endif
+    void WaitForHandle();
+};
 
-#include "pnNetDiag.h"
-#include "Intern.h"
-
-#include <process.h>
-#include <IPExport.h>
-#include <IPTypes.h>
+#endif // _pfCrashCli_h_

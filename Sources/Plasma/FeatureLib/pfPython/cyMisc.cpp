@@ -648,11 +648,11 @@ time_t cyMisc::ConvertGMTtoDni(time_t gtime)
     plUnifiedTime utime = plUnifiedTime();
     utime.SetSecs(dtime);
     // check for daylight savings time in New Mexico and adjust
-    if ( utime.GetMonth() >= 3 && utime.GetMonth() < 11 )
+    if ( utime.GetMonth() >= 3 && utime.GetMonth() <= 11 )
     {
         plUnifiedTime dstStart = plUnifiedTime();
-        dstStart.SetGMTime(utime.GetYear(),3,7,2,0,0);
-        // find first Sunday after 3/7 (second Sunday of March)
+        dstStart.SetGMTime(utime.GetYear(),3,8,2,0,0);
+        // find first Sunday after (including) 3/8 (second Sunday of March)
         int days_to_go = 7 - dstStart.GetDayOfWeek();
         if (days_to_go == 7)
             days_to_go = 0;
@@ -660,13 +660,13 @@ time_t cyMisc::ConvertGMTtoDni(time_t gtime)
 
         plUnifiedTime dstEnd = plUnifiedTime();
         dstEnd.SetGMTime(utime.GetYear(),11,1,1,0,0);
-        // find first sunday after 11/1 (first Sunday of November)
+        // find first sunday after (including) 11/1 (first Sunday of November)
         days_to_go = 7 - dstEnd.GetDayOfWeek();
         if (days_to_go == 7)
             days_to_go = 0;
         time_t dstEndSecs = dstEnd.GetSecs() + days_to_go * kOneDay;
 
-        if ( dtime > dstStartSecs && dtime < dstEndSecs )
+        if ( dtime >= dstStartSecs && dtime < dstEndSecs )
             // add hour for daylight savings time
             dtime += kOneHour;
     }
@@ -719,6 +719,13 @@ void cyMisc::ExcludeRegionSetNow(pyKey& sender, pyKey& exKey, uint16_t state)
     msg->AddReceiver(exKey.getKey());
     msg->fSynchFlags = plSynchedObject::kSendImmediately;
     plgDispatch::MsgSend( msg );    // whoosh... off it goes
+}
+
+void cyMisc::FlashWindow()
+{
+    plKey clientKey   = hsgResMgr::ResMgr()->FindKey(kClient_KEY);
+    plClientMsg* pMsg = new plClientMsg(plClientMsg::kFlashWindow);
+    pMsg->Send(clientKey);          // whoosh... off it goes
 }
 
 #include "hsTimer.h"

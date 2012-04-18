@@ -39,72 +39,34 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/NucleusLib/pnUtilsExe/Private/pnUteTls.cpp
-*   
-***/
 
-#include "../Pch.h"
-#pragma hdrstop
+#include "HeadSpin.h"
+#include "pfCrashHandler/plCrashSrv.h"
+#include "pnUtils/pnUtils.h"
 
-#if HS_BUILD_FOR_WIN32
+enum
+{
+    kArgMemFile
+};
 
-/*****************************************************************************
-*
-*   Private data
-*
-***/
+static const CmdArgDef s_cmdLineArgs[] = 
+{
+    { (kCmdArgRequired | kCmdTypeString), nil, kArgMemFile },
+};
 
-static unsigned s_tlsNoBlock = kTlsInvalidValue;
-
-
-/*****************************************************************************
-*
-*   Local functions
-*
-***/
-
-//============================================================================
-static void ThreadCapsInitialize () {
-    ThreadLocalAlloc(&s_tlsNoBlock);
-}
-
-//============================================================================
-static void ThreadCapsDestroy () {
-    if (s_tlsNoBlock != kTlsInvalidValue) {
-        ThreadLocalFree(s_tlsNoBlock);
-        s_tlsNoBlock = kTlsInvalidValue;
+int main(int argc, char* argv[])
+{
+    // Parse command line arguments. We MUST have the file argument
+    CCmdParser cmdParser(s_cmdLineArgs, arrsize(s_cmdLineArgs));
+    if (!cmdParser.Parse())
+    {
+        hsMessageBox("You should never run this manually.", "Error", hsMessageBoxNormal, hsMessageBoxIconExclamation);
+        return 1;
     }
+
+    char* file = hsWStringToString(cmdParser.GetString(kArgMemFile));
+    plCrashSrv srv(file);
+    delete[] file;
+    srv.HandleCrash();
+    return 0;
 }
-
-//============================================================================
-AUTO_INIT_FUNC(InitThreadCaps) {
-    ThreadCapsInitialize();
-    atexit(ThreadCapsDestroy);
-}
-
-
-/*****************************************************************************
-*
-*   Exports
-*
-***/
-
-//============================================================================
-void ThreadAllowBlock () {
-    ThreadLocalSetValue(s_tlsNoBlock, (void *) false);
-}
-
-//============================================================================
-void ThreadDenyBlock () {
-    ThreadLocalSetValue(s_tlsNoBlock, (void *) true);
-}
-
-//============================================================================
-void ThreadAssertCanBlock (const char file[], int line) {
-    if (ThreadLocalGetValue(s_tlsNoBlock))
-        ErrorAssert(line, file, "This thread may not block");
-}
-
-#endif

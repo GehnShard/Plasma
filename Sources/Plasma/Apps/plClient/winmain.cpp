@@ -49,6 +49,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
     #include <dmdfm.h>      // Windows Load EXE into memory suff
 #endif
 
+#ifdef HAVE_SSE
+#   include <intrin.h>
+#endif
+
 #include <curl/curl.h>
 
 #include "HeadSpin.h"
@@ -56,6 +60,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "plClient.h"
 #include "plClientResMgr/plClientResMgr.h"
+#include "pfCrashHandler/plCrashCli.h"
 #include "plNetClient/plNetClientMgr.h"
 #include "plNetClient/plNetLinkingMgr.h"
 #include "plInputCore/plInputManager.h"
@@ -92,6 +97,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 // Globals
 //
 hsBool gHasMouse = false;
+ITaskbarList3* gTaskbarList = nil; // NT 6.1+ taskbar stuff
 
 extern hsBool gDataServerLocal;
 
@@ -119,8 +125,13 @@ plClient        *gClient;
 bool            gPendingActivate = false;
 bool            gPendingActivateFlag = false;
 
+#ifndef HS_DEBUGGING
+static plCrashCli s_crash;
+#endif
+
 static bool     s_loginDlgRunning = false;
-static CEvent   s_statusEvent(kEventManualReset);
+static hsSemaphore      s_statusEvent(0);   // Start non-signalled
+static UINT     s_WmTaskbarList = RegisterWindowMessage("TaskbarButtonCreated");
 
 FILE *errFP = nil;
 HINSTANCE               gHInst = NULL;      // Instance of this app
@@ -361,7 +372,7 @@ void DebugMsgF(const char* format, ...);
 
 // Handles all the windows messages we might receive
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{   
+{ 
     static bool gDragging = false;
     static uint32_t keyState=0;
 
@@ -401,12 +412,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     gClient->GetInputManager()->HandleWin32ControlEvent(message, wParam, lParam, hWnd);
                 }
             }
-            break;
+            return TRUE;
 
 #if 0
         case WM_KILLFOCUS:
             SetForegroundWindow(hWnd);
-            break;
+            return TRUE;
 #endif
 
         case WM_SYSKEYUP:
@@ -418,7 +429,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
                 //DefWindowProc(hWnd, message, wParam, lParam);
             }
-            break;
+            return TRUE;
             
         case WM_SYSCOMMAND:
             switch (wParam) {
@@ -434,9 +445,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     if (plNetClientMgr * mgr = plNetClientMgr::GetInstance())
                         mgr->QueueDisableNet(false, nil);
                     DestroyWindow(gClient->GetWindowHandle());
-                    break;
+                    return TRUE;
             }
-            break;
+            return TRUE;
 
         case WM_ACTIVATE:
             {
@@ -477,7 +488,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     gPendingActivateFlag = active;
                 }
             }
-            break;
+            return TRUE;
 
         // Let go of the mouse if the window is being moved.
         case WM_ENTERSIZEMOVE:
@@ -485,7 +496,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             gDragging = true;
             if( gClient )
                 gClient->WindowActivate(false);
-            break;
+            return TRUE;
 
         // Redo the mouse capture if the window gets moved
         case WM_EXITSIZEMOVE:
@@ -493,7 +504,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             gDragging = false;
             if( gClient )
                 gClient->WindowActivate(true);
-            break;
+            return TRUE;
 
         // Redo the mouse capture if the window gets moved (special case for Colin
         // and his cool program that bumps windows out from under the taskbar)
@@ -505,7 +516,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             else
                 DebugMsgF("Got WM_MOVE, but ignoring");
-            break;
+            return TRUE;
 
         /// Resize the window
         // (we do WM_SIZING here instead of WM_SIZE because, for some reason, WM_SIZE is
@@ -520,7 +531,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 ::GetClientRect(hWnd, &r);
                 gClient->GetPipeline()->Resize(r.right - r.left, r.bottom - r.top);
             }
-            break;
+            return TRUE;
 
         case WM_SIZE:
             // Let go of the mouse if the window is being minimized
@@ -537,7 +548,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 if (gClient)
                     gClient->WindowActivate(true);
             }
-            break;
+            return TRUE;
         
         case WM_CLOSE:
             gClient->SetDone(TRUE);
@@ -553,9 +564,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             return TRUE;
         case WM_CREATE:
             // Create renderer
-            break;
+            return TRUE;
     }
-   return DefWindowProc(hWnd, message, wParam, lParam);
+
+    // Messages we registered for manually (no const value)
+    if (message == s_WmTaskbarList)
+    {
+        // Grab the Windows 7 taskbar list stuff
+        if (gTaskbarList)
+            gTaskbarList->Release();
+        HRESULT result = CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_ALL, IID_ITaskbarList3, (void**)&gTaskbarList);
+        if (FAILED(result))
+            gTaskbarList = nil;
+        return TRUE;
+    }
+    else
+        return DefWindowProc(hWnd, message, wParam, lParam);
 }
  
 void    PumpMessageQueueProc( void )
@@ -1109,7 +1133,7 @@ void StatusCallback(void *param)
 {
     HWND hwnd = (HWND)param;
 
-    char *statusUrl = hsWStringToString(GetServerStatusUrl());
+    const char *statusUrl = GetServerStatusUrl();
     CURL *hCurl = curl_easy_init();
 
     // For reporting errors
@@ -1133,9 +1157,8 @@ void StatusCallback(void *param)
     }
 
     curl_easy_cleanup(hCurl);
-    delete [] statusUrl;
 
-    s_statusEvent.Signal();
+    s_statusEvent.Signal(); // Signal the semaphore
 }
 
 BOOL CALLBACK UruLoginDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam )
@@ -1174,6 +1197,12 @@ BOOL CALLBACK UruLoginDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM
             StrToAnsi(windowName, productString, arrsize(windowName));
             SendMessage(GetDlgItem(hwndDlg, IDC_PRODUCTSTRING), WM_SETTEXT, 0, (LPARAM) windowName);
 
+            for (int i = 0; i < plLocalization::GetNumLocales(); i++)
+            {
+                SendMessage(GetDlgItem(hwndDlg, IDC_LANGUAGE), CB_ADDSTRING, 0, (LPARAM)plLocalization::GetLanguageName((plLocalization::Language)i));
+            }
+            SendMessage(GetDlgItem(hwndDlg, IDC_LANGUAGE), CB_SETCURSEL, (WPARAM)plLocalization::GetLanguage(), 0);
+
             SetTimer(hwndDlg, AUTH_LOGIN_TIMER, 10, NULL);
             return FALSE;
         }
@@ -1185,7 +1214,7 @@ BOOL CALLBACK UruLoginDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM
         case WM_DESTROY:
         {
             s_loginDlgRunning = false;
-            s_statusEvent.Wait(kEventWaitForever);
+            s_statusEvent.Wait();
             KillTimer(hwndDlg, AUTH_LOGIN_TIMER);
             return TRUE;
         }
@@ -1219,7 +1248,24 @@ BOOL CALLBACK UruLoginDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM
                     GetDlgItemText(hwndDlg, IDC_URULOGIN_PASSWORD, password, kMaxPasswordLength);
                     pLoginParam->remember = (IsDlgButtonChecked(hwndDlg, IDC_URULOGIN_REMEMBERPASS) == BST_CHECKED);
 
+                    plLocalization::Language new_language = (plLocalization::Language)SendMessage(GetDlgItem(hwndDlg, IDC_LANGUAGE), CB_GETCURSEL, 0, 0L);
+                    plLocalization::SetLanguage(new_language);
+
                     SaveUserPass (pLoginParam, password);
+
+                    // Welcome to HACKland, population: Branan
+                    // The code to write general.ini really doesn't belong here, but it works... for now.
+                    // When general.ini gets expanded, this will need to find a proper home somewhere.
+                    {
+                        wchar_t gipath[MAX_PATH];
+                        PathGetInitDirectory(gipath, arrsize(gipath));
+                        PathAddFilename(gipath, gipath, L"general.ini", arrsize(gipath));
+                        plString ini_str = plString::Format("App.SetLanguage %s\n", plLocalization::GetLanguageName(new_language));
+                        hsStream* gini = plEncryptedStream::OpenEncryptedFileWrite(gipath);
+                        gini->WriteString(ini_str);
+                        gini->Close();
+                        delete gini;
+                    }
 
                     memset(&pLoginParam->authError, 0, sizeof(pLoginParam->authError));
                     bool cancelled = AuthenticateNetClientComm(&pLoginParam->authError, hwndDlg);
@@ -1254,8 +1300,8 @@ BOOL CALLBACK UruLoginDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM
             }
             else if (HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == IDC_URULOGIN_GAMETAPLINK)
             {
-                const wchar_t *signupurl = GetServerSignupUrl();
-                ShellExecuteW(NULL, L"open", signupurl, NULL, NULL, SW_SHOWNORMAL);
+                const char* signupurl = GetServerSignupUrl();
+                ShellExecuteA(NULL, "open", signupurl, NULL, NULL, SW_SHOWNORMAL);
 
                 return TRUE;
             }
@@ -1314,102 +1360,48 @@ BOOL CALLBACK SplashDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
     return 0;
 }
 
-static char sStackTraceMsg[ 10240 ] = "";
-void printStackTrace( char* buffer, int bufferSize, unsigned long stackPtr = 0, unsigned long opPtr = 0 );
-//void StackTraceFromContext( HANDLE hThread, CONTEXT *context, char *outputBuffer );
-
 BOOL CALLBACK ExceptionDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam )
 {
     static char *sLastMsg = nil;
 
     switch( uMsg )
     {
-        case WM_INITDIALOG:
-            sLastMsg = (char *)lParam;
-            ::SetDlgItemText( hwndDlg, IDC_CRASHINFO, sLastMsg );
-            return true;
-
         case WM_COMMAND:
-            if( wParam == IDC_COPY && sLastMsg != nil )
-            {
-                HGLOBAL copyText = GlobalAlloc( GMEM_DDESHARE, sizeof( TCHAR ) * ( strlen( sLastMsg ) + 1 ) );
-                if( copyText != nil )
-                {
-                    LPTSTR  copyPtr = (LPTSTR)GlobalLock( copyText );
-                    memcpy( copyPtr, sLastMsg, ( strlen( sLastMsg ) + 1 ) * sizeof( TCHAR ) );
-                    GlobalUnlock( copyText );
-
-                    ::OpenClipboard( hwndDlg );
-                    ::EmptyClipboard();
-                    ::SetClipboardData( CF_TEXT, copyText );
-                    ::CloseClipboard();
-                }
-                return true;
-            }
-            else if( wParam == IDOK )
-                EndDialog( hwndDlg, IDOK );
-            else
-                break;
+            EndDialog( hwndDlg, IDOK );
     }
     return 0;
 }
 
-
+#ifndef HS_DEBUGGING
 LONG WINAPI plCustomUnhandledExceptionFilter( struct _EXCEPTION_POINTERS *ExceptionInfo )
 {
-    const char *type = nil;
-    switch( ExceptionInfo->ExceptionRecord->ExceptionCode )
-    {
-        case EXCEPTION_ACCESS_VIOLATION:            type = "Access violation"; break;
-        case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:       type = "Array bounds exceeded"; break;
-        case EXCEPTION_BREAKPOINT:                  type = "Breakpoint"; break;
-        case EXCEPTION_DATATYPE_MISALIGNMENT:       type = "Datatype misalignment"; break;
-        case EXCEPTION_FLT_DENORMAL_OPERAND:        type = "Floating operand denormal"; break;
-        case EXCEPTION_FLT_DIVIDE_BY_ZERO:          type = "Floating-point divide-by-zero"; break;
-        case EXCEPTION_FLT_INEXACT_RESULT:          type = "Floating-point inexact result"; break;
-        case EXCEPTION_FLT_INVALID_OPERATION:       type = "Floating-point invalid operation"; break;
-        case EXCEPTION_FLT_OVERFLOW:                type = "Floating-point overflow"; break;
-        case EXCEPTION_FLT_STACK_CHECK:             type = "Floating-point stack error"; break;
-        case EXCEPTION_FLT_UNDERFLOW:               type = "Floating-point underflow"; break;
-        case EXCEPTION_ILLEGAL_INSTRUCTION:         type = "Illegal instruction"; break;
-        case EXCEPTION_IN_PAGE_ERROR:               type = "Exception in page"; break;
-        case EXCEPTION_INT_DIVIDE_BY_ZERO:          type = "Integer divide-by-zero"; break;
-        case EXCEPTION_INT_OVERFLOW:                type = "Integer overflow"; break;
-        case EXCEPTION_INVALID_DISPOSITION:         type = "Invalid disposition"; break;
-        case EXCEPTION_NONCONTINUABLE_EXCEPTION:    type = "Noncontinuable exception"; break;
-        case EXCEPTION_PRIV_INSTRUCTION:            type = "Private instruction"; break;
-        case EXCEPTION_SINGLE_STEP:                 type = "Single-step"; break;
-        case EXCEPTION_STACK_OVERFLOW:              type = "Stack overflow"; break;
-    }
+    // Before we do __ANYTHING__, pass the exception to plCrashHandler
+    s_crash.ReportCrash(ExceptionInfo);
 
-    char prodName[256];
-    wchar_t productString[256];
-    ProductString(productString, arrsize(productString));
-    StrToAnsi(prodName, productString, arrsize(prodName));
+    // Now, try to create a nice exception dialog after plCrashHandler is done.
+    s_crash.WaitForHandle();
+    HWND parentHwnd = (gClient == nil) ? GetActiveWindow() : gClient->GetWindowHandle();
+    DialogBoxParam(gHInst, MAKEINTRESOURCE(IDD_EXCEPTION), parentHwnd, ExceptionDialogProc, NULL);
 
-    sprintf( sStackTraceMsg, "%s\r\nException type: %s\r\n", prodName, ( type != nil ) ? type : "(unknown)" );
-
-    printStackTrace( sStackTraceMsg, sizeof( sStackTraceMsg ), ExceptionInfo->ContextRecord->Ebp, (unsigned long)ExceptionInfo->ExceptionRecord->ExceptionAddress );
-
-    /// Print the info out to a log file as well
-    hsUNIXStream    log;
-    wchar_t fileAndPath[MAX_PATH];
-    PathGetLogDirectory(fileAndPath, arrsize(fileAndPath));
-    PathAddFilename(fileAndPath, fileAndPath, L"stackDump.log", arrsize(fileAndPath));
-    if( log.Open( fileAndPath, L"wt" ) )
-    {
-        log.WriteString( sStackTraceMsg );
-        log.Close();
-    }
-
-    /// Hopefully we can access this resource, even given the exception (i.e. very-bad-error) we just experienced
-    if(TGIsCider || (::DialogBoxParam( gHInst, MAKEINTRESOURCE( IDD_EXCEPTION ), ( gClient != nil ) ? gClient->GetWindowHandle() : nil,
-                            ExceptionDialogProc, (LPARAM)sStackTraceMsg ) == -1) )
-    {
-        // The dialog failed, so just fallback to a standard message box
-        hsMessageBox( sStackTraceMsg, "UruExplorer Exception", hsMessageBoxNormal );
-    }
+    // Trickle up the handlers
     return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
+
+bool CheckCPU()
+{
+    const unsigned int sse3_flag = 0x00000001;
+    // (any other CPU features...)
+
+    int cpu_info[4];
+    __cpuid(cpu_info, 1);
+#ifdef HAVE_SSE
+    if(cpu_info[2] & sse3_flag == 0)
+        return false;
+#endif
+    // Insert additional feature checks here
+
+    return true;
 }
 
 #include "pfConsoleCore/pfConsoleEngine.h"
@@ -1417,6 +1409,14 @@ PF_CONSOLE_LINK_ALL()
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow)
 {
+    // Check to make sure we have a good CPU before getting started
+    if (!CheckCPU())
+    {
+        plString msg = plString::Format("Your processor does not support all of the features required to play %S", ProductLongName());
+        hsMessageBox(msg.c_str(), "Error", hsMessageBoxNormal, hsMessageBoxIconError);
+        return PARABLE_NORMAL_EXIT;
+    }
+
     PF_CONSOLE_INIT_ALL()
 
     // Set global handle
@@ -1461,25 +1461,27 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
     memset(&si, 0, sizeof(si));
     memset(&pi, 0, sizeof(pi));
     si.cb = sizeof(si);
-    wchar_t cmdLine[MAX_PATH];
-    const wchar_t ** addrs;
+
+    plStringStream cmdLine;
+    const char** addrs;
     
     if (!eventExists) // if it is missing, assume patcher wasn't launched
     {
-        StrCopy(cmdLine, s_patcherExeName, arrsize(cmdLine));
+        cmdLine << _TEMP_CONVERT_FROM_WCHAR_T(s_patcherExeName);
+
         GetAuthSrvHostnames(&addrs);
-        if(wcslen(addrs[0]))
-            StrPrintf(cmdLine, arrsize(cmdLine), L"%ws /AuthSrv=%ws", cmdLine, addrs[0]);
+        if(strlen(addrs[0]))
+            cmdLine << plString::Format(" /AuthSrv=%s", addrs[0]);
 
         GetFileSrvHostnames(&addrs);
-        if(wcslen(addrs[0]))
-            StrPrintf(cmdLine, arrsize(cmdLine), L"%ws /FileSrv=%ws", cmdLine, addrs[0]);
+        if(strlen(addrs[0]))
+            cmdLine << plString::Format(" /FileSrv=%s", addrs[0]);
 
         GetGateKeeperSrvHostnames(&addrs);
-        if(wcslen(addrs[0]))
-            StrPrintf(cmdLine, arrsize(cmdLine), L"%ws /GateKeeperSrv=%ws", cmdLine, addrs[0]);
+        if(strlen(addrs[0]))
+            cmdLine << plString::Format(" /GateKeeperSrv=%s", addrs[0]);
 
-        if(!CreateProcessW(NULL, cmdLine, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+        if(!CreateProcessW(NULL, (LPWSTR)cmdLine.GetString().ToUtf16().GetData(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
         {
             hsMessageBox("Failed to launch patcher", "Error", hsMessageBoxNormal);
         }
@@ -1634,24 +1636,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
             fprintf(gDebugFile, "%s\n", prdName);
             fflush(gDebugFile);
         }
-    }
-
-    // log stackdump.log text if the log exists
-    char stackDumpText[1024];
-    wchar_t stackDumpTextW[1024]; 
-    memset(stackDumpText, 0, arrsize(stackDumpText));
-    memset(stackDumpTextW, 0, arrsize(stackDumpTextW) * sizeof(wchar_t));
-    wchar_t fileAndPath[MAX_PATH];
-    PathGetLogDirectory(fileAndPath, arrsize(fileAndPath));
-    PathAddFilename(fileAndPath, fileAndPath, L"stackDump.log", arrsize(fileAndPath));
-    FILE *stackDumpLog = _wfopen(fileAndPath, L"r");
-    if(stackDumpLog)
-    {
-        fread(stackDumpText, 1, arrsize(stackDumpText) - 1, stackDumpLog);
-        StrToUnicode(stackDumpTextW, stackDumpText, arrsize(stackDumpText));
-        NetCliAuthLogStackDump (stackDumpTextW);
-        fclose(stackDumpLog);
-        plFileUtils::RemoveFile(fileAndPath);
     }
 
     for (;;) {

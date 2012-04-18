@@ -183,7 +183,8 @@ static void ManifestDownloaded(
             PatcherLog(kInfo, "    Enqueueing %s: File Sizes Differ", fileName);
 
         // If we're still here, then we need to update the file.
-        patcher->GetProgress()->SetLength((float)mfs.fileSize + patcher->GetProgress()->GetMax());
+        float size = mfs.zipSize ? (float)mfs.zipSize : (float)mfs.fileSize;
+        patcher->GetProgress()->SetLength(size + patcher->GetProgress()->GetMax());
         patcher->RequestFile(mfs.downloadName, mfs.clientName);
     }
 
@@ -277,7 +278,10 @@ void plResPatcher::Finish(bool success)
     if (success)
         PatcherLog(kHeader, "--- Patch Completed Successfully ---");
     else
+    {
         PatcherLog(kHeader, "--- Patch Killed by Error ---");
+        fProgress->SetAborting();
+    }
 
     plResPatcherMsg* pMsg = new plResPatcherMsg(success, sLastError);
     pMsg->Send(); // whoosh... off it goes
