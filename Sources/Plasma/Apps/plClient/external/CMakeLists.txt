@@ -6,7 +6,7 @@ set(external_SCRIPTS
 
 set(external_SOURCES
     Cursor_Base.svg
-    Linking_Book.svg
+    Writers_Logo.svg
     Loading_Text_rasterfont.svg
     Voice_Chat.svg
 )

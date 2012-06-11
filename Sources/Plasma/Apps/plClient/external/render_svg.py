@@ -157,29 +157,29 @@ def render_cursors(inpath, outpath):
 			surface.write_to_png(outfile)
 			scalergba.scale(outfile, outfile, scalefactor)
 
-def render_loading_books(inpath, outpath):
+def render_loading_logo(inpath, outpath):
 	resSize = {"width":256, "height":256}
-	with open(os.path.join(inpath,"Linking_Book.svg"), "r") as svgFile:
-		bookSVG = parse(svgFile)
-		layers = get_layers_from_svg(bookSVG)
-		ratioW = resSize["width"] / float(bookSVG.documentElement.getAttribute("width"))
-		ratioH = resSize["height"] / float(bookSVG.documentElement.getAttribute("height"))
-		surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, resSize["width"], resSize["height"])
+	with open(os.path.join(inpath,"Writers_Logo.svg"), "r") as svgFile:
+		logoSVG = parse(svgFile)
+		layers = get_layers_from_svg(logoSVG)
+		ratioW = resSize["width"] / float(logoSVG.documentElement.getAttribute("width"))
+		ratioH = resSize["height"] / float(logoSVG.documentElement.getAttribute("height"))
 
 		for angle in range(0, 18):
+			surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, resSize["width"], resSize["height"])
 			ctx = cairo.Context(surface)
 
 			# Draw Book and Black Background
-			enable_only_layers(["background", "book"],layers)
-			svg = rsvg.Handle(data=bookSVG.toxml())
+			enable_only_layers(["Rays", "Hills", "Pen", "OuterCircle"],layers)
+			svg = rsvg.Handle(data=logoSVG.toxml())
 			ctx.save()
 			ctx.scale(ratioW, ratioH)
 			svg.render_cairo(ctx)
 			ctx.restore()
 
 			# Draw Circles at appropriate angle
-			enable_only_layers(["circles"],layers)
-			svg = rsvg.Handle(data=bookSVG.toxml())
+			enable_only_layers(["Circles"],layers)
+			svg = rsvg.Handle(data=logoSVG.toxml())
 			ctx.translate(resSize["height"] / 2, resSize["width"] / 2)
 			ctx.rotate(math.radians(angle*(5)))
 			ctx.translate(-resSize["width"] / 2, -resSize["height"] / 2)
@@ -256,6 +256,6 @@ if __name__ == '__main__':
 	## Do the work!
 	print("Rendering SVGs...")
 	render_cursors(inpath, outpath)
-	render_loading_books(inpath, outpath)
+	render_loading_logo(inpath, outpath)
 	render_loading_text(inpath, outpath)
 	render_voice_icons(inpath, outpath)
