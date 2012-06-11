@@ -2073,8 +2073,8 @@ class ptCritterBrain:
         """Returns how far away the brain can hear."""
         pass
 
-    def getLocallyControlled(self):
-        """Are we the one making AI decisions? NOTE: Not set automatically, some python script needs to tell the brain this using setLocallyControlled()."""
+    def getSceneObject(self):
+        """Returns the ptSceneObject this brain controls."""
         pass
 
     def getSightCone(self):
@@ -2123,10 +2123,6 @@ class ptCritterBrain:
 
     def setHearingDistance(self,dist):
         """Set how far away the brain can hear (360 degree field of hearing)."""
-        pass
-
-    def setLocallyControlled(self,local):
-        """Tells the brain that we are the ones making all the AI decisions, and to prop location and other information to the server."""
         pass
 
     def setSightCone(self,radians):
@@ -5684,6 +5680,22 @@ This event record is used to pass a ptKey variable to another python program"""
 
     def addVarNumber(self,name,number):
         """Add a number variable event record to the Notify message
+Method will try to pick appropriate variable type
+This event record is used to pass a number variable to another python program"""
+        pass
+        
+    def addVarFloat(self,name,number):
+        """Add a float variable event record to the Notify message
+This event record is used to pass a number variable to another python program"""
+        pass
+        
+    def addVarInt(self,name,number):
+        """Add a integer variable event record to the Notify message
+This event record is used to pass a number variable to another python program"""
+        pass
+        
+    def addVarNull(self,name):
+        """Add a null (no data) variable event record to the Notify message
 This event record is used to pass a number variable to another python program"""
         pass
 
