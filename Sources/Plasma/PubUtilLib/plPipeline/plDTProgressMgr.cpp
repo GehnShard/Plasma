@@ -182,7 +182,7 @@ void    plDTProgressMgr::IDrawTheStupidThing( plPipeline *p, plOperationProgress
     plDebugText &text = plDebugText::Instance();
 
     // Lets just set the color to blue
-    uint32_t color = 0xff302b3a;
+    uint32_t color = 0xffd9d9d9;
 
     if( prog->GetMax() > 0.f )
     {
@@ -223,7 +223,7 @@ void    plDTProgressMgr::IDrawTheStupidThing( plPipeline *p, plOperationProgress
         const char* unitTerm = (timeRemain == 1) ? "SECOND" : "SECONDS";
         sprintf(remainStr, "%s%d %s REMAINING", remainStr, timeRemain, unitTerm);
 
-        text.DrawString(x, y + height + 2, remainStr, (uint32_t)0xff635e6d );
+        text.DrawString(x, y + height + 2, remainStr, (uint32_t)0xffd9d9d9 );
 
         x -= 2;
         y -= 2;
