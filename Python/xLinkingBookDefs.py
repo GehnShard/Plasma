@@ -257,6 +257,7 @@ else:
         "BahroCaveUpper":     ( 'xLinkPanelBahroCaveUpper' ),
         "BahroCaveLower":     ( 'xLinkPanelBahroCaveLower' ),
         "islmGreatTree":        ( 'xLinkPanelCityGreatTree' ),
+        "Trebivdil":           ( 0, 1.0, 1.0, NoDRCStamp, BookStart1 + DRCStampHolder + NoShare + LinkStart + 'LinkPanelTrebivdil' + LinkEnd ),
 }
 
 # cross-references the book name with the age and spawn point it links to
@@ -323,6 +324,7 @@ xLinkDestinations = {\
     "islmGreatTree":      	  ( "city", "LinkInPointGreatTree" ),
     "BahroCaveUpper":           ( "PelletBahroCave", "LinkInPointDefault" ),
     "BahroCaveLower":           ( "PelletBahroCave", "LinkInPointLower" ),
+    "Trebivdil":               ( "trebivdil", "LinkInPointDefault" ),
 }
 
 #
