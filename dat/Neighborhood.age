@@ -5,6 +5,7 @@ LingerTime=180
 SequencePrefix=3
 ReleaseVersion=0
 Page=nb01HNYVis,1
+Page=nb01DniPaper,2,1
 Page=nb01,3
 Page=nb01LiveAdditions,4
 Page=PrivateRm,5
