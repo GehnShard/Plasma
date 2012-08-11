@@ -64,7 +64,7 @@ STATEDESC Ahnonay
 
     ## SPHERE 3 SDLs ##
     VAR BYTE    ahnySphere03Occupied[25]    DEFAULT=0  DISPLAYOPTION=hidden
-    VAR BOOL    ahnyYeeshaPageClockVis[1]   DEFAULT=0  DEFAULTOPTION=VAULT
+    VAR BOOL    ahnyYeeshaPageClockVis[1]   DEFAULT=1  DEFAULTOPTION=VAULT
 
     ## SPHERE 4 SDLs ##
     VAR BYTE    ahnySphere04Occupied[25]    DEFAULT=0  DISPLAYOPTION=hidden
