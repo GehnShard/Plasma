@@ -40,136 +40,73 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
  *==LICENSE==* """
-"""
-Module: xCalendarStar
-Age: global
-Date: November 2006
-Author: Chris Doyle
-wiring for calendar stars which appear in various ages (aka "blue sparky")
-"""
+
 
 from Plasma import *
-from PlasmaTypes import *
 from PlasmaKITypes import *
-import string
+from PlasmaTypes import *
 from xPsnlVaultSDL import *
+import time
 
+rgnCalStar = ptAttribActivator(1, "Region: Sparklie activator")
+sdlCalStar = ptAttribString(3, "SDL: Calendar Stone SDL Value")
+respCalStar = ptAttribResponder(4, "Resp: Get Sparklie")
 
-# ---------
-# max wiring
-# ---------
-
-rgnCalStar = ptAttribActivator(1,"rgn sns: calendar star")
-#sdlCalPage = ptAttribString(2,"SDL: calendar YeeshaPage")
-sdlCalStar = ptAttribString(3,"SDL: cal stone in Relto")
-respCalStar = ptAttribResponder(4,"resp: get star")
-boolFirstUpdate = ptAttribBoolean(5,"Eval On First Update?",0)
-
-
-# ---------
-# globals
-# ---------
-
-boolCalStar = false
-AgeStartedIn = None
-
-
-class xCalendarStar(ptResponder):
-
+class xCalendarStar(ptResponder, object):
     def __init__(self):
         ptResponder.__init__(self)
         self.id = 225
-        self.version = 1
+        self.version = 2
 
+    def _get_have_calendar_page(self):
+        psnl = xPsnlVaultSDL() # we want our YP20 status
+        return bool(psnl["YeeshaPage20"][0])
+    _have_calendar_page = property(_get_have_calendar_page)
 
     def OnFirstUpdate(self):
-        global AgeStartedIn
-        global boolCalStar
-
-        AgeStartedIn = PtGetAgeName()
-        if not (type(sdlCalStar.value) == type("") and sdlCalStar.value != ""):
-            PtDebugPrint("ERROR: xCalendarStar.OnFirstUpdate():\tERROR: missing SDL var name")
-            pass
-
-        if boolFirstUpdate.value:
-            if AgeStartedIn == PtGetAgeName():
-                psnlSDL = xPsnlVaultSDL()
-                try:
-                    boolCalStar = psnlSDL[sdlCalStar.value][0]
-                except:
-                    PtDebugPrint("ERROR: xCalendarStar.OnFirstUpdate():\tERROR reading age SDL")
-                    pass
-                PtDebugPrint("DEBUG: xCalendarStar.OnFirstUpdate():\t%s = %d" % (sdlCalStar.value,boolCalStar) )
+        # Determine the sparklie month
+        if not sdlCalStar.value:
+            raise RuntimeError("You forgot to specify the SDL Name!")
+        self._month = int(sdlCalStar.value[-2:])
 
     def OnServerInitComplete(self):
-        global boolCalStar
+        if self.sceneobject.isLocallyOwned():
+            tm = time.gmtime(PtGetServerTime()) # don't trust client time.
+            time_case = tm.tm_mon == self._month
 
-        if not boolFirstUpdate.value:
-            if AgeStartedIn == PtGetAgeName():
-                psnlSDL = xPsnlVaultSDL()
-                try:
-                    boolCalStar = psnlSDL[sdlCalStar.value][0]
-                except:
-                    PtDebugPrint("ERROR: xCalendarStar.OnServerInitComplete():\tERROR reading age SDL")
-                    pass
-                PtDebugPrint("DEBUG: xCalendarStar.OnServerInitComplete():\t%s = %d" % (sdlCalStar.value,boolCalStar) )
+            # Now update age vault
+            vault = ptAgeVault()
+            if vault:
+                ageSDL = vault.getAgeSDL()
 
-
-    def OnNotify(self,state,id,events):
-        PtDebugPrint("xCalendarStar.OnNotify(): state = %d, id = %d" % (state,id))
-        global boolCalStar
-
-        if not state or id != rgnCalStar.id:
-            return
-        #if not PtWasLocallyNotified(self.key):
-        if PtFindAvatar(events) != PtGetLocalAvatar():
-            PtDebugPrint("DEBUG: xCalendarStar.OnNotify():\t received notify from non-local player, ignoring...")
-            return
-        else:
-            PtDebugPrint("DEBUG: xCalendarStar.OnNotify():\t local player requesting %s change via %s" % (sdlCalStar.value,rgnCalStar.value[0].getName()) )
-
-        if not self.GotPage():
-            print "xCalendarStar.OnNotify(): do NOT have YeeshaPage20 (the Calendar Pinnacle) yet"
-            return            
-        else:
-            print "xCalendarStar.OnNotify():  have YeeshaPage20 (the Calendar Pinnacle)"
-
-            if AgeStartedIn == PtGetAgeName():
-                psnlSDL = xPsnlVaultSDL()
-            if not boolCalStar:
-                print "xCalendarStar.OnNotify(): getting star's stone: ",sdlCalStar.value
-                psnlSDL[sdlCalStar.value] = (1,)
-                respCalStar.run(self.key)
-                boolCalStar = 1
-                PtSendKIMessageInt(kStartBookAlert,0)
+                # do we have a var that matches?
+                match = "CalendarSpark%02i" % self._month
+                for var in ageSDL.getVarList():
+                    if var.endswith(match):
+                        desc = ageSDL.findVar(var)
+                        if desc.getBool() != time_case: # Only update if we must
+                            PtDebugPrint("xCalendarStar.OnServerInitComplete():\tSetting '%s' to '%i'" % (var, time_case))
+                            desc.setBool(time_case)
+                            vault.updateAgeSDL(ageSDL)
+                        break
+                else:
+                    PtDebugPrint("xCalendarStar.OnServerInitComplete():\tNo AgeSDL value similar to '%s' found!" % match)
             else:
-                print "xCalendarStar.OnNotify(): already have the stone: ",sdlCalStar.value
+                PtDebugPrint("xCalendarStar.OnServerInitComplete():\tAge Vault is dead!")
 
-
-    def GotPage(self):
-        vault = ptVault()
-        if type(vault) != type(None): #is the Vault online?
-            psnlSDL = xPsnlVaultSDL()
-            psnlSDL = vault.getPsnlAgeSDL()
-            if psnlSDL:
-                ypageSDL = psnlSDL.findVar("YeeshaPage20")
-                if ypageSDL:
-                    size, state = divmod(ypageSDL.getInt(), 10)
-                    print "YeeshaPage20 = ",state
-                    if state:
-                        return 1
-            return 0
-
-
-#    def OnSDLNotify(self,VARname,SDLname,playerID,tag):
-#        global boolCalStar
-#        
-#        if AgeStartedIn == PtGetAgeName():
-#            ageSDL = PtGetAgeSDL()
-#            if VARname == sdlCalStar.value:
-#                PtDebugPrint("DEBUG: xCalendarStar.OnSDLNotify():\t VARname:%s, SDLname:%s, tag:%s, value:%d" % (VARname,SDLname,tag,ageSDL[sdlCalStar.value][0]))
-#                boolCalStar = ageSDL[sdlCalStar.value][0]
-#                if boolCalStar:
-#                    respCalStar.run(self.key)
-
-
+    def OnNotify(self, state, id, events):
+        if id == rgnCalStar.id and state:
+            if PtFindAvatar(events) != PtGetLocalAvatar():
+                return
+            psnl = xPsnlVaultSDL()
+            if not psnl[sdlCalStar.value][0]:
+                if not self._have_calendar_page:
+                    PtDebugPrint("xCalendarStar.OnNotify():\tYou don't have YP20, fool!", level=kWarningLevel)
+                    return
+                respCalStar.run(self.key)
+                psnl[sdlCalStar.value] = (True,)
+                PtSendKIMessageInt(kStartBookAlert, 0)
+                PtDebugPrint("xCalendarStar.OnNotify():\tCongrats, you got a sparklie!", level=kWarningLevel)
+                return
+            else:
+                PtDebugPrint("xCalendarStar.OnNotify():\tYou already have this sparklie!", level=kWarningLevel)
