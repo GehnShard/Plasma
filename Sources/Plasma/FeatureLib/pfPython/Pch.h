@@ -39,19 +39,53 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/NucleusLib/pnUtilsExe/Pch.h
-*   
-***/
 
-#ifdef PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNUTILSEXE_PCH_H
-#error "Header $/Plasma20/Sources/Plasma/NucleusLib/pnUtilsExe/Pch.h included more than once"
+#ifndef _pfPython_Pch_inc_
+#define _pfPython_Pch_inc_
+
+/** 
+ * \file Pch.h
+ * \brief Precompiled Header for pfPython
+ */
+
+// Standard Library Includes
+#include <algorithm>
+#include <exception>
+#include <locale>
+
+// Platform Library Includes
+#include <time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+// Python Library Includes
+#include <Python.h>
+#include <marshal.h>
+#include <structmember.h>
+
+// Plasma Components (except for those from pfPython)
+// You'll want to strike a careful balance between enough components and slow iteration
+#include "HeadSpin.h"
+#include "hsGeometry3.h"
+#include "hsQuat.h"
+#include "hsResMgr.h"
+#include "hsStlSortUtils.h"
+#include "hsStlUtils.h"
+#include "hsStream.h"
+#include "hsTemplates.h"
+#include "hsTimer.h"
+#include "plAudible.h"
+#include "plgDispatch.h"
+#include "plPhysical.h"
+#include "plPipeline.h"
+#include "plString.h"
+#include "pnKeyedObject/plKey.h"
+
+// pfPython Components
+// Be very careful to include only isolated components here
+#include "pyGeometry3.h"
+#include "pyGlueHelpers.h"
+#include "pyKey.h"
+#include "pyMatrix44.h"
+
 #endif
-#define PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNUTILSEXE_PCH_H
-
-
-#include "pnUtils/pnUtils.h"
-#include "Intern.h"
-
-#include <malloc.h>

@@ -39,31 +39,5 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/NucleusLib/pnUtilsExe/Private/Win32/pnUteW32Time.cpp
-*   
-***/
 
-#include "../../Pch.h"
-#pragma hdrstop
-
-#ifdef HS_BUILD_FOR_WIN32
-
-namespace pnUtilsExe {
-
-/*****************************************************************************
-*
-*   Module functions
-*
-***/
-
-//============================================================================
-uint32_t TimeGetTickCount () {
-    return GetTickCount();
-}
-
-
-}   // namespace pnUtilsExe
-
-#endif  // HS_BUILD_FOR_WIN32
+#include "Pch.h"
