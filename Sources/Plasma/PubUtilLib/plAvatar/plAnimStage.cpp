@@ -314,7 +314,7 @@ hsBool plAnimStage::ISendNotify(uint32_t notifyMask, uint32_t notifyType, plArma
         int stageNum = genBrain ? genBrain->GetStageNum(this) : -1;
         msg->AddMultiStageEvent(stageNum, notifyType, armature->GetTarget(0)->GetKey());
 
-        if (! genBrain->RelayNotifyMsg(msg) )
+        if (stageNum < 0 || !genBrain->RelayNotifyMsg(msg))
         {
             msg->UnRef();   // couldn't send; destroy...
         }

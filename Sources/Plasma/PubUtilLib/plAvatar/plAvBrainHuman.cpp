@@ -59,6 +59,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAvatarMgr.h"
 #include "plAnimStage.h"
 #include "plAvatarClothing.h"
+#include "plNetClient/plNetClientMgr.h"
 
 #include "hsTimer.h"
 #include "hsGeometry3.h"
@@ -493,14 +494,24 @@ hsBool plAvBrainHuman::MsgReceive(plMessage * msg)
 hsBool plAvBrainHuman::IHandleClimbMsg(plClimbMsg *msg)
 {
     bool isStartClimb = msg->fCommand == plClimbMsg::kStartClimbing;
+
     if(isStartClimb)
     {
-        // let's build a seek task to get us to the attach point
-        plKey seekTarget = msg->fTarget;
-        plAvTaskSeek *seekTask = new plAvTaskSeek(seekTarget);
-        QueueTask(seekTask);
+        // Warp the player to the Seekpoint
+        plSceneObject *avatarObj = plSceneObject::ConvertNoRef(plNetClientMgr::GetInstance()->GetLocalPlayer());
+        plSceneObject *obj = plSceneObject::ConvertNoRef(msg->fTarget->ObjectIsLoaded());
 
-        // now a brain task to start the actual climb.
+        plArmatureMod *localAvatar = plAvatarMgr::GetInstance()->GetLocalAvatar();
+        plArmatureMod *climbAvatar = plArmatureMod::ConvertNoRef(fArmature);
+        if (climbAvatar == localAvatar) // is it our avatar who has to seek?
+        {
+            hsMatrix44 target = obj->GetLocalToWorld();
+            plWarpMsg *warp = new plWarpMsg(nil, avatarObj->GetKey(), plWarpMsg::kFlushTransform, target);
+            warp->SetBCastFlag(plMessage::kNetPropagate);
+            plgDispatch::MsgSend(warp);
+        }
+
+        // build the Climb brain
         plAvBrainClimb::Mode startMode;
         switch(msg->fDirection)
         {
@@ -517,9 +528,9 @@ hsBool plAvBrainHuman::IHandleClimbMsg(plClimbMsg *msg)
             startMode = plAvBrainClimb::kMountingRight;
             break;
         }
+
         plAvBrainClimb *brain = new plAvBrainClimb(startMode);
-        plAvTaskBrain *brainTask = new plAvTaskBrain(brain);
-        QueueTask(brainTask);
+        climbAvatar->PushBrain(brain);
     }
     // ** potentially controversial:
     // It's fairly easy for a human brain to hit a climb trigger - like when falling off a wall.
