@@ -118,7 +118,7 @@ void plMultistageBehMod::IDeleteStageVec()
     }
 }
 
-hsBool plMultistageBehMod::MsgReceive(plMessage* msg)
+bool plMultistageBehMod::MsgReceive(plMessage* msg)
 {
     plMultistageModMsg *multiMsg = nil;
     plNotifyMsg* notifyMsg = plNotifyMsg::ConvertNoRef(msg);
@@ -140,7 +140,7 @@ hsBool plMultistageBehMod::MsgReceive(plMessage* msg)
                     int numStages = fStages->size();
                     stages->reserve(numStages);
                     // hack hack hack
-                    hsBool ladder = false;
+                    bool ladder = false;
                     for (int i = 0; i < numStages; i++)
                     {
                         plAnimStage* stage = new plAnimStage;
@@ -161,7 +161,7 @@ hsBool plMultistageBehMod::MsgReceive(plMessage* msg)
                         
 #ifdef DEBUG_MULTISTAGE
                         char sbuf[256];
-                        sprintf(sbuf,"plMultistageModMsg - starting multistage from %s",sender->GetName());
+                        sprintf(sbuf,"plMultistageModMsg - starting multistage from %s",sender->GetName().c_str());
                         plAvatarMgr::GetInstance()->GetLog()->AddLine(sbuf);
 #endif
                         plAvSeekMsg *seeker = new plAvSeekMsg(nil, avModKey, seekKey, 1.0f, fSmartSeek);
@@ -205,9 +205,9 @@ void plMultistageBehMod::Read(hsStream *stream, hsResMgr *mgr)
 {
     plSingleModifier::Read(stream, mgr);
 
-    fFreezePhys = stream->Readbool();
-    fSmartSeek = stream->Readbool();
-    fReverseFBControlsOnRelease = stream->Readbool();
+    fFreezePhys = stream->ReadBool();
+    fSmartSeek = stream->ReadBool();
+    fReverseFBControlsOnRelease = stream->ReadBool();
 
     IDeleteStageVec();
     fStages = new plAnimStageVec;
@@ -237,9 +237,9 @@ void plMultistageBehMod::Write(hsStream *stream, hsResMgr *mgr)
 {
     plSingleModifier::Write(stream, mgr);
 
-    stream->Writebool(fFreezePhys);
-    stream->Writebool(fSmartSeek);
-    stream->Writebool(fReverseFBControlsOnRelease);
+    stream->WriteBool(fFreezePhys);
+    stream->WriteBool(fSmartSeek);
+    stream->WriteBool(fReverseFBControlsOnRelease);
 
     int numStages = fStages->size();
     stream->WriteLE32(numStages);

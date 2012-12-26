@@ -57,7 +57,7 @@ pyGUIControlMultiLineEdit::pyGUIControlMultiLineEdit(plKey objkey) : pyGUIContro
 {
 }
 
-hsBool pyGUIControlMultiLineEdit::IsGUIControlMultiLineEdit(pyKey& gckey)
+bool pyGUIControlMultiLineEdit::IsGUIControlMultiLineEdit(pyKey& gckey)
 {
     if ( gckey.getKey() && pfGUIMultiLineEditCtrl::ConvertNoRef(gckey.getKey()->ObjectIsLoaded()) )
         return true;
@@ -76,6 +76,30 @@ void pyGUIControlMultiLineEdit::SetScrollPosition( int32_t topLine )
             pbmod->SetScrollPosition(topLine);
         }
     }
+}
+
+int32_t pyGUIControlMultiLineEdit::GetScrollPosition()
+{
+    if ( fGCkey )
+    {
+        // get the pointer to the modifier
+        pfGUIMultiLineEditCtrl* pbmod = pfGUIMultiLineEditCtrl::ConvertNoRef(fGCkey->ObjectIsLoaded());
+        if ( pbmod )
+            return pbmod->GetScrollPosition();
+    }
+    return 0;
+}
+
+bool pyGUIControlMultiLineEdit::IsAtEnd()
+{
+    if ( fGCkey )
+    {
+        // get the pointer to the modifier
+        pfGUIMultiLineEditCtrl* pbmod = pfGUIMultiLineEditCtrl::ConvertNoRef(fGCkey->ObjectIsLoaded());
+        if ( pbmod )
+            return pbmod->ShowingEndOfBuffer();
+    }
+    return false;
 }
 
 void pyGUIControlMultiLineEdit::MoveCursor( int32_t dir)
@@ -444,7 +468,7 @@ void pyGUIControlMultiLineEdit::Unlock( void )
     }
 }
 
-hsBool pyGUIControlMultiLineEdit::IsLocked( void )
+bool pyGUIControlMultiLineEdit::IsLocked( void )
 {
     if ( fGCkey )
     {

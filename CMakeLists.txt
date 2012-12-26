@@ -8,6 +8,10 @@ endif(WIN32 AND NOT CYGWIN)
 if(UNIX)
     add_definitions(-DHS_BUILD_FOR_UNIX)
 endif(UNIX)
+
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+    add_definitions(-std=c++0x)
+endif()
 # End HeadSpin Configuration
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -71,6 +75,13 @@ endif(PLASMA_TARGETS STREQUAL "NoAvMsgs")
 if(PLASMA_TARGETS STREQUAL "Ethereal")
     add_definitions(-DSTREAM_LOGGER)
 endif(PLASMA_TARGETS STREQUAL "Ethereal")
+
+option(USE_VLD "Build and link with Visual Leak Detector (MSVC only)" OFF)
+if(USE_VLD)
+    add_definitions(-DUSE_VLD)
+    find_package(VLD REQUIRED)
+    include_directories(${VLD_INCLUDE_DIR})
+endif(USE_VLD)
 
 include(TestBigEndian)
 test_big_endian(BIG_ENDIAN)

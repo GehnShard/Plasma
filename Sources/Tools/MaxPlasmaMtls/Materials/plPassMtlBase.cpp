@@ -165,7 +165,7 @@ plAnimStealthNode   *plPassMtlBase::GetStealth( int index )
     return IGetStealth( index, false );
 }
 
-int plPassMtlBase::IGetNumStealths( hsBool update )
+int plPassMtlBase::IGetNumStealths( bool update )
 {
     if( update )
         IUpdateAnimNodes();
@@ -173,7 +173,7 @@ int plPassMtlBase::IGetNumStealths( hsBool update )
     return fAnimPB->Count( (ParamID)kPBAnimStealthNodes );
 }
 
-plAnimStealthNode   *plPassMtlBase::IGetStealth( int index, hsBool update )
+plAnimStealthNode   *plPassMtlBase::IGetStealth( int index, bool update )
 {
     if( update )
         IUpdateAnimNodes();
@@ -215,7 +215,7 @@ plAnimStealthNode   *plPassMtlBase::IVerifyStealthPresent( const plString &animN
         // New segment, add a new stealth node
         stealth = (plAnimStealthNode *)GetCOREInterface()->CreateInstance( HELPER_CLASS_ID, ANIMSTEALTH_CLASSID );
         INode *node = GetCOREInterface()->CreateObjectNode( stealth );
-        stealth->SetSegment( ( animName.Compare(ENTIRE_ANIMATION_NAME) != 0 ) ? _TEMP_CONVERT_TO_CONST_CHAR(animName) : nil );
+        stealth->SetSegment( ( animName.Compare(ENTIRE_ANIMATION_NAME) != 0 ) ? animName.c_str() : nil );
         stealth->SetNodeName( GetName() );
         node->Freeze( true );
 
@@ -277,7 +277,7 @@ void    plPassMtlBase::IUpdateAnimNodes( void )
     fStealthsChanged = false;
 
     // Verify one for "entire animation"
-    plAnimStealthNode *stealth = IVerifyStealthPresent( _TEMP_CONVERT_FROM_LITERAL(ENTIRE_ANIMATION_NAME) );
+    plAnimStealthNode *stealth = IVerifyStealthPresent( ENTIRE_ANIMATION_NAME );
     goodNodes.Append( stealth );
 
     // Verify segment nodes
@@ -519,7 +519,7 @@ void    plPassMtlBase::PostLoadAnimPBFixup( void )
             plAnimStealthNode *node = (plAnimStealthNode *)fAnimPB->GetReferenceTarget( (ParamID)kPBAnimStealthNodes, 0, i );
             plString name = node->GetSegmentName();
             node->SetAutoStart( false );
-            node->SetLoop( true, _TEMP_CONVERT_FROM_LITERAL( ENTIRE_ANIMATION_NAME ) );
+            node->SetLoop( true, ENTIRE_ANIMATION_NAME );
             node->SetEaseIn( plAnimEaseTypes::kNoEase, 1.f, 1.f, 1.f );
             node->SetEaseOut( plAnimEaseTypes::kNoEase, 1.f, 1.f, 1.f );
         }
@@ -645,9 +645,9 @@ plPassMtlBase   *plPassMtlBase::ConvertToPassMtl( Mtl *mtl )
 
 //// SetupProperties /////////////////////////////////////////////////////////
 
-hsBool  plPassMtlBase::SetupProperties( plMaxNode *node, plErrorMsg *pErrMsg )
+bool    plPassMtlBase::SetupProperties( plMaxNode *node, plErrorMsg *pErrMsg )
 {
-    hsBool ret = true;
+    bool ret = true;
 
     // Call SetupProperties on all our animStealths if we have any
     int i, count = IGetNumStealths();
@@ -662,9 +662,9 @@ hsBool  plPassMtlBase::SetupProperties( plMaxNode *node, plErrorMsg *pErrMsg )
 
 //// ConvertDeInit ///////////////////////////////////////////////////////////
 
-hsBool  plPassMtlBase::ConvertDeInit( plMaxNode *node, plErrorMsg *pErrMsg )
+bool    plPassMtlBase::ConvertDeInit( plMaxNode *node, plErrorMsg *pErrMsg )
 {
-    hsBool ret = true;
+    bool ret = true;
 
     // Call ConvertDeInit on all our animStealths if we have any
     int i, count = IGetNumStealths();

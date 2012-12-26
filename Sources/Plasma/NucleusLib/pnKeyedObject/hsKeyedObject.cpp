@@ -59,7 +59,7 @@ void hsKeyedObject::SetKey(plKey k)
         ((plKeyImp*)fpKey)->SetObjectPtr(this); 
 }   
 
-hsBool hsKeyedObject::SendRef(plRefMsg* refMsg, plRefFlags::Type flags)
+bool hsKeyedObject::SendRef(plRefMsg* refMsg, plRefFlags::Type flags)
 {
     plKey key = GetKey();       // for linux build
     return hsgResMgr::SendRef(key, refMsg, flags);
@@ -70,7 +70,7 @@ plString hsKeyedObject::GetKeyName() const
     if (fpKey)
         return fpKey->GetName();
     else
-        return _TEMP_CONVERT_FROM_LITERAL("(unknown)");
+        return "(unknown)";
 }
 
 hsKeyedObject::~hsKeyedObject()
@@ -145,7 +145,7 @@ void hsKeyedObject::UnRegisterAsManual(plUoid& inUoid)
 #if !HS_BUILD_FOR_UNIX      // disable for unix servers
             hsAssert(false,
                 plString::Format("Request to Unregister wrong FixedKey, keyName=%s, inUoid=%s, myUoid=%s",
-                    fpKey->GetName().s_str("?"), inUoid.StringIze().c_str(), myUoid.StringIze().c_str()).c_str());
+                    fpKey->GetName().c_str("?"), inUoid.StringIze().c_str(), myUoid.StringIze().c_str()).c_str());
 #endif
         }
         ((plKeyImp*)fpKey)->UnRegister();
@@ -174,7 +174,7 @@ void hsKeyedObject::Write(hsStream* s, hsResMgr* mgr)
     mgr->WriteKey(s, fpKey);
 }
 
-hsBool hsKeyedObject::MsgReceive(plMessage* msg)
+bool hsKeyedObject::MsgReceive(plMessage* msg)
 {
     plSelfDestructMsg* nuke = plSelfDestructMsg::ConvertNoRef(msg);
     if (nuke)

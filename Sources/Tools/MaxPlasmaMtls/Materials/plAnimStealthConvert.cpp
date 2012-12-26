@@ -83,7 +83,7 @@ static void ISearchLayerRecur( plLayerInterface *layer, const plString &segName,
 
 static int ISearchLayerRecur(hsGMaterial* mat, const plString &segName, hsTArray<plKey>& keys)
 {
-    plString name = (segName.IsNull() || segName.Compare( ENTIRE_ANIMATION_NAME ) == 0 ) ? _TEMP_CONVERT_FROM_LITERAL( "" ) : segName;
+    plString name = ( segName.Compare( ENTIRE_ANIMATION_NAME ) == 0 ) ? "" : segName;
     int i;
     for( i = 0; i < mat->GetNumLayers(); i++ )
         ISearchLayerRecur(mat->GetLayer(i), name, keys);
@@ -239,7 +239,7 @@ void    plAnimStealthNode::StuffToTimeConvert( plAnimTimeConvert &convert, float
 
 //// plAnimObjInterface Functions ////////////////////////////////////////////
 
-hsBool  plAnimStealthNode::GetKeyList( INode *restrictedNode, hsTArray<plKey> &outKeys )
+bool    plAnimStealthNode::GetKeyList( INode *restrictedNode, hsTArray<plKey> &outKeys )
 {
     if( !fPreppedForConvert )
     {
@@ -255,7 +255,7 @@ hsBool  plAnimStealthNode::GetKeyList( INode *restrictedNode, hsTArray<plKey> &o
 
 //// SetupProperties /////////////////////////////////////////////////////////
 
-hsBool  plAnimStealthNode::SetupProperties( plMaxNode *node, plErrorMsg *pErrMsg )
+bool    plAnimStealthNode::SetupProperties( plMaxNode *node, plErrorMsg *pErrMsg )
 {
     fPreppedForConvert = true;
     plPassMtlBase *parent = GetParentMtl();
@@ -268,7 +268,7 @@ hsBool  plAnimStealthNode::SetupProperties( plMaxNode *node, plErrorMsg *pErrMsg
 
 //// ConvertDeInit ///////////////////////////////////////////////////////////
 
-hsBool  plAnimStealthNode::ConvertDeInit( plMaxNode *node, plErrorMsg *pErrMsg )
+bool    plAnimStealthNode::ConvertDeInit( plMaxNode *node, plErrorMsg *pErrMsg )
 {
     fPreppedForConvert = false;
     if( fCachedSegMap != nil )

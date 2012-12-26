@@ -46,7 +46,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAgeLoader/plAgeLoader.h"
 #include "plCompression/plZlibStream.h"
 #include "pnEncryption/plChecksum.h"
-#include "plFile/plFileUtils.h"
+#include "plFileUtils.h"
 #include "plMessage/plResPatcherMsg.h"
 #include "pnNetBase/pnNbError.h"
 #include "plNetGameLib/plNetGameLib.h"
@@ -75,7 +75,7 @@ public:
             delete[] fFilename;
     }
 
-    hsBool Open(const char* filename, const char* mode)
+    bool Open(const char* filename, const char* mode)
     {
         fFilename = hsStrcpy(filename);
         return plZlibStream::Open(filename, mode);

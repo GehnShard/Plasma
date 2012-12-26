@@ -47,7 +47,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAvatar/plAvBrainClimb.h"
 #include "plAvatar/plAvBrainDrive.h"
 #include "plAvatar/plAnimStage.h"
-#include "plAvatar/plAvCallbackAction.h"
+#include "plAvatar/plPhysicalControllerCore.h"
 #include "pnSceneObject/plSceneObject.h"
 #include "pnMessage/plSDLModifierMsg.h"
 #include "plSDL/plSDL.h"
@@ -347,7 +347,7 @@ void plAvatarSDLModifier::IPutGenericBrainIn(plArmatureMod * avMod, plAvBrainGen
 bool plAvatarSDLModifier::ISetGenericBrainFrom(plArmatureMod *avMod, const plStateDataRecord* srcState)
 {
     int i;
-    hsBool success = true;
+    bool success = true;
     int numStages=0;
     plSDStateVariable* stagesVar = srcState->FindSDVar(GenericBrainVarNames::kStrStages);
     if (stagesVar->IsUsed())

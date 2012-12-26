@@ -62,7 +62,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnMessage/plNodeRefMsg.h"
 #include "pnMessage/plSDLModifierMsg.h"
 #include "plMessage/plSimStateMsg.h"
-#include "plMessage/plSimInfluenceMsg.h"
 #include "plMessage/plLinearVelocityMsg.h"
 #include "plMessage/plAngularVelocityMsg.h"
 #include "plDrawable/plDrawableGenerator.h"
@@ -139,14 +138,10 @@ plPXPhysical::plPXPhysical()
     , fSceneNode(nil)
     , fWorldKey(nil)
     , fSndGroup(nil)
-    , fWorldHull(nil)
-    , fSaveTriangles(nil)
-    , fHullNumberPlanes(0)
     , fMass(0.f)
     , fWeWereHit(false)
     , fHitForce(0,0,0)
     , fHitPos(0,0,0)
-    , fInsideConvexHull(false)
 {
 }
 
@@ -191,11 +186,6 @@ plPXPhysical::~plPXPhysical()
         plSimulationMgr::GetInstance()->ReleaseScene(fWorldKey);
     }
 
-    if (fWorldHull)
-        delete [] fWorldHull;
-    if (fSaveTriangles)
-        delete [] fSaveTriangles;
-
     delete fProxyGen;
 
     // remove sdl modifier
@@ -207,158 +197,9 @@ plPXPhysical::~plPXPhysical()
     delete fSDLMod;
 }
 
-static void MakeBoxFromHull(NxConvexMesh* convexMesh, NxBoxShapeDesc& box)
+bool plPXPhysical::Init(PhysRecipe& recipe)
 {
-    NxConvexMeshDesc desc;
-    convexMesh->saveToDesc(desc);
-
-    float minX, minY, minZ, maxX, maxY, maxZ;
-    minX = minY = minZ = FLT_MAX;
-    maxX = maxY = maxZ = -FLT_MAX;
-
-    for (int i = 0; i < desc.numVertices; i++)
-    {
-        float* point = (float*)(((char*)desc.points) + desc.pointStrideBytes*i);
-        float x = point[0];
-        float y = point[1];
-        float z = point[2];
-
-        minX = hsMinimum(minX, x);
-        minY = hsMinimum(minY, y);
-        minZ = hsMinimum(minZ, z);
-        maxX = hsMaximum(maxX, x);
-        maxY = hsMaximum(maxY, y);
-        maxZ = hsMaximum(maxZ, z);
-    }
-
-    float xWidth = maxX - minX;
-    float yWidth = maxY - minY;
-    float zWidth = maxZ - minZ;
-    box.dimensions.x = xWidth / 2;
-    box.dimensions.y = yWidth / 2;
-    box.dimensions.z = zWidth / 2;
-
-    //hsMatrix44 mat;
-    //box.localPose.getRowMajor44(&mat.fMap[0][0]);
-    hsPoint3 trans(minX + (xWidth / 2), minY + (yWidth / 2), minZ + (zWidth / 2));
-    //mat.SetTranslate(&trans);
-    //box.localPose.setRowMajor44(&mat.fMap[0][0]);
-
-    hsMatrix44 boxL2W;
-    boxL2W.Reset();
-    boxL2W.SetTranslate(&trans);
-    plPXConvert::Matrix(boxL2W, box.localPose);
-
-}
-
-void plPXPhysical::IMakeHull(NxConvexMesh* convexMesh, hsMatrix44 l2w)
-{
-    NxConvexMeshDesc desc;
-    convexMesh->saveToDesc(desc);
-
-    // make sure there are some triangles to work with
-    if (desc.numTriangles == 0)
-        return;
-
-    // get rid of any we may have already had
-    if (fSaveTriangles)
-        delete [] fSaveTriangles;
-
-    fHullNumberPlanes = desc.numTriangles;
-    fSaveTriangles = new hsPoint3[fHullNumberPlanes*3];
-
-    for (int i = 0; i < desc.numTriangles; i++)
-    {
-        uint32_t* triangle = (uint32_t*)(((char*)desc.triangles) + desc.triangleStrideBytes*i);
-        float* vertex1 = (float*)(((char*)desc.points) + desc.pointStrideBytes*triangle[0]);
-        float* vertex2 = (float*)(((char*)desc.points) + desc.pointStrideBytes*triangle[1]);
-        float* vertex3 = (float*)(((char*)desc.points) + desc.pointStrideBytes*triangle[2]);
-        hsPoint3 pt1(vertex1[0],vertex1[1],vertex1[2]);
-        hsPoint3 pt2(vertex2[0],vertex2[1],vertex2[2]);
-        hsPoint3 pt3(vertex3[0],vertex3[1],vertex3[2]);
-
-        fSaveTriangles[(i*3)+0] = pt1;
-        fSaveTriangles[(i*3)+1] = pt2;
-        fSaveTriangles[(i*3)+2] = pt3;
-    }
-}
-
-void plPXPhysical::ISetHullToWorldWTriangles()
-{
-    // if we have a detector hull and the world hasn't been updated
-    if (fWorldHull == nil)
-    {
-        fWorldHull = new hsPlane3[fHullNumberPlanes];
-        // use the local2world from the physics engine so that it matches the transform of the positions from the triggerees
-        hsMatrix44 l2w;
-        plPXConvert::Matrix(fActor->getGlobalPose(), l2w);
-        int i;
-        for( i = 0; i < fHullNumberPlanes; i++ )
-        {
-            hsPoint3 pt1 = fSaveTriangles[i*3];
-            hsPoint3 pt2 = fSaveTriangles[(i*3)+1];
-            hsPoint3 pt3 = fSaveTriangles[(i*3)+2];
-
-            // local to world translation
-            pt1 = l2w * pt1;
-            pt2 = l2w * pt2;
-            pt3 = l2w * pt3;
-
-            hsPlane3 plane(&pt1, &pt2, &pt3);
-            fWorldHull[i] = plane;
-        }
-    }
-}
-
-
-hsBool plPXPhysical::IsObjectInsideHull(const hsPoint3& pos)
-{
-    if (fSaveTriangles)
-    {
-        ISetHullToWorldWTriangles();
-        int i;
-        for( i = 0; i < fHullNumberPlanes; i++ )
-        {
-            if (!ITestPlane(pos, fWorldHull[i]))
-                return false;
-        }
-        return true;
-    }
-    return false;
-}
-
-hsBool plPXPhysical::Should_I_Trigger(hsBool enter, hsPoint3& pos)
-{
-    // see if we are inside the detector hull, if so, then don't trigger
-    bool trigger = false;
-    bool inside = IsObjectInsideHull(pos);
-    if ( !inside)
-    {
-        trigger = true;
-        fInsideConvexHull = enter;
-    }
-    else
-    {
-        // catch those rare cases on slow machines that miss the collision before avatar penetrated the face
-        if (enter && !fInsideConvexHull)
-        {
-#ifdef PHYSX_SAVE_TRIGGERS_WORKAROUND
-            trigger = true;
-            fInsideConvexHull = enter;
-            DetectorLogSpecial("**>Saved a missing enter collision: %s",GetObjectKey()->GetName().c_str());
-#else
-            DetectorLogSpecial("**>Could have saved a missing enter collision: %s",GetObjectKey()->GetName().c_str());
-#endif PHYSX_SAVE_TRIGGERS_WORKAROUND
-        }
-    }
-
-    return trigger;
-}
-
-
-hsBool plPXPhysical::Init(PhysRecipe& recipe)
-{
-    hsBool  startAsleep = false;
+    bool    startAsleep = false;
     fBoundsType = recipe.bounds;
     fGroup = recipe.group;
     fReportsOn = recipe.reportsOn;
@@ -389,29 +230,6 @@ hsBool plPXPhysical::Init(PhysRecipe& recipe)
         }
         break;
     case plSimDefs::kHullBounds:
-        // FIXME PHYSX - Remove when hull detection is fixed
-        // If this is read time (ie, meshStream is nil), turn the convex hull
-        // into a box.  That way the data won't have to change when convex hulls
-        // actually work right.
-        if (fGroup == plSimDefs::kGroupDetector && recipe.meshStream == nil)
-        {
-#ifdef USE_BOXES_FOR_DETECTOR_HULLS
-            MakeBoxFromHull(recipe.convexMesh, boxDesc);
-            plSimulationMgr::GetInstance()->GetSDK()->releaseConvexMesh(*recipe.convexMesh);
-            boxDesc.group = fGroup;
-            actorDesc.shapes.push_back(&boxDesc);
-#else
-#ifdef USE_PHYSX_CONVEXHULL_WORKAROUND
-            // make a hull of planes for testing IsInside
-            IMakeHull(recipe.convexMesh,recipe.l2s);
-#endif  // USE_PHYSX_CONVEXHULL_WORKAROUND
-            convexShapeDesc.meshData = recipe.convexMesh;
-            convexShapeDesc.userData = recipe.meshStream;
-            convexShapeDesc.group = fGroup;
-            actorDesc.shapes.pushBack(&convexShapeDesc);
-#endif // USE_BOXES_FOR_DETECTOR_HULLS
-        }
-        else
         {
             convexShapeDesc.meshData = recipe.convexMesh;
             convexShapeDesc.userData = recipe.meshStream;
@@ -577,7 +395,7 @@ hsBool plPXPhysical::Init(PhysRecipe& recipe)
 /////////////////////////////////////////////////////////////////
 
 // MSGRECEIVE
-hsBool plPXPhysical::MsgReceive( plMessage* msg )
+bool plPXPhysical::MsgReceive( plMessage* msg )
 {
     if(plGenRefMsg *refM = plGenRefMsg::ConvertNoRef(msg))
     {
@@ -610,14 +428,14 @@ hsBool plPXPhysical::MsgReceive( plMessage* msg )
 // there's two things we hold references to: subworlds
 // and the simulation manager.
 // right now, we're only worrying about the subworlds
-hsBool plPXPhysical::HandleRefMsg(plGenRefMsg* refMsg)
+bool plPXPhysical::HandleRefMsg(plGenRefMsg* refMsg)
 {
     uint8_t refCtxt = refMsg->GetContext();
     plKey refKey = refMsg->GetRef()->GetKey();
     plKey ourKey = GetKey();
     PhysRefType refType = PhysRefType(refMsg->fType);
 
-    plString refKeyName = refKey ? refKey->GetName() : _TEMP_CONVERT_FROM_LITERAL("MISSING");
+    plString refKeyName = refKey ? refKey->GetName() : "MISSING";
 
     if (refType == kPhysRefWorld)
     {
@@ -655,7 +473,7 @@ hsBool plPXPhysical::HandleRefMsg(plGenRefMsg* refMsg)
     return true;
 }
 
-void plPXPhysical::IEnable(hsBool enable)
+void plPXPhysical::IEnable(bool enable)
 {
     fProps.SetBit(plSimulationInterface::kDisable, !enable);
     if (!enable)
@@ -670,9 +488,6 @@ void plPXPhysical::IEnable(hsBool enable)
     {
         fActor->clearActorFlag(NX_AF_DISABLE_COLLISION);
 
-        // PHYSX FIXME - after re-enabling a possible detector, we need to check to see if any avatar is already in the PhysX turdy hull detector region
-        plSimulationMgr::GetInstance()->UpdateAvatarInDetector(fWorldKey, this);
-
         if (fActor->isDynamic())
             fActor->clearBodyFlag(NX_BF_FROZEN);
         else
@@ -680,7 +495,7 @@ void plPXPhysical::IEnable(hsBool enable)
     }
 }
 
-plPhysical& plPXPhysical::SetProperty(int prop, hsBool status)
+plPhysical& plPXPhysical::SetProperty(int prop, bool status)
 {
     if (GetProperty(prop) == status)
     {
@@ -695,7 +510,7 @@ plPhysical& plPXPhysical::SetProperty(int prop, hsBool status)
         case plSimulationInterface::kNoSynchronize:     propName = "kNoSynchronize";        break;
         }
 
-        plString name = _TEMP_CONVERT_FROM_LITERAL("(unknown)");
+        plString name = "(unknown)";
         if (GetKey())
             name = GetKeyName();
         if (plSimulationMgr::fExtraProfile)
@@ -713,7 +528,7 @@ plPhysical& plPXPhysical::SetProperty(int prop, hsBool status)
         {
             // if the body is already unpinned and you unpin it again,
             // you'll wipe out its velocity. hence the check.
-            hsBool current = fActor->readBodyFlag(NX_BF_FROZEN);
+            bool current = fActor->readBodyFlag(NX_BF_FROZEN);
             if (status != current)
             {
                 if (status)
@@ -764,14 +579,14 @@ bool CompareMatrices(const hsMatrix44 &matA, const hsMatrix44 &matB, float toler
 
 // Called after the simulation has run....sends new positions to the various scene objects
 // *** want to do this in response to an update message....
-void plPXPhysical::SendNewLocation(hsBool synchTransform, hsBool isSynchUpdate)
+void plPXPhysical::SendNewLocation(bool synchTransform, bool isSynchUpdate)
 {
     // we only send if:
     // - the body is active or forceUpdate is on
     // - the mass is non-zero
     // - the physical is not passive
-    hsBool bodyActive = !fActor->isSleeping();
-    hsBool dynamic = fActor->isDynamic();
+    bool bodyActive = !fActor->isSleeping();
+    bool dynamic = fActor->isDynamic();
     
     if ((bodyActive || isSynchUpdate) && dynamic)// && fInitialTransform)
     {
@@ -920,7 +735,7 @@ void plPXPhysical::ISetRotationSim(const hsQuat& rot)
 }
 
 // This form is assumed by convention to be global.
-void plPXPhysical::SetTransform(const hsMatrix44& l2w, const hsMatrix44& w2l, hsBool force)
+void plPXPhysical::SetTransform(const hsMatrix44& l2w, const hsMatrix44& w2l, bool force)
 {
 //  hsAssert(real_finite(l2w.fMap[0][3]) && real_finite(l2w.fMap[1][3]) && real_finite(l2w.fMap[2][3]), "Bad transform incoming");
 
@@ -947,9 +762,9 @@ void plPXPhysical::GetTransform(hsMatrix44& l2w, hsMatrix44& w2l)
     l2w.GetInverse(&w2l);
 }
 
-hsBool plPXPhysical::GetLinearVelocitySim(hsVector3& vel) const
+bool plPXPhysical::GetLinearVelocitySim(hsVector3& vel) const
 {
-    hsBool result = false;
+    bool result = false;
 
     if (fActor->isDynamic())
     {
@@ -973,9 +788,9 @@ void plPXPhysical::ClearLinearVelocity()
     SetLinearVelocitySim(hsVector3(0, 0, 0));
 }
 
-hsBool plPXPhysical::GetAngularVelocitySim(hsVector3& vel) const
+bool plPXPhysical::GetAngularVelocitySim(hsVector3& vel) const
 {
-    hsBool result = false;
+    bool result = false;
     if (fActor->isDynamic())
     {
         vel = plPXConvert::Vector(fActor->getAngularVelocity());
@@ -1195,7 +1010,7 @@ void plPXPhysical::Write(hsStream* stream, hsResMgr* mgr)
 // TESTING SDL
 // Send phys sendState msg to object's plPhysicalSDLModifier
 //
-hsBool plPXPhysical::DirtySynchState(const char* SDLStateName, uint32_t synchFlags )
+bool plPXPhysical::DirtySynchState(const char* SDLStateName, uint32_t synchFlags )
 {
     if (GetObjectKey())
     {
@@ -1252,7 +1067,7 @@ void plPXPhysical::SetSyncState(hsPoint3* pos, hsQuat* rot, hsVector3* linV, hsV
     SendNewLocation(false, true);
 }
 
-void plPXPhysical::ExcludeRegionHack(hsBool cleared)
+void plPXPhysical::ExcludeRegionHack(bool cleared)
 {
     NxShape* shape = fActor->getShapes()[0];
     shape->setFlag(NX_TRIGGER_ON_ENTER, !cleared);
@@ -1265,13 +1080,13 @@ void plPXPhysical::ExcludeRegionHack(hsBool cleared)
     plPXPhysicalControllerCore::RebuildCache();
 
 }
-hsBool plPXPhysical::OverlapWithCapsule(NxCapsule& cap)
+bool plPXPhysical::OverlapWithCapsule(NxCapsule& cap)
 {
     NxShape* shape = fActor->getShapes()[0];
     return shape->checkOverlapCapsule(cap);
 }
 
-hsBool plPXPhysical::IsDynamic() const
+bool plPXPhysical::IsDynamic() const
 {
     return fGroup == plSimDefs::kGroupDynamic &&
         !GetProperty(plSimulationInterface::kPhysAnim);
@@ -1332,7 +1147,7 @@ plDrawableSpans* plPXPhysical::CreateProxy(hsGMaterial* mat, hsTArray<uint32_t>&
     hsMatrix44 l2w, unused;
     GetTransform(l2w, unused);
     
-    hsBool blended = ((mat->GetLayer(0)->GetBlendFlags() & hsGMatState::kBlendMask));
+    bool blended = ((mat->GetLayer(0)->GetBlendFlags() & hsGMatState::kBlendMask));
 
     NxShape* shape = fActor->getShapes()[0];
 

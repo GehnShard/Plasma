@@ -70,7 +70,7 @@ void plInstanceDrawInterface::Write(hsStream* stream, hsResMgr* mgr)
     mgr->WriteKey(stream, fDrawable->GetKey());
 }
 
-hsBool plInstanceDrawInterface::MsgReceive(plMessage* msg)
+bool plInstanceDrawInterface::MsgReceive(plMessage* msg)
 {
 #if 0 // UNUSED
     // This currently isn't being used, so I'm commenting it out at
@@ -103,7 +103,7 @@ hsBool plInstanceDrawInterface::MsgReceive(plMessage* msg)
     return plDrawInterface::MsgReceive(msg);
 }
 
-void plInstanceDrawInterface::AddSharedMesh(plSharedMesh *mesh, hsGMaterial *mat, hsBool addToFront, int lod, hsBool partialSort)
+void plInstanceDrawInterface::AddSharedMesh(plSharedMesh *mesh, hsGMaterial *mat, bool addToFront, int lod, bool partialSort)
 {
     if (fDrawable == nil)
     {
@@ -114,7 +114,7 @@ void plInstanceDrawInterface::AddSharedMesh(plSharedMesh *mesh, hsGMaterial *mat
 #ifdef MF_NOSHADOW_ACC
     // TESTHACKERY FOLLOWS - GlassesNoShadow
     uint32_t noShadHack = 0;
-    if( mesh->GetKey() && (strstr(mesh->GetKey()->GetName(), "lasses") || strstr(mesh->GetKey()->GetName(), "oggles")) )
+    if( mesh->GetKey() && (mesh->GetKey()->GetName().Find("lasses") >= 0 || mesh->GetKey()->GetName().Find("oggles") >= 0) )
         noShadHack = plGeometrySpan::kPropNoShadowCast;
 #endif // MF_NOSHADOW_ACC
 

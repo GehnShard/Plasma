@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 // local includes
 #include "plAvBrainDrive.h"
 #include "plArmatureMod.h"
-#include "plAvCallbackAction.h"
 
 // global includes
 #include "hsTimer.h"
@@ -100,7 +99,7 @@ void plAvBrainDrive::IEnablePhysics(bool enable, plKey avKey)
 }
 
 // APPLY
-hsBool plAvBrainDrive::Apply(double timeNow, float elapsed)
+bool plAvBrainDrive::Apply(double timeNow, float elapsed)
 {
     plSceneObject * avSO = fAvMod->GetTarget(0);
     float eTime = hsTimer::GetDelSysSeconds();
@@ -180,7 +179,7 @@ hsBool plAvBrainDrive::Apply(double timeNow, float elapsed)
 }
 
 // IHANDLECONTROLMSG
-hsBool plAvBrainDrive::MsgReceive(plMessage* msg)
+bool plAvBrainDrive::MsgReceive(plMessage* msg)
 {
     plControlEventMsg *ctrlMsg = plControlEventMsg::ConvertNoRef(msg);
     if(ctrlMsg)

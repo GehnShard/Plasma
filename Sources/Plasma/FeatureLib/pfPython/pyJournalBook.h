@@ -49,7 +49,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //////////////////////////////////////////////////////////////////////
 
 #include "pyGlueHelpers.h"
-#include <string>
+#include <vector>
 
 class cyAnimation;
 class pyImage;
@@ -84,8 +84,8 @@ public:
 
     // required functions for PyObject interoperability
     PYTHON_CLASS_NEW_FRIEND(ptBook);
-    static PyObject *New(std::string htmlSource, plKey coverImageKey = nil, plKey callbackKey = nil, plString guiName = _TEMP_CONVERT_FROM_LITERAL(""));
-    static PyObject *New(std::wstring htmlSource, plKey coverImageKey = nil, plKey callbackKey = nil, plString guiName = _TEMP_CONVERT_FROM_LITERAL(""));
+    static PyObject *New(std::string htmlSource, plKey coverImageKey = nil, plKey callbackKey = nil, plString guiName = "");
+    static PyObject *New(std::wstring htmlSource, plKey coverImageKey = nil, plKey callbackKey = nil, plString guiName = "");
     PYTHON_CLASS_CHECK_DEFINITION; // returns true if the PyObject is a pyJournalBook object
     PYTHON_CLASS_CONVERT_FROM_DEFINITION(pyJournalBook); // converts a PyObject to a pyJournalBook (throws error if not correct type)
 
@@ -94,11 +94,11 @@ public:
     static void AddPlasmaConstantsClasses(PyObject *m);
 
     // Deletes the existing book and re-creates it, for use by the python glue
-    void MakeBook(std::string esHTMLSource, plKey coverImageKey = nil, plKey callbackKey = nil, plString guiName = _TEMP_CONVERT_FROM_LITERAL(""));
-    void MakeBook(std::wstring esHTMLSource, plKey coverImageKey = nil, plKey callbackKey = nil, plString guiName = _TEMP_CONVERT_FROM_LITERAL(""));
+    void MakeBook(std::string esHTMLSource, plKey coverImageKey = nil, plKey callbackKey = nil, plString guiName = "");
+    void MakeBook(std::wstring esHTMLSource, plKey coverImageKey = nil, plKey callbackKey = nil, plString guiName = "");
 
     // Interface functions per book
-    virtual void    Show( hsBool startOpened );
+    virtual void    Show( bool startOpened );
     virtual void    Hide( void );
     virtual void    Open( uint32_t startingPage );
     virtual void    Close( void );
@@ -121,7 +121,7 @@ public:
 
     virtual PyObject *GetMovie( uint8_t index ); // returns cyAnimation
     
-    virtual void    SetEditable( hsBool editable );
+    virtual void    SetEditable( bool editable );
     virtual std::string GetEditableText( void ) const;
     virtual void    SetEditableText( std::string text );
 };

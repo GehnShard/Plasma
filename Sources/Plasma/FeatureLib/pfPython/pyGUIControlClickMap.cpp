@@ -49,6 +49,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "pyGUIControlClickMap.h"
 #include "pyGUIDialog.h"
+#include "pyGeometry3.h"
 
 pyGUIControlClickMap::pyGUIControlClickMap(pyKey& gckey) : pyGUIControl(gckey)
 {
@@ -59,7 +60,7 @@ pyGUIControlClickMap::pyGUIControlClickMap(plKey objkey) : pyGUIControl(objkey)
 }
 
 
-hsBool pyGUIControlClickMap::IsGUIControlClickMap(pyKey& gckey)
+bool pyGUIControlClickMap::IsGUIControlClickMap(pyKey& gckey)
 {
     if ( gckey.getKey() && pfGUIClickMapCtrl::ConvertNoRef(gckey.getKey()->ObjectIsLoaded()) )
         return true;

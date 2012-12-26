@@ -146,7 +146,7 @@ void    plPlate::SetSize( float width, float height, bool adjustByAspectRation )
 
 //// SetTransform ////////////////////////////////////////////////////////////
 
-void    plPlate::SetTransform( hsMatrix44 &matrix, hsBool reSort )
+void    plPlate::SetTransform( hsMatrix44 &matrix, bool reSort )
 {
     fXformMatrix = matrix;
     if( reSort )
@@ -198,7 +198,7 @@ void    plPlate::SetOpacity( float opacity )
 //  Creates a new material for this plate with either a specified texture 
 //  or an empty, white-filled bitmap.
 
-plMipmap    *plPlate::CreateMaterial( uint32_t width, uint32_t height, hsBool withAlpha, plMipmap* texture )
+plMipmap    *plPlate::CreateMaterial( uint32_t width, uint32_t height, bool withAlpha, plMipmap* texture )
 {
     plLayer         *layer;
     hsGMaterial     *material;
@@ -293,7 +293,7 @@ void    plPlate::ILink( plPlate **back )
     *back = this;
 }
 
-hsBool plPlate::IsVisible()
+bool plPlate::IsVisible()
 {
     // return not-visible if our material is not valid
     if (fMaterial->GetNumLayers() == 0)
@@ -551,7 +551,7 @@ void    plGraphPlate::SetDataColors( const std::vector<uint32_t> & hexColors )
 
 //// SetLabelText ////////////////////////////////////////////////////////////
 
-void    plGraphPlate::SetLabelText( char *text1, char *text2, char *text3, char *text4 )
+void    plGraphPlate::SetLabelText(const char *text1, const char *text2, const char *text3, const char *text4 )
 {
     std::vector<std::string> strings;
     if( text1 != nil )

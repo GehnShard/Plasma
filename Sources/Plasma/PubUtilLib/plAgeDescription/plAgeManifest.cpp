@@ -51,8 +51,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAgeManifest.h"
 
 
-#include "plFile/hsFiles.h"
-#include "plFile/plFileUtils.h"
+#include "hsFiles.h"
+#include "plFileUtils.h"
 #include "plFile/plInitFileReader.h"
 #include "hsStringTokenizer.h"
 
@@ -151,7 +151,7 @@ protected:
 
     virtual const char* GetSectionName() const { return "version"; }
 
-    virtual hsBool IParseToken(const char* token, hsStringTokenizer* tokenizer, uint32_t userData)
+    virtual bool IParseToken(const char* token, hsStringTokenizer* tokenizer, uint32_t userData)
     {
         if (stricmp(token, "format") == 0)
             fDest->SetFormatVersion(atoi(tokenizer->next()));
@@ -185,7 +185,7 @@ protected:
         return new plManifestFile(name, "", sum, size, zippedSize, flags);
     }
 
-    virtual hsBool IParseToken(const char* token, hsStringTokenizer* tokenizer, uint32_t userData)
+    virtual bool IParseToken(const char* token, hsStringTokenizer* tokenizer, uint32_t userData)
     {
         plManifestFile* file = IReadManifestFile(token, tokenizer, userData, false);
         AddFile(file);
@@ -216,9 +216,6 @@ bool plManifest::Read(hsStream* stream)
     
     plInitFileReader reader(readers, 4096);     // Allow extra long lines
     reader.SetUnhandledSectionReader(&baseReader);
-    
-    // manifests don't need to be encrypted
-    reader.SetRequireEncrypted(false);
 
     if (!reader.Open(stream))
         return false;
@@ -241,9 +238,6 @@ bool plManifest::Read(const char* filename)
     
     plInitFileReader reader(readers, 4096);     // Allow extra long lines
     reader.SetUnhandledSectionReader(&baseReader);
-    
-    // manifests don't need to be encrypted
-    reader.SetRequireEncrypted(false);
     
     if (!reader.Open(filename))
         return false;

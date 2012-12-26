@@ -55,7 +55,7 @@ void PythonInterface::initPython(std::string rootDir)
     {
         // initialize the Python stuff
         // let Python do some intialization...
-        Py_SetProgramName("plasma");
+        Py_SetProgramName(const_cast<char*>("plasma"));
         Py_NoSiteFlag = 1;
         Py_IgnoreEnvironmentFlag = 1;
         Py_Initialize();
@@ -66,7 +66,7 @@ void PythonInterface::initPython(std::string rootDir)
 //      plasmaMod = PyImport_ImportModule("Plasma");
 
         // create the StringIO for the stdout and stderr file
-        PycStringIO = (struct PycStringIO_CAPI*)PyCObject_Import("cStringIO", "cStringIO_CAPI");
+        PycStringIO = (struct PycStringIO_CAPI*)PyCObject_Import(const_cast<char*>("cStringIO"), const_cast<char*>("cStringIO_CAPI"));
         stdFile = (*PycStringIO->NewOutput)(20000);
         // if we need the builtins then find the builtin module
         PyObject* sysmod = PyImport_ImportModule("sys");
@@ -152,7 +152,7 @@ PyObject* PythonInterface::CompileString(const char *command, const char* filena
 //
 //  PURPOSE    : marshals an object into a char string
 //
-hsBool PythonInterface::DumpObject(PyObject* pyobj, char** pickle, int32_t* size)
+bool PythonInterface::DumpObject(PyObject* pyobj, char** pickle, int32_t* size)
 {
     PyObject *s;        // the python string object where the marsalled object wil go
     // convert object to a marshalled string python object
@@ -191,7 +191,7 @@ int PythonInterface::getOutputAndReset(char** line)
     int size = PyString_Size( pyStr );
 
     // reset the file back to zero
-    PyObject_CallMethod(stdFile,"reset","");
+    PyObject_CallMethod(stdFile, const_cast<char*>("reset"), const_cast<char*>(""));
 /*
     // check to see if the debug python module is loaded
     if ( dbgOut != nil )
@@ -255,7 +255,7 @@ PyObject* PythonInterface::CreateModule(const char* module)
 //
 //  PURPOSE    : run a compiled python code in a specific module name
 //
-hsBool PythonInterface::RunPYC(PyObject* code, PyObject* module)
+bool PythonInterface::RunPYC(PyObject* code, PyObject* module)
 {
     PyObject *d, *v;
     // make sure that we're given a good module... or at least one with an address

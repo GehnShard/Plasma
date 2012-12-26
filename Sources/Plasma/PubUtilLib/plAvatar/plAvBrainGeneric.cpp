@@ -39,7 +39,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "plAvCallbackAction.h"     // havok-contaminated file: must go first
 
 // singular
 #include "plAvBrainGeneric.h"
@@ -75,7 +74,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plStatusLog/plStatusLog.h"
 #endif
 
-hsBool plAvBrainGeneric::fForce3rdPerson = true;
+bool plAvBrainGeneric::fForce3rdPerson = true;
 const float plAvBrainGeneric::kDefaultFadeIn = 6.f; // 1/6th of a second to fade in
 const float plAvBrainGeneric::kDefaultFadeOut = 0.f; // instant fade out.
 
@@ -94,7 +93,6 @@ plAvBrainGeneric::plAvBrainGeneric()
   fFadeIn(0.0f),
   fFadeOut(0.0f),
   fMoveMode(kMoveRelative),
-  fCallbackAction(nil),
   fBodyUsage(plAGAnim::kBodyUnknown)
 {
 }
@@ -122,7 +120,6 @@ plAvBrainGeneric::plAvBrainGeneric(plAnimStageVec *stages,
   fFadeIn(fadeIn),
   fFadeOut(fadeOut),
   fMoveMode(moveMode),
-  fCallbackAction(nil),
   fBodyUsage(plAGAnim::kBodyUnknown)
 {
 }
@@ -141,7 +138,6 @@ plAvBrainGeneric::plAvBrainGeneric(uint32_t exitFlags, float fadeIn, float fadeO
   fFadeIn(fadeIn),
   fFadeOut(fadeOut),
   fMoveMode(moveMode),
-  fCallbackAction(nil),
   fBodyUsage(plAGAnim::kBodyUnknown)
 {
     
@@ -218,7 +214,7 @@ void plAvBrainGeneric::Activate(plArmatureModBase *avMod)
         fAvMod->SetReverseFBOnIdle(true);
 }
 
-hsBool plAvBrainGeneric::IsRunningTask()
+bool plAvBrainGeneric::IsRunningTask()
 {
     if ( fStages->size() > 0 )
         return true;
@@ -242,9 +238,9 @@ bool plAvBrainGeneric::MatchAnimNames(const char *names[], int count)
 
 // Apply ----------------------------------------------------
 // ------
-hsBool plAvBrainGeneric::Apply(double time, float elapsed)
+bool plAvBrainGeneric::Apply(double time, float elapsed)
 {
-    hsBool result = false;
+    bool result = false;
 
     switch(fMode)
     {
@@ -345,7 +341,7 @@ float plAvBrainGeneric::IGetAnimDelta(double time, float elapsed)
     plAnimStage::ForwardType forward = curStage->GetForwardType();
     plAnimStage::BackType back = curStage->GetBackType();
     bool fwdIsDown = (fReverseFBControlsOnRelease && fAvMod->IsFBReversed()) ? fAvMod->BackwardKeyDown() : fAvMod->ForwardKeyDown();
-    hsBool backIsDown = (fReverseFBControlsOnRelease && fAvMod->IsFBReversed()) ? fAvMod->ForwardKeyDown() : fAvMod->BackwardKeyDown();
+    bool backIsDown = (fReverseFBControlsOnRelease && fAvMod->IsFBReversed()) ? fAvMod->ForwardKeyDown() : fAvMod->BackwardKeyDown();
 
     // forward with a key down gets top priority
     if(forward == plAnimStage::kForwardKey && fwdIsDown)
@@ -372,14 +368,14 @@ float plAvBrainGeneric::IGetAnimDelta(double time, float elapsed)
 
 // IProcessNormal -------------------------------------------------
 // ---------------
-hsBool plAvBrainGeneric::IProcessNormal(double time, float elapsed)
+bool plAvBrainGeneric::IProcessNormal(double time, float elapsed)
 {
     plAnimStage *curStage = (*fStages)[fCurStage];
     if(curStage)
     {
         float animDelta = IGetAnimDelta(time, elapsed);     // how far to move the anim (may be negative)
         float overage;
-        hsBool done = curStage->MoveRelative(time, animDelta, overage, fAvMod);
+        bool done = curStage->MoveRelative(time, animDelta, overage, fAvMod);
 
         if(done)
         {
@@ -404,7 +400,7 @@ hsBool plAvBrainGeneric::IProcessNormal(double time, float elapsed)
 
 // IProcessFadeIn -------------------------------------------------
 // ---------------
-hsBool plAvBrainGeneric::IProcessFadeIn(double time, float elapsed)
+bool plAvBrainGeneric::IProcessFadeIn(double time, float elapsed)
 {
     plAnimStage *curStage = (*fStages)[fCurStage];
 
@@ -437,7 +433,7 @@ hsBool plAvBrainGeneric::IProcessFadeIn(double time, float elapsed)
 
 // IProcessFadeOut -------------------------------------------------
 // ----------------
-hsBool plAvBrainGeneric::IProcessFadeOut(double time, float elapsed)
+bool plAvBrainGeneric::IProcessFadeOut(double time, float elapsed)
 {
     plAnimStage *curStage = (*fStages)[fCurStage];
 
@@ -478,7 +474,7 @@ hsBool plAvBrainGeneric::IProcessFadeOut(double time, float elapsed)
 
 // ISwitchStages ---------------------------------------------------------------------------------------------------
 // --------------
-hsBool plAvBrainGeneric::ISwitchStages(int oldStageNum, int newStageNum, float delta, hsBool setTime, float newTime,
+bool plAvBrainGeneric::ISwitchStages(int oldStageNum, int newStageNum, float delta, bool setTime, float newTime,
                                        float fadeNew, float fadeOld, double worldTime)
 {
 #ifdef DEBUG_MULTISTAGE
@@ -549,9 +545,9 @@ void plAvBrainGeneric::IExitMoveMode()
 
 // MsgReceive -------------------------------------
 // -----------
-hsBool plAvBrainGeneric::MsgReceive(plMessage *msg)
+bool plAvBrainGeneric::MsgReceive(plMessage *msg)
 {
-    hsBool result = false;
+    bool result = false;
 
     plAvBrainGenericMsg *genMsg = plAvBrainGenericMsg::ConvertNoRef(msg);
     //plAvExitModeMsg *exitMsg = plAvExitModeMsg::ConvertNoRef(msg);
@@ -589,11 +585,11 @@ hsBool plAvBrainGeneric::MsgReceive(plMessage *msg)
 
 // IHandleGenBrainMsg -----------------------------------------------------
 // -------------------
-hsBool plAvBrainGeneric::IHandleGenBrainMsg(const plAvBrainGenericMsg *msg)
+bool plAvBrainGeneric::IHandleGenBrainMsg(const plAvBrainGenericMsg *msg)
 {
-    hsBool setTime = msg->fSetTime;
+    bool setTime = msg->fSetTime;
     float newTime = msg->fNewTime;
-    hsBool setDirection = msg->fSetDirection;
+    bool setDirection = msg->fSetDirection;
     bool newDirection = msg->fNewDirection ? true : false;
     double worldTime = hsTimer::GetSysSeconds();
 
@@ -670,7 +666,7 @@ hsBool plAvBrainGeneric::IHandleGenBrainMsg(const plAvBrainGenericMsg *msg)
     return true;
 }
 
-hsBool plAvBrainGeneric::IHandleTaskMsg(plAvTaskMsg *msg)
+bool plAvBrainGeneric::IHandleTaskMsg(plAvTaskMsg *msg)
 {
     plAvTask *task = msg->GetTask();
     plAvTaskBrain *brainTask = plAvTaskBrain::ConvertNoRef(task);
@@ -782,7 +778,7 @@ void plAvBrainGeneric::Write(hsStream *stream, hsResMgr *mgr)
     stream->WriteLE32(fType);
     stream->WriteLE32(fExitFlags);
     stream->WriteByte(fMode);
-    stream->Writebool(fForward);
+    stream->WriteBool(fForward);
 
     if(fStartMessage) {
         stream->WriteBool(true);
@@ -826,7 +822,7 @@ void plAvBrainGeneric::Read(hsStream *stream, hsResMgr *mgr)
     fType = static_cast<plAvBrainGeneric::BrainType>(stream->ReadLE32());
     fExitFlags = stream->ReadLE32();
     fMode = static_cast<Mode>(stream->ReadByte());
-    fForward = stream->Readbool();
+    fForward = stream->ReadBool();
 
     if(stream->ReadBool()) {
         fStartMessage = plMessage::ConvertNoRef(mgr->ReadCreatable(stream));
@@ -854,7 +850,7 @@ void plAvBrainGeneric::Read(hsStream *stream, hsResMgr *mgr)
 
 // LeaveAge ---------------------
 // ---------
-hsBool plAvBrainGeneric::LeaveAge()
+bool plAvBrainGeneric::LeaveAge()
 {
     IExitMoveMode();
 

@@ -57,9 +57,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsStringTokenizer.h"
 
 
-#include "plUnifiedTime/plUnifiedTime.h"
-
-#include "plSecureStream.h" // for the default key
+#include "plUnifiedTime.h"
 
 #include <time.h>
 #include <sys/types.h>
@@ -87,7 +85,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //  Creates the directory specified. Returns false if unsuccessful or 
 //  directory already exists
 
-hsBool  plFileUtils::CreateDir( const char *path )
+bool    plFileUtils::CreateDir( const char *path )
 {
     // Create our directory
 #if HS_BUILD_FOR_WIN32
@@ -97,7 +95,7 @@ hsBool  plFileUtils::CreateDir( const char *path )
 #endif
 }
 
-hsBool  plFileUtils::CreateDir( const wchar_t *path )
+bool    plFileUtils::CreateDir( const wchar_t *path )
 {
     // Create our directory
 #if HS_BUILD_FOR_WIN32
@@ -111,12 +109,12 @@ hsBool  plFileUtils::CreateDir( const wchar_t *path )
 #endif
 }
 
-hsBool plFileUtils::RemoveDir(const char* path)
+bool plFileUtils::RemoveDir(const char* path)
 {
     return (rmdir(path) == 0);
 }
 
-hsBool plFileUtils::RemoveDirTree(const char * path)
+bool plFileUtils::RemoveDirTree(const char * path)
 {
     hsFolderIterator it(path);
     while (it.NextFile())
@@ -257,19 +255,19 @@ bool plFileUtils::FileExists(const char* file)
 //// EnsureFilePathExists ////////////////////////////////////////////////////
 //  Given a filename with path, makes sure the file's path exists
 
-hsBool  plFileUtils::EnsureFilePathExists( const char *filename )
+bool    plFileUtils::EnsureFilePathExists( const char *filename )
 {
     wchar_t* wFilename = hsStringToWString(filename);
-    hsBool ret = EnsureFilePathExists(wFilename);
+    bool ret = EnsureFilePathExists(wFilename);
     delete [] wFilename;
     return ret;
 }
 
-hsBool  plFileUtils::EnsureFilePathExists( const wchar_t *filename )
+bool    plFileUtils::EnsureFilePathExists( const wchar_t *filename )
 {
     hsWStringTokenizer  izer( filename, L"\\/" );
 
-    hsBool  lastWorked = false;
+    bool    lastWorked = false;
     wchar_t   token[ kFolderIterator_MaxPath ];
 
 
@@ -287,7 +285,7 @@ hsBool  plFileUtils::EnsureFilePathExists( const wchar_t *filename )
 //  Gets the creation and modification dates of the file specified. Returns 
 //  false if unsuccessful
 
-hsBool  plFileUtils::GetFileTimes( const char *path, plUnifiedTime *createTimeOut, plUnifiedTime *modifyTimeOut )
+bool    plFileUtils::GetFileTimes( const char *path, plUnifiedTime *createTimeOut, plUnifiedTime *modifyTimeOut )
 {
     struct stat fileInfo;
 
@@ -502,62 +500,4 @@ uint32_t  plFileUtils::GetFileSize( const wchar_t *path )
     }
 
     return len;
-}
-
-//// GetSecureEncryptionKey //////////////////////////////////////////////////
-
-bool plFileUtils::GetSecureEncryptionKey(const char* filename, uint32_t* key, unsigned length)
-{
-    wchar_t* wFilename = hsStringToWString(filename);
-    bool ret = GetSecureEncryptionKey(wFilename, key, length);
-    delete [] wFilename;
-    return ret;
-}
-
-bool plFileUtils::GetSecureEncryptionKey(const wchar_t* filename, uint32_t* key, unsigned length)
-{
-    // looks for an encryption key file in the same directory, and reads it
-    std::wstring sFilename = filename;
-
-    // grab parent directory
-    size_t loc = sFilename.rfind(L"\\");
-    if (loc == std::wstring::npos)
-        loc = sFilename.rfind(L"/");
-
-    std::wstring sDir;
-    if (loc != std::wstring::npos)
-        sDir = sFilename.substr(0, loc);
-    else // no directory
-        sDir = L"./";
-    if ((sDir[sDir.length()-1] != L'/') && (sDir[sDir.length()-1] != L'\\'))
-        sDir += L'/'; // add the slash, if it doesn't has one
-
-    // now add the key filename
-    std::wstring keyFile = sDir + kWKeyFilename;
-
-    if (FileExists(keyFile.c_str()))
-    {
-        // file exists, read from it
-        hsUNIXStream file;
-        file.Open(keyFile.c_str(), L"rb");
-
-        unsigned bytesToRead = length * sizeof(uint32_t);
-        uint8_t* buffer = (uint8_t*)malloc(bytesToRead);
-        unsigned bytesRead = file.Read(bytesToRead, buffer);
-
-        file.Close();
-
-        unsigned memSize = min(bytesToRead, bytesRead);
-        memcpy(key, buffer, memSize);
-        free(buffer);
-
-        return true;
-    }
-
-    // file doesn't exist, use default key
-    unsigned memSize = min(length, arrsize(plSecureStream::kDefaultKey));
-    memSize *= sizeof(uint32_t);
-    memcpy(key, plSecureStream::kDefaultKey, memSize);
-
-    return false;
 }

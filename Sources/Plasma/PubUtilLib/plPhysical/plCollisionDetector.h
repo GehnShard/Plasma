@@ -53,11 +53,13 @@ class plArmatureMod;
 class plActivatorMsg;
 class plEvalMsg;
 
+#define USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+
 class plCollisionDetector : public plDetectorModifier
 {
 protected:
     int8_t    fType;
-    hsBool  fBumped, fTriggered;
+    bool    fBumped, fTriggered;
 
     plArmatureMod* IGetAvatarModifier(plKey key);
     bool IIsDisabledAvatar(plKey key);
@@ -77,7 +79,7 @@ public:
     plCollisionDetector(int8_t type) : fType(type), fTriggered(false), fBumped(false) { }
     virtual ~plCollisionDetector(){;}
     
-    virtual hsBool MsgReceive(plMessage* msg);
+    virtual bool MsgReceive(plMessage* msg);
 
     CLASSNAME_REGISTER( plCollisionDetector );
     GETINTERFACE_ANY( plCollisionDetector, plDetectorModifier );
@@ -92,27 +94,41 @@ public:
 class plObjectInVolumeDetector : public plCollisionDetector
 {
 protected:
-    virtual void ITrigger(plKey hitter, bool entering, bool immediate=false);
-    virtual void ISendSavedTriggerMsgs();
-    
-    plActivatorMsg* fSavedActivatorMsg;
-    uint32_t fNumEvals;
-    uint32_t fLastEnterEval;
-    uint32_t fLastExitEval;
+    class plCollisionBookKeepingInfo
+    {
+    public:
+        plCollisionBookKeepingInfo(const plKey& key, bool entering)
+            : fHitter(key), fEntering(entering) { }
+
+        plKey fHitter;
+#ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+        uint32_t fLastStep;
+#endif // USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+        bool fEntering;
+    };
+
+    void ITrigger(plKey hitter, bool entering);
+    void ISendTriggerMsg(plKey hitter, bool entering);
+    void IRegisterForEval();
+    virtual void IHandleEval(plEvalMsg*);
+    bool fWaitingForEval;
+
+    typedef std::list<plCollisionBookKeepingInfo*> bookKeepingList;
+    bookKeepingList fCollisionList;
+    typedef std::set<plKey> ResidentSet;
+    ResidentSet fCurrentResidents;
 
 public:
     
     plObjectInVolumeDetector() 
-        : plCollisionDetector(), fSavedActivatorMsg(nil), fNumEvals(0), fLastEnterEval(0), fLastExitEval(0) 
-    { }
+        : plCollisionDetector(), fWaitingForEval(false) { }
 
     plObjectInVolumeDetector(int8_t type) 
-        : plCollisionDetector(type), fSavedActivatorMsg(nil), fNumEvals(0), fLastEnterEval(0), fLastExitEval(0) 
-    { }
+        : plCollisionDetector(type), fWaitingForEval(false) { }
 
     virtual ~plObjectInVolumeDetector() { }
     
-    virtual hsBool MsgReceive(plMessage* msg);
+    virtual bool MsgReceive(plMessage* msg);
 
     CLASSNAME_REGISTER(plObjectInVolumeDetector);
     GETINTERFACE_ANY(plObjectInVolumeDetector, plCollisionDetector);
@@ -138,7 +154,7 @@ public:
     plObjectInVolumeAndFacingDetector();
     virtual ~plObjectInVolumeAndFacingDetector();
     
-    virtual hsBool MsgReceive(plMessage* msg);
+    virtual bool MsgReceive(plMessage* msg);
 
     CLASSNAME_REGISTER(plObjectInVolumeAndFacingDetector);
     GETINTERFACE_ANY(plObjectInVolumeAndFacingDetector, plObjectInVolumeDetector);
@@ -159,19 +175,20 @@ protected:
     typedef std::vector<plCameraMsg*> plCameraMsgVec;
 
     plCameraMsgVec  fMessages;
-    bool    fIsInside;
-    bool    fSavingSendMsg;
-    bool    fSavedMsgEnterFlag;
+#ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+    uint32_t fLastStep;
+#endif
+    bool fIsInside;
+    bool fEntering;
 
-    virtual void ITrigger(plKey hitter, bool entering, bool immediate=false);
-    virtual void ISendSavedTriggerMsgs();
+    void ISendTriggerMsg();
+    virtual void IHandleEval(plEvalMsg*);
 public:
     plCameraRegionDetector()
-        : plObjectInVolumeDetector(), fIsInside(false), fSavingSendMsg(false)
-    { }
+        : plObjectInVolumeDetector(), fIsInside(false) { }
     ~plCameraRegionDetector();
 
-    virtual hsBool MsgReceive(plMessage* msg);
+    virtual bool MsgReceive(plMessage* msg);
     void AddMessage(plCameraMsg* pMsg) { fMessages.push_back(pMsg); }
 
     CLASSNAME_REGISTER( plCameraRegionDetector );
@@ -188,7 +205,7 @@ class plSubworldRegionDetector : public plCollisionDetector
 {
 protected:
     plKey fSub;
-    hsBool fOnExit;
+    bool fOnExit;
 
 public:
     enum
@@ -198,9 +215,9 @@ public:
     plSubworldRegionDetector() : fSub(nil), fOnExit(false){;}
     ~plSubworldRegionDetector();
     
-    virtual hsBool MsgReceive(plMessage* msg);
+    virtual bool MsgReceive(plMessage* msg);
     void SetSubworldKey(plKey pKey) { fSub = pKey; }
-    void SetTriggerOnExit(hsBool b) { fOnExit = b; }
+    void SetTriggerOnExit(bool b) { fOnExit = b; }
 
     CLASSNAME_REGISTER( plSubworldRegionDetector );
     GETINTERFACE_ANY( plSubworldRegionDetector, plCollisionDetector );
@@ -214,12 +231,12 @@ public:
 class plPanicLinkRegion : public plCollisionDetector
 {
 public:
-    hsBool fPlayLinkOutAnim;
+    bool fPlayLinkOutAnim;
     
     plPanicLinkRegion() : fPlayLinkOutAnim(true) { }
 
     
-    virtual hsBool MsgReceive(plMessage* msg);
+    virtual bool MsgReceive(plMessage* msg);
     CLASSNAME_REGISTER( plPanicLinkRegion );
     GETINTERFACE_ANY( plPanicLinkRegion, plCollisionDetector );
 
@@ -242,14 +259,14 @@ public:
     plSimpleRegionSensor(plMessage *enterMsg, plMessage *exitMsg);
     virtual ~plSimpleRegionSensor();
 
-    virtual hsBool MsgReceive(plMessage *msg);
+    virtual bool MsgReceive(plMessage *msg);
     CLASSNAME_REGISTER( plSimpleRegionSensor );
     GETINTERFACE_ANY( plSimpleRegionSensor, plSingleModifier);
 
     virtual void Write(hsStream *stream, hsResMgr *mgr);
     virtual void Read(hsStream *stream, hsResMgr *mgr);
 
-    virtual hsBool IEval(double secs, float del, uint32_t dirty);
+    virtual bool IEval(double secs, float del, uint32_t dirty);
 protected:
     plMessage *fEnterMsg;
     plMessage *fExitMsg;
@@ -269,7 +286,7 @@ public:
     
     virtual void Write(hsStream *stream, hsResMgr *mgr);
     virtual void Read(hsStream *stream, hsResMgr *mgr); 
-    hsBool MsgReceive(plMessage *msg);
+    bool MsgReceive(plMessage *msg);
 };
 class plRidingAnimatedPhysicalDetector: public plSimpleRegionSensor
 {
@@ -277,7 +294,7 @@ public:
     plRidingAnimatedPhysicalDetector(){}
     plRidingAnimatedPhysicalDetector(plMessage *enterMsg, plMessage *exitMsg) : plSimpleRegionSensor(enterMsg, exitMsg) {}
     virtual ~plRidingAnimatedPhysicalDetector(){}
-    virtual hsBool MsgReceive(plMessage *msg);
+    virtual bool MsgReceive(plMessage *msg);
     CLASSNAME_REGISTER( plRidingAnimatedPhysicalDetector );
     GETINTERFACE_ANY( plRidingAnimatedPhysicalDetector, plSimpleRegionSensor);
 };

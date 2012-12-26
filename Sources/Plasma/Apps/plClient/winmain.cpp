@@ -59,6 +59,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pfCrashHandler/plCrashCli.h"
 #include "plNetClient/plNetClientMgr.h"
 #include "plNetClient/plNetLinkingMgr.h"
+#include "plInputCore/plInputDevice.h"
 #include "plInputCore/plInputManager.h"
 #include "plUnifiedTime/plUnifiedTime.h"
 #include "plPipeline.h"
@@ -71,7 +72,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plStatusLog/plStatusLog.h"
 #include "pnProduct/pnProduct.h"
 #include "plNetGameLib/plNetGameLib.h"
-#include "plFile/plFileUtils.h"
+#include "plFileUtils.h"
 
 #include "plPhysX/plSimulationMgr.h"
 
@@ -92,10 +93,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 // Globals
 //
-hsBool gHasMouse = false;
+bool gHasMouse = false;
 ITaskbarList3* gTaskbarList = nil; // NT 6.1+ taskbar stuff
 
-extern hsBool gDataServerLocal;
+extern bool gDataServerLocal;
 
 enum
 {
@@ -152,30 +153,6 @@ static wchar_t s_patcherExeName[] = L"UruLauncher.exe";
 static wchar_t s_physXSetupExeName[] = L"PhysX_Setup.exe";
 
 //============================================================================
-// TRANSGAMING detection  & dialog replacement
-//============================================================================
-typedef BOOL (WINAPI *IsTransgaming) (void);
-typedef const char * (WINAPI *TGGetOS) (void);
-typedef LPVOID (WINAPI *TGLaunchUNIXApp) (const char *pPath, const char *pMode);
-typedef BOOL (WINAPI *TGUNIXAppReadLine) (LPVOID pApp, char *pBuf, int bufSize);
-typedef BOOL (WINAPI *TGUNIXAppWriteLine) (LPVOID pApp, const char *pLine);
-typedef BOOL (WINAPI *TGUNIXAppClose) (LPVOID pApp);
-
-static bool TGIsCider = false;
-static TGLaunchUNIXApp pTGLaunchUNIXApp;
-static TGUNIXAppReadLine pTGUNIXAppReadLine;
-static TGUNIXAppWriteLine pTGUNIXAppWriteLine;
-static TGUNIXAppClose pTGUNIXAppClose;
-
-#define TG_NEW_LOGIN_PATH "C:\\Program Files\\Uru Live\\Cider\\URU Live Login.app"
-#define TG_NEW_LOGIN_POPEN_PATH "/transgaming/c_drive/Program Files/Uru Live/Cider/URU Live Login.app/Contents/MacOS/URU Live Login"
-#define TG_OLD_LOGIN_POPEN_PATH "/URU Live Login.app/Contents/MacOS/URU Live Login"
-
-#define TG_NEW_EULA_PATH "C:\\Program Files\\Uru Live\\Cider\\URU Live EULA.app"
-#define TG_NEW_EULA_POPEN_PATH "/transgaming/c_drive/Program Files/Uru Live/Cider/URU Live EULA.app/Contents/MacOS/URU Live EULA"
-#define TG_OLD_EULA_POPEN_PATH "/URU Live EULA.app/Contents/MacOS/URU Live EULA"
-
-//============================================================================
 // LoginDialogParam
 //============================================================================
 struct LoginDialogParam {
@@ -194,183 +171,13 @@ static void AuthFailedStrings (ENetError authError,
                                          const char **ppStr1, const char **ppStr2,
                                          const wchar_t **ppWStr);
 
-
-// Detect whether we're running under TRANSGAMING Cider
-//==============================================================================
-static void TGDoCiderDetection ()
-{
-    HMODULE hMod = GetModuleHandle ("ntdll");
-    if (!hMod)
-        return;
-
-    IsTransgaming pIsTg = (IsTransgaming)GetProcAddress (hMod, "IsTransgaming");
-    if (!pIsTg || !pIsTg ())
-        return;
-
-    TGGetOS pTGOS = (TGGetOS)GetProcAddress (hMod, "TGGetOS");
-    const char *pOS = NULL;
-    if (pTGOS)
-        pOS = pTGOS ();
-    if (!pOS || strcmp (pOS, "MacOSX"))
-        return;
-
-    TGIsCider = true;
-    pTGLaunchUNIXApp = (TGLaunchUNIXApp)GetProcAddress (hMod, "TGLaunchUNIXApp");
-    pTGUNIXAppReadLine = (TGUNIXAppReadLine)GetProcAddress (hMod, "TGUNIXAppReadLine");
-    pTGUNIXAppWriteLine = (TGUNIXAppWriteLine)GetProcAddress (hMod, "TGUNIXAppWriteLine");
-    pTGUNIXAppClose = (TGUNIXAppClose)GetProcAddress (hMod, "TGUNIXAppClose");
-}
-
-static bool TGRunLoginDialog (LoginDialogParam *pLoginParam)
-{
-    while (true)
-    {
-        LPVOID pApp;
-        if (GetFileAttributes (TG_NEW_LOGIN_PATH) != INVALID_FILE_ATTRIBUTES)
-            pApp = pTGLaunchUNIXApp (TG_NEW_LOGIN_POPEN_PATH, "r+");
-        else
-            pApp = pTGLaunchUNIXApp (TG_OLD_LOGIN_POPEN_PATH, "r+");
-
-        if (!pApp)
-        {
-            hsMessageBox ("Incomplete or corrupted installation!\nUnable to locate Login dialog",
-                "Error", hsMessageBoxNormal);
-            return false;
-        }
-
-        // Send user/pwd/remember
-        pTGUNIXAppWriteLine (pApp, pLoginParam->username);
-        if (pLoginParam->remember)
-          pTGUNIXAppWriteLine (pApp, FAKE_PASS_STRING);
-        else
-          pTGUNIXAppWriteLine (pApp, "");
-        if (pLoginParam->remember)
-          pTGUNIXAppWriteLine (pApp, "y");
-        else
-          pTGUNIXAppWriteLine (pApp, "n");
-
-        if (!pTGUNIXAppReadLine (pApp, pLoginParam->username, sizeof (pLoginParam->username)))
-        {
-            pTGUNIXAppClose (pApp);
-            hsMessageBox ("Incomplete or corrupted installation!\nUnable to locate Login dialog",
-                "Error", hsMessageBoxNormal);
-            return false;
-        }
-
-        // Check if user selected 'Cancel'
-        if (StrCmp (pLoginParam->username, "text:", 5) != 0)
-        {
-            pTGUNIXAppClose (pApp);
-            return false;
-        }
-        memmove (pLoginParam->username, pLoginParam->username + 5, StrLen (pLoginParam->username) - 5);
-        pLoginParam->username[StrLen (pLoginParam->username) - 5] = '\0';
-
-        char Password[kMaxPasswordLength];
-        if (!pTGUNIXAppReadLine (pApp, Password, sizeof (Password)))
-        {
-            pTGUNIXAppClose (pApp);
-            hsMessageBox ("Incomplete or corrupted installation!\nLogin dialog not found or working",
-                "Error", hsMessageBoxNormal);
-            return false;
-        }
-
-        char Remember[16];
-        if (!pTGUNIXAppReadLine (pApp, Remember, sizeof (Remember)))
-        {
-            pTGUNIXAppClose (pApp);
-            hsMessageBox ("Incomplete or corrupted installation!\nLogin dialog not found or working",
-                "Error", hsMessageBoxNormal);
-            return false;
-        }
-
-        pTGUNIXAppClose (pApp);
-
-        pLoginParam->remember = (Remember[0] == 'y');
-        SaveUserPass (pLoginParam, Password);
-
-        // Do login & see if it failed
-        ENetError auth;
-        bool cancelled = AuthenticateNetClientComm(&auth, NULL);
-
-        if (IS_NET_SUCCESS (auth) && !cancelled)
-            break;
-
-        if (!cancelled)
-          {
-                const char *pStr1, *pStr2;
-                const wchar_t *pWStr;
-                unsigned int Len;
-                char *pTmpStr;
-
-                AuthFailedStrings (auth, &pStr1, &pStr2, &pWStr);
-
-                Len = StrLen (pStr1) + 1;
-                if (pStr2)
-                  Len += StrLen (pStr2) + 2;
-                if (pWStr)
-                  Len += StrLen (pWStr) + 2;
-
-                pTmpStr = new char[Len];
-                StrCopy (pTmpStr, pStr1, StrLen (pStr1));
-                if (pStr2)
-                  {
-                     StrCopy (pTmpStr + StrLen (pTmpStr), "\n\n", 2);
-                     StrCopy (pTmpStr + StrLen (pTmpStr), pStr2, StrLen (pStr2));
-                  }
-                if (pWStr)
-                  {
-                     StrCopy (pTmpStr + StrLen (pTmpStr), "\n\n", 2);
-                     StrToAnsi (pTmpStr + StrLen (pTmpStr), pWStr, StrLen (pWStr));
-                  }
-
-                hsMessageBox (pTmpStr, "Error", hsMessageBoxNormal);
-                delete [] pTmpStr;
-          }
-        else
-            NetCommDisconnect();
-    };
-
-    return true;
-}
-
-bool TGRunTOSDialog ()
-{
-    char Buf[16];
-    LPVOID pApp;
-
-    if (GetFileAttributes (TG_NEW_EULA_PATH) != INVALID_FILE_ATTRIBUTES)
-        pApp = pTGLaunchUNIXApp (TG_NEW_EULA_POPEN_PATH, "r");
-    else
-        pApp = pTGLaunchUNIXApp (TG_OLD_EULA_POPEN_PATH, "r");
-
-    if (!pApp)
-    {
-        hsMessageBox ("Incomplete or corrupted installation!\nTOS dialog not found or working",
-                "Error", hsMessageBoxNormal);
-        return false;
-    }
-
-    if (!pTGUNIXAppReadLine (pApp, Buf, sizeof (Buf)))
-    {
-        hsMessageBox ("Incomplete or corrupted installation!\nTOS dialog not found or working",
-                "Error", hsMessageBoxNormal);
-        pTGUNIXAppClose (pApp);
-        return false;
-    }
-
-    pTGUNIXAppClose (pApp);
-
-    return (StrCmp (Buf, "accepted") == 0);
-}
-
 void DebugMsgF(const char* format, ...);
 
 // Handles all the windows messages we might receive
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static bool gDragging = false;
-    static uint32_t keyState=0;
+    static uint8_t mouse_down = 0;
 
     // Messages we registered for manually (no const value)
     if (message == s_WmTaskbarList)
@@ -394,31 +201,45 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 nc->ResetServerTimeOffset(true);
             break;
 
-        case WM_KEYDOWN :
-        case WM_LBUTTONDOWN :
-        case WM_RBUTTONDOWN :
-        case WM_LBUTTONDBLCLK :     // The left mouse button was double-clicked. 
-        case WM_MBUTTONDBLCLK :     // The middle mouse button was double-clicked. 
-        case WM_MBUTTONDOWN :       // The middle mouse button was pressed. 
-        case WM_RBUTTONDBLCLK :     // The right mouse button was double-clicked. 
-            // If they did anything but move the mouse, quit any intro movie playing.
-            {
-                if( gClient )
-                    gClient->SetQuitIntro(true);
-            }
-            // Fall through to other events
+        case WM_LBUTTONDOWN:
+        case WM_RBUTTONDOWN:
+        case WM_LBUTTONDBLCLK:
+        case WM_MBUTTONDBLCLK:
+        case WM_MBUTTONDOWN:
+        case WM_RBUTTONDBLCLK:
+            // Ensure we don't leave the client area during clicks
+            if (!(mouse_down++))
+                SetCapture(hWnd);
+            // fall through to old case
+        case WM_KEYDOWN:
         case WM_CHAR:
-        case WM_KEYUP :
-        case WM_LBUTTONUP :
-        case WM_RBUTTONUP :
-        case WM_MBUTTONUP :         // The middle mouse button was released. 
-        case WM_MOUSEMOVE :
-        case 0x020A:                // fuc&ing windows b.s...
+            // If they did anything but move the mouse, quit any intro movie playing.
+            if (gClient)
             {
-                if (gClient && gClient->WindowActive() && gClient->GetInputManager())
-                {
+                gClient->SetQuitIntro(true);
+
+                // normal input processing
+                if (gClient->WindowActive() && gClient->GetInputManager())
                     gClient->GetInputManager()->HandleWin32ControlEvent(message, wParam, lParam, hWnd);
-                }
+            }
+            break;
+        case WM_LBUTTONUP:
+        case WM_RBUTTONUP:
+        case WM_MBUTTONUP:
+            // Stop hogging the cursor
+            if (!(--mouse_down))
+                ReleaseCapture();
+            // fall through to input processing
+        case WM_MOUSEWHEEL:
+        case WM_KEYUP:
+           if (gClient && gClient->WindowActive() && gClient->GetInputManager())
+               gClient->GetInputManager()->HandleWin32ControlEvent(message, wParam, lParam, hWnd);
+            break;
+
+        case WM_MOUSEMOVE:
+            {
+                if (gClient && gClient->GetInputManager())
+                    gClient->GetInputManager()->HandleWin32ControlEvent(message, wParam, lParam, hWnd);
             }
             break;
 
@@ -457,6 +278,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             break;
 
+        case WM_SETCURSOR:
+            {
+                static bool winCursor = true;
+                bool enterWnd = LOWORD(lParam) == HTCLIENT;
+                if (enterWnd && winCursor)
+                {
+                    winCursor = !winCursor;
+                    ShowCursor(winCursor != 0);
+                    plMouseDevice::ShowCursor();
+                }
+                else if (!enterWnd && !winCursor)
+                {
+                    winCursor = !winCursor;
+                    ShowCursor(winCursor != 0);
+                    plMouseDevice::HideCursor();
+                }
+                return TRUE;
+            }
+            break;
+
         case WM_ACTIVATE:
             {
                 bool active = (LOWORD(wParam) == WA_ACTIVE || LOWORD(wParam) == WA_CLICKACTIVE);
@@ -469,25 +310,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 if (gClient && !minimized && !gClient->GetDone())
                 {
-                    if (LOWORD(wParam) == WA_CLICKACTIVE)
-                    {
-                        // See if they've clicked on the frame, in which case they just want to
-                        // move, not activate, us.
-                        POINT pt;
-                        GetCursorPos(&pt);
-                        ScreenToClient(hWnd, &pt);
-
-                        RECT rect;
-                        GetClientRect(hWnd, &rect);
-
-                        if( (pt.x < rect.left)
-                            ||(pt.x >= rect.right)
-                            ||(pt.y < rect.top)
-                            ||(pt.y >= rect.bottom) )
-                        {
-                            active = false;
-                        }
-                    }
                     gClient->WindowActivate(active);
                 }
                 else
@@ -964,12 +786,12 @@ BOOL CALLBACK UruTOSDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
             if (stream.Open("TOS.txt", "rt"))
             {
                 uint32_t dataLen = stream.GetSizeLeft();
-                char* eulaData = new char[dataLen + 1];
+                plStringBuffer<char> eula;
+                char* eulaData = eula.CreateWritableBuffer(dataLen);
                 memset(eulaData, 0, dataLen + 1);
                 stream.Read(dataLen, eulaData);
 
-                plString str = plString::Steal(eulaData);
-                SetDlgItemTextW(hwndDlg, IDC_URULOGIN_EULATEXT, _TEMP_CONVERT_TO_WCHAR_T(str));
+                SetDlgItemTextW(hwndDlg, IDC_URULOGIN_EULATEXT, plString(eula).ToWchar());
             }
             else // no TOS found, go ahead
                 EndDialog(hwndDlg, true);
@@ -998,15 +820,15 @@ static void SaveUserPass (LoginDialogParam *pLoginParam, char *password)
     memset(cryptKey, 0, sizeof(cryptKey));
     GetCryptKey(cryptKey, arrsize(cryptKey));
 
-    plString theUser = _TEMP_CONVERT_FROM_LITERAL(pLoginParam->username);
-    plString thePass = (_TEMP_CONVERT_FROM_LITERAL(password)).Left(kMaxPasswordLength);
+    plString theUser = pLoginParam->username;
+    plString thePass = plString(password).Left(kMaxPasswordLength);
 
     // if the password field is the fake string then we've already
     // loaded the namePassHash from the file
     if (thePass.Compare(FAKE_PASS_STRING) != 0)
     {
         wchar_t domain[15];
-        PathSplitEmail(_TEMP_CONVERT_TO_WCHAR_T(theUser), nil, 0, domain, arrsize(domain), nil, 0, nil, 0, 0);
+        PathSplitEmail(theUser.ToWchar(), nil, 0, domain, arrsize(domain), nil, 0, nil, 0, 0);
 
         if (StrLen(domain) == 0 || StrCmpI(domain, L"gametap") == 0) {
             plSHA1Checksum shasum(StrLen(password) * sizeof(password[0]), (uint8_t*)password);
@@ -1026,11 +848,10 @@ static void SaveUserPass (LoginDialogParam *pLoginParam, char *password)
         }
     }
 
-    NetCommSetAccountUsernamePassword(_TEMP_CONVERT_TO_WCHAR_T(theUser), pLoginParam->namePassHash);
-    if (TGIsCider)
-        NetCommSetAuthTokenAndOS(nil, L"mac");
-    else
-        NetCommSetAuthTokenAndOS(nil, L"win");
+    NetCommSetAccountUsernamePassword(theUser.ToWchar(), pLoginParam->namePassHash);
+
+    // FIXME: Real OS detection
+    NetCommSetAuthTokenAndOS(nil, L"win");
 
     wchar_t fileAndPath[MAX_PATH];
     PathGetInitDirectory(fileAndPath, arrsize(fileAndPath));
@@ -1047,7 +868,7 @@ static void SaveUserPass (LoginDialogParam *pLoginParam, char *password)
     {
         stream->Write(sizeof(cryptKey), cryptKey);
         stream->WriteSafeString(pLoginParam->username);
-        stream->Writebool(pLoginParam->remember);
+        stream->WriteBool(pLoginParam->remember);
         if (pLoginParam->remember)
             stream->Write(sizeof(pLoginParam->namePassHash), pLoginParam->namePassHash);
         stream->Close();
@@ -1076,7 +897,7 @@ static void LoadUserPass (LoginDialogParam *pLoginParam)
     if (PathDoesFileExist(localFileAndPath))
         StrCopy(fileAndPath, localFileAndPath, arrsize(localFileAndPath));
 #endif
-    hsStream* stream = plEncryptedStream::OpenEncryptedFile(fileAndPath, true, cryptKey);
+    hsStream* stream = plEncryptedStream::OpenEncryptedFile(fileAndPath, cryptKey);
     if (stream && !stream->AtEnd())
     {
         uint32_t savedKey[4];
@@ -1092,7 +913,7 @@ static void LoadUserPass (LoginDialogParam *pLoginParam)
                 delete temp;
             }
 
-            pLoginParam->remember = stream->Readbool();
+            pLoginParam->remember = stream->ReadBool();
 
             if (pLoginParam->remember)
             {
@@ -1124,6 +945,10 @@ static size_t CurlCallback(void *buffer, size_t size, size_t nmemb, void *param)
 
 void StatusCallback(void *param)
 {
+#ifdef USE_VLD
+    VLDEnable();
+#endif
+
     HWND hwnd = (HWND)param;
 
     const char *statusUrl = GetServerStatusUrl();
@@ -1421,8 +1246,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
         }
     }
 
-    TGDoCiderDetection ();
-
 #ifdef PLASMA_EXTERNAL_RELEASE
     // if the client was started directly, run the patcher, and shutdown
     STARTUPINFOW si;
@@ -1436,7 +1259,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
     
     if (!eventExists) // if it is missing, assume patcher wasn't launched
     {
-        cmdLine << _TEMP_CONVERT_FROM_WCHAR_T(s_patcherExeName);
+        cmdLine << plString::FromWchar(s_patcherExeName);
 
         GetAuthSrvHostnames(&addrs);
         if(strlen(addrs[0]))
@@ -1547,24 +1370,16 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
     }
 
     if (doIntroDialogs) {
-        if (TGIsCider)
-            needExit = !TGRunLoginDialog(&loginParam);
-        else if (::DialogBoxParam( hInst, MAKEINTRESOURCE( IDD_URULOGIN_MAIN ), NULL, UruLoginDialogProc, (LPARAM)&loginParam ) <= 0)
-            needExit = true;
+        needExit = ::DialogBoxParam( hInst, MAKEINTRESOURCE( IDD_URULOGIN_MAIN ), NULL, UruLoginDialogProc, (LPARAM)&loginParam ) <= 0;
     }
 
     if (doIntroDialogs && !needExit) {
-        if (TGIsCider)
-            needExit = !TGRunTOSDialog ();
-        else
-        {
-            HINSTANCE hRichEdDll = LoadLibrary("RICHED20.DLL");
-            INT_PTR val = ::DialogBoxParam( hInst, MAKEINTRESOURCE( IDD_URULOGIN_EULA ), NULL, UruTOSDialogProc, (LPARAM)hInst);
-            FreeLibrary(hRichEdDll);
-            if (val <= 0) {
-                DWORD error = GetLastError();
-                needExit = true;
-            }
+        HINSTANCE hRichEdDll = LoadLibrary("RICHED20.DLL");
+        INT_PTR val = ::DialogBoxParam( hInst, MAKEINTRESOURCE( IDD_URULOGIN_EULA ), NULL, UruTOSDialogProc, (LPARAM)hInst);
+        FreeLibrary(hRichEdDll);
+        if (val <= 0) {
+            DWORD error = GetLastError();
+            needExit = true;
         }
     }
 

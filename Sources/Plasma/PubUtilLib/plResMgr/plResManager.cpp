@@ -60,13 +60,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnMessage/plObjRefMsg.h"
 #include "plMessage/plAgeLoadedMsg.h"
 #include "pnMessage/plClientMsg.h"
-#include "plFile/hsFiles.h"
-#include "plFile/plFileUtils.h"
+#include "hsFiles.h"
+#include "plFileUtils.h"
 #include "pnFactory/plCreator.h"
 #include "pnNetCommon/plSynchedObject.h"
 #include "pnNetCommon/plNetApp.h"
 
-hsBool gDataServerLocal = false;
+bool gDataServerLocal = false;
 
 /// Logging #define for easier use
 #define kResMgrLog(level, log) if (plResMgrSettings::Get().GetLoggingLevel() >= level) log
@@ -121,7 +121,7 @@ plResManager::~plResManager()
     hsAssert(!fInited,"ResMgr not shutdown");
 }
 
-hsBool plResManager::IInit()
+bool plResManager::IInit()
 {
     if (fInited)
         return true;
@@ -163,7 +163,7 @@ hsBool plResManager::IInit()
     return true; 
 }
 
-hsBool plResManager::IReset()   // Used to Re-Export (number of times)
+bool plResManager::IReset()   // Used to Re-Export (number of times)
 {
     BeginShutdown();
     IShutdown();
@@ -244,7 +244,7 @@ plRegistryPageNode* plResManager::FindSinglePage(const char* path) const
     PageMap::const_iterator it;
     for (it = fAllPages.begin(); it != fAllPages.end(); it++)
     {
-        if (hsStrCaseEQ((it->second)->GetPagePath(), path))
+        if (stricmp((it->second)->GetPagePath(), path) == 0)
             return it->second;
     }
 
@@ -268,7 +268,7 @@ plDispatchBase *plResManager::Dispatch()
 }
 
 
-void plResManager::LogReadTimes(hsBool logReadTimes)
+void plResManager::LogReadTimes(bool logReadTimes)
 {
     fLogReadTimes = logReadTimes;
     if (fLogReadTimes)
@@ -303,7 +303,7 @@ hsKeyedObject* plResManager::IGetSharedObject(plKeyImp* pKey)
 
 //// ReadObject /////////////////////////////////////////////////////////////
 //  Given a key, goes off and reads in the actual object from its source
-hsBool plResManager::ReadObject(plKeyImp* key)
+bool plResManager::ReadObject(plKeyImp* key)
 {
     // Read in the object. If while we are doing this something else requests a
     // load (through AddViaNotify or ReadKeyNotifyMe) we consider it a child load
@@ -351,7 +351,7 @@ hsBool plResManager::ReadObject(plKeyImp* key)
     return ret;
 }
 
-hsBool plResManager::IReadObject(plKeyImp* pKey, hsStream *stream)
+bool plResManager::IReadObject(plKeyImp* pKey, hsStream *stream)
 {
     static uint64_t totalTime = 0;
 
@@ -423,12 +423,18 @@ hsBool plResManager::IReadObject(plKeyImp* pKey, hsStream *stream)
             ko = hsKeyedObject::ConvertNoRef(cre);
 
             if (ko != nil)
+            {
                 kResMgrLog(4, ILog(4, "   ...Creatable read and valid"));
+            }
             else
+            {
                 kResMgrLog(3, ILog(3, "   ...Creatable read from stream not keyed object!"));
+            }
 
             if (fProgressProc != nil)
+            {
                 fProgressProc(plKey::Make(pKey));
+            }
         }
         else
         {
@@ -476,7 +482,7 @@ public:
         fResMgr->IterateAllPages(this);
     }
 
-    virtual hsBool EatPage(plRegistryPageNode* page)
+    virtual bool EatPage(plRegistryPageNode* page)
     {
         fResMgr->UnloadPageObjects(page, fHint);
         return true;
@@ -495,7 +501,7 @@ static bool sFirstTime = true;
 #endif
 
 // Just the scene nodes (and objects referenced by the node... and so on)
-void plResManager::IPageOutSceneNodes(hsBool forceAll)
+void plResManager::IPageOutSceneNodes(bool forceAll)
 {
     plSynchEnabler ps(false);   // disable dirty tracking while paging out
 
@@ -536,9 +542,9 @@ inline plKeyImp* IFindKeyLocalized(const plUoid& uoid, plRegistryPageNode* page)
     if ((!objectName.IsNull()) && plLocalization::IsLocalized())
     {
         char localName[256];
-        if (plLocalization::GetLocalized(_TEMP_CONVERT_TO_CONST_CHAR(objectName), localName))
+        if (plLocalization::GetLocalized(objectName.c_str(), localName))
         {
-            plKeyImp* localKey = page->FindKey(uoid.GetClassType(), _TEMP_CONVERT_FROM_LITERAL(localName));
+            plKeyImp* localKey = page->FindKey(uoid.GetClassType(), localName);
             if (localKey != nil)
                 return localKey;
         }
@@ -626,14 +632,14 @@ void plResManager::GetLocationStrings(const plLocation& loc, char* ageBuffer, ch
         hsStrcpy(pageBuffer, info.GetPage());
 }
 
-hsBool plResManager::AddViaNotify(plRefMsg* msg, plRefFlags::Type flags)
+bool plResManager::AddViaNotify(plRefMsg* msg, plRefFlags::Type flags)
 {
     hsAssert(msg && msg->GetRef() && msg->GetRef()->GetKey(), "Improperly filled out ref message");
     plKey key = msg->GetRef()->GetKey();        // for linux build
     return AddViaNotify(key, msg, flags);
 }
 
-hsBool plResManager::AddViaNotify(const plKey &key, plRefMsg* msg, plRefFlags::Type flags)
+bool plResManager::AddViaNotify(const plKey &key, plRefMsg* msg, plRefFlags::Type flags)
 {
     hsAssert(key, "Can't add without a Key");
     if (!key)
@@ -654,7 +660,7 @@ hsBool plResManager::AddViaNotify(const plKey &key, plRefMsg* msg, plRefFlags::T
     return true;
 }
 
-hsBool plResManager::SendRef(hsKeyedObject* ko, plRefMsg* refMsg, plRefFlags::Type flags)
+bool plResManager::SendRef(hsKeyedObject* ko, plRefMsg* refMsg, plRefFlags::Type flags)
 {
     if (!ko)
         return false;
@@ -674,7 +680,7 @@ hsBool plResManager::SendRef(hsKeyedObject* ko, plRefMsg* refMsg, plRefFlags::Ty
 // This doesn't mean you are guaranteed to have your ref at the return of SendRef,
 // because if it's not in memory, we don't wait around while we load it, we just
 // return false.
-hsBool plResManager::SendRef(const plKey& key, plRefMsg* refMsg, plRefFlags::Type flags)
+bool plResManager::SendRef(const plKey& key, plRefMsg* refMsg, plRefFlags::Type flags)
 {
     if (!key)
     {
@@ -847,7 +853,7 @@ plKey plResManager::ReRegister(const plString& nm, const plUoid& oid)
 
 plKey plResManager::ReadKey(hsStream* s)
 {
-    hsBool nonNil = s->ReadBool();
+    bool nonNil = s->ReadBool();
     if (!nonNil)
         return nil;
 
@@ -921,7 +927,7 @@ plKey plResManager::ICloneKey(const plUoid& objUoid, uint32_t playerID, uint32_t
     fCurCloneID = cloneID;
     fCurClonePlayerID = playerID;
 
-    plKey cloneKey = ReRegister(_TEMP_CONVERT_FROM_LITERAL(""), objUoid);
+    plKey cloneKey = ReRegister("", objUoid);
 
     fCurClonePlayerID = 0;
     fCurCloneID = 0;
@@ -939,7 +945,7 @@ plKey plResManager::ICloneKey(const plUoid& objUoid, uint32_t playerID, uint32_t
 // When support for paging is added, key->UnRegister() should not clear its notify lists.
 // Return true if successful.
 //
-hsBool plResManager::Unload(const plKey& objKey)
+bool plResManager::Unload(const plKey& objKey)
 {
     if (objKey)
     {
@@ -1034,7 +1040,7 @@ public:
     plResHolderIterator(const char* age, hsTArray<plKey>& keys, plResManager* resMgr) 
             : fAgeName(age), fKeys(keys), fResMgr(resMgr) {}
 
-    virtual hsBool EatPage(plRegistryPageNode* page)
+    virtual bool EatPage(plRegistryPageNode* page)
     {
         if (stricmp(page->GetPageInfo().GetAge(), fAgeName) == 0)
         {
@@ -1137,7 +1143,7 @@ class plOurRefferAndFinder : public plRegistryKeyIterator
         plOurRefferAndFinder( hsTArray<plKey> &refArray, uint16_t classToFind, plKey &foundKey ) 
                 : fRefArray( refArray ), fClassToFind( classToFind ), fFoundKey( foundKey ) { }
 
-        virtual hsBool  EatKey( const plKey& key )
+        virtual bool EatKey( const plKey& key )
         {
             // This is cute. Thanks to our new plKey smart pointers, all we have to
             // do is append the key to our ref array. This automatically guarantees us
@@ -1268,11 +1274,11 @@ public:
         }
         pMsg1->Send(fDestKey);
     }
-    virtual hsBool EatPage(plRegistryPageNode* page)
+    virtual bool EatPage(plRegistryPageNode* page)
     {
         if (stricmp(page->GetPageInfo().GetAge(), fAgeName) == 0)
         {
-            plUoid uoid(page->GetPageInfo().GetLocation(), 0, _TEMP_CONVERT_FROM_LITERAL(""));
+            plUoid uoid(page->GetPageInfo().GetLocation(), 0, "");
             fLocations.push_back(uoid.GetLocation());
         }
         return true;
@@ -1302,7 +1308,7 @@ void plResManager::PageInAge(const char *age)
 //  Runs through all the pages and ensures they are all up-to-date in version
 //  numbers and that no out-of-date objects exist in them
 
-hsBool plResManager::VerifyPages()
+bool plResManager::VerifyPages()
 {
     hsTArray<plRegistryPageNode*> invalidPages, newerPages;
     PageMap::iterator it = fAllPages.begin();
@@ -1415,7 +1421,7 @@ static void ICatPageNames(hsTArray<plRegistryPageNode*>& pages, char* buf, int b
     }
 }
 
-hsBool plResManager::IDeleteBadPages(hsTArray<plRegistryPageNode*>& invalidPages, hsBool conflictingSeqNums)
+bool plResManager::IDeleteBadPages(hsTArray<plRegistryPageNode*>& invalidPages, bool conflictingSeqNums)
 {
 #ifndef PLASMA_EXTERNAL_RELEASE
     if (!hsMessageBox_SuppressPrompts)
@@ -1454,7 +1460,7 @@ hsBool plResManager::IDeleteBadPages(hsTArray<plRegistryPageNode*>& invalidPages
 //  than the "current" one), warns the user about them but does nothing to
 //  them.
 
-hsBool plResManager::IWarnNewerPages(hsTArray<plRegistryPageNode*> &newerPages)
+bool plResManager::IWarnNewerPages(hsTArray<plRegistryPageNode*> &newerPages)
 {
 #ifndef PLASMA_EXTERNAL_RELEASE
     if (!hsMessageBox_SuppressPrompts)
@@ -1495,7 +1501,7 @@ public:
 
     void UnRef() { fRefArray.Reset(); }
 
-    virtual hsBool EatKey(const plKey& key)
+    virtual bool EatKey(const plKey& key)
     {
         // This is cute. Thanks to our new plKey smart pointers, all we have to
         // do is append the key to our ref array. This automatically guarantees us
@@ -1608,7 +1614,7 @@ void plResManager::UnloadPageObjects(plRegistryPageNode* pageNode, uint16_t clas
     class plUnloadObjectsIterator : public plRegistryKeyIterator
     {
     public:
-        virtual hsBool EatKey(const plKey& key)
+        virtual bool EatKey(const plKey& key)
         {
             sIReportLeak((plKeyImp*)key, nil);
             return true;
@@ -1651,8 +1657,8 @@ plRegistryPageNode* plResManager::FindPage(const char* age, const char* page) co
     for (it = fAllPages.begin(); it != fAllPages.end(); ++it)
     {
         const plPageInfo& info = (it->second)->GetPageInfo();
-        if (hsStrCaseEQ(info.GetAge(), age) &&
-            hsStrCaseEQ(info.GetPage(), page))
+        if (stricmp(info.GetAge(), age) == 0 &&
+            stricmp(info.GetPage(), page) == 0)
             return it->second;
     }
 
@@ -1725,7 +1731,7 @@ protected:
 
 public:
     plKeyIterEater(plRegistryKeyIterator* iter) : fIter(iter) {}
-    virtual hsBool EatPage(plRegistryPageNode* keyNode)
+    virtual bool EatPage(plRegistryPageNode* keyNode)
     {
         return keyNode->IterateKeys(fIter);
     }
@@ -1733,13 +1739,13 @@ public:
 
 //// IterateKeys /////////////////////////////////////////////////////////////
 
-hsBool plResManager::IterateKeys(plRegistryKeyIterator* iterator)
+bool plResManager::IterateKeys(plRegistryKeyIterator* iterator)
 {
     plKeyIterEater myEater(iterator);
     return IteratePages(&myEater, nil);
 }
 
-hsBool plResManager::IterateKeys(plRegistryKeyIterator* iterator, const plLocation& pageToRestrictTo)
+bool plResManager::IterateKeys(plRegistryKeyIterator* iterator, const plLocation& pageToRestrictTo)
 {
     plRegistryPageNode* page = FindPage(pageToRestrictTo);
     if (page == nil)
@@ -1755,7 +1761,7 @@ hsBool plResManager::IterateKeys(plRegistryKeyIterator* iterator, const plLocati
 //// IteratePages ////////////////////////////////////////////////////////////
 //  Iterate through all LOADED pages
 
-hsBool plResManager::IteratePages(plRegistryPageIterator* iterator, const char* ageToRestrictTo)
+bool plResManager::IteratePages(plRegistryPageIterator* iterator, const char* ageToRestrictTo)
 {
     ILockPages();
 
@@ -1766,7 +1772,7 @@ hsBool plResManager::IteratePages(plRegistryPageIterator* iterator, const char* 
         if (page->GetPageInfo().GetLocation() == plLocation::kGlobalFixedLoc)
             continue;
 
-        if (!ageToRestrictTo || hsStrCaseEQ(page->GetPageInfo().GetAge(), ageToRestrictTo))
+        if (!ageToRestrictTo || stricmp(page->GetPageInfo().GetAge(), ageToRestrictTo) == 0)
         {
             if (!iterator->EatPage(page))
             {
@@ -1784,7 +1790,7 @@ hsBool plResManager::IteratePages(plRegistryPageIterator* iterator, const char* 
 //// IterateAllPages /////////////////////////////////////////////////////////
 //  Iterate through ALL pages
 
-hsBool plResManager::IterateAllPages(plRegistryPageIterator* iterator)
+bool plResManager::IterateAllPages(plRegistryPageIterator* iterator)
 {
     ILockPages();
 

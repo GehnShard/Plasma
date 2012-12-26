@@ -60,7 +60,7 @@ plInitSectionTokenReader::plInitSectionTokenReader( const char *separators ) : f
 {
 }
 
-hsBool      plInitSectionTokenReader::ParseLine( const char *line, uint32_t userData )
+bool        plInitSectionTokenReader::ParseLine( const char *line, uint32_t userData )
 {
     hsStringTokenizer izer( line, fSeparators );
 
@@ -83,7 +83,6 @@ void    plInitFileReader::IInitReaders( plInitSectionReader **readerArray )
 
 plInitFileReader::plInitFileReader( plInitSectionReader **readerArray, uint16_t lineSize )
 {
-    fRequireEncrypted = true;
     fCurrLine = nil;
     fLineSize = lineSize;
     fStream = fOurStream = nil;
@@ -93,7 +92,6 @@ plInitFileReader::plInitFileReader( plInitSectionReader **readerArray, uint16_t 
 
 plInitFileReader::plInitFileReader( const char *fileName, plInitSectionReader **readerArray, uint16_t lineSize )
 {
-    fRequireEncrypted = true;
     fCurrLine = nil;
     fLineSize = lineSize;
     fStream = fOurStream = nil;
@@ -105,7 +103,6 @@ plInitFileReader::plInitFileReader( const char *fileName, plInitSectionReader **
 
 plInitFileReader::plInitFileReader( hsStream *stream, plInitSectionReader **readerArray, uint16_t lineSize )
 {
-    fRequireEncrypted = true;
     fCurrLine = nil;
     fLineSize = lineSize;
     fStream = fOurStream = nil;
@@ -121,7 +118,7 @@ plInitFileReader::~plInitFileReader()
     delete [] fCurrLine;
 }
 
-hsBool  plInitFileReader::Open( const char *fileName )
+bool    plInitFileReader::Open( const char *fileName )
 {
     if( fStream != nil )
     {
@@ -129,7 +126,7 @@ hsBool  plInitFileReader::Open( const char *fileName )
         return false;
     }
 
-    fOurStream = plEncryptedStream::OpenEncryptedFile( fileName, fRequireEncrypted );
+    fOurStream = plEncryptedStream::OpenEncryptedFile( fileName );
 
     if( fOurStream == nil )
         return false;
@@ -139,7 +136,7 @@ hsBool  plInitFileReader::Open( const char *fileName )
     return true;
 }
 
-hsBool  plInitFileReader::Open( hsStream *stream )
+bool    plInitFileReader::Open( hsStream *stream )
 {
     if( fStream != nil )
     {
@@ -151,7 +148,7 @@ hsBool  plInitFileReader::Open( hsStream *stream )
     return true;
 }
 
-hsBool  plInitFileReader::Parse( uint32_t userData )
+bool    plInitFileReader::Parse( uint32_t userData )
 {
     hsAssert( fStream != nil, "Nil stream in initFileReader::Parse(); file not yet open?" );
 

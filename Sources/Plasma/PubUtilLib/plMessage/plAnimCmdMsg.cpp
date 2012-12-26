@@ -56,27 +56,7 @@ void plAnimCmdMsg::ClearCmd()
     fCmd.Clear(); 
 }
 
-void plAnimCmdMsg::SetAnimName(const plString &name)
-{
-    fAnimName = name;
-}
-
-plString plAnimCmdMsg::GetAnimName()
-{
-    return fAnimName;
-}
-
-void plAnimCmdMsg::SetLoopName(const plString &name)
-{
-    fLoopName = name;
-}
-
-plString plAnimCmdMsg::GetLoopName()
-{
-    return fLoopName;
-}
-
-hsBool plAnimCmdMsg::CmdChangesAnimTime()
+bool plAnimCmdMsg::CmdChangesAnimTime()
 {
     return (Cmd(kContinue) ||
             Cmd(kStop) ||

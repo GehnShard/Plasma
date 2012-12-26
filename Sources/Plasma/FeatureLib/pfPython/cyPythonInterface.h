@@ -48,6 +48,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 #include "HeadSpin.h"
 #include "hsStlUtils.h"
+#include "plString.h"
 
 #if defined(HAVE_CYPYTHONIDE) && !defined(PLASMA_EXTERNAL_RELEASE)
 #include "../../Apps/CyPythonIDE/plCyDebug/plCyDebServer.h"
@@ -63,8 +64,8 @@ class  PythonInterface
 private:
     static int32_t initialized;   // count how many times we initialize
                                 // and make sure that many finalize on the way out
-    static hsBool FirstTimeInit;
-    static hsBool IsInShutdown; // whether we are _really_ in shutdown mode
+    static bool FirstTimeInit;
+    static bool IsInShutdown; // whether we are _really_ in shutdown mode
 
     static PyMethodDef* plasmaMethods;
     static PyObject* plasmaMod; // python object that holds the Plasma module
@@ -77,7 +78,7 @@ private:
     static PyObject* stdOut;    // python object of the stdout file
     static PyObject* stdErr;    // python object of the err file
 
-    static hsBool debug_initialized;    // has the debug been initialized yet?
+    static bool debug_initialized;    // has the debug been initialized yet?
     static PyObject* dbgMod;    // display module for stdout and stderr
     static PyObject* dbgOut;
     static PyObject* dbgSlice;  // time slice function for the debug window
@@ -139,6 +140,8 @@ public:
     // Writes 'text' to stderr specified in the python interface
     static void WriteToStdErr(const char* text);
 
+    static PyObject* ImportModule(const char* module);
+
     // Find module. If it doesn't exist then don't create, return nil.
     static PyObject* FindModule(const char* module);
 
@@ -150,7 +153,7 @@ public:
     static PyObject* GetPlasmaItem(char* item);
 
     // Determine if the module name is unique
-    static hsBool IsModuleNameUnique(char* module);
+    static bool IsModuleNameUnique(char* module);
     // get an item (probably a function) from a specific module
     static PyObject* GetModuleItem(char* item, PyObject* module);
 
@@ -174,7 +177,7 @@ public:
     //
     //  PURPOSE    : marshals an object into a char string
     //
-    static hsBool DumpObject(PyObject* pyobj, char** pickle, int32_t* size);
+    static bool DumpObject(PyObject* pyobj, char** pickle, int32_t* size);
 
     /////////////////////////////////////////////////////////////////////////////
     //
@@ -196,7 +199,7 @@ public:
     //  PURPOSE    : run a python string in a specific module name
     //             : Interactive mode (displays results)
     //
-    static hsBool RunStringInteractive(char *command, PyObject* module);
+    static bool RunStringInteractive(char *command, PyObject* module);
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -207,7 +210,7 @@ public:
     //
     //  PURPOSE    : run a python string in a specific module name
     //
-    static hsBool RunString(char *command, PyObject* module);
+    static bool RunString(char *command, PyObject* module);
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -218,8 +221,13 @@ public:
     //
     //  PURPOSE    : run a compiled python code in a specific module name
     //
-    static hsBool RunPYC(PyObject* code, PyObject* module);
+    static bool RunPYC(PyObject* code, PyObject* module);
 
+    static PyObject* RunFunction(PyObject* module, const char* name, PyObject* args);
+
+    static PyObject* ParseArgs(const char* args);
+
+    static bool RunFunctionSafe(const char* module, const char* function, const char* args);
     /////////////////////////////////////////////////////////////////////////////
     //
     //  Function   : GetpyKeyFromPython

@@ -63,7 +63,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plNetMessage/plNetMessage.h"
 #include "plAvatar/plAvatarMgr.h"
 #include "plAvatar/plArmatureMod.h"
-#include "plFile/hsFiles.h"
+#include "hsFiles.h"
 
 
 /*****************************************************************************
@@ -314,7 +314,7 @@ std::string plNetLinkingMgr::GetProperAgeName( const char * ageName )
 
 ////////////////////////////////////////////////////////////////////
 
-hsBool plNetLinkingMgr::MsgReceive( plMessage *msg )
+bool plNetLinkingMgr::MsgReceive( plMessage *msg )
 {
     if (s_ageLeaver && NCAgeLeaverMsgReceive(s_ageLeaver, msg))
         return true;
@@ -427,7 +427,7 @@ void plNetLinkingMgr::IDoLink(plLinkToAgeMsg* msg)
         );
     StrCopy(
         joinAgeOp->age.spawnPtName,
-        GetAgeLink()->SpawnPoint().GetName(),
+        GetAgeLink()->SpawnPoint().GetName().c_str(),
         arrsize(joinAgeOp->age.spawnPtName)
         );
     QueueOp(joinAgeOp);
@@ -947,7 +947,7 @@ uint8_t plNetLinkingMgr::IPreProcessLink(void)
                             title = plString::Format("%s'", nc->GetPlayerName().c_str());
                         else
                             title = plString::Format("%s's", nc->GetPlayerName().c_str());
-                        info->SetAgeUserDefinedName(_TEMP_CONVERT_TO_CONST_CHAR(title));
+                        info->SetAgeUserDefinedName(title.c_str());
                     }
                     if (!info->HasAgeDescription())
                     {
@@ -986,7 +986,7 @@ uint8_t plNetLinkingMgr::IPreProcessLink(void)
                                     title = plString::Format("%s'", nc->GetPlayerName().c_str());
                                 else
                                     title = plString::Format("%s's", nc->GetPlayerName().c_str());
-                                info->SetAgeUserDefinedName(_TEMP_CONVERT_TO_CONST_CHAR(title));
+                                info->SetAgeUserDefinedName(title.c_str());
                             }
 
                             if (!info->HasAgeDescription())
@@ -998,7 +998,7 @@ uint8_t plNetLinkingMgr::IPreProcessLink(void)
                                     desc = plString::Format("%s' %s", nc->GetPlayerName().c_str(), info->GetAgeInstanceName());
                                 else
                                     desc = plString::Format("%s's %s", nc->GetPlayerName().c_str(), info->GetAgeInstanceName());
-                                info->SetAgeDescription( _TEMP_CONVERT_TO_CONST_CHAR(desc) );
+                                info->SetAgeDescription( desc.c_str() );
                             }
 
                             if (!info->HasAgeInstanceGuid()) {

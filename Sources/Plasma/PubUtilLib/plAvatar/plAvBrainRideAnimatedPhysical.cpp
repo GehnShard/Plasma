@@ -44,7 +44,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "plAvBrainHuman.h"
 #include "plAvBrain.h"
-#include "plAvCallbackAction.h"
+#include "plPhysicalControllerCore.h"
 #include "plMessage/plRideAnimatedPhysMsg.h"
 
 
@@ -52,27 +52,26 @@ void plAvBrainRideAnimatedPhysical::Activate(plArmatureModBase *avMod)
 {
     plArmatureBrain::Activate(avMod);
     IInitAnimations();
-    if (!fCallbackAction)
+    if (!fWalkingStrategy)
     {
         plSceneObject* avObj = fArmature->GetTarget(0);
         plAGModifier* agMod = const_cast<plAGModifier*>(plAGModifier::ConvertNoRef(FindModifierByClass(avObj, plAGModifier::Index())));
         plPhysicalControllerCore* controller = avMod->GetController();
-        fCallbackAction = new plRidingAnimatedPhysicalController(avObj, agMod->GetApplicator(kAGPinTransform), controller);
-        fCallbackAction->ActivateController();
+        fWalkingStrategy = new plDynamicWalkingStrategy(agMod->GetApplicator(kAGPinTransform), controller);
+        controller->SetMovementStrategy(fWalkingStrategy);
     }
 }
 plAvBrainRideAnimatedPhysical::~plAvBrainRideAnimatedPhysical()
 {
-    delete fCallbackAction;
-    fCallbackAction=nil;
-
+    delete fWalkingStrategy;
+    fWalkingStrategy = nil;
 }
 
 void plAvBrainRideAnimatedPhysical::Deactivate()
 {
     plArmatureBrain::Deactivate();
 }
-hsBool plAvBrainRideAnimatedPhysical::MsgReceive(plMessage *msg)
+bool plAvBrainRideAnimatedPhysical::MsgReceive(plMessage *msg)
 {
     plRideAnimatedPhysMsg *ride = plRideAnimatedPhysMsg::ConvertNoRef(msg);
     if(ride)
@@ -88,9 +87,9 @@ hsBool plAvBrainRideAnimatedPhysical::MsgReceive(plMessage *msg)
     }
     return plArmatureBrain::MsgReceive(msg);
 }
-hsBool plAvBrainRideAnimatedPhysical::IInitAnimations()
+bool plAvBrainRideAnimatedPhysical::IInitAnimations()
 {
-    hsBool result = false;
+    bool result = false;
 
     plAGAnim *idle = fAvMod->FindCustomAnim("Idle");
     plAGAnim *walk = fAvMod->FindCustomAnim("Walk");
@@ -180,11 +179,11 @@ hsBool plAvBrainRideAnimatedPhysical::IInitAnimations()
     }
     return result;
 }
-hsBool plAvBrainRideAnimatedPhysical::LeaveAge()
+bool plAvBrainRideAnimatedPhysical::LeaveAge()
 {
     return plArmatureBrain::LeaveAge();
 }
-hsBool plAvBrainRideAnimatedPhysical::Apply(double timeNow, float elapsed)
+bool plAvBrainRideAnimatedPhysical::Apply(double timeNow, float elapsed)
 {
     if(this->fMode==kAbort) return false;
     else return plAvBrainHuman::Apply(timeNow, elapsed);

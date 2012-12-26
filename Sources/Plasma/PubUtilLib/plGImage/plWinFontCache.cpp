@@ -63,7 +63,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plWinFontCache.h"
 
 #include "plStatusLog/plStatusLog.h"
-#include "plFile/hsFiles.h"
+#include "hsFiles.h"
 #include "plGImage/plDynSurfaceWriter.h"
 
 #if HS_BUILD_FOR_WIN32
@@ -93,7 +93,7 @@ plWinFontCache  &plWinFontCache::GetInstance( void )
     return cache;
 }
 
-HFONT   plWinFontCache::IFindFont( const char *face, int height, int weight, hsBool italic, uint32_t quality )
+HFONT   plWinFontCache::IFindFont( const char *face, int height, int weight, bool italic, uint32_t quality )
 {
     int     i;
 
@@ -114,7 +114,7 @@ HFONT   plWinFontCache::IFindFont( const char *face, int height, int weight, hsB
     return nil;
 }
 
-HFONT   plWinFontCache::IMakeFont( const char *face, int height, int weight, hsBool italic, uint32_t quality )
+HFONT   plWinFontCache::IMakeFont( const char *face, int height, int weight, bool italic, uint32_t quality )
 {
     plFontRecord    myRec;
     int             i;
@@ -155,7 +155,7 @@ HFONT   plWinFontCache::IMakeFont( const char *face, int height, int weight, hsB
                 err = "Height of created font does not match";
             if( fontInfo.lfWeight != weight )
                 err = "Weight of created font does not match";
-            if( fontInfo.lfItalic != italic )
+            if( static_cast<bool>(fontInfo.lfItalic) != italic )
                 err = "Italic-ness of created font does not match";
             if( stricmp( fontInfo.lfFaceName, face ) != 0 )
                 err = "Face of created font does not match";
@@ -206,7 +206,7 @@ HFONT   plWinFontCache::IMakeFont( const char *face, int height, int weight, hsB
     return myRec.fFont;
 }
 
-HFONT   plWinFontCache::GetMeAFont( const char *face, int height, int weight, hsBool italic, uint32_t quality )
+HFONT   plWinFontCache::GetMeAFont( const char *face, int height, int weight, bool italic, uint32_t quality )
 {
     HFONT   font = IFindFont( face, height, weight, italic, quality );
     if( font == nil )

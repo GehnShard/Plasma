@@ -67,7 +67,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <malloc.h>
 
-extern  hsBool  gDataServerLocal;
+extern  bool    gDataServerLocal;
 
 /*****************************************************************************
 *
@@ -598,11 +598,10 @@ static void INetCliAuthAgeRequestCallback (
         s_age.ageVaultId = ageVaultId;
         
         wchar_t ageInstIdStr[64];
-        plString gameAddrStr = gameAddr.GetHostString();
         LogMsg(
             kLogPerf,
             L"Connecting to game server %s, ageInstId %s",
-            gameAddrStr.c_str(),
+            gameAddr.GetHostString().ToWchar().GetData(),
             GuidToString(ageInstId, ageInstIdStr, arrsize(ageInstIdStr))
         );
         NetCliGameDisconnect();
@@ -824,7 +823,7 @@ void NetCommConnect () {
 
     const char** addrs;
     unsigned count;
-    hsBool connectedToKeeper = false;
+    bool connectedToKeeper = false;
 
     // if a console override was specified for a authserv, connect directly to the authserver rather than going through the gatekeeper
     if((count = GetAuthSrvHostnames(&addrs)) && strlen(addrs[0]))

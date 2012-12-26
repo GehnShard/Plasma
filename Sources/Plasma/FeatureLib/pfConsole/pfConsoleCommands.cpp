@@ -113,7 +113,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnMessage/plProxyDrawMsg.h"
 #include "pnMessage/plObjRefMsg.h"
 #include "pnMessage/plAttachMsg.h"
-#include "plMessage/plSimInfluenceMsg.h"
 #include "plMessage/plSimStateMsg.h"
 #include "plMessage/plLinkToAgeMsg.h"
 #include "pfMessage/pfKIMsg.h"
@@ -156,7 +155,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plUnifiedTime/plUnifiedTime.h"
 //end for agedefn test
 
-#include "plFile/hsFiles.h"
+#include "hsFiles.h"
 #include "pnSceneObject/plAudioInterface.h"
 
 #include "plStatusLog/plStatusLog.h"
@@ -370,7 +369,7 @@ plKey FindObjectByNameAndType(const plString& name, const char* typeName, const 
 //// plDoesFileExist //////////////////////////////////////////////////////////
 //  Utility function to determine whether the given file exists
 
-static hsBool   plDoesFileExist( const char *path )
+static bool     plDoesFileExist( const char *path )
 {
     hsUNIXStream    stream;
 
@@ -662,7 +661,7 @@ PF_CONSOLE_CMD( Console, Clear, "", "Clears the console" )
 
 PF_CONSOLE_CMD( Console, EnableFX, "bool enable", "Enables flashy console effects" )
 {
-    pfConsole::EnableEffects( (hsBool)(bool)params[ 0 ] );
+    pfConsole::EnableEffects( (bool)(bool)params[ 0 ] );
     if( pfConsole::AreEffectsEnabled() )
         PrintString( "Console effects enabled" );
     else
@@ -808,7 +807,7 @@ PF_CONSOLE_CMD( Console, SetVar, "string name, string value",
     pfConsoleContext &ctx = pfConsoleContext::GetRootContext();
 
 
-    hsBool oldF = ctx.GetAddWhenNotFound();
+    bool oldF = ctx.GetAddWhenNotFound();
     ctx.SetAddWhenNotFound( true );
     ctx.SetVar((char*)params[ 0 ], (char*)params[ 1 ] );
     ctx.SetAddWhenNotFound( oldF );
@@ -991,7 +990,7 @@ PF_CONSOLE_SUBGROUP( Graphics, VisSet )     // Creates a sub-group under a given
 
 PF_CONSOLE_CMD( Graphics_VisSet, Toggle, "", "Toggle using VisSets" )
 {
-    hsBool turnOn = !plPageTreeMgr::VisMgrEnabled();
+    bool turnOn = !plPageTreeMgr::VisMgrEnabled();
     plPageTreeMgr::EnableVisMgr(turnOn);
 
     PrintStringF( PrintString, "Visibility Sets %s", turnOn ? "Enabled" : "Disabled" );
@@ -1101,7 +1100,7 @@ PF_CONSOLE_CMD( Graphics_Shadow,
                "", 
                "Show shadows." )
 {
-    hsBool on = !pfConsole::GetPipeline()->IsDebugFlagSet(plPipeDbg::kFlagShowShadowBounds);
+    bool on = !pfConsole::GetPipeline()->IsDebugFlagSet(plPipeDbg::kFlagShowShadowBounds);
     pfConsole::GetPipeline()->SetDebugFlag( plPipeDbg::kFlagShowShadowBounds, on );
 
     char    str[ 256 ];
@@ -1114,7 +1113,7 @@ PF_CONSOLE_CMD( Graphics_Shadow,
                "", 
                "Toggles applying shadows (they are still computed)." )
 {
-    hsBool on = !pfConsole::GetPipeline()->IsDebugFlagSet(plPipeDbg::kFlagNoShadowApply);
+    bool on = !pfConsole::GetPipeline()->IsDebugFlagSet(plPipeDbg::kFlagNoShadowApply);
     pfConsole::GetPipeline()->SetDebugFlag( plPipeDbg::kFlagNoShadowApply, on );
 
     char    str[ 256 ];
@@ -1405,7 +1404,7 @@ PF_CONSOLE_CMD( Graphics_Renderer, Overwire, "...", "Turn on (off) overlay wire 
 {
     hsAssert( pfConsole::GetPipeline() != nil, "Cannot use this command before pipeline initialization" );
 
-    hsBool on = false;
+    bool on = false;
     uint32_t flag = plPipeDbg::kFlagOverlayWire;
     if( !numParams )
         on = !pfConsole::GetPipeline()->IsDebugFlagSet( flag );
@@ -1815,7 +1814,7 @@ PF_CONSOLE_SUBGROUP( Graphics, Show );
 
 PF_CONSOLE_CMD( Graphics_Show, Bounds, "", "Toggle object bounds display")
 {
-    hsBool on = !pfConsole::GetPipeline()->IsDebugFlagSet( plPipeDbg::kFlagShowAllBounds );
+    bool on = !pfConsole::GetPipeline()->IsDebugFlagSet( plPipeDbg::kFlagShowAllBounds );
     pfConsole::GetPipeline()->SetDebugFlag( plPipeDbg::kFlagShowAllBounds, on );
 
     char    str[ 256 ];
@@ -1825,7 +1824,7 @@ PF_CONSOLE_CMD( Graphics_Show, Bounds, "", "Toggle object bounds display")
 
 PF_CONSOLE_CMD( Graphics_Show, Sound, "", "Toggle sound fields visible")
 {
-    static hsBool on = false;
+    static bool on = false;
     plProxyDrawMsg* msg = new plProxyDrawMsg(plProxyDrawMsg::kAudible | ((on = !on) ? plProxyDrawMsg::kCreate : plProxyDrawMsg::kDestroy));
     plgDispatch::MsgSend(msg);
     if( on )
@@ -1880,7 +1879,7 @@ PF_CONSOLE_CMD( Graphics_Show, SingleSound,
 
 PF_CONSOLE_CMD( Graphics_Show, SoundOnly, "", "Toggle only sound fields visible")
 {
-    static hsBool on = false;
+    static bool on = false;
     plProxyDrawMsg* msg = new plProxyDrawMsg(plProxyDrawMsg::kAudible | ((on = !on) ? plProxyDrawMsg::kCreate : plProxyDrawMsg::kDestroy));
     plgDispatch::MsgSend(msg);
     static uint32_t oldMask = plDrawableSpans::kNormal;
@@ -1901,7 +1900,7 @@ PF_CONSOLE_CMD( Graphics_Show, SoundOnly, "", "Toggle only sound fields visible"
 PF_CONSOLE_CMD( Graphics_Show, OccSnap, "", "Take snapshot of current occlusion and render (or toggle)")
 {
     uint32_t flag = plPipeDbg::kFlagOcclusionSnap;
-    hsBool on = !pfConsole::GetPipeline()->IsDebugFlagSet(flag);
+    bool on = !pfConsole::GetPipeline()->IsDebugFlagSet(flag);
 
     pfConsole::GetPipeline()->SetDebugFlag( flag, on );
     if( on )
@@ -1917,7 +1916,7 @@ PF_CONSOLE_CMD( Graphics_Show, OccSnap, "", "Take snapshot of current occlusion 
 PF_CONSOLE_CMD( Graphics_Show, OccSnapOnly, "", "Take snapshot of current occlusion and render (or toggle)")
 {
     uint32_t flag = plPipeDbg::kFlagOcclusionSnap;
-    hsBool on = !pfConsole::GetPipeline()->IsDebugFlagSet(flag);
+    bool on = !pfConsole::GetPipeline()->IsDebugFlagSet(flag);
 
     static uint32_t oldMask = pfConsole::GetPipeline()->GetDrawableTypeMask();
 
@@ -1934,7 +1933,7 @@ PF_CONSOLE_CMD( Graphics_Show, OccSnapOnly, "", "Take snapshot of current occlus
 
 PF_CONSOLE_CMD( Graphics_Show, Occluders, "", "Toggle occluder geometry visible")
 {
-    static hsBool on = false;
+    static bool on = false;
     plProxyDrawMsg* msg = new plProxyDrawMsg(plProxyDrawMsg::kOccluder | ((on = !on) ? plProxyDrawMsg::kCreate : plProxyDrawMsg::kDestroy));
     plgDispatch::MsgSend(msg);
 
@@ -1950,7 +1949,7 @@ PF_CONSOLE_CMD( Graphics_Show, Occluders, "", "Toggle occluder geometry visible"
 
 PF_CONSOLE_CMD( Graphics_Show, OccludersOnly, "", "Toggle only occluder geometry visible")
 {
-    static hsBool on = false;
+    static bool on = false;
     plProxyDrawMsg* msg = new plProxyDrawMsg(plProxyDrawMsg::kOccluder | ((on = !on) ? plProxyDrawMsg::kCreate : plProxyDrawMsg::kDestroy));
     plgDispatch::MsgSend(msg);
     static uint32_t oldMask = plDrawableSpans::kNormal;
@@ -1970,7 +1969,7 @@ PF_CONSOLE_CMD( Graphics_Show, OccludersOnly, "", "Toggle only occluder geometry
 
 PF_CONSOLE_CMD( Graphics_Show, Physicals, "", "Toggle Physical geometry visible")
 {
-    static hsBool on = false;
+    static bool on = false;
     plProxyDrawMsg* msg = new plProxyDrawMsg(plProxyDrawMsg::kPhysical | ((on = !on) ? plProxyDrawMsg::kCreate : plProxyDrawMsg::kDestroy));
     plgDispatch::MsgSend(msg);
     if( on )
@@ -1985,7 +1984,7 @@ PF_CONSOLE_CMD( Graphics_Show, Physicals, "", "Toggle Physical geometry visible"
 
 PF_CONSOLE_CMD( Graphics_Show, PhysicalsOnly, "", "Toggle only Physical geometry visible")
 {
-    static hsBool on = false;
+    static bool on = false;
     plProxyDrawMsg* msg = new plProxyDrawMsg(plProxyDrawMsg::kPhysical | ((on = !on) ? plProxyDrawMsg::kCreate : plProxyDrawMsg::kDestroy));
     plgDispatch::MsgSend(msg);
     static uint32_t oldMask = plDrawableSpans::kNormal;
@@ -2005,7 +2004,7 @@ PF_CONSOLE_CMD( Graphics_Show, PhysicalsOnly, "", "Toggle only Physical geometry
 
 PF_CONSOLE_CMD( Graphics_Show, Normal, "", "Toggle normal geometry visible")
 {
-    static hsBool on = true;
+    static bool on = true;
     if( on = !on )
         pfConsole::GetPipeline()->SetDrawableTypeMask(pfConsole::GetPipeline()->GetDrawableTypeMask() | plDrawableSpans::kNormal);
     else
@@ -2018,7 +2017,7 @@ PF_CONSOLE_CMD( Graphics_Show, Normal, "", "Toggle normal geometry visible")
 
 PF_CONSOLE_CMD( Graphics_Show, NormalOnly, "", "Toggle only normal geometry visible")
 {
-    static hsBool on = false;
+    static bool on = false;
     static uint32_t oldMask = plDrawableSpans::kNormal;
     if( on = !on )
     {
@@ -2036,7 +2035,7 @@ PF_CONSOLE_CMD( Graphics_Show, NormalOnly, "", "Toggle only normal geometry visi
 
 PF_CONSOLE_CMD( Graphics_Show, Lights, "", "Toggle visible proxies for lights")
 {
-    static hsBool on = false;
+    static bool on = false;
     plProxyDrawMsg* msg = new plProxyDrawMsg(plProxyDrawMsg::kLight | ((on = !on) ? plProxyDrawMsg::kCreate : plProxyDrawMsg::kDestroy));
     plgDispatch::MsgSend(msg);
     if( on )
@@ -2051,7 +2050,7 @@ PF_CONSOLE_CMD( Graphics_Show, Lights, "", "Toggle visible proxies for lights")
 
 PF_CONSOLE_CMD( Graphics_Show, LightsOnly, "", "Toggle visible proxies for lights and everything else invisible")
 {
-    static hsBool on = false;
+    static bool on = false;
     plProxyDrawMsg* msg = new plProxyDrawMsg(plProxyDrawMsg::kLight | ((on = !on) ? plProxyDrawMsg::kCreate : plProxyDrawMsg::kDestroy));
     plgDispatch::MsgSend(msg);
     static uint32_t oldMask = plDrawableSpans::kNormal;
@@ -2071,7 +2070,7 @@ PF_CONSOLE_CMD( Graphics_Show, LightsOnly, "", "Toggle visible proxies for light
 
 PF_CONSOLE_CMD( Graphics_Show, Clicks, "", "Toggle visible proxies for clicks")
 {
-    static hsBool on = false;
+    static bool on = false;
     plProxyDrawMsg* msg = new plProxyDrawMsg(plProxyDrawMsg::kCamera | ((on = !on) ? plProxyDrawMsg::kCreate : plProxyDrawMsg::kDestroy));
     plgDispatch::MsgSend(msg);
     if( on )
@@ -2087,7 +2086,7 @@ PF_CONSOLE_CMD( Graphics_Show, Clicks, "", "Toggle visible proxies for clicks")
 
 PF_CONSOLE_CMD( Graphics_Show, ClickOnly, "", "Toggle visible proxies for click points")
 {
-    static hsBool on = false;
+    static bool on = false;
     plProxyDrawMsg* msg = new plProxyDrawMsg(plProxyDrawMsg::kCamera | ((on = !on) ? plProxyDrawMsg::kCreate : plProxyDrawMsg::kDestroy));
     plgDispatch::MsgSend(msg);
     static uint32_t oldMask = plDrawableSpans::kNormal;
@@ -2717,7 +2716,7 @@ class plActiveRefPeekerKey : public plKeyImp
     public:
         uint16_t      PeekNumNotifies() { return GetNumNotifyCreated(); }
         plRefMsg*   PeekNotifyCreated(int i) { return GetNotifyCreated(i); }
-        hsBool      PeekIsActiveRef(int i) const { return IsActiveRef(i); }
+        bool        PeekIsActiveRef(int i) const { return IsActiveRef(i); }
 };
 
 // Not static so others can call it - making it even handier
@@ -4559,7 +4558,7 @@ PF_CONSOLE_CMD( Access,
                    "",
                    "Test fading on visibility" )
 {
-    hsBool disabled = !plFadeOpacityMod::GetLOSCheckDisabled();
+    bool disabled = !plFadeOpacityMod::GetLOSCheckDisabled();
 
     plFadeOpacityMod::SetLOSCheckDisabled(disabled);
 
@@ -5234,7 +5233,7 @@ PF_CONSOLE_CMD( Wave, Log,  // Group name, Function name
     plWaveSet7* waveSet = IGetWaveSet(PrintString, name);
     if( waveSet )
     {
-        hsBool logging = !waveSet->Logging();
+        bool logging = !waveSet->Logging();
         if( logging )
             waveSet->StartLog();
         else
@@ -5254,7 +5253,7 @@ PF_CONSOLE_CMD( Wave, Graph,    // Group name, Function name
     plWaveSet7* waveSet = IGetWaveSet(PrintString, name);
     if( waveSet )
     {
-        hsBool graphing = !waveSet->Graphing();
+        bool graphing = !waveSet->Graphing();
         if( graphing )
             waveSet->StartGraph();
         else
@@ -6045,22 +6044,18 @@ PF_CONSOLE_CMD(Age, ShowSDL, "", "Prints the age SDL values")
         return;
     }
     
-    char line[2048];
-
     plStatusLog::AddLineS("ShowSDL.log", "-----------------------------------");
     for (unsigned i = 0; i < rec->GetNumVars(); ++i) {
         plStateVariable * var = rec->GetVar(i);
         if (plSimpleStateVariable * simple = var->GetAsSimpleStateVar()) {
-            const char * name = var->GetName();
-            StrPrintf(line, arrsize(line), "%s=", name);
+            plString line = var->GetName();
+            line += "=";
             for (unsigned j = 0; j < simple->GetCount(); ++j) {
-                char * str = simple->GetAsString(j);
-                StrPack(line, str, arrsize(line));
-                StrPack(line, ",", arrsize(line));
-                free(str);
+                line += simple->GetAsString(j);
+                line += ",";
             }
-            PrintString(line);
-            plStatusLog::AddLineS("ShowSDL.log", "%s", line);
+            PrintString(line.c_str());
+            plStatusLog::AddLineS("ShowSDL.log", "%s", line.c_str());
         }
     }   
     
@@ -6118,7 +6113,7 @@ PF_CONSOLE_CMD( Age, SetSDLFloat, "string varName, float value, int index", "Set
     if (!sdlMod)
         return;
 
-    plSimpleStateVariable *var = sdlMod->GetStateCache()->FindVar(params[0]);
+    plSimpleStateVariable *var = sdlMod->GetStateCache()->FindVar((const char *)params[0]);
     if (!var)
         return;
 
@@ -6142,7 +6137,7 @@ PF_CONSOLE_CMD( Age, SetSDLInt, "string varName, int value, int index", "Set the
     if (!sdlMod)
         return;
 
-    plSimpleStateVariable *var = sdlMod->GetStateCache()->FindVar(params[0]);
+    plSimpleStateVariable *var = sdlMod->GetStateCache()->FindVar((const char *)params[0]);
     if (!var)
         return;
 
@@ -6165,7 +6160,7 @@ PF_CONSOLE_CMD( Age, SetSDLBool, "string varName, bool value, int index", "Set t
     if (!sdlMod)
         return;
 
-    plSimpleStateVariable *var = sdlMod->GetStateCache()->FindVar(params[0]);
+    plSimpleStateVariable *var = sdlMod->GetStateCache()->FindVar((const char*)params[0]);
     if (!var)
         return;
 
@@ -6646,7 +6641,7 @@ PF_CONSOLE_CMD( Animation,
                "",
                "Toggle the possibility of delayed transform evaluation." )
 {
-    hsBool enabled = !plCoordinateInterface::GetDelayedTransformsEnabled();
+    bool enabled = !plCoordinateInterface::GetDelayedTransformsEnabled();
     plCoordinateInterface::SetDelayedTransformsEnabled(enabled);
 
     char buff[256];
@@ -6933,38 +6928,6 @@ PF_CONSOLE_CMD( KI,                             // Group name
 
 PF_CONSOLE_GROUP( Python ) // Defines a main command group
 
-PF_CONSOLE_CMD( Python,                         // Group name
-                RunFile,                            // Function name
-                "string filename",                  // Params
-                "Run the specified Python file program" )       // Help string
-{
-    // now evaluate this mess they made
-    PyObject* mymod = PythonInterface::FindModule("__main__");
-    // make sure the filename doesn't have the .py extension (import doesn't need it)
-    char importname[200];
-    int i;
-    for (i=0; i<199; i++ )
-    {
-        char ch = ((const char*)params[0])[i];
-        // if we are at the end of the string or at a dot, truncate here
-        if ( ch == '.' || ch == 0 )
-            break;
-        else
-            importname[i] = ((const char*)params[0])[i];
-    }
-    importname[i] = 0;
-
-    // create the line to execute the file
-    char runline[256];
-    sprintf(runline,"import %s", importname);
-    PythonInterface::RunString(runline,mymod);
-    std::string output;
-    // get the messages
-    PythonInterface::getOutputAndReset(&output);
-    PrintString(output.c_str());
-}
-
-
 #include "pfPython/cyMisc.h"
 
 PF_CONSOLE_CMD( Python,                         // Group name
@@ -7006,16 +6969,17 @@ PF_CONSOLE_CMD( Python,
                 "string functions, ...",    // Params
                 "Run a cheat command" )
 {
-    const char* extraParms = "";
-    if (numParams > 1)
-        extraParms = params[1];
-    // now evaluate this mess they made
-    PyObject* mymod = PythonInterface::FindModule("__main__");
+    plString args;
+    if (numParams > 1) 
+    {
+        const char* tmp = params[1];
+        args = plString::Format("(%s,)", tmp);
+    }
+    else
+        args = "()";
 
-    // create the line to execute the file
-    char runline[256];
-    sprintf(runline,"import xCheat;xCheat.%s('%s')", (const char*)params[0],extraParms);
-    PythonInterface::RunString(runline,mymod);
+    PythonInterface::RunFunctionSafe("xCheat", params[0], args.c_str());
+
     std::string output;
     // get the messages
     PythonInterface::getOutputAndReset(&output);

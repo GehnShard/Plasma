@@ -59,11 +59,11 @@ class pfGUITextBoxMod : public pfGUIControlMod
     protected:
 
         wchar_t         *fText;
-        std::wstring    fLocalizationPath;
+        plString        fLocalizationPath;
         bool            fUseLocalizationPath;
 
 
-        virtual hsBool IEval( double secs, float del, uint32_t dirty ); // called only by owner object's Eval()
+        virtual bool IEval( double secs, float del, uint32_t dirty ); // called only by owner object's Eval()
 
         virtual void    IUpdate( void );
         virtual void    IPostSetUpDynTextMap( void );
@@ -82,7 +82,7 @@ class pfGUITextBoxMod : public pfGUIControlMod
             kRightJustify
         };
 
-        virtual hsBool  MsgReceive( plMessage* pMsg );
+        virtual bool    MsgReceive( plMessage* pMsg );
         
         virtual void Read( hsStream* s, hsResMgr* mgr );
         virtual void Write( hsStream* s, hsResMgr* mgr );
@@ -99,8 +99,7 @@ class pfGUITextBoxMod : public pfGUIControlMod
         void    SetText( const char *text );
         void    SetText( const wchar_t *text );
 
-        void    SetLocalizationPath(const wchar_t* path);
-        void    SetLocalizationPath(const char* path);
+        void    SetLocalizationPath(const plString& path);
         void    SetUseLocalizationPath(bool use);
 
         virtual void    UpdateColorScheme() { IPostSetUpDynTextMap(); IUpdate(); }

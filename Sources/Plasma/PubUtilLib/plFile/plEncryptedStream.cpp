@@ -116,17 +116,17 @@ void plEncryptedStream::IDecipher(uint32_t* const v)
     v[0]=y; v[1]=z;
 }
 
-hsBool plEncryptedStream::Open(const char* name, const char* mode)
+bool plEncryptedStream::Open(const char* name, const char* mode)
 {
     wchar_t* wName = hsStringToWString(name);
     wchar_t* wMode = hsStringToWString(mode);
-    hsBool ret = Open(wName, wMode);
+    bool ret = Open(wName, wMode);
     delete [] wName;
     delete [] wMode;
     return ret;
 }
 
-hsBool plEncryptedStream::Open(const wchar_t* name, const wchar_t* mode)
+bool plEncryptedStream::Open(const wchar_t* name, const wchar_t* mode)
 {
     if (wcscmp(mode, L"rb") == 0)
     {
@@ -175,7 +175,7 @@ hsBool plEncryptedStream::Open(const wchar_t* name, const wchar_t* mode)
     }
 }
 
-hsBool plEncryptedStream::Close()
+bool plEncryptedStream::Close()
 {
     int rtn = false;
 
@@ -247,7 +247,7 @@ void plEncryptedStream::IBufferFile()
     fPosition = 0;
 }
 
-hsBool plEncryptedStream::AtEnd()
+bool plEncryptedStream::AtEnd()
 {
     if (fBufferedStream)
         return fRAMStream->AtEnd();
@@ -518,7 +518,8 @@ bool plEncryptedStream::ICheckMagicString(FILE* fp)
     char magicString[kMagicStringLen+1];
     fread(&magicString, kMagicStringLen, 1, fp);
     magicString[kMagicStringLen] = '\0';
-    return (hsStrEQ(magicString, kMagicString) || hsStrEQ(magicString, kOldMagicString));
+    return strcmp(magicString, kMagicString) == 0 ||
+           strcmp(magicString, kOldMagicString) == 0;
 }
 
 bool plEncryptedStream::IsEncryptedFile(const char* fileName)
@@ -542,32 +543,26 @@ bool plEncryptedStream::IsEncryptedFile(const wchar_t* fileName)
     return isEncrypted;
 }
 
-hsStream* plEncryptedStream::OpenEncryptedFile(const char* fileName, bool requireEncrypted, uint32_t* cryptKey)
+hsStream* plEncryptedStream::OpenEncryptedFile(const char* fileName, uint32_t* cryptKey)
 {
     wchar_t* wFilename = hsStringToWString(fileName);
-    hsStream* ret = OpenEncryptedFile(wFilename, requireEncrypted, cryptKey);
+    hsStream* ret = OpenEncryptedFile(wFilename, cryptKey);
     delete [] wFilename;
     return ret;
 }
 
-hsStream* plEncryptedStream::OpenEncryptedFile(const wchar_t* fileName, bool requireEncrypted, uint32_t* cryptKey)
+hsStream* plEncryptedStream::OpenEncryptedFile(const wchar_t* fileName, uint32_t* cryptKey)
 {
-#ifndef PLASMA_EXTERNAL_RELEASE
-    requireEncrypted = false;
-#endif
 
     bool isEncrypted = IsEncryptedFile(fileName);
 
     hsStream* s = nil;
     if (isEncrypted)
         s = new plEncryptedStream(cryptKey);
-    // If this isn't an external release, let them use unencrypted data
     else
-        if (!requireEncrypted)
-            s = new hsUNIXStream;
+        s = new hsUNIXStream;
 
-    if (s)
-        s->Open(fileName, L"rb");
+    s->Open(fileName, L"rb");
     return s;
 }
 
@@ -582,11 +577,10 @@ hsStream* plEncryptedStream::OpenEncryptedFileWrite(const char* fileName, uint32
 hsStream* plEncryptedStream::OpenEncryptedFileWrite(const wchar_t* fileName, uint32_t* cryptKey)
 {
     hsStream* s = nil;
-#ifdef PLASMA_EXTERNAL_RELEASE
-    s = new plEncryptedStream(cryptKey);
-#else
-    s = new hsUNIXStream;
-#endif
+    if (IsEncryptedFile(fileName))
+        s = new plEncryptedStream(cryptKey);
+    else
+        s = new hsUNIXStream;
 
     s->Open(fileName, L"wb");
     return s;

@@ -373,7 +373,7 @@ char    pfConsoleCmd::fSigTypes[ kNumTypes ][ 8 ] = { "int", "float", "bool", "s
 
 pfConsoleCmd::pfConsoleCmd(const char *group, const char *name,
                             const char *paramList, const char *help, 
-                            pfConsoleCmdPtr func, hsBool localOnly )
+                            pfConsoleCmdPtr func, bool localOnly )
 {
     fNext = nil;
     fPrevPtr = nil;
@@ -395,8 +395,7 @@ pfConsoleCmd::~pfConsoleCmd()
 
     for( i = 0; i < fSigLabels.GetCount(); i++ )
     {
-        if( fSigLabels[ i ] != nil )
-            delete [] fSigLabels[ i ];
+        delete [] fSigLabels[ i ];
     }
     Unregister();
     
@@ -565,7 +564,7 @@ uint8_t   pfConsoleCmd::GetSigEntry( uint8_t i )
 
 const char  *pfConsoleCmd::GetSignature( void )
 {
-    char string[256];
+    static char string[256];
     
     int     i;
     char    pStr[ 128 ];

@@ -123,7 +123,7 @@ void plSpaceTree::Refresh()
         IRefreshRecur(fRoot);
 }
 
-void plSpaceTree::SetTreeFlag(uint16_t f, hsBool on)
+void plSpaceTree::SetTreeFlag(uint16_t f, bool on)
 {
     if( IsEmpty() )
         return;
@@ -149,7 +149,7 @@ void plSpaceTree::ClearTreeFlag(uint16_t f)
         fTree[i].fFlags &= ~f;
 }
 
-void plSpaceTree::SetLeafFlag(int16_t idx, uint16_t f, hsBool on)
+void plSpaceTree::SetLeafFlag(int16_t idx, uint16_t f, bool on)
 {
     if( IsEmpty() )
         return;
@@ -291,7 +291,8 @@ void plSpaceTree::HarvestEnabledLeaves(plVolumeIsect* cull, const hsBitVector& c
     if( IsEmpty() )
         return;
 
-    if( fCullFunc = cull )
+    fCullFunc = cull;
+    if (fCullFunc)
         IHarvestAndCullEnabledLeaves(fRoot, cache, list);
     else
         IHarvestEnabledLeaves(fRoot, cache, list);
@@ -372,7 +373,8 @@ void plSpaceTree::HarvestLeaves(plVolumeIsect* cull, hsBitVector& list) const
 {
     if( !IsEmpty() )
     {
-        if( fCullFunc = cull )
+        fCullFunc = cull;
+        if (fCullFunc)
             IHarvestAndCullLeaves(fTree[fRoot], scratchTotVec, list);
         else
             IHarvestLeaves(fTree[fRoot], scratchTotVec, list);

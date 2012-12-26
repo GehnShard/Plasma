@@ -54,7 +54,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "plPythonPack.h"
 
-#include "plFile/hsFiles.h"
+#include "hsFiles.h"
 #include "plFile/plSecureStream.h"
 #include "plFile/plStreamSource.h"
 
@@ -86,7 +86,7 @@ public:
     void Close();
 
     PyObject* OpenPacked(const char *fileName);
-    hsBool IsPackedFile(const char* fileName);
+    bool IsPackedFile(const char* fileName);
 };
 
 PyObject* PythonPack::OpenPythonPacked(const char* fileName)
@@ -94,7 +94,7 @@ PyObject* PythonPack::OpenPythonPacked(const char* fileName)
     return plPythonPack::Instance().OpenPacked(fileName);
 }
 
-hsBool PythonPack::IsItPythonPacked(const char* fileName)
+bool PythonPack::IsItPythonPacked(const char* fileName)
 {
     return plPythonPack::Instance().IsPackedFile(fileName);
 }
@@ -234,7 +234,7 @@ PyObject* plPythonPack::OpenPacked(const char* fileName)
     return nil;
 }
 
-hsBool plPythonPack::IsPackedFile(const char* fileName)
+bool plPythonPack::IsPackedFile(const char* fileName)
 {
     if (!Open())
         return nil;

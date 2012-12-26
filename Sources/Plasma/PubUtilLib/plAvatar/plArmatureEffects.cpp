@@ -39,7 +39,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "plAvCallbackAction.h"
 
 #include "plStatusLog/plStatusLog.h"
 #include "plArmatureEffects.h"
@@ -104,7 +103,7 @@ void plArmatureEffectsMgr::Write(hsStream *s, hsResMgr *mgr)
         mgr->WriteKey(s, fEffects[i]->GetKey());
 }
 
-hsBool plArmatureEffectsMgr::MsgReceive(plMessage* msg)
+bool plArmatureEffectsMgr::MsgReceive(plMessage* msg)
 {
     plEventCallbackInterceptMsg *iMsg = plEventCallbackInterceptMsg::ConvertNoRef(msg);
     if (iMsg)
@@ -238,7 +237,7 @@ void plArmatureEffectFootSound::Write(hsStream* s, hsResMgr* mgr)
         mgr->WriteKey(s, (fMods[i] ? fMods[i]->GetKey() : nil));
 }
 
-hsBool plArmatureEffectFootSound::MsgReceive(plMessage* msg)
+bool plArmatureEffectFootSound::MsgReceive(plMessage* msg)
 {
     plGenRefMsg *refMsg = plGenRefMsg::ConvertNoRef(msg);
     if (refMsg)
@@ -260,7 +259,7 @@ hsBool plArmatureEffectFootSound::MsgReceive(plMessage* msg)
     return plArmatureEffect::MsgReceive(msg);
 }
 
-hsBool plArmatureEffectFootSound::HandleTrigger(plMessage* msg)
+bool plArmatureEffectFootSound::HandleTrigger(plMessage* msg)
 {
     plArmatureEffectMsg *eMsg = plArmatureEffectMsg::ConvertNoRef(msg);
     if (eMsg)

@@ -159,7 +159,7 @@ void plNetClientMgr::ISendCCRPetition(plCCRPetitionMsg* petMsg)
     char buffy[20];
     sprintf( buffy, "%lu", GetPlayerID() );
     info.AddValue( "Petition", "PlayerID", buffy );
-    info.AddValue( "Petition", "PlayerName", _TEMP_CONVERT_TO_CONST_CHAR(GetPlayerName()) );
+    info.AddValue( "Petition", "PlayerName", GetPlayerName().c_str() );
 
     // write config info formatted like an ini file to a buffer
     hsRAMStream ram;
@@ -179,7 +179,7 @@ void plNetClientMgr::ISendCCRPetition(plCCRPetitionMsg* petMsg)
 //
 // send a msg to reset the camera in a new age
 //
-void plNetClientMgr::ISendCameraReset(hsBool bEnteringAge)
+void plNetClientMgr::ISendCameraReset(bool bEnteringAge)
 {   
     plCameraMsg* pCamMsg = new plCameraMsg;
     if (bEnteringAge)
@@ -314,9 +314,9 @@ int plNetClientMgr::ISendGameMessage(plMessage* msg)
 
     // check if this msg uses direct communication (sent to specific rcvrs)
     // if so the server can filter it
-    hsBool bCast = msg->HasBCastFlag(plMessage::kBCastByExactType) ||
+    bool bCast = msg->HasBCastFlag(plMessage::kBCastByExactType) ||
         msg->HasBCastFlag(plMessage::kBCastByType);
-    hsBool directCom = msg->GetNumReceivers()>0;
+    bool directCom = msg->GetNumReceivers()>0;
     if( directCom )
     {
         // It's direct if we have receivers AND any of them are in non-virtual locations
@@ -357,7 +357,7 @@ int plNetClientMgr::ISendGameMessage(plMessage* msg)
     //
     // CCRs can route a plMessage to all online players.
     //
-    hsBool ccrSendToAllPlayers = false;
+    bool ccrSendToAllPlayers = false;
 #ifndef PLASMA_EXTERNAL_RELEASE
     if ( AmCCR() )
     {
@@ -373,7 +373,7 @@ int plNetClientMgr::ISendGameMessage(plMessage* msg)
     //
     if ( !ccrSendToAllPlayers )
     {
-        hsBool allowInterAge = msg->HasBCastFlag( plMessage::kNetAllowInterAge );
+        bool allowInterAge = msg->HasBCastFlag( plMessage::kNetAllowInterAge );
         if ( allowInterAge )
             netMsgWrap->SetBit(plNetMessage::kInterAgeRouting);
     }
@@ -396,9 +396,9 @@ int plNetClientMgr::ISendGameMessage(plMessage* msg)
     {
     #if 0
         hsLogEntry(plNetObjectDebugger::GetInstance()->LogMsg(
-            xtl::format("<SND> object:%s, rcvr %s %s",
-            msg->GetSender(), 
-            msg->GetNumReceivers() ? msg->GetReceiver(0)->GetName() : "?", 
+            plString::Format("<SND> object:%s, rcvr %s %s",
+            msg->GetSender().GetKeyName().c_str(),
+            msg->GetNumReceivers() ? msg->GetReceiver(0)->GetName().c_str() : "?",
             netMsgWrap->AsStdString().c_str()).c_str()));
     #endif
     }

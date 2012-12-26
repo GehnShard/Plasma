@@ -254,7 +254,7 @@ plString plAnimStealthNode::GetSegmentName( void ) const
 {
     const char *str = fParamBlock->GetStr( (ParamID)kPBName );
     if( str == nil || str[ 0 ] == 0 )
-        return _TEMP_CONVERT_FROM_LITERAL( ENTIRE_ANIMATION_NAME );
+        return ENTIRE_ANIMATION_NAME;
     return plString::FromUtf8(str);
 }
 
@@ -422,7 +422,7 @@ class plGetRefs : public DependentEnumProc
         }
 };
 
-hsBool      plAnimStealthNode::IsParentUsedInScene( void )
+bool        plAnimStealthNode::IsParentUsedInScene( void )
 {
     if( GetParentMtl() == nil )
         return false;
@@ -849,12 +849,12 @@ protected:
 
     void ISetUserType(plMaxNode* node, const char* userType)
     {
-        if( hsStrEQ( userType, kUseParamBlockNodeString ) )
+        if( strcmp( userType, kUseParamBlockNodeString ) == 0 )
         {
             ISetNodeValue(nil);
             fPB->SetValue(fTypeID, 0, plAnimObjInterface::kUseParamBlockNode);
         }
-        else if( hsStrEQ(userType, kUseOwnerNodeString ) )
+        else if( strcmp(userType, kUseOwnerNodeString ) == 0 )
         {
             ISetNodeValue(nil);
             fPB->SetValue(fTypeID, 0, plAnimObjInterface::kUseOwnerNode);
@@ -878,7 +878,7 @@ void    plAnimStealthNode::PickTargetNode( IParamBlock2 *destPB, ParamID destPar
     pick.DoPick();
 }
 
-plString plAnimStealthNode::GetIfaceSegmentName( hsBool allowNil )
+plString plAnimStealthNode::GetIfaceSegmentName( bool allowNil )
 {
     // When sending messages to material animations, they're already addressed for the right
     // layer, no need for a segment name
@@ -897,7 +897,7 @@ plString    plAnimStealthNode::GetLoopName( void ) const                { return
 void        plAnimStealthNode::SetLoop( bool b, const plString &name )
 {
     fParamBlock->SetValue( (ParamID)kPBLoop, 0, (int)b );
-    fParamBlock->SetValue( (ParamID)kPBLoopName, 0, (char *)name.s_str() );
+    fParamBlock->SetValue( (ParamID)kPBLoopName, 0, (char *)name.c_str() );
 }
 
 uint8_t       plAnimStealthNode::GetEaseInType( void ) const      { return (uint8_t)fParamBlock->GetInt( (ParamID)kPBEaseInType ); }

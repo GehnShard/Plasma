@@ -80,14 +80,14 @@ pfGUITextBoxMod::~pfGUITextBoxMod()
 
 //// IEval ///////////////////////////////////////////////////////////////////
 
-hsBool  pfGUITextBoxMod::IEval( double secs, float del, uint32_t dirty )
+bool    pfGUITextBoxMod::IEval( double secs, float del, uint32_t dirty )
 {
     return pfGUIControlMod::IEval( secs, del, dirty );
 }
 
 //// MsgReceive //////////////////////////////////////////////////////////////
 
-hsBool  pfGUITextBoxMod::MsgReceive( plMessage *msg )
+bool    pfGUITextBoxMod::MsgReceive( plMessage *msg )
 {
     return pfGUIControlMod::MsgReceive( msg );
 }
@@ -121,8 +121,8 @@ void    pfGUITextBoxMod::IUpdate( void )
     fDynTextMap->ClearToColor( GetColorScheme()->fBackColor );
 
     std::wstring drawStr;
-    if (fUseLocalizationPath && !fLocalizationPath.empty() && pfLocalizationMgr::InstanceValid())
-        drawStr = pfLocalizationMgr::Instance().GetString(fLocalizationPath.c_str());
+    if (fUseLocalizationPath && !fLocalizationPath.IsEmpty() && pfLocalizationMgr::InstanceValid())
+        drawStr = pfLocalizationMgr::Instance().GetString(fLocalizationPath.ToWchar().GetData());
     else
     {
         if( fText != nil )
@@ -167,12 +167,10 @@ void    pfGUITextBoxMod::Read( hsStream *s, hsResMgr *mgr )
     else
         fText = nil;
 
-    fUseLocalizationPath = (s->ReadBool() != 0);
+    fUseLocalizationPath = s->ReadBool();
     if (fUseLocalizationPath)
     {
-        wchar_t* temp = s->ReadSafeWString();
-        fLocalizationPath = temp;
-        delete [] temp;
+        fLocalizationPath = s->ReadSafeWString_TEMP();
     }
 }
 
@@ -192,11 +190,11 @@ void    pfGUITextBoxMod::Write( hsStream *s, hsResMgr *mgr )
 
     // Make sure we only write out to use localization path if the box is checked
     // and the path isn't empty
-    bool useLoc = fUseLocalizationPath && !fLocalizationPath.empty();
+    bool useLoc = fUseLocalizationPath && !fLocalizationPath.IsEmpty();
 
     s->WriteBool(useLoc);
     if (useLoc)
-        s->WriteSafeWString(fLocalizationPath.c_str());
+        s->WriteSafeWString(fLocalizationPath);
 }
 
 //// HandleMouseDown/Up //////////////////////////////////////////////////////
@@ -240,20 +238,10 @@ void    pfGUITextBoxMod::SetText( const wchar_t *text )
     IUpdate();
 }
 
-void pfGUITextBoxMod::SetLocalizationPath(const wchar_t* path)
+void pfGUITextBoxMod::SetLocalizationPath(const plString& path)
 {
-    if (path)
+    if (!path.IsNull())
         fLocalizationPath = path;
-}
-
-void pfGUITextBoxMod::SetLocalizationPath(const char* path)
-{
-    if (path)
-    {
-        wchar_t* wPath = hsStringToWString(path);
-        fLocalizationPath = wPath;
-        delete [] wPath;
-    }
 }
 
 void pfGUITextBoxMod::SetUseLocalizationPath(bool use)

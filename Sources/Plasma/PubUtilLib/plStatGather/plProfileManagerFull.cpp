@@ -50,7 +50,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsStream.h"
 #include "pnUtils/pnUtils.h"
 #include "plUnifiedTime/plUnifiedTime.h"
-#include "plFile/plFileUtils.h"
+#include "plFileUtils.h"
 
 plProfileManagerFull::plProfileManagerFull() :
     fVars(plProfileManager::Instance().fVars),
@@ -310,7 +310,7 @@ void plProfileManagerFull::Update()
         std::vector<plProfileBase*> group;
 
         for (int i = 0; i < fVars.size(); i++)
-            if (hsStrEQ(fVars[i]->GetGroup(), groupName))
+            if (strcmp(fVars[i]->GetGroup(), groupName) == 0)
                 group.push_back(fVars[i]);
 
         int x = 10;
@@ -405,7 +405,7 @@ void plProfileManagerFull::IPrintGroup(hsStream* s, const char* groupName, bool 
     for (int i = 0; i < fVars.size(); i++)
     {
         plProfileVar* var = fVars[i];
-        if (hsStrEQ(var->GetGroup(), groupName))
+        if (strcmp(var->GetGroup(), groupName) == 0)
         {
             if (printTitle)
                 sprintf(buf, "%s:%s", var->GetGroup(), var->GetName());

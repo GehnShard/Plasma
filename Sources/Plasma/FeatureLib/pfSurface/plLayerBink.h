@@ -39,11 +39,27 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/NucleusLib/pnGameMgr/ClimbingWall/pnGmClimbingWall.cpp
-*   
-***/
 
-#include "../Pch.h"
-#pragma hdrstop
+#ifndef plLayerBink_inc
+#define plLayerBink_inc
+
+#include "plLayerMovie.h"
+
+class plLayerBink : public plLayerMovie
+{
+protected:
+    virtual int32_t             ISecsToFrame(float secs) { return 0; }
+    virtual bool                IInit() { return true; }
+    virtual bool                IGetCurrentFrame() { return true; }
+    virtual bool                IRelease() { return true; }
+
+public:
+    plLayerBink() { }
+    virtual ~plLayerBink() { }
+
+    CLASSNAME_REGISTER( plLayerBink );
+    GETINTERFACE_ANY( plLayerBink, plLayerMovie );
+
+};
+
+#endif // plLayerBink_inc

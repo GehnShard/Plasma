@@ -73,7 +73,7 @@ protected:
     enum OpenMode {kOpenRead, kOpenWrite, kOpenFail};
     OpenMode fOpenMode;
 
-    hsBool fDeleteOnExit;
+    bool fDeleteOnExit;
 
     void IBufferFile();
 
@@ -88,18 +88,18 @@ protected:
     static bool ICheckMagicString(hsStream* s);
 
 public:
-    plSecureStream(hsBool deleteOnExit = false, uint32_t* key = nil); // uses default key if you don't pass one in
+    plSecureStream(bool deleteOnExit = false, uint32_t* key = nil); // uses default key if you don't pass one in
     plSecureStream(hsStream* base, uint32_t* key = nil);
     ~plSecureStream();
 
-    virtual hsBool Open(const char* name, const char* mode = "rb");
-    virtual hsBool Open(const wchar_t* name, const wchar_t* mode = L"rb");
-    hsBool         Open(hsStream* stream);
-    virtual hsBool Close();
+    virtual bool Open(const char* name, const char* mode = "rb");
+    virtual bool Open(const wchar_t* name, const wchar_t* mode = L"rb");
+    bool           Open(hsStream* stream);
+    virtual bool Close();
 
     virtual uint32_t Read(uint32_t byteCount, void* buffer);
     virtual uint32_t Write(uint32_t byteCount, const void* buffer);
-    virtual hsBool AtEnd();
+    virtual bool AtEnd();
     virtual void Skip(uint32_t deltaByteCount);
     virtual void Rewind();
     virtual void FastFwd();
@@ -131,6 +131,15 @@ public:
     static hsStream* OpenSecureFileWrite(const wchar_t* fileName, uint32_t* key = nil);
 
     static const uint32_t kDefaultKey[4]; // our default encryption key
+
+    // searches the parent directory of filename for the encryption key file, and reads it
+    // into the key passed in. Returns false if the key file didn't exist (and sets key to
+    // the default key)
+    static bool GetSecureEncryptionKey(const char* filename, uint32_t* key, unsigned length);
+    static bool GetSecureEncryptionKey(const wchar_t* filename, uint32_t* key, unsigned length);
+
+    static const char kKeyFilename[];
+    static const wchar_t kWKeyFilename[];
 };
 
 #endif // plSecureStream_h_inc

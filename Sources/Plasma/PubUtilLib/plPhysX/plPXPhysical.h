@@ -120,18 +120,18 @@ public:
     GETINTERFACE_ANY(plPXPhysical, plPhysical);
 
     // Export time and internal use only
-    hsBool Init(PhysRecipe& recipe);
+    bool Init(PhysRecipe& recipe);
 
     virtual void Read(hsStream* s, hsResMgr* mgr);
     virtual void Write(hsStream* s, hsResMgr* mgr);
 
-    virtual hsBool MsgReceive(plMessage* msg);
+    virtual bool MsgReceive(plMessage* msg);
 
     //
     // From plPhysical
     //
-    virtual plPhysical& SetProperty(int prop, hsBool b);
-    virtual hsBool GetProperty(int prop) const { return fProps.IsBitSet(prop) != 0; }
+    virtual plPhysical& SetProperty(int prop, bool b);
+    virtual bool GetProperty(int prop) const { return fProps.IsBitSet(prop) != 0; }
 
     virtual void SetObjectKey(plKey key) { fObjectKey = key; }
     virtual plKey GetObjectKey() const { return fObjectKey; }
@@ -139,14 +139,14 @@ public:
     virtual void SetSceneNode(plKey node);
     virtual plKey GetSceneNode() const;
 
-    virtual hsBool GetLinearVelocitySim(hsVector3& vel) const;
+    virtual bool GetLinearVelocitySim(hsVector3& vel) const;
     virtual void SetLinearVelocitySim(const hsVector3& vel);
     virtual void ClearLinearVelocity();
 
-    virtual hsBool GetAngularVelocitySim(hsVector3& vel) const;
+    virtual bool GetAngularVelocitySim(hsVector3& vel) const;
     virtual void SetAngularVelocitySim(const hsVector3& vel);
 
-    virtual void SetTransform(const hsMatrix44& l2w, const hsMatrix44& w2l, hsBool force=false);
+    virtual void SetTransform(const hsMatrix44& l2w, const hsMatrix44& w2l, bool force=false);
     virtual void GetTransform(hsMatrix44& l2w, hsMatrix44& w2l);
 
     virtual int GetGroup() const { return fGroup; }
@@ -154,12 +154,7 @@ public:
     virtual void    AddLOSDB(uint16_t flag) { hsSetBits(fLOSDBs, flag); }
     virtual void    RemoveLOSDB(uint16_t flag) { hsClearBits(fLOSDBs, flag); }
     virtual uint16_t  GetAllLOSDBs() { return fLOSDBs; }
-    virtual hsBool  IsInLOSDB(uint16_t flag) { return hsCheckBits(fLOSDBs, flag); }
-
-    virtual hsBool    DoDetectorHullWorkaround() { return fSaveTriangles ? true : false;    }
-    virtual hsBool  Should_I_Trigger(hsBool enter, hsPoint3& pos);
-    virtual hsBool  IsObjectInsideHull(const hsPoint3& pos);
-    virtual void    SetInsideConvexHull(hsBool inside) { fInsideConvexHull = inside;    }
+    virtual bool    IsInLOSDB(uint16_t flag) { return hsCheckBits(fLOSDBs, flag); }
 
     virtual plKey GetWorldKey() const { return fWorldKey; }
 
@@ -167,7 +162,7 @@ public:
 
     virtual void GetPositionSim(hsPoint3& pos) const { IGetPositionSim(pos); }
 
-    virtual void SendNewLocation(hsBool synchTransform = false, hsBool isSynchUpdate = false);
+    virtual void SendNewLocation(bool synchTransform = false, bool isSynchUpdate = false);
 
     virtual void SetHitForce(const hsVector3& force, const hsPoint3& pos) { fWeWereHit=true; fHitForce = force; fHitPos = pos; }
     virtual void ApplyHitForce();
@@ -176,20 +171,20 @@ public:
     virtual void GetSyncState(hsPoint3& pos, hsQuat& rot, hsVector3& linV, hsVector3& angV);
     virtual void SetSyncState(hsPoint3* pos, hsQuat* rot, hsVector3* linV, hsVector3* angV);
 
-    virtual void ExcludeRegionHack(hsBool cleared);
+    virtual void ExcludeRegionHack(bool cleared);
 
     virtual plDrawableSpans* CreateProxy(hsGMaterial* mat, hsTArray<uint32_t>& idx, plDrawableSpans* addTo);
 
-    hsBool DoReportOn(plSimDefs::Group group) const { return hsCheckBits(fReportsOn, 1<<group); }
+    bool DoReportOn(plSimDefs::Group group) const { return hsCheckBits(fReportsOn, 1<<group); }
 
     // Returns true if this object is *really* dynamic.  We can have physicals
     // that are in the dynamic group but are actually animated or something.
     // This weeds those out.
-    hsBool IsDynamic() const;
+    bool IsDynamic() const;
     
     //Hack to check if there is an overlap with the capsule
     //this partially for exclude regions vs avatar capsule
-    virtual hsBool OverlapWithCapsule(NxCapsule& cap);
+    virtual bool OverlapWithCapsule(NxCapsule& cap);
 
     virtual float GetMass() {return fMass;}
 protected:
@@ -199,15 +194,7 @@ protected:
     void ISetRotationSim(const hsQuat& rot);
 
     /** Handle messages about our references. */
-    hsBool HandleRefMsg(plGenRefMsg * refM);
-
-    /////////////////////////////////////////////////////////////
-    //
-    // WORLDS, SUBWORLDS && CONTEXTS
-    //
-    /////////////////////////////////////////////////////////////
-
-    void IConvertGroups(uint32_t memberOf, uint32_t reportsOn, uint32_t collideWith);
+    bool HandleRefMsg(plGenRefMsg * refM);
 
     /** See if the object is in a valid, non-overlapping position.
         A valid overlap is one which is approved by the collision
@@ -215,7 +202,7 @@ protected:
         bounceOff and vice-versa
         */
     // Set overlapText to get a string naming all the overlapping physicals (that you must delete)
-    hsBool CheckValidPosition(char** overlapText=nil);
+    bool CheckValidPosition(char** overlapText=nil);
 
     /////////////////////////////////////////////////////////////
     //
@@ -224,7 +211,7 @@ protected:
     /////////////////////////////////////////////////////////////
 
     /** Remember that we need to do a synch soon. */
-    hsBool DirtySynchState(const char* SDLStateName, uint32_t synchFlags );
+    bool DirtySynchState(const char* SDLStateName, uint32_t synchFlags );
 
     double GetLastSyncTime() { return fLastSyncTime; }
 
@@ -234,9 +221,7 @@ protected:
     void ISetTransformGlobal(const hsMatrix44& l2w);
 
     // Enable/disable collisions and dynamic movement
-    void IEnable(hsBool enable);
-
-    void IMakeHull(NxConvexMesh* convexMesh, hsMatrix44 l2w);
+    void IEnable(bool enable);
 
     NxActor* fActor;
     plKey fWorldKey;    // either a subworld or nil
@@ -251,24 +236,6 @@ protected:
     plKey fObjectKey;           // the key to our scene object
     plKey fSceneNode;           // the room we're in
 
-    // PHYSX FIXME - need to create a plasma hull so that we can determine if inside
-    hsPlane3* fWorldHull;
-    uint32_t    fHullNumberPlanes;
-    hsPoint3* fSaveTriangles;
-    hsBool      fInsideConvexHull;
-    void ISetHullToWorldWTriangles();
-    inline hsBool ITestPlane(const hsPoint3 &pos, const hsPlane3 &plane)
-    {
-        float dis = plane.fN.InnerProduct(pos);
-        dis += plane.fD;
-        if (dis == 0.f)
-            return false;
-        if( dis >= 0.f )    
-            return false;   
-
-        return true;
-    }
-
     // we need to remember the last matrices we sent to the coordinate interface
     // so that we can recognize them when we send them back and not reapply them,
     // which would reactivate our body. inelegant but effective
@@ -280,7 +247,7 @@ protected:
 
     plPhysicalSndGroup* fSndGroup;
 
-    hsBool      fWeWereHit;
+    bool        fWeWereHit;
     hsVector3   fHitForce;
     hsPoint3    fHitPos;
 

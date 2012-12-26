@@ -48,6 +48,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "pyGUIControlDraggable.h"
 #include "pyGUIDialog.h"
+#include "pyGeometry3.h"
 
 pyGUIControlDraggable::pyGUIControlDraggable(pyKey& gckey) : pyGUIControl(gckey)
 {
@@ -58,14 +59,14 @@ pyGUIControlDraggable::pyGUIControlDraggable(plKey objkey) : pyGUIControl(objkey
 }
 
 
-hsBool pyGUIControlDraggable::IsGUIControlDraggable(pyKey& gckey)
+bool pyGUIControlDraggable::IsGUIControlDraggable(pyKey& gckey)
 {
     if ( gckey.getKey() && pfGUIDraggableMod::ConvertNoRef(gckey.getKey()->ObjectIsLoaded()) )
         return true;
     return false;
 }
 
-void pyGUIControlDraggable::StopDragging( hsBool cancel )
+void pyGUIControlDraggable::StopDragging( bool cancel )
 {
     if ( fGCkey )
     {

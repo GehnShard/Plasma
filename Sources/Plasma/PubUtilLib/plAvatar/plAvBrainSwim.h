@@ -51,7 +51,7 @@ class plAntiGravAction;
 class plControlEventMsg;
 class plLOSRequestMsg;
 class plSwimRegionInterface;
-class plSwimmingController;
+class plSwimStrategy;
 class plAvBrainSwim : public plArmatureBrain
 {
 public:
@@ -62,34 +62,32 @@ public:
     GETINTERFACE_ANY( plAvBrainSwim, plArmatureBrain );
 
     virtual void Activate(plArmatureModBase *avMod);
-    hsBool Apply(double time, float elapsed);
+    bool Apply(double time, float elapsed);
     virtual void Deactivate();
     virtual void Suspend();
     virtual void Resume();
     virtual void DumpToDebugDisplay(int &x, int &y, int lineHeight, char *strBuf, plDebugText &debugTxt);
-    hsBool MsgReceive(plMessage *msg);
+    bool MsgReceive(plMessage *msg);
     bool IsWalking();
     bool IsWading();
     bool IsSwimming();
     float GetSurfaceDistance() { return fSurfaceDistance; }
 
-    plSwimmingController *fCallbackAction;
+    plSwimStrategy *fSwimStrategy;
     static const float kMinSwimDepth;
     
 protected:
     void IStartWading();
     void IStartSwimming(bool is2D);
-    hsBool IProcessSwimming2D(double time, float elapsed);
-    hsBool IProcessSwimming3D(double time, float elapsed);
-    hsBool IProcessWading(double time, float elapsed);
-    hsBool IProcessClimbingOut(double time, float elapsed);
-    hsBool IProcessBehaviors(double time, float elapsed);
+    bool IProcessSwimming2D(double time, float elapsed);
+    bool IProcessSwimming3D(double time, float elapsed);
+    bool IProcessWading(double time, float elapsed);
+    bool IProcessClimbingOut(double time, float elapsed);
+    bool IProcessBehaviors(double time, float elapsed);
 
-    virtual hsBool IInitAnimations();
-    bool IAttachAction();
-    bool IDetachAction();
+    virtual bool IInitAnimations();
     void IProbeSurface();
-    hsBool IHandleControlMsg(plControlEventMsg* msg);
+    bool IHandleControlMsg(plControlEventMsg* msg);
     float IGetTargetZ();
 
     float fSurfaceDistance;

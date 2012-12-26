@@ -39,7 +39,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "plAvatar/plAvCallbackAction.h"
 
 #include "HeadSpin.h"
 #include "plCollisionDetector.h"
@@ -65,11 +64,15 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAvatar/plAvatarMgr.h"
 #include "plAvatar/plAvBrainHuman.h"
 #include "plAvatar/plAvBrainDrive.h"
+#include "plAvatar/plPhysicalControllerCore.h"
 
 #include "plModifier/plDetectorLog.h"
 
-#define USE_PHYSX_MULTIPLE_CAMREGION_ENTER 1
-#define USE_PHYSX_COLLISION_FLUTTER_WORKAROUND 1
+#ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+#include "plPhysX/plSimulationMgr.h"
+#endif
+
+
 
 plArmatureMod* plCollisionDetector::IGetAvatarModifier(plKey key)
 {
@@ -98,7 +101,7 @@ bool plCollisionDetector::IIsDisabledAvatar(plKey key)
     return (plAvBrainDrive::ConvertNoRef(avBrain) != nil);
 }
 
-hsBool plCollisionDetector::MsgReceive(plMessage* msg)
+bool plCollisionDetector::MsgReceive(plMessage* msg)
 {
     plCollideMsg* pCollMsg = plCollideMsg::ConvertNoRef(msg);
 
@@ -240,59 +243,20 @@ plCameraRegionDetector::~plCameraRegionDetector()
         hsRefCnt_SafeUnRef(*it);
 }
 
-void plCameraRegionDetector::ITrigger(plKey hitter, bool entering, bool immediate)
+void plCameraRegionDetector::ISendTriggerMsg()
 {
-    if (fSavingSendMsg)
-        DetectorLogRed("%s: Stale messages on ITrigger. This should never happen!", GetKeyName().c_str());
-    if (fIsInside && entering)
-        DetectorLogRed("%s: Duplicate enter! Did we miss an exit?", GetKeyName().c_str());
-    else if (!fIsInside && !entering)
-        DetectorLogRed("%s: Duplicate exit! Did we miss an enter?", GetKeyName().c_str());
-
-    fSavingSendMsg = true;
-    fSavedMsgEnterFlag = entering;
-    if (entering)
+    for (plCameraMsgVec::iterator it = fMessages.begin(); it != fMessages.end(); ++it)
     {
-        DetectorLog("%s: Saving camera Entering volume - Evals=%d", GetKeyName().c_str(),fNumEvals);
-        fLastEnterEval = fNumEvals;
+        plCameraMsg* msg = *it;
+        if (fIsInside)
+            msg->SetCmd(plCameraMsg::kEntering);
+        else
+            msg->ClearCmd(plCameraMsg::kEntering);
+        msg->SendAndKeep();
     }
-    else
-    {
-        DetectorLog("%s: Saving camera Exiting volume - Evals=%d", GetKeyName().c_str(),fNumEvals);
-        fLastExitEval = fNumEvals;
-    }
-
-    if (immediate)
-        ISendSavedTriggerMsgs();
 }
 
-void plCameraRegionDetector::ISendSavedTriggerMsgs()
-{
-    if (fSavingSendMsg)
-    {
-        for (size_t i = 0; i < fMessages.size(); ++i)
-        {   
-            hsRefCnt_SafeRef(fMessages[i]);
-            if (fSavedMsgEnterFlag)
-            {
-                fMessages[i]->SetCmd(plCameraMsg::kEntering);
-                DetectorLog("Entering cameraRegion: %s - Evals=%d -msg %d of %d\n", GetKeyName().c_str(),fNumEvals,i+1,fMessages.size());
-                fIsInside = true;
-            }
-            else
-            {
-                fMessages[i]->ClearCmd(plCameraMsg::kEntering);
-                DetectorLog("Exiting cameraRegion: %s - Evals=%d -msg %d of %d\n", GetKeyName().c_str(),fNumEvals,i+1,fMessages.size());
-                fIsInside = false;
-            }
-            plgDispatch::MsgSend(fMessages[i]);
-        }
-    }
-    fSavingSendMsg = false;
-}
-
-
-hsBool plCameraRegionDetector::MsgReceive(plMessage* msg)
+bool plCameraRegionDetector::MsgReceive(plMessage* msg)
 {
     plCollideMsg* pCollMsg = plCollideMsg::ConvertNoRef(msg);
     if (pCollMsg)
@@ -300,8 +264,16 @@ hsBool plCameraRegionDetector::MsgReceive(plMessage* msg)
         // camera collisions are only for the local player
         if (plNetClientApp::GetInstance()->GetLocalPlayerKey() != pCollMsg->fOtherKey)
             return true;
-        // Fall through to plObjectInVolumeDetector, which will register us for plEvalMsg
-        // and handle it for us. (Hint: See ISendSavedTriggerMsgs)
+
+        if (!fWaitingForEval)
+            IRegisterForEval();
+
+        fEntering = (pCollMsg->fEntering != 0);
+
+ #ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+        fLastStep = plSimulationMgr::GetInstance()->GetStepCount();
+#endif
+        return true;
     }
 
     return plObjectInVolumeDetector::MsgReceive(msg);
@@ -327,59 +299,75 @@ void plCameraRegionDetector::Write(hsStream* stream, hsResMgr* mgr)
 
 }
 
+void plCameraRegionDetector::IHandleEval(plEvalMsg*)
+{
+#ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+    if (plSimulationMgr::GetInstance()->GetStepCount() - fLastStep > 1)
+    {
+#endif
+        if (fIsInside != fEntering)
+        {
+            fIsInside = fEntering;
+            DetectorLog("%s CameraRegion: %s", fIsInside ? "Entering" : "Exiting", GetKeyName().c_str());
+            ISendTriggerMsg();
+        }
+        plgDispatch::Dispatch()->UnRegisterForExactType(plEvalMsg::Index(), GetKey());
+        fWaitingForEval = false;
+#ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+    }
+#endif
+}
+
 /////////////////////////////////
 /////////////////////////////////
 /////////////////////////////////
 /////////////////////////////////
 // object-in-volume detector
 
-void plObjectInVolumeDetector::ITrigger(plKey hitter, bool entering, bool immediate)
+void plObjectInVolumeDetector::ITrigger(plKey hitter, bool entering)
 {
-    hsRefCnt_SafeUnRef(fSavedActivatorMsg);
-    fSavedActivatorMsg = new plActivatorMsg;
-    fSavedActivatorMsg->AddReceivers(fReceivers);
+#ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+    for (bookKeepingList::iterator it = fCollisionList.begin(); it != fCollisionList.end(); ++it)
+    {
+        plCollisionBookKeepingInfo* collisionInfo = *it;
+        if (collisionInfo->fHitter == hitter)
+        {
+            collisionInfo->fEntering = entering;
+            collisionInfo->fLastStep = plSimulationMgr::GetInstance()->GetStepCount();
+            return;
+        }
+    }
+#endif
 
-    if (fProxyKey)
-        fSavedActivatorMsg->fHiteeObj = fProxyKey;
-    else
-        fSavedActivatorMsg->fHiteeObj = GetTarget()->GetKey();
+    plCollisionBookKeepingInfo* collisionInfo = new plCollisionBookKeepingInfo(hitter, entering);
+    fCollisionList.push_back(collisionInfo);
+#ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+    collisionInfo->fLastStep = plSimulationMgr::GetInstance()->GetStepCount();
+#endif
+}
 
-    fSavedActivatorMsg->fHitterObj = hitter;
-    fSavedActivatorMsg->SetSender(GetKey());
+void plObjectInVolumeDetector::IRegisterForEval()
+{
+    fWaitingForEval = true;
+    plgDispatch::Dispatch()->RegisterForExactType(plEvalMsg::Index(), GetKey());
+}
 
+void plObjectInVolumeDetector::ISendTriggerMsg(plKey hitter, bool entering)
+{
+    plActivatorMsg* activatorMsg = new plActivatorMsg();
+    activatorMsg->SetSender(GetKey());
+    activatorMsg->AddReceivers(fReceivers);
+    activatorMsg->fHiteeObj = fProxyKey ? fProxyKey : GetTarget()->GetKey();
+    activatorMsg->fHitterObj = hitter;
     if (entering)
-    {
-        DetectorLog("%s: Saving Entering volume - Evals=%d", GetKeyName().c_str(), fNumEvals);
-        fSavedActivatorMsg->SetTriggerType(plActivatorMsg::kVolumeEnter);
-        fLastEnterEval = fNumEvals;
-    }
+        activatorMsg->SetTriggerType(plActivatorMsg::kVolumeEnter);
     else
-    {
-        DetectorLog("%s: Saving Exiting volume - Evals=%d", GetKeyName().c_str(), fNumEvals);
-        fSavedActivatorMsg->SetTriggerType(plActivatorMsg::kVolumeExit);
-        fLastExitEval = fNumEvals;
-    }
+        activatorMsg->SetTriggerType(plActivatorMsg::kVolumeExit);
 
-    if (immediate)
-        ISendSavedTriggerMsgs();
+    plgDispatch::MsgSend(activatorMsg);
 }
 
-void plObjectInVolumeDetector::ISendSavedTriggerMsgs()
-{
-    if (fSavedActivatorMsg)
-    {
-        if (fSavedActivatorMsg->fTriggerType == plActivatorMsg::kVolumeEnter)
-            DetectorLog("%s: Sending Entering volume - Evals=%d", GetKeyName().c_str(), fNumEvals);
-        else
-            DetectorLog("%s: Sending Exiting volume - Evals=%d", GetKeyName().c_str(), fNumEvals);
-
-        // we're saving the message to be dispatched later...
-        plgDispatch::MsgSend(fSavedActivatorMsg);
-    }
-    fSavedActivatorMsg = nil;
-}
-
-hsBool plObjectInVolumeDetector::MsgReceive(plMessage* msg)
+bool plObjectInVolumeDetector::MsgReceive(plMessage* msg)
 {
     plCollideMsg* pCollMsg = plCollideMsg::ConvertNoRef(msg);
     if (pCollMsg)
@@ -387,18 +375,17 @@ hsBool plObjectInVolumeDetector::MsgReceive(plMessage* msg)
         // If the avatar is disabled (flying around), don't trigger
         if (IIsDisabledAvatar(pCollMsg->fOtherKey))
             return false;
+
+        if (!fWaitingForEval)
+            IRegisterForEval();
+
         ITrigger(pCollMsg->fOtherKey, (pCollMsg->fEntering != 0));
-        plgDispatch::Dispatch()->RegisterForExactType(plEvalMsg::Index(), GetKey());
         return true;
     }
 
     plEvalMsg* pEvalMsg = plEvalMsg::ConvertNoRef(msg);
     if (pEvalMsg)
-    {
-        fNumEvals++;
-        ISendSavedTriggerMsgs();
-        plgDispatch::Dispatch()->UnRegisterForExactType(plEvalMsg::Index(), GetKey());
-    }
+        IHandleEval(pEvalMsg);
 
     plPlayerPageMsg* pageMsg = plPlayerPageMsg::ConvertNoRef(msg);
     if (pageMsg && pageMsg->fUnload)
@@ -407,6 +394,48 @@ hsBool plObjectInVolumeDetector::MsgReceive(plMessage* msg)
     }
 
     return plCollisionDetector::MsgReceive(msg);
+}
+
+void plObjectInVolumeDetector::IHandleEval(plEvalMsg*)
+{
+    bookKeepingList::iterator it = fCollisionList.begin();
+    while (it != fCollisionList.end())
+    {
+        plCollisionBookKeepingInfo* collisionInfo = *it;
+#ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+        if (plSimulationMgr::GetInstance()->GetStepCount() - collisionInfo->fLastStep > 1)
+        {
+#endif // USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+            ResidentSet::iterator j = fCurrentResidents.find(collisionInfo->fHitter);
+            bool wasInside = j != fCurrentResidents.end();
+            if (collisionInfo->fEntering != wasInside)
+            {
+                if (collisionInfo->fEntering)
+                {
+                    fCurrentResidents.insert(collisionInfo->fHitter);
+                    DetectorLog("%s: Sending Volume Enter ActivatorMsg", GetKeyName().c_str());
+                    ISendTriggerMsg(collisionInfo->fHitter, true);
+                }
+                else
+                {
+                    fCurrentResidents.erase(j);
+                    DetectorLog("%s: Sending Volume Exit ActivatorMsg", GetKeyName().c_str());
+                    ISendTriggerMsg(collisionInfo->fHitter, false);
+                }
+            }
+
+            delete collisionInfo;
+#ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+            it = fCollisionList.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+#else
+            ++it;
+#endif // USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
+    }
 }
 
 void plObjectInVolumeDetector::SetTarget(plSceneObject* so)
@@ -475,7 +504,7 @@ void plObjectInVolumeAndFacingDetector::ICheckForTrigger()
             // And are we walking towards it?
             plArmatureBrain* abrain =  armMod->FindBrainByClass(plAvBrainHuman::Index()); //armMod->GetCurrentBrain();
             plAvBrainHuman* brain = plAvBrainHuman::ConvertNoRef(abrain);
-            if (brain && brain->IsMovingForward() && brain->fCallbackAction->IsOnGround())
+            if (brain && brain->IsMovingForward() && brain->fWalkingStrategy->IsOnGround())
                 movingForward = true;
         }
         else
@@ -485,18 +514,18 @@ void plObjectInVolumeAndFacingDetector::ICheckForTrigger()
         {
             DetectorLog("%s: Trigger InVolume&Facing", GetKeyName().c_str());
             fTriggered = true;
-            ITrigger(avatar->GetKey(), true, true);
+            ISendTriggerMsg(avatar->GetKey(), true);
         }
         else if (!facing && fTriggered)
         {
             DetectorLog("%s: Untrigger InVolume&Facing", GetKeyName().c_str());
             fTriggered = false;
-            ITrigger(avatar->GetKey(), false, true);
+            ISendTriggerMsg(avatar->GetKey(), false);
         }
     }
 }
 
-hsBool plObjectInVolumeAndFacingDetector::MsgReceive(plMessage* msg)
+bool plObjectInVolumeAndFacingDetector::MsgReceive(plMessage* msg)
 {
     // Avatar is entering or exiting our detector box
     plCollideMsg* collMsg = plCollideMsg::ConvertNoRef(msg);
@@ -525,7 +554,7 @@ hsBool plObjectInVolumeAndFacingDetector::MsgReceive(plMessage* msg)
             if (fTriggered)
             {
                 fTriggered = false;
-                ITrigger(plNetClientApp::GetInstance()->GetLocalPlayerKey(), false, true);
+                ISendTriggerMsg(plNetClientApp::GetInstance()->GetLocalPlayerKey(), false);
             }
         }
 
@@ -548,7 +577,7 @@ void plObjectInVolumeAndFacingDetector::Read(hsStream* stream, hsResMgr* mgr)
     plObjectInVolumeDetector::Read(stream, mgr);
 
     fFacingTolerance = stream->ReadLEScalar();
-    fNeedWalkingForward = stream->Readbool();
+    fNeedWalkingForward = stream->ReadBool();
 }
 
 void plObjectInVolumeAndFacingDetector::Write(hsStream* stream, hsResMgr* mgr)
@@ -556,7 +585,7 @@ void plObjectInVolumeAndFacingDetector::Write(hsStream* stream, hsResMgr* mgr)
     plObjectInVolumeDetector::Write(stream, mgr);
 
     stream->WriteLEScalar(fFacingTolerance);
-    stream->Writebool(fNeedWalkingForward);
+    stream->WriteBool(fNeedWalkingForward);
 }
 
 /////////////////////////////////
@@ -570,7 +599,7 @@ plSubworldRegionDetector::~plSubworldRegionDetector()
 }
 
 
-hsBool plSubworldRegionDetector::MsgReceive(plMessage* msg)
+bool plSubworldRegionDetector::MsgReceive(plMessage* msg)
 {
     plCollideMsg* pCollMsg = plCollideMsg::ConvertNoRef(msg);
 
@@ -631,7 +660,7 @@ void plSubworldRegionDetector::Write(hsStream* stream, hsResMgr* mgr)
 ///////////////////////////////////
 /// plPanicLinkDetector
 ///////////////////////////////////
-hsBool plPanicLinkRegion::MsgReceive(plMessage* msg)
+bool plPanicLinkRegion::MsgReceive(plMessage* msg)
 {
     if (plCollideMsg* pCollMsg = plCollideMsg::ConvertNoRef(msg))
     {
@@ -645,11 +674,11 @@ hsBool plPanicLinkRegion::MsgReceive(plMessage* msg)
             {
                 if (avMod->IsLinkedIn())
                 {
-                    hsPoint3 kinPos;
+                    hsPoint3 pos;
                     if (avMod->GetController())
                     {
-                        avMod->GetController()->GetKinematicPosition(kinPos);
-                        DetectorLogSpecial("Avatar is panic linking. KinPos at %f,%f,%f and is %s",kinPos.fX,kinPos.fY,kinPos.fZ,avMod->GetController()->IsEnabled() ? "enabled" : "disabled");
+                        avMod->GetController()->GetPositionSim(pos);
+                        DetectorLogSpecial("Avatar is panic linking. Position %f,%f,%f and is %s", pos.fX, pos.fY, pos.fZ, avMod->GetController()->IsEnabled() ? "enabled" : "disabled");
                     }
                     avMod->PanicLink(fPlayLinkOutAnim);
                 } else
@@ -710,17 +739,17 @@ void plSimpleRegionSensor::Write(hsStream *stream, hsResMgr *mgr)
     plSingleModifier::Write(stream, mgr);
     if(fEnterMsg)
     {
-        stream->Writebool(true);
+        stream->WriteBool(true);
         mgr->WriteCreatable(stream, fEnterMsg);
     } else {
-        stream->Writebool(false);
+        stream->WriteBool(false);
     }
     if(fExitMsg)
     {
-        stream->Writebool(true);
+        stream->WriteBool(true);
         mgr->WriteCreatable(stream, fExitMsg);
     } else {
-        stream->Writebool(false);
+        stream->WriteBool(false);
     }
 }
 
@@ -728,14 +757,14 @@ void plSimpleRegionSensor::Write(hsStream *stream, hsResMgr *mgr)
 void plSimpleRegionSensor::Read(hsStream *stream, hsResMgr *mgr)
 {
     plSingleModifier::Read(stream, mgr);
-    if(stream->Readbool())
+    if(stream->ReadBool())
     {
         fEnterMsg = plMessage::ConvertNoRef(mgr->ReadCreatable(stream));
     } else {
         fEnterMsg = nil;
     }
 
-    if(stream->Readbool())
+    if(stream->ReadBool())
     {
         fExitMsg = plMessage::ConvertNoRef(mgr->ReadCreatable(stream));
         hsAssert(fExitMsg, "Corrupted plSimpleRegionSensor during read.");
@@ -745,7 +774,7 @@ void plSimpleRegionSensor::Read(hsStream *stream, hsResMgr *mgr)
 }
 
 // MSGRECEIVE
-hsBool plSimpleRegionSensor::MsgReceive(plMessage *msg)
+bool plSimpleRegionSensor::MsgReceive(plMessage *msg)
 {
     plCollideMsg* pCollMsg = plCollideMsg::ConvertNoRef(msg);
 
@@ -782,7 +811,7 @@ hsBool plSimpleRegionSensor::MsgReceive(plMessage *msg)
 }
 
 // IEVAL
-hsBool plSimpleRegionSensor::IEval(double secs, float del, uint32_t dirty)
+bool plSimpleRegionSensor::IEval(double secs, float del, uint32_t dirty)
 {
     return false;
 }
@@ -807,7 +836,7 @@ void plSwimDetector::Read(hsStream *stream, hsResMgr *mgr)
     stream->ReadLEScalar();
     stream->ReadLEScalar();
 }
-hsBool plSwimDetector::MsgReceive(plMessage *msg)
+bool plSwimDetector::MsgReceive(plMessage *msg)
 {
     plCollideMsg* pCollMsg = plCollideMsg::ConvertNoRef(msg);
 
@@ -841,7 +870,7 @@ hsBool plSwimDetector::MsgReceive(plMessage *msg)
     }
     return plSimpleRegionSensor::MsgReceive(msg);
 }
-hsBool  plRidingAnimatedPhysicalDetector::MsgReceive(plMessage *msg)
+bool    plRidingAnimatedPhysicalDetector::MsgReceive(plMessage *msg)
 {
     
     plCollideMsg* pCollMsg = plCollideMsg::ConvertNoRef(msg);

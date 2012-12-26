@@ -1,3 +1,4 @@
+include_directories(../PubUtilLib/plUnifiedTime)    # EVIL:  For plFileUtils.cpp
 add_definitions(-D_LIB)
 
 if(NOT WCHAR_BYTES)
@@ -19,11 +20,13 @@ set(CoreLib_SOURCES
     hsCritSect.cpp
     hsExceptionStack.cpp
     hsFastMath.cpp
+    hsFiles.cpp
     hsGeometry3.cpp
     hsMatrix33.cpp
     hsMatrix44.cpp
     hsMemory.cpp
     hsQuat.cpp
+    hsRefCnt.cpp
     hsSafeRefCnt.cpp
     hsSTLStream.cpp
     hsStlUtils.cpp
@@ -31,9 +34,9 @@ set(CoreLib_SOURCES
     hsStringTokenizer.cpp
     hsTemplates.cpp
     hsThread.cpp
-    hsUtils.cpp
     hsWide.cpp
     pcSmallRect.cpp
+    plFileUtils.cpp
     plGeneric.cpp
     plLoadMask.cpp
     plString.cpp
@@ -43,14 +46,15 @@ set(CoreLib_SOURCES
 if(WIN32 AND NOT CYGWIN)
     set(CoreLib_SOURCES ${CoreLib_SOURCES}
         hsThread_Win.cpp
+        hsFiles_Win.cpp
     )
 endif(WIN32 AND NOT CYGWIN)
 if(UNIX)
     set(CoreLib_SOURCES ${CoreLib_SOURCES}
         hsThread_Unix.cpp
+        hsFiles_Unix.cpp
     )
 endif(UNIX)
-    
 
 set(CoreLib_HEADERS
     HeadSpin.h
@@ -62,6 +66,7 @@ set(CoreLib_HEADERS
     hsCritSect.h
     hsExceptions.h
     hsFastMath.h
+    hsFiles.h
     hsGeometry3.h
     hsHashTable.h
     hsMatrix44.h
@@ -77,15 +82,12 @@ set(CoreLib_HEADERS
     hsStringTokenizer.h
     hsTemplates.h
     hsThread.h
-    hsTypes.h
-    hsUtils.h
     hsWide.h
-    hsWindows.h
     pcSmallRect.h
+    plFileUtils.h
     plGeneric.h
     plLoadMask.h
     plQuality.h
-    plRefCnt.h
     plString.h
     plTweak.h
     plViewTransform.h

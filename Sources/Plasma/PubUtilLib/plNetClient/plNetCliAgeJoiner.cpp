@@ -181,7 +181,7 @@ void plNCAgeJoiner::IDispatchMsgReceiveCallback () {
 void plNCAgeJoiner::IResMgrProgressBarCallback (plKey key) {
 #ifndef PLASMA_EXTERNAL_RELEASE
     if (s_instance)
-        s_instance->progressBar->SetStatusText(_TEMP_CONVERT_TO_CONST_CHAR(key->GetName()));
+        s_instance->progressBar->SetStatusText(key->GetName().c_str());
 #endif
 }
 
@@ -270,8 +270,8 @@ void plNCAgeJoiner::ExecNextOp () {
                     avatarName = "Male";
                 else
                     avatarName = NetCommGetPlayer()->avatarDatasetName;
-                const char * linkInName = plNetLinkingMgr::GetInstance()->GetAgeLink()->SpawnPoint().GetName();
-                am->LoadPlayer( avatarName, nil, linkInName );
+                plString linkInName = plNetLinkingMgr::GetInstance()->GetAgeLink()->SpawnPoint().GetName();
+                am->LoadPlayer( avatarName, nil, linkInName.c_str() );
             }
             else {
                 LogMsg(kLogPerf, L"AgeJoiner: Next:kPropagatePlayer");

@@ -199,9 +199,9 @@ plKey plAvatarMgr::LoadAvatar(const char *name, const char *accountName, bool is
         const plLocation& loc = (globalLoc.IsValid() ? globalLoc : custLoc.IsValid() ? custLoc : maleLoc);
 #endif
 
-        plString theName = _TEMP_CONVERT_FROM_LITERAL(name);
+        plString theName = name;
         if ( loc == maleLoc )
-            theName = _TEMP_CONVERT_FROM_LITERAL("Male");
+            theName = "Male";
 
         if (loc.IsValid())
         {
@@ -239,7 +239,7 @@ void plAvatarMgr::PropagateLocalPlayer(int spawnPoint)
     {
         plKey requestor = GetKey();
         bool isPlayer = true;
-        hsBool isLoading = true;
+        bool isLoading = true;
         plLoadAvatarMsg *msg = new plLoadAvatarMsg(playerKey, requestor, 0, isPlayer, isLoading);
 
         if (spawnPoint >= 0)
@@ -268,7 +268,7 @@ bool plAvatarMgr::UnPropagateLocalPlayer()
     {
         plKey requestor = GetKey();
         bool isPlayer = true;
-        hsBool isLoading = false;
+        bool isLoading = false;
         plLoadAvatarMsg *msg = new plLoadAvatarMsg(playerKey, requestor, 0, isPlayer, isLoading);
         msg->SetBCastFlag(plMessage::kLocalPropagate, false);
         msg->Send();
@@ -285,14 +285,14 @@ void plAvatarMgr::UnLoadLocalPlayer()
     {
         plKey mgrKey = GetKey();
         bool isPlayer = true;
-        hsBool isLoading = false;
+        bool isLoading = false;
         plLoadAvatarMsg *msg = new plLoadAvatarMsg(playerKey, mgrKey, 0, isPlayer, isLoading);
         msg->Send();
     }
 }
 
 // MSGRECEIVE
-hsBool plAvatarMgr::MsgReceive(plMessage *msg)
+bool plAvatarMgr::MsgReceive(plMessage *msg)
 {
     plLoadAvatarMsg *cloneM = plLoadAvatarMsg::ConvertNoRef(msg);
     if(cloneM)
@@ -354,7 +354,7 @@ hsBool plAvatarMgr::MsgReceive(plMessage *msg)
     return false;
 }
 
-hsBool plAvatarMgr::HandleCoopMsg(plAvCoopMsg *msg)
+bool plAvatarMgr::HandleCoopMsg(plAvCoopMsg *msg)
 {
     plAvCoopMsg::Command cmd = msg->fCommand;
     
@@ -388,7 +388,7 @@ hsBool plAvatarMgr::HandleCoopMsg(plAvCoopMsg *msg)
     }
 }
 
-hsBool plAvatarMgr::HandleNotifyMsg(plNotifyMsg *msg)
+bool plAvatarMgr::HandleNotifyMsg(plNotifyMsg *msg)
 {
     proCoopEventData *ed = static_cast<proCoopEventData *>(msg->FindEventRecord(proEventData::kCoop));
     if(ed)
@@ -400,7 +400,7 @@ hsBool plAvatarMgr::HandleNotifyMsg(plNotifyMsg *msg)
     return false;
 }
 
-hsBool plAvatarMgr::IPassMessageToActiveCoop(plMessage *msg, uint32_t id, uint16_t serial)
+bool plAvatarMgr::IPassMessageToActiveCoop(plMessage *msg, uint32_t id, uint16_t serial)
 {
     plCoopMap::iterator i = fActiveCoops.find(id);
     while(i != fActiveCoops.end() && (*i).first == id)
@@ -793,7 +793,7 @@ int plAvatarMgr::FindSpawnPoint( const char *name ) const
     return -1;
 }
 
-int plAvatarMgr::WarpPlayerToAnother(hsBool iMove, uint32_t remoteID)
+int plAvatarMgr::WarpPlayerToAnother(bool iMove, uint32_t remoteID)
 {
     plNetTransport &mgr = plNetClientMgr::GetInstance()->TransportMgr();
     plNetTransportMember *mbr = mgr.GetMember(mgr.FindMember(remoteID));
@@ -1012,7 +1012,7 @@ void plAvatarMgr::OfferLinkingBook(plKey hostKey, plKey guestKey, plMessage *lin
             
             brainG->AddStage(guestAccept);
             brainG->AddStage(guestAcceptIdle);
-            plCoopCoordinator *coord = new plCoopCoordinator(hostKey, guestKey, brainH, brainG, _TEMP_CONVERT_FROM_LITERAL("Convergence"), 1, 1, linkMsg, true);
+            plCoopCoordinator *coord = new plCoopCoordinator(hostKey, guestKey, brainH, brainG, "Convergence", 1, 1, linkMsg, true);
 
 
             plAvCoopMsg *coMg = new plAvCoopMsg(hostKey, coord);

@@ -2196,9 +2196,7 @@ static bool Recv_ServerAddr (
             s_active->token = msg.token;
             s_active->addr.SetHost(msg.srvAddr);
 
-            plString logmsg = _TEMP_CONVERT_FROM_LITERAL("SrvAuth addr: ");
-            logmsg += s_active->addr.GetHostString();
-            LogMsg(kLogPerf, L"SrvAuth addr: %s", logmsg.c_str());
+            LogMsg(kLogPerf, "SrvAuth addr: %s", s_active->addr.GetHostString().c_str());
         }
     }
     s_critsect.Leave();
@@ -2789,8 +2787,8 @@ bool AgeRequestTrans::Recv (
 
 //============================================================================
 AccountCreateRequestTrans::AccountCreateRequestTrans (
-    const wchar_t                             accountName[],
-    const wchar_t                             password[],
+    const wchar_t                           accountName[],
+    const wchar_t                           password[],
     unsigned                                accountFlags,
     unsigned                                billingType,
     FNetCliAuthAccountCreateRequestCallback callback,
@@ -2804,8 +2802,8 @@ AccountCreateRequestTrans::AccountCreateRequestTrans (
     StrCopy(m_accountName, accountName, arrsize(m_accountName));
 
     CryptHashPassword(
-        _TEMP_CONVERT_FROM_WCHAR_T(m_accountName),
-        _TEMP_CONVERT_FROM_WCHAR_T(password),
+        plString::FromWchar(m_accountName),
+        plString::FromWchar(password),
         m_namePassHash
     );
 }
@@ -2859,8 +2857,8 @@ bool AccountCreateRequestTrans::Recv (
 
 //============================================================================
 AccountCreateFromKeyRequestTrans::AccountCreateFromKeyRequestTrans (
-    const wchar_t                                     accountName[],
-    const wchar_t                                     password[],
+    const wchar_t                                   accountName[],
+    const wchar_t                                   password[],
     const Uuid &                                    key,
     unsigned                                        billingType,
     FNetCliAuthAccountCreateFromKeyRequestCallback  callback,
@@ -2874,8 +2872,8 @@ AccountCreateFromKeyRequestTrans::AccountCreateFromKeyRequestTrans (
     StrCopy(m_accountName, accountName, arrsize(m_accountName));
 
     CryptHashPassword(
-        _TEMP_CONVERT_FROM_WCHAR_T(m_accountName),
-        _TEMP_CONVERT_FROM_WCHAR_T(password),
+        plString::FromWchar(m_accountName),
+        plString::FromWchar(password),
         m_namePassHash
     );
 }
@@ -3161,8 +3159,8 @@ bool SetPlayerRequestTrans::Recv (
 
 //============================================================================
 AccountChangePasswordRequestTrans::AccountChangePasswordRequestTrans (
-    const wchar_t                                     accountName[],
-    const wchar_t                                     password[],
+    const wchar_t                                   accountName[],
+    const wchar_t                                   password[],
     FNetCliAuthAccountChangePasswordRequestCallback callback,
     void *                                          param
 ) : NetAuthTrans(kAccountChangePasswordRequestTrans)
@@ -3172,8 +3170,8 @@ AccountChangePasswordRequestTrans::AccountChangePasswordRequestTrans (
     StrCopy(m_accountName, accountName, arrsize(m_accountName));
     
     CryptHashPassword(
-        _TEMP_CONVERT_FROM_WCHAR_T(m_accountName),
-        _TEMP_CONVERT_FROM_WCHAR_T(password),
+        plString::FromWchar(m_accountName),
+        plString::FromWchar(password),
         m_namePassHash
     );
 }
@@ -4017,7 +4015,7 @@ bool VaultFindNodeTrans::Recv (
     const Auth2Cli_VaultNodeFindReply & reply = *(const Auth2Cli_VaultNodeFindReply *) msg;
 
     if (IS_NET_SUCCESS(reply.result)) {
-        COMPILER_ASSERT(sizeof(unsigned) == sizeof(uint32_t));
+        static_assert(sizeof(unsigned) == sizeof(uint32_t), "unsigned is not the same size as uint32_t");
         m_nodeIds.Set((unsigned *)reply.nodeIds, reply.nodeIdCount);
     }
 

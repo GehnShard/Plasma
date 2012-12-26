@@ -85,6 +85,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pyAgeInfoStruct.h"
 #include "pyAgeLinkStruct.h"
 #include "pyAlarm.h"
+#include "pyGeometry3.h"
 #include "pfMessage/pfKIMsg.h"
 #include "plNetMessage/plNetMessage.h"
 #include "pfCamera/plVirtualCamNeu.h"
@@ -170,7 +171,7 @@ void cyMisc::Console(const char* command)
     }
 }
 
-void cyMisc::ConsoleNet(const char* command, hsBool netForce)
+void cyMisc::ConsoleNet(const char* command, bool netForce)
 {
     if ( command != nil )
     {
@@ -441,7 +442,7 @@ void cyMisc::DisableControlKeyEvents(pyKey &selfkey)
 //  PURPOSE    : Return the net client (account) name of the player whose avatar
 //              key is provided.
 //
-hsBool cyMisc::WasLocallyNotified(pyKey &selfkey)
+bool cyMisc::WasLocallyNotified(pyKey &selfkey)
 {
     return selfkey.WasLocalNotify();
 }
@@ -529,7 +530,7 @@ int cyMisc::GetLocalClientID()
     return (plNetClientMgr::GetInstance()->GetPlayerID());
 }
 
-hsBool cyMisc::ValidateKey(pyKey& key)
+bool cyMisc::ValidateKey(pyKey& key)
 {
     plKey pKey = key.getKey();
     
@@ -844,7 +845,7 @@ void cyMisc::UnloadDialog(const char* name)
 //
 //  PURPOSE    : Test to see if a dialog is loaded (according to the dialog manager)
 //
-hsBool cyMisc::IsDialogLoaded(const char* name)
+bool cyMisc::IsDialogLoaded(const char* name)
 {
     pfGameGUIMgr    *mgr = pfGameGUIMgr::GetInstance();
     if ( mgr )
@@ -1126,7 +1127,7 @@ uint32_t cyMisc::SendRTChat(pyPlayer& from, const std::vector<pyPlayer*> & tolis
 {
     // create the messge that will contain the chat message
     pfKIMsg *msg = new pfKIMsg( pfKIMsg::kHACKChatMsg );
-    msg->SetString( message );
+    msg->SetString( plString::FromWchar(message) );
     msg->SetUser( from.GetPlayerName(), from.GetPlayerID() );
     msg->SetFlags( flags );
     msg->SetBCastFlag(plMessage::kNetPropagate | plMessage::kNetForce);
@@ -1198,7 +1199,7 @@ void cyMisc::SendKIMessageS(uint32_t command, const wchar_t* value)
     // create the mesage to send
     pfKIMsg *msg = new pfKIMsg( (uint8_t)command );
 
-    msg->SetString( value );
+    msg->SetString( plString::FromWchar( value ) );
 
     // send it off
     plgDispatch::MsgSend( msg );
@@ -1297,7 +1298,7 @@ void cyMisc::YesNoDialog(pyKey& sender, std::wstring thestring)
 //
 //  RETURNS    : nothing
 //
-void cyMisc::RateIt(const char* chronicleName, const char* thestring, hsBool onceFlag)
+void cyMisc::RateIt(const char* chronicleName, const char* thestring, bool onceFlag)
 {
     // create the mesage to send
     pfKIMsg *msg = new pfKIMsg( pfKIMsg::kRateIt );
@@ -1580,7 +1581,7 @@ void cyMisc::DisableAvatarCursorFade()
     }
 }
 
-void cyMisc::FadeLocalPlayer(hsBool fade)
+void cyMisc::FadeLocalPlayer(bool fade)
 {
     plNetClientMgr* nmgr = plNetClientMgr::GetInstance();
     if (nmgr)
@@ -1664,7 +1665,7 @@ void cyMisc::NotifyOffererPublicLinkAccepted(uint32_t offerer)
     pMsg->Send();
 }
 
-void cyMisc::ToggleAvatarClickability(hsBool on)
+void cyMisc::ToggleAvatarClickability(bool on)
 {
     plInputIfaceMgrMsg* pMsg = 0;
     if (on)
@@ -1704,7 +1705,7 @@ void cyMisc::SetShareAgeInstanceGuid(const Uuid& guid)
 //
 // PURPOSE    : Returns current status of CCR dept
 //
-hsBool cyMisc::IsCCRAwayStatus()
+bool cyMisc::IsCCRAwayStatus()
 {
     return !VaultGetCCRStatus();
 }
@@ -1716,7 +1717,7 @@ hsBool cyMisc::IsCCRAwayStatus()
 //
 // PURPOSE    : Returns true if local player is a CCR
 //
-hsBool cyMisc::AmCCR()
+bool cyMisc::AmCCR()
 {
     if ( plNetClientApp::GetInstance() )
         return plNetClientApp::GetInstance()->AmCCR();
@@ -1972,7 +1973,7 @@ void cyMisc::SetLightColorValue(pyKey& light, const plString& lightName, float r
 }
 
 #include "pnMessage/plEnableMsg.h"
-void cyMisc::SetLightAnimationOn(pyKey& light, const plString& lightName, hsBool start)
+void cyMisc::SetLightAnimationOn(pyKey& light, const plString& lightName, bool start)
 {
     // lightName is the name of the light object attached to the light that we want to talk to
     // for the bug lights, this would be "RTOmni-BugLightTest"
@@ -2045,7 +2046,7 @@ void cyMisc::SetLightAnimationOn(pyKey& light, const plString& lightName, hsBool
 //
 // PURPOSE    : let you get control event messages at will (for pseudo-GUI's like the psnl bookshelf or clft imager)
 
-void cyMisc::RegisterForControlEventMessages(hsBool on, pyKey& k)
+void cyMisc::RegisterForControlEventMessages(bool on, pyKey& k)
 {
     plCmdIfaceModMsg* pMsg = new plCmdIfaceModMsg;
     pMsg->SetSender(k.getKey());
@@ -2549,7 +2550,7 @@ void cyMisc::FadeOut(float lenTime, bool holdFlag, bool noSound)
     plgDispatch::MsgSend( msg );
 }
 
-void cyMisc::SetClickability(hsBool b)
+void cyMisc::SetClickability(bool b)
 {
     plInputIfaceMgrMsg* msg = new plInputIfaceMgrMsg(b ? plInputIfaceMgrMsg::kEnableClickables : plInputIfaceMgrMsg::kDisableClickables );
     plgDispatch::MsgSend(msg);
@@ -2619,7 +2620,7 @@ void cyMisc::StartScreenCaptureWH(pyKey& selfkey, uint16_t width, uint16_t heigh
 
 
 #include "plAvatar/plAvatarClothing.h"
-void cyMisc::WearMaintainerSuit(pyKey& key, hsBool wear)
+void cyMisc::WearMaintainerSuit(pyKey& key, bool wear)
 {
     // run on all machines, but only affects us if we call it on our local guy (who props it to others himself)
     if (key.getKey() != plNetClientMgr::GetInstance()->GetLocalPlayerKey())
@@ -2761,7 +2762,7 @@ PipelineParams *cyMisc::GetDefaultDisplayParams()
     return fPipeline->GetDefaultParams();
 }
 
-void cyMisc::SetGraphicsOptions(int Width, int Height, int ColorDepth, hsBool Windowed, int NumAASamples, int MaxAnisotropicSamples, hsBool VSync)
+void cyMisc::SetGraphicsOptions(int Width, int Height, int ColorDepth, bool Windowed, int NumAASamples, int MaxAnisotropicSamples, bool VSync)
 {
     // This has to send a message to plClient because python is loaded in the max plugins
 
@@ -2813,7 +2814,7 @@ std::wstring cyMisc::GetInitPath()
     return path;
 }
 
-void cyMisc::SetBehaviorNetFlags(pyKey & behKey, hsBool netForce, hsBool netProp)
+void cyMisc::SetBehaviorNetFlags(pyKey & behKey, bool netForce, bool netProp)
 {
     if (plMultistageBehMod * behMod = plMultistageBehMod::ConvertNoRef(behKey.getKey()->ObjectIsLoaded()))
     {

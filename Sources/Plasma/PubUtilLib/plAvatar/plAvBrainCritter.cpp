@@ -40,7 +40,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
-#include "plAvCallbackAction.h"
+#include "plPhysicalControllerCore.h"
 #include "plAvBrainCritter.h"
 #include "plAvBrainHuman.h"
 #include "plArmatureMod.h"
@@ -81,7 +81,7 @@ public:
         fAvMod(nil), fCritterBrain(nil), fName(name), fRandomStartPoint(randomStart), fFadeInLength(fadeInLength), fFadeOutLength(fadeOutLength) {}
     virtual ~CritterBehavior() {}
 
-    void Init(plAGAnim* anim, hsBool loop, plAvBrainCritter* brain, plArmatureMod* body, uint8_t index)
+    void Init(plAGAnim* anim, bool loop, plAvBrainCritter* brain, plArmatureMod* body, uint8_t index)
     {
         plArmatureBehavior::Init(anim, loop, brain, body, index);
         fAvMod = body;
@@ -89,7 +89,7 @@ public:
         fAnimName = anim->GetName();
     }
 
-    virtual hsBool PreCondition(double time, float elapsed) {return true;}
+    virtual bool PreCondition(double time, float elapsed) {return true;}
 
     float GetAnimLength() {return (fAnim->GetAnimation()->GetLength());}
     void SetAnimTime(float time) {fAnim->SetCurrentTime(time, true);}
@@ -125,7 +125,7 @@ protected:
 
 ///////////////////////////////////////////////////////////////////////////////
 
-plAvBrainCritter::plAvBrainCritter(): fCallbackAction(nil), fCurMode(kIdle), fNextMode(kIdle), fFadingNextBehavior(true),
+plAvBrainCritter::plAvBrainCritter(): fWalkingStrategy(nil), fCurMode(kIdle), fNextMode(kIdle), fFadingNextBehavior(true),
     fAvoidingAvatars(false), fFinalGoalPos(0, 0, 0), fImmediateGoalPos(0, 0, 0), fDotGoal(0),
     fAngRight(0)
 {
@@ -143,8 +143,8 @@ plAvBrainCritter::~plAvBrainCritter()
         fBehaviors[i] = nil;
     }
 
-    delete fCallbackAction;
-    fCallbackAction = nil;
+    delete fWalkingStrategy;
+    fWalkingStrategy = nil;
 
     fUserBehaviors.clear();
     fReceivers.clear();
@@ -152,7 +152,7 @@ plAvBrainCritter::~plAvBrainCritter()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-hsBool plAvBrainCritter::Apply(double time, float elapsed)
+bool plAvBrainCritter::Apply(double time, float elapsed)
 {
     // update internal pathfinding variables
     IEvalGoal();
@@ -167,13 +167,13 @@ hsBool plAvBrainCritter::Apply(double time, float elapsed)
         IProcessBehavior(time, elapsed); // just continue with the currently running one
 
     // update our controller to keep us turned and moving to where we want to go
-    fCallbackAction->RecalcVelocity(time, time - elapsed);      
-    fCallbackAction->SetTurnStrength(IGetTurnStrength(time));
+    fWalkingStrategy->SetTurnStrength(IGetTurnStrength(time));
+    fWalkingStrategy->RecalcVelocity(time, elapsed);
 
     return plArmatureBrain::Apply(time, elapsed);
 }
 
-hsBool plAvBrainCritter::MsgReceive(plMessage* msg)
+bool plAvBrainCritter::MsgReceive(plMessage* msg)
 {
     return plArmatureBrain::MsgReceive(msg);
 }
@@ -188,13 +188,13 @@ void plAvBrainCritter::Activate(plArmatureModBase* avMod)
     IInitBaseAnimations();
 
     // create the controller if we haven't done so already
-    if (!fCallbackAction)
+    if (!fWalkingStrategy)
     {
         plSceneObject* avObj = fArmature->GetTarget(0);
         plAGModifier* agMod = const_cast<plAGModifier*>(plAGModifier::ConvertNoRef(FindModifierByClass(avObj, plAGModifier::Index())));
         plPhysicalControllerCore* controller = avMod->GetController();
-        fCallbackAction = new plWalkingController(avObj, agMod->GetApplicator(kAGPinTransform), controller);
-        fCallbackAction->ActivateController();
+        fWalkingStrategy = new plWalkingStrategy(agMod->GetApplicator(kAGPinTransform), controller);
+        controller->SetMovementStrategy(fWalkingStrategy);
     }
 
     // tell people that care that we are good to go
@@ -224,7 +224,7 @@ void plAvBrainCritter::Resume()
     // fade in the idle
     fNextMode = kIdle;
 
-    fCallbackAction->Reset(false);
+    fWalkingStrategy->Reset(false);
 
     plArmatureBrain::Resume();
 }
@@ -300,7 +300,7 @@ std::string plAvBrainCritter::BehaviorName(int behavior) const
 plString plAvBrainCritter::AnimationName(int behavior) const
 {
     if ((behavior >= fBehaviors.Count()) || (behavior < 0))
-        return _TEMP_CONVERT_FROM_LITERAL("");
+        return "";
     return ((CritterBehavior*)fBehaviors[behavior])->AnimName();
 }
 
@@ -456,7 +456,7 @@ void plAvBrainCritter::DumpToDebugDisplay(int& x, int& y, int lineHeight, char* 
 
 ///////////////////////////////////////////////////////////////////////////////
 
-hsBool plAvBrainCritter::IInitBaseAnimations()
+bool plAvBrainCritter::IInitBaseAnimations()
 {
     // create the basic idle and run behaviors, and put them into our appropriate structures
     plAGAnim* idle = fAvMod->FindCustomAnim(kDefaultIdleAnimName);

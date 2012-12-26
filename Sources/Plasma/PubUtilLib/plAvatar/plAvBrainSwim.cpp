@@ -46,10 +46,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
-//#include <hkmath/vector3.h>
-//#include <hkdynamics/entity/rigidbody.h>
-#include "plAntiGravAction.h"       // descends from Havok class, so must be included first, like havok objects
-
 // singular
 #include "plAvBrainSwim.h"
 
@@ -69,7 +65,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsTimer.h"
 #include "plPhysical.h"
 #include "plPhysicalControllerCore.h"
-#include "plAvCallbackAction.h"
 // other
 #include "plPhysical/plCollisionDetector.h"
 #include "plPipeline/plDebugText.h"
@@ -91,14 +86,14 @@ public:
     plSwimBehavior() : fAvMod(nil), fSwimBrain(nil) {}
     virtual ~plSwimBehavior() {}
     
-    void Init(plAGAnim *anim, hsBool loop, plAvBrainSwim *brain, plArmatureMod *body, uint8_t index)
+    void Init(plAGAnim *anim, bool loop, plAvBrainSwim *brain, plArmatureMod *body, uint8_t index)
     {
         plArmatureBehavior::Init(anim, loop, brain, body, index);
         fAvMod = body;
         fSwimBrain = brain;
     }
     
-    virtual hsBool PreCondition(double time, float elapsed) { return true; }
+    virtual bool PreCondition(double time, float elapsed) { return true; }
     
 protected:
     virtual void IStart()
@@ -121,7 +116,7 @@ class SwimForward: public plSwimBehavior
 {
 public:
     /** Walk key is down, fast key is not down */
-    virtual hsBool PreCondition(double time, float elapsed)
+    virtual bool PreCondition(double time, float elapsed)
     {
         return (fAvMod->ForwardKeyDown() && !fAvMod->FastKeyDown());
     }
@@ -130,7 +125,7 @@ public:
 class SwimForwardFast: public plSwimBehavior
 {
 public:
-    virtual hsBool PreCondition(double time, float elapsed)
+    virtual bool PreCondition(double time, float elapsed)
     {
         return (fAvMod->ForwardKeyDown() && fAvMod->FastKeyDown());
     }
@@ -139,7 +134,7 @@ public:
 class SwimBack : public plSwimBehavior
 {
 public:
-    virtual hsBool PreCondition(double time, float elapsed)
+    virtual bool PreCondition(double time, float elapsed)
     {
         return (fAvMod->BackwardKeyDown());
     }
@@ -152,7 +147,7 @@ class TreadWater: public plSwimBehavior
 class SwimLeft : public plSwimBehavior
 {
 public:
-    virtual hsBool PreCondition(double time, float elapsed)
+    virtual bool PreCondition(double time, float elapsed)
     {
         return ((fAvMod->StrafeLeftKeyDown() || (fAvMod->StrafeKeyDown() && fAvMod->TurnLeftKeyDown())) &&
                 !(fAvMod->StrafeRightKeyDown() || (fAvMod->StrafeKeyDown() && fAvMod->TurnRightKeyDown())) &&
@@ -163,7 +158,7 @@ public:
 class SwimRight : public plSwimBehavior
 {
 public:
-    virtual hsBool PreCondition(double time, float elapsed)
+    virtual bool PreCondition(double time, float elapsed)
     {
         return ((fAvMod->StrafeRightKeyDown() || (fAvMod->StrafeKeyDown() && fAvMod->TurnRightKeyDown())) &&
                 !(fAvMod->StrafeLeftKeyDown() || (fAvMod->StrafeKeyDown() && fAvMod->TurnLeftKeyDown())) &&
@@ -180,18 +175,16 @@ public:
         static const float timeToMaxTurn = 0.5f;
         static const float incPerSec = maxTurnSpeed / timeToMaxTurn;
 
-//      hsAssert(0, "fixme physx");
-        float oldSpeed = fabs(fSwimBrain->fCallbackAction->GetTurnStrength());
+        float oldSpeed = fabs(fSwimBrain->fSwimStrategy->GetTurnStrength());
         float thisInc = elapsed * incPerSec;
         float newSpeed = min(oldSpeed + thisInc, maxTurnSpeed);
-        fSwimBrain->fCallbackAction->SetTurnStrength(newSpeed * fAvMod->GetKeyTurnStrength() + fAvMod->GetAnalogTurnStrength());
+        fSwimBrain->fSwimStrategy->SetTurnStrength(newSpeed * fAvMod->GetKeyTurnStrength() + fAvMod->GetAnalogTurnStrength());
         // the turn is actually applied during PhysicsUpdate
     }
     virtual void IStop()
     {
-//      hsAssert(0, "fixme physx");
-        if (fSwimBrain->fCallbackAction)
-            fSwimBrain->fCallbackAction->SetTurnStrength(0.0f);
+        if (fSwimBrain->fSwimStrategy)
+            fSwimBrain->fSwimStrategy->SetTurnStrength(0.0f);
         plSwimBehavior::IStop();
     }
 };
@@ -199,7 +192,7 @@ public:
 class SwimTurnLeft : public SwimTurn
 {
 public:
-    virtual hsBool PreCondition(double time, float elapsed)
+    virtual bool PreCondition(double time, float elapsed)
     {
         return (fAvMod->GetTurnStrength() > 0 && (fAvMod->ForwardKeyDown() || fAvMod->BackwardKeyDown()));
     }
@@ -208,7 +201,7 @@ public:
 class SwimTurnRight : public SwimTurn
 {
 public:
-    virtual hsBool PreCondition(double time, float elapsed)
+    virtual bool PreCondition(double time, float elapsed)
     {
         return (fAvMod->GetTurnStrength() < 0 && (fAvMod->ForwardKeyDown() || fAvMod->BackwardKeyDown()));
     }
@@ -217,7 +210,7 @@ public:
 class TreadTurnLeft : public plSwimBehavior
 {
 public:
-    virtual hsBool PreCondition(double time, float elapsed)
+    virtual bool PreCondition(double time, float elapsed)
     {
         return (fAvMod->TurnLeftKeyDown() && !fAvMod->ForwardKeyDown() && !fAvMod->BackwardKeyDown());
     }
@@ -226,7 +219,7 @@ public:
 class TreadTurnRight : public plSwimBehavior
 {
 public:
-    virtual hsBool PreCondition(double time, float elapsed)
+    virtual bool PreCondition(double time, float elapsed)
     {
         return (fAvMod->TurnRightKeyDown() && !fAvMod->ForwardKeyDown() && !fAvMod->BackwardKeyDown());
     }
@@ -237,7 +230,7 @@ public:
 const float plAvBrainSwim::kMinSwimDepth = 4.0f;
 
 plAvBrainSwim::plAvBrainSwim() : 
-    fCallbackAction(nil),
+    fSwimStrategy(nil),
     fMode(kWalking),
     fSurfaceDistance(0.f)
 {
@@ -250,12 +243,9 @@ plAvBrainSwim::plAvBrainSwim() :
     
 plAvBrainSwim::~plAvBrainSwim()
 {
-    if(fCallbackAction)
-    {
-        IDetachAction();
-        delete fCallbackAction;
-        fCallbackAction=nil;
-    }
+    delete fSwimStrategy;
+    fSwimStrategy = nil;
+
     fSurfaceProbeMsg->UnRef();
 
     int i;
@@ -263,7 +253,7 @@ plAvBrainSwim::~plAvBrainSwim()
         delete fBehaviors[i];
 }
 
-hsBool plAvBrainSwim::Apply(double time, float elapsed)
+bool plAvBrainSwim::Apply(double time, float elapsed)
 {
     IProbeSurface();
     if (fMode == kWalking)
@@ -273,8 +263,7 @@ hsBool plAvBrainSwim::Apply(double time, float elapsed)
             fMode = kWading;
 
             plAvBrainHuman *huBrain = plAvBrainHuman::ConvertNoRef(fAvMod->GetNextBrain(this));
-//          hsAssert(0, "fixme physx");
-            if (huBrain && !huBrain->fCallbackAction->IsOnGround())
+            if (huBrain && !huBrain->fWalkingStrategy->IsOnGround())
             {
                 // We're jumping in! Trigger splash effect (sound)              
                 plArmatureEffectMsg *msg = new plArmatureEffectMsg(fAvMod->GetArmatureEffects()->GetKey(), kTime);
@@ -318,8 +307,7 @@ hsBool plAvBrainSwim::Apply(double time, float elapsed)
 
             // The contact check is so that if buoyancy bobs us a little too high, we don't
             // switch to wading only to fall again.
-//          hsAssert(0, "fixme physx");
-            if (fSurfaceDistance < kMinSwimDepth-.5  && fCallbackAction->HadContacts())
+            if (fSurfaceDistance < kMinSwimDepth-.5  && fSwimStrategy->HadContacts())
                 IStartWading();
         } 
         else if (fMode == kSwimming3D) 
@@ -328,7 +316,7 @@ hsBool plAvBrainSwim::Apply(double time, float elapsed)
     return plArmatureBrain::Apply(time, elapsed);
 }
 
-hsBool plAvBrainSwim::MsgReceive(plMessage *msg)
+bool plAvBrainSwim::MsgReceive(plMessage *msg)
 {
     plLOSHitMsg *losHit = plLOSHitMsg::ConvertNoRef(msg);
     if (losHit)
@@ -346,13 +334,12 @@ hsBool plAvBrainSwim::MsgReceive(plMessage *msg)
             else
                 fSurfaceDistance = -100.f;
 
-//          hsAssert(0, "fixme physx");
-            if (fCallbackAction)
+            if (fSwimStrategy)
             {
                 if (region)
-                    fCallbackAction->SetSurface(region, fArmature->GetTarget(0)->GetLocalToWorld().GetTranslate().fZ + fSurfaceDistance);
+                    fSwimStrategy->SetSurface(region, fArmature->GetTarget(0)->GetLocalToWorld().GetTranslate().fZ + fSurfaceDistance);
                 else
-                    fCallbackAction->SetSurface(nil, 0.f);
+                    fSwimStrategy->SetSurface(nil, 0.f);
             }
             return true;
         }
@@ -419,20 +406,16 @@ void plAvBrainSwim::Activate(plArmatureModBase* avMod)
 void plAvBrainSwim::Deactivate()
 {
     plArmatureBrain::Deactivate();
-    
-    IDetachAction();
 }
 
 void plAvBrainSwim::Suspend()
 {
-    if (fMode == kSwimming2D)
-        IDetachAction();
 }
 
 void plAvBrainSwim::Resume()
 {
     if (fMode == kSwimming2D)
-        IAttachAction();
+        fSwimStrategy->Reset(false);
 }
 
 bool plAvBrainSwim::IsWalking()
@@ -460,8 +443,6 @@ void plAvBrainSwim::IStartWading()
     for (i = 0; i < fBehaviors.GetCount(); i++)
         fBehaviors[i]->SetStrength(0.f, 2.f);
     
-    IDetachAction();
-    
     if (fAvMod->IsLocalAvatar())
     {
         plCameraMsg* pMsg = new plCameraMsg;
@@ -479,7 +460,16 @@ void plAvBrainSwim::IStartSwimming(bool is2D)
     plArmatureBrain *nextBrain = fAvMod->GetNextBrain(this);
     nextBrain->Suspend();
     
-    IAttachAction();
+    if (!fSwimStrategy)
+    {
+        plSceneObject * avObj = fArmature->GetTarget(0);
+        plAGModifier *agMod = const_cast<plAGModifier*>(plAGModifier::ConvertNoRef(FindModifierByClass(avObj, plAGModifier::Index())));
+        plPhysicalControllerCore *controller = fAvMod->GetController();
+        fSwimStrategy = new plSwimStrategy(agMod->GetApplicator(kAGPinTransform), controller);
+    }
+
+    fSwimStrategy->Reset(false);
+
     if (is2D)
         fMode = kSwimming2D;
     else
@@ -495,7 +485,7 @@ void plAvBrainSwim::IStartSwimming(bool is2D)
     }   
 }
 
-hsBool plAvBrainSwim::IProcessSwimming2D(double time, float elapsed)
+bool plAvBrainSwim::IProcessSwimming2D(double time, float elapsed)
 {
     int i;
     for (i = 0; i < fBehaviors.GetCount(); i++)
@@ -509,19 +499,19 @@ hsBool plAvBrainSwim::IProcessSwimming2D(double time, float elapsed)
         else
             behavior->SetStrength(0.f, 2.f);
     }
-//  hsAssert(0, "fixme physx");
-    fCallbackAction->RecalcVelocity(time, time - elapsed);
+
+    fSwimStrategy->RecalcVelocity(time, elapsed);
 
     return true;
 }
 
-hsBool plAvBrainSwim::IProcessSwimming3D(double time, float elapsed)
+bool plAvBrainSwim::IProcessSwimming3D(double time, float elapsed)
 {
     fAvMod->ApplyAnimations(time, elapsed);
     return true;
 }
 
-hsBool plAvBrainSwim::IInitAnimations()
+bool plAvBrainSwim::IInitAnimations()
 {
     plAGAnim *treadWater = fAvMod->FindCustomAnim("SwimIdle");
     plAGAnim *swimForward = fAvMod->FindCustomAnim("SwimSlow");
@@ -568,59 +558,6 @@ hsBool plAvBrainSwim::IInitAnimations()
     return true;
 }
 
-bool plAvBrainSwim::IAttachAction()
-{
-    bool result = false;
-    if(fAvMod)
-    {
-//      hsAssert(0, "fixme physx");
-        plPhysicalControllerCore *physical = fAvMod->GetController();
-        
-        if (physical)
-        {
-            if (!fCallbackAction)
-            {
-                 plSceneObject * avObj = fArmature->GetTarget(0);
-                plAGModifier *agMod = const_cast<plAGModifier*>(plAGModifier::ConvertNoRef(FindModifierByClass(avObj, plAGModifier::Index())));             
-                fCallbackAction = new plSwimmingController(avObj, agMod->GetApplicator(kAGPinTransform),physical);
-//              physical->AttachAction(fCallbackAction, true, false);
-                result = true;
-            }
-            else
-            {
-                fCallbackAction->ActivateController();
-            }
-
-        }
-    }
-    return result;
-}
-
-bool plAvBrainSwim::IDetachAction()
-{
-    bool result = false;
-
-    if (fCallbackAction)
-    {
-//      hsAssert(0, "fixme physx");
-//      plPhysical *physical = fAvMod->GetPhysical();
-// 
-//      if(physical)
-//      {
-//          physical->RemoveAction(fCallbackAction);
-//          result = true;      // there was an action and we removed it
-//      }
-
-        // TODO: We get a compiler warning about deleting a pointer to an
-        // undefined class. So, who knows what the code is actually doing.
-        // Seems bad. Just putting a note in here for whoever fixes the
-        // physx issue.
-        //delete fCallbackAction;
-        //fCallbackAction = nil;
-    }
-    return result;
-}
-
 void plAvBrainSwim::IProbeSurface()
 {
     hsPoint3 ourPos = fAvMod->GetTarget(0)->GetLocalToWorld().GetTranslate();
@@ -631,7 +568,7 @@ void plAvBrainSwim::IProbeSurface()
     fSurfaceProbeMsg->SendAndKeep();
 }
 
-hsBool plAvBrainSwim::IHandleControlMsg(plControlEventMsg* msg)
+bool plAvBrainSwim::IHandleControlMsg(plControlEventMsg* msg)
 {
     ControlEventCode moveCode = msg->GetControlCode();
     if (msg->ControlActivated())
@@ -676,21 +613,15 @@ void plAvBrainSwim::DumpToDebugDisplay(int &x, int &y, int lineHeight, char *str
     debugTxt.DrawString(x, y, strBuf);
     y += lineHeight;
 
+    float buoy = fSwimStrategy ? fSwimStrategy->GetBuoyancy() : 0.0f;
+    sprintf(strBuf, "Distance to surface: %f Buoyancy: %f", fSurfaceDistance, buoy);
+    debugTxt.DrawString(x, y, strBuf);
+    y += lineHeight;
 
-//  hsAssert(0, "fixme physx");
-//  float buoy = fCallbackAction? fCallbackAction->GetBuoyancy() : 0.0f;
-//  sprintf(strBuf, "Distance to surface: %f Buoyancy: %f", fSurfaceDistance, buoy);
-//  debugTxt.DrawString(x, y, strBuf);
-//  y += lineHeight;
-// 
-//  hsVector3 linV;
-//  fAvMod->GetPhysical()->GetLinearVelocitySim(linV);
-//  hsVector3 angV;
-//  fAvMod->GetPhysical()->GetAngularVelocitySim(angV);
-//  float angle = angV.fZ > 0 ? angV.Magnitude() : -angV.Magnitude();
-//  sprintf(strBuf, "Velocity: Linear (%5.2f, %5.2f, %5.2f), Angular %5.2f", linV.fX, linV.fY, linV.fZ, angle);
-//  debugTxt.DrawString(x, y, strBuf);
-//  y += lineHeight;
+    hsVector3 linV = fAvMod->GetController()->GetAchievedLinearVelocity();
+    sprintf(strBuf, "Linear Velocity: (%5.2f, %5.2f, %5.2f)", linV.fX, linV.fY, linV.fZ);
+    debugTxt.DrawString(x, y, strBuf);
+    y += lineHeight;
     
     int i;
     for (i = 0; i < fBehaviors.GetCount(); i++)

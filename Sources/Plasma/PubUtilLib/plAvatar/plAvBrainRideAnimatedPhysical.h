@@ -41,8 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 #include "plAvBrainHuman.h"
 
-class plRidingAnimatedPhysicalController;
-
 class plAvBrainRideAnimatedPhysical : public plAvBrainHuman
 {
 public:
@@ -56,10 +54,10 @@ public:
     ~plAvBrainRideAnimatedPhysical();
     virtual void Activate(plArmatureModBase *avMod);
     virtual void Deactivate();
-    virtual hsBool MsgReceive(plMessage *msg);
-    virtual hsBool LeaveAge();
-    virtual hsBool Apply(double timeNow, float elapsed);
+    virtual bool MsgReceive(plMessage *msg);
+    virtual bool LeaveAge();
+    virtual bool Apply(double timeNow, float elapsed);
 protected:
-    hsBool IInitAnimations();
+    bool IInitAnimations();
     mode fMode;
 };

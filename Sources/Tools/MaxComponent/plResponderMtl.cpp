@@ -276,10 +276,9 @@ void ISearchLayerRecur(plLayerInterface *layer, const plString &segName, hsTArra
 
 int ISearchLayerRecur(hsGMaterial* mat, const plString &segName, hsTArray<plKey>& keys)
 {
-    plString name = segName.IsNull() ? _TEMP_CONVERT_FROM_LITERAL("") : segName;
     int i;
     for( i = 0; i < mat->GetNumLayers(); i++ )
-        ISearchLayerRecur(mat->GetLayer(i), name, keys);
+        ISearchLayerRecur(mat->GetLayer(i), segName, keys);
     return keys.GetCount();
 }
 
@@ -607,12 +606,12 @@ protected:
 
     void ISetUserType(plMaxNode* node, const char* userType)
     {
-        if (hsStrEQ(userType, kUserTypeAll))
+        if (strcmp(userType, kUserTypeAll) == 0)
         {
             ISetNodeValue(nil);
             fPB->SetValue(fTypeID, 0, kNodePB);
         }
-        else if (hsStrEQ(userType, kResponderNodeName))
+        else if (strcmp(userType, kResponderNodeName) == 0)
         {
             ISetNodeValue(nil);
             fPB->SetValue(fTypeID, 0, kNodeResponder);

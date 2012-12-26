@@ -72,11 +72,13 @@ public:
     static void AddPlasmaClasses(PyObject *m);
     static void AddPlasmaConstantsClasses(PyObject *m);
 
-    static hsBool IsGUIControlMultiLineEdit(pyKey& gckey);
+    static bool IsGUIControlMultiLineEdit(pyKey& gckey);
 
     virtual void    Clickable( void );
     virtual void    Unclickable( void );
     virtual void    SetScrollPosition( int32_t topLine );
+    virtual int32_t GetScrollPosition();
+    virtual bool    IsAtEnd();
     virtual void    MoveCursor( int32_t dir );
     virtual void    ClearBuffer( void );
     virtual void    SetText( const char *asciiText );
@@ -102,7 +104,7 @@ public:
 
     virtual void    Lock( void );
     virtual void    Unlock( void );
-    virtual hsBool  IsLocked( void );
+    virtual bool    IsLocked( void );
 
     virtual void    EnableScrollControl();
     virtual void    DisableScrollControl();

@@ -84,7 +84,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plUnifiedTime/plUnifiedTime.h"
 //end for agedefn test
 
-#include "plFile/hsFiles.h"
+#include "hsFiles.h"
 
 #include "plStatusLog/plStatusLog.h"
 
@@ -231,12 +231,12 @@ PF_CONSOLE_CMD( Net,        // groupName
 {
     // send chat text
     plString text=plNetClientMgr::GetInstance()->GetPlayerName();
-    text += _TEMP_CONVERT_FROM_LITERAL(":");
+    text += ":";
     int i;
     for(i=0;i<numParams;i++)
     {
         text += plString::FromUtf8( (char*)params[i] );
-        text += _TEMP_CONVERT_FROM_LITERAL(" ");
+        text += " ";
     }
     plConsoleMsg    *cMsg = new plConsoleMsg( plConsoleMsg::kAddLine, text.c_str() );
     cMsg->SetBCastFlag(plMessage::kNetPropagate | plMessage::kNetForce);
@@ -356,7 +356,7 @@ PF_CONSOLE_CMD( Net,        // groupName
     link.GetAgeInfo()->SetAgeFilename( params[0] );
     //link.GetAgeInfo()->SetAgeInstanceName( params[0] );
     //link.GetAgeInfo()->SetAgeUserDefinedName( params[0] );
-    plUUID guid(params[1]);
+    plUUID guid( (const char *)params[1] );
     link.GetAgeInfo()->SetAgeInstanceGuid( &guid );
     link.SetLinkingRules( plNetCommon::LinkingRules::kBasicLink );
     plNetLinkingMgr::GetInstance()->LinkToAge( &link );
@@ -379,7 +379,7 @@ PF_CONSOLE_CMD( Net,
 {
     plAgeLinkStruct link;
     link.GetAgeInfo()->SetAgeFilename( params[0] );
-    link.SpawnPoint() = plSpawnPointInfo( params[1], params[1] );
+    link.SpawnPoint() = plSpawnPointInfo( (const char *)params[1], (const char *)params[1] );
     link.SetLinkingRules( plNetCommon::LinkingRules::kOriginalBook );
     plNetLinkingMgr::GetInstance()->LinkToAge( &link );
     PrintString("Linking to age with original book...");

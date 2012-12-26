@@ -82,13 +82,13 @@ public:
     plEncryptedStream(uint32_t* key=nil);
     ~plEncryptedStream();
 
-    virtual hsBool  Open(const char* name, const char* mode = "rb");
-    virtual hsBool  Open(const wchar_t* name, const wchar_t* mode = L"rb");
-    virtual hsBool  Close();
+    virtual bool    Open(const char* name, const char* mode = "rb");
+    virtual bool    Open(const wchar_t* name, const wchar_t* mode = L"rb");
+    virtual bool    Close();
 
     virtual uint32_t  Read(uint32_t byteCount, void* buffer);
     virtual uint32_t  Write(uint32_t byteCount, const void* buffer);
-    virtual hsBool  AtEnd();
+    virtual bool    AtEnd();
     virtual void    Skip(uint32_t deltaByteCount);
     virtual void    Rewind();
     virtual void    FastFwd();
@@ -107,8 +107,8 @@ public:
     // Attempts to create a read-binary stream for the requested file.  If it's
     // encrypted, you'll get a plEncryptedStream, otherwise just a standard
     // hsUNIXStream.  Remember to delete the stream when you're done with it.
-    static hsStream* OpenEncryptedFile(const char* fileName, bool requireEncrypted = true, uint32_t* cryptKey = nil);
-    static hsStream* OpenEncryptedFile(const wchar_t* fileName, bool requireEncrypted = true, uint32_t* cryptKey = nil);
+    static hsStream* OpenEncryptedFile(const char* fileName, uint32_t* cryptKey = nil);
+    static hsStream* OpenEncryptedFile(const wchar_t* fileName, uint32_t* cryptKey = nil);
     static hsStream* OpenEncryptedFileWrite(const char* fileName, uint32_t* cryptKey = nil);
     static hsStream* OpenEncryptedFileWrite(const wchar_t* fileName, uint32_t* cryptKey = nil);
 };

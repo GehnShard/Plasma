@@ -66,7 +66,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 plKeyboardDevice* plKeyboardDevice::fInstance = nil;
 bool plKeyboardDevice::fKeyboardState[256];
-hsBool plKeyboardDevice::fIgnoreCapsLock = false;
+bool plKeyboardDevice::fIgnoreCapsLock = false;
 
 plKeyboardDevice::plKeyboardDevice() :
 fShiftKeyDown(false),
@@ -153,7 +153,7 @@ void plKeyboardDevice::ReleaseAllKeys()
     }
 }
 
-hsBool plKeyboardDevice::IsCapsLockKeyOn()
+bool plKeyboardDevice::IsCapsLockKeyOn()
 {
     return fCapsLockLock;
 }
@@ -162,7 +162,7 @@ void plKeyboardDevice::Shutdown()
 {
 }
 
-void plKeyboardDevice::HandleKeyEvent(plOSMsg message, plKeyDef key, bool bKeyDown, hsBool bKeyRepeat, wchar_t c)
+void plKeyboardDevice::HandleKeyEvent(plOSMsg message, plKeyDef key, bool bKeyDown, bool bKeyRepeat, wchar_t c)
 {
     // update the internal keyboard state
     unsigned int keyCode = (unsigned int)key;
@@ -292,12 +292,12 @@ void plMouseDevice::IUpdateCursorSize()
     }
 }
 
-void plMouseDevice::AddNameToCursor(const char* name)
+void plMouseDevice::AddNameToCursor(const plString& name)
 {
-    if (fInstance && name)
+    if (fInstance && !name.IsNull())
     {
         plDebugText     &txt = plDebugText::Instance();
-        txt.DrawString(fInstance->fWXPos + 12 ,fInstance->fWYPos - 7,name);
+        txt.DrawString(fInstance->fWXPos + 12 ,fInstance->fWYPos - 7,name.c_str());
     }
 }
 void plMouseDevice::AddCCRToCursor()
@@ -350,7 +350,7 @@ void plMouseDevice::SetCursorY(float y)
 }
 
 
-void plMouseDevice::HideCursor(hsBool override)
+void plMouseDevice::HideCursor(bool override)
 {
     if( fInstance->fCursor != nil )
         fInstance->fCursor->SetVisible( false );
@@ -360,7 +360,7 @@ void plMouseDevice::HideCursor(hsBool override)
 
 }
 
-void plMouseDevice::ShowCursor(hsBool override)
+void plMouseDevice::ShowCursor(bool override)
 {
     if( !plMouseDevice::bCursorHidden )
         return;
@@ -393,7 +393,7 @@ void    plMouseDevice::SetCursorOpacity( float opacity )
         fInstance->fCursor->SetOpacity( opacity );
 }
 
-hsBool plMouseDevice::MsgReceive(plMessage* msg)
+bool plMouseDevice::MsgReceive(plMessage* msg)
 {   
     plEvalMsg* pEMsg = plEvalMsg::ConvertNoRef(msg);
     if (pEMsg)
@@ -749,28 +749,4 @@ hsBool plMouseDevice::MsgReceive(plMessage* msg)
         return true;
     }
     return false;
-}
-
-
-
-void plMouseDevice::HandleWindowActivate(bool bActive, HWND hWnd)
-{
-    if ( bActive )
-    {
-        RECT rect;
-        ::GetClientRect(hWnd,&rect);
-
-//      rect.right /= plInputManager::GetInstance()->GetMouseScale();
-//      rect.bottom /= plInputManager::GetInstance()->GetMouseScale();
-
-        ::MapWindowPoints( hWnd, NULL, (POINT *)&rect, 2 );
-        ::ShowCursor( FALSE );
-        SetCapture(hWnd);
-
-    }
-    else
-    {
-        ReleaseCapture();
-        ::ShowCursor( TRUE );
-    }   
 }

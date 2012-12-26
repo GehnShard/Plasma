@@ -57,7 +57,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "plFont.h"
 #include "plStatusLog/plStatusLog.h"
-#include "plFile/hsFiles.h"
+#include "hsFiles.h"
 #include "pnMessage/plRefMsg.h"
 
 #include "hsResMgr.h"
@@ -196,7 +196,7 @@ void    plFontCache::ILoadCustomFonts( void )
     }
 }
 
-hsBool  plFontCache::MsgReceive( plMessage* pMsg )
+bool    plFontCache::MsgReceive( plMessage* pMsg )
 {
     plGenRefMsg *ref = plGenRefMsg::ConvertNoRef( pMsg );
     if( ref != nil )

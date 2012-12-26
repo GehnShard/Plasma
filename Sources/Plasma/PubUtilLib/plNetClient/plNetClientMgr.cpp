@@ -243,7 +243,7 @@ void plNetClientMgr::IRemoveCloneRoom()
 //
 // turn null send on/off.  Null send does everything except actually send the msg out on the socket
 //
-void plNetClientMgr::SetNullSend(hsBool on) 
+void plNetClientMgr::SetNullSend(bool on) 
 {
 }
 
@@ -624,7 +624,7 @@ void plNetClientMgr::ICheckPendingStateLoad(double secs)
                     // discard the state if object not found in dataset.
                     hsLogEntry( DebugMsg( "Failed to find object %s in dataset. Discarding pending state '%s'",
                         tmpUoid.StringIze().c_str(),
-                        pl->fSDRec->GetDescriptor()->GetName() ) );
+                        pl->fSDRec->GetDescriptor()->GetName().c_str() ) );
                     delete pl;
                     it = fPendingLoads.erase(it);
                     continue;
@@ -645,9 +645,10 @@ void plNetClientMgr::ICheckPendingStateLoad(double secs)
 #ifdef HS_DEBUGGING
                 if (plNetObjectDebugger::GetInstance()->IsDebugObject(so))
                 {
-                    hsLogEntry( DebugMsg( "Delivering SDL state %s:%s", pl->fKey->GetName(), pl->fSDRec->GetDescriptor()->GetName() ) );
-//                  hsLogEntry(plNetObjectDebugger::GetInstance()->LogMsg(xtl::format("Dispatching SDL state, type %s to object:%s, locallyOwned=%d, st=%.3f rt=%.3f", 
-//                      pl->fSDRec->GetDescriptor()->GetName(), pl->fKey->GetName(), 
+                    hsLogEntry( DebugMsg( "Delivering SDL state %s:%s", pl->fKey->GetName().c_str(),
+                        pl->fSDRec->GetDescriptor()->GetName().c_str() ) );
+//                  hsLogEntry(plNetObjectDebugger::GetInstance()->LogMsg(plString::Format("Dispatching SDL state, type %s to object:%s, locallyOwned=%d, st=%.3f rt=%.3f", 
+//                      pl->fSDRec->GetDescriptor()->GetName().c_str(), pl->fKey->GetName().c_str(), 
 //                      so->IsLocallyOwned()==plSynchedObject::kYes, secs, hsTimer::GetSeconds()).c_str()));
 //                  hsLogEntry( pl->fSDRec->DumpToObjectDebugger( "Delivering SDL state", false, 0 ) );
                 }
@@ -671,7 +672,7 @@ void plNetClientMgr::ICheckPendingStateLoad(double secs)
                         // for around 5 minutes and its time to go
 
                         WarningMsg( "Pending state '%s' for object [uoid:%s,key:%s] has been queued for about %f secs. Removing...",
-                            pl->fSDRec && pl->fSDRec->GetDescriptor() ? pl->fSDRec->GetDescriptor()->GetName() : "?",
+                            pl->fSDRec && pl->fSDRec->GetDescriptor() ? pl->fSDRec->GetDescriptor()->GetName().c_str() : "?",
                             pl->fUoid.StringIze().c_str(), pl->fKey ? pl->fKey->GetUoid().StringIze().c_str() : "?",
                             ( rawSecs - pl->fQueuedTime ) * pl->fQueueTimeResets);
 
@@ -681,7 +682,7 @@ void plNetClientMgr::ICheckPendingStateLoad(double secs)
                     }
 
                     WarningMsg( "Pending state '%s' for object [uoid:%s,key:%s] has been queued for about %f secs. %s",
-                        pl->fSDRec && pl->fSDRec->GetDescriptor() ? pl->fSDRec->GetDescriptor()->GetName() : "?",
+                        pl->fSDRec && pl->fSDRec->GetDescriptor() ? pl->fSDRec->GetDescriptor()->GetName().c_str() : "?",
                         pl->fUoid.StringIze().c_str(), pl->fKey ? pl->fKey->GetUoid().StringIze().c_str() : "?",
                         ( rawSecs - pl->fQueuedTime ) * pl->fQueueTimeResets,
                         so ? "(not loaded)" : "(not final)" );
@@ -850,7 +851,7 @@ int plNetClientMgr::IsLocallyOwned(const plSynchedObject* obj) const
 //
 // return localPlayer ptr
 //
-plSynchedObject* plNetClientMgr::GetLocalPlayer(hsBool forceLoad) const
+plSynchedObject* plNetClientMgr::GetLocalPlayer(bool forceLoad) const
 { 
     if (forceLoad)
         return fLocalPlayerKey ? plSynchedObject::ConvertNoRef(fLocalPlayerKey->GetObjectPtr()) : nil; 
@@ -895,12 +896,12 @@ plSynchedObject* plNetClientMgr::GetRemotePlayer(int i) const
 //
 // check if a key si a remote player
 //
-hsBool plNetClientMgr::IsRemotePlayerKey(const plKey pKey, int *idx)
+bool plNetClientMgr::IsRemotePlayerKey(const plKey pKey, int *idx)
 {
     if (pKey)
     {
         plKeyVec::iterator result=std::find(fRemotePlayerKeys.begin(), fRemotePlayerKeys.end(), pKey);
-        hsBool found = result!=fRemotePlayerKeys.end();
+        bool found = result!=fRemotePlayerKeys.end();
         if (idx)
             *idx = found ? result-fRemotePlayerKeys.begin() : -1;
         return found;
@@ -924,7 +925,7 @@ void plNetClientMgr::AddRemotePlayerKey(plKey pKey)
 //
 // MsgReceive handler for plasma messages
 //
-hsBool plNetClientMgr::MsgReceive( plMessage* msg )
+bool plNetClientMgr::MsgReceive( plMessage* msg )
 {
     if (plNetLinkingMgr::GetInstance()->MsgReceive( msg ))
         return true;
@@ -1457,8 +1458,8 @@ bool plNetClientMgr::IFindModifier(plSynchedObject* obj, int16_t classIdx)
                 cnt++;
     }
 
-    hsAssert(cnt<2, xtl::format("Object %s has multiple SDL modifiers of the same kind (%s)?", 
-        obj->GetKeyName(), plFactory::GetNameOfClass(classIdx)).c_str());
+    hsAssert(cnt<2, plString::Format("Object %s has multiple SDL modifiers of the same kind (%s)?", 
+        obj->GetKeyName().c_str(), plFactory::GetNameOfClass(classIdx)).c_str());
     return cnt==0 ? false : true;
 }
 

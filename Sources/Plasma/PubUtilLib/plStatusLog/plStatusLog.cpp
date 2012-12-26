@@ -61,10 +61,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsTemplates.h"
 #include "hsTimer.h"
 #include "hsStlUtils.h"
-#include "plFile/plFileUtils.h"
+#include "plFileUtils.h"
 #include "plStatusLog.h"
 #include "hsStlUtils.h"
-#include "plFile/hsFiles.h"
+#include "hsFiles.h"
 #include "plUnifiedTime/plUnifiedTime.h"
 #include "pnProduct/pnProduct.h"
 
@@ -279,7 +279,7 @@ void    plStatusLogMgr::PrevStatusLog( void )
 
 //// FindLog ////////////////////////////////////////////////////////////////
 
-plStatusLog *plStatusLogMgr::FindLog( const char *filename, hsBool createIfNotFound )
+plStatusLog *plStatusLogMgr::FindLog( const char *filename, bool createIfNotFound )
 {
     wchar_t* wFilename = hsStringToWString(filename);
     plStatusLog* ret = FindLog(wFilename, createIfNotFound);
@@ -287,7 +287,7 @@ plStatusLog *plStatusLogMgr::FindLog( const char *filename, hsBool createIfNotFo
     return ret;
 }
 
-plStatusLog *plStatusLogMgr::FindLog( const wchar_t *filename, hsBool createIfNotFound )
+plStatusLog *plStatusLogMgr::FindLog( const wchar_t *filename, bool createIfNotFound )
 {
     plStatusLog *log = fDisplays;
 
@@ -475,12 +475,6 @@ bool plStatusLog::IReOpen( void )
         wchar_t fileNoExt[MAX_PATH];
         wchar_t* ext=nil;
         IParseFileName(file, MAX_PATH, fileNoExt, &ext);
-        fEncryptMe = false;
-#ifdef PLASMA_EXTERNAL_RELEASE
-        fEncryptMe = ( wcsicmp( fFilename.c_str(), L"chat.log" ) != 0 ) ? true : false;
-        if( fEncryptMe )
-            ext = L".elf";
-#endif
         wchar_t fileToOpen[MAX_PATH];
         hsSnwprintf(fileToOpen, MAX_PATH, L"%s.0%s", fileNoExt, ext);
         if (!(fFlags & kDontRotateLogs))
@@ -497,11 +491,11 @@ bool plStatusLog::IReOpen( void )
         
         if (fFlags & kAppendToLast)
         {
-            fFileHandle = hsWFopen( fileToOpen, fEncryptMe ? L"ab" : L"at" );
+            fFileHandle = hsWFopen( fileToOpen, L"at" );
         }
         else
         {
-            fFileHandle = hsWFopen( fileToOpen, fEncryptMe ? L"wb" : L"wt" );
+            fFileHandle = hsWFopen( fileToOpen, L"wt" );
             // if we need to reopen lets just append
             fFlags |= kAppendToLast;
         }
@@ -698,8 +692,8 @@ bool plStatusLog::AddLineV( uint32_t color, const char *format, va_list argument
 {
     if(fLoggingOff && !fForceLog)
         return true;
-    char buffer[2000];
-    vsprintf(buffer, format, arguments);
+    char buffer[2048];
+    vsnprintf(buffer, arrsize(buffer), format, arguments);
     return AddLine( buffer, color );
 }
 
@@ -843,58 +837,18 @@ bool plStatusLog::IPrintLineToFile( const char *line, uint32_t count )
             }
 
             size_t remaining = arrsize(buf) - strlen(buf) - 1;
-            if (!fEncryptMe) remaining -= 1;
+            remaining -= 1;
             if (count <= remaining) {
                 strncat(buf, line, count);
             } else {
                 strncat(buf, line, remaining);
             }
 
-            if(!fEncryptMe )
-            {
-                strncat(buf, "\n", 1);
-            }
+            strncat(buf, "\n", 1);
         }
 
         unsigned length = strlen(buf);
 
-#ifdef PLASMA_EXTERNAL_RELEASE
-        // Print to a separate line, since we have to encrypt it
-        if( fEncryptMe )
-        {
-            // Encrypt!
-            plStatusEncrypt::Encrypt( (uint8_t *)buf, hint );
-
-            // xor the line length, then write it out, then the line, no terminating character
-            uint16_t encrySize = length ^ ((uint16_t)fSize);
-
-            // try the first write, if it fails reopen and try again
-            int err;
-            err = fputc( encrySize & 0xff, fFileHandle );
-            if (err == EOF && IReOpen())
-            {
-                err = fputc( encrySize & 0xff, fFileHandle );
-            }
-
-            if (err != EOF)
-            {
-                fSize++; // inc for the last putc
-                err = fputc( encrySize >> 8, fFileHandle );
-                if (err != EOF)
-                    fSize++; // inc for the last putc
-                err = fwrite( buf, 1, length, fFileHandle );
-                fSize += err;   
-                
-                if (!(fFlags & kNonFlushedLog))
-                    fflush(fFileHandle);
-            }
-            else
-            {
-                ret = false;
-            }
-        }
-        else
-#endif
         {
             int err;
             err = fwrite(buf,1,length,fFileHandle);

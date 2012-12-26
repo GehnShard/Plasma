@@ -325,7 +325,7 @@ class pfPythonKeyCatcher : public plDefaultKeyCatcher
         }
 };
 
-hsBool plPythonFileMod::fAtConvertTime = false;
+bool plPythonFileMod::fAtConvertTime = false;
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -441,7 +441,7 @@ bool plPythonFileMod::ILoadPythonCode()
     char pathandfile[256];
     sprintf(pathandfile, ".\\python\\%s.py",fPythonFile);
     wchar_t *wPathandfile = hsStringToWString(pathandfile);
-    hsBool exists = PathDoesFileExist(wPathandfile);
+    bool exists = PathDoesFileExist(wPathandfile);
     delete [] wPathandfile;
     if (exists)
     {
@@ -859,28 +859,29 @@ void plPythonFileMod::AddTarget(plSceneObject* sobj)
                 // We should really let the script know about that via OnServerInitComplete anyway because it's
                 // not good to make assumptions about game state in workarounds for that method not being called
                 plNetClientApp* na = plNetClientApp::GetInstance();
-                if (!na->GetFlagsBit(plNetClientApp::kLoadingInitialAgeState) &&
-                     na->GetFlagsBit(plNetClientApp::kPlayingGame))
+                if (!na->GetFlagsBit(plNetClientApp::kLoadingInitialAgeState) && na->GetFlagsBit(plNetClientApp::kPlayingGame))
                 {
                     plgDispatch::Dispatch()->UnRegisterForExactType(plInitialAgeStateLoadedMsg::Index(), GetKey());
-                    plProfile_BeginTiming(PythonUpdate);
-                    // call it
-                    PyObject* retVal = PyObject_CallMethod(
-                            fPyFunctionInstances[kfunc_OnServerInitComplete],
-                            (char*)fFunctionNames[kfunc_OnServerInitComplete], nil);
-                    if ( retVal == nil )
+                    if (fPyFunctionInstances[kfunc_OnServerInitComplete])
                     {
+                        plProfile_BeginTiming(PythonUpdate);
+                        // call it
+                        PyObject* retVal = PyObject_CallMethod(fPyFunctionInstances[kfunc_OnServerInitComplete],
+                                (char*)fFunctionNames[kfunc_OnServerInitComplete], nil);
+                        if ( retVal == nil )
+                        {
 #ifndef PLASMA_EXTERNAL_RELEASE
-                        // for some reason this function didn't, remember that and not call it again
-                        fPyFunctionInstances[kfunc_OnServerInitComplete] = nil;
+                            // for some reason this function didn't, remember that and not call it again
+                            fPyFunctionInstances[kfunc_OnServerInitComplete] = nil;
 #endif  //PLASMA_EXTERNAL_RELEASE
-                        // if there was an error make sure that the stderr gets flushed so it can be seen
-                        ReportError();
+                            // if there was an error make sure that the stderr gets flushed so it can be seen
+                            ReportError();
+                        }
+                        Py_XDECREF(retVal);
+                        plProfile_EndTiming(PythonUpdate);
+                        // display any output (NOTE: this would be disabled in production)
+                        DisplayPythonOutput();
                     }
-                    Py_XDECREF(retVal);
-                    plProfile_EndTiming(PythonUpdate);
-                    // display any output (NOTE: this would be disabled in production)
-                    DisplayPythonOutput();
                 }
 
                 // display python output
@@ -1163,7 +1164,7 @@ void plPythonFileMod::IFindActivatorAndAdd(const plString &activatorName, int32_
 //    Tasks:
 //      - Call the Python code's Update function (if there)
 //
-hsBool plPythonFileMod::IEval(double secs, float del, uint32_t dirty)
+bool plPythonFileMod::IEval(double secs, float del, uint32_t dirty)
 {
     if ( fModule )
     {
@@ -1231,7 +1232,7 @@ hsBool plPythonFileMod::IEval(double secs, float del, uint32_t dirty)
 //
 //  PURPOSE    : Handle all the different types of messages that we recv
 //
-hsBool plPythonFileMod::MsgReceive(plMessage* msg)
+bool plPythonFileMod::MsgReceive(plMessage* msg)
 {
     // is it a ref message
     plGenRefMsg* genRefMsg = plGenRefMsg::ConvertNoRef(msg);
@@ -1862,7 +1863,7 @@ hsBool plPythonFileMod::MsgReceive(plMessage* msg)
             // yes...
             // find the value that would go with a command
             PyObject* value;
-            std::wstring str;
+            plStringBuffer<wchar_t> str;
             switch (pkimsg->GetCommand())
             {
                 case pfKIMsg::kSetChatFadeDelay:
@@ -1873,8 +1874,8 @@ hsBool plPythonFileMod::MsgReceive(plMessage* msg)
                     break;
                 case pfKIMsg::kYesNoDialog:
                     value = PyTuple_New(2);
-                    str = pkimsg->GetStringU();
-                    PyTuple_SetItem(value, 0, PyUnicode_FromWideChar(str.c_str(), str.length()));
+                    str = pkimsg->GetString().ToWchar();
+                    PyTuple_SetItem(value, 0, PyUnicode_FromWideChar(str, str.GetSize()));
                     PyTuple_SetItem(value, 1, pyKey::New(pkimsg->GetSender()));
                     break;
                 case pfKIMsg::kGZInRange:
@@ -1884,23 +1885,23 @@ hsBool plPythonFileMod::MsgReceive(plMessage* msg)
                     break;
                 case pfKIMsg::kRateIt:
                     value = PyTuple_New(3);
-                    str = pkimsg->GetStringU();
+                    str = pkimsg->GetString().ToWchar();
                     PyTuple_SetItem(value,0,PyString_FromString(pkimsg->GetUser()));
-                    PyTuple_SetItem(value,1,PyUnicode_FromWideChar(str.c_str(), str.length()));
+                    PyTuple_SetItem(value,1,PyUnicode_FromWideChar(str, str.GetSize()));
                     PyTuple_SetItem(value,2,PyLong_FromLong(pkimsg->GetIntValue()));
                     break;
                 case pfKIMsg::kRegisterImager:
                     value = PyTuple_New(2);
-                    str = pkimsg->GetStringU();
-                    PyTuple_SetItem(value, 0, PyUnicode_FromWideChar(str.c_str(), str.length()));
+                    str = pkimsg->GetString().ToWchar();
+                    PyTuple_SetItem(value, 0, PyUnicode_FromWideChar(str, str.GetSize()));
                     PyTuple_SetItem(value, 1, pyKey::New(pkimsg->GetSender()));
                     break;
                 case pfKIMsg::kAddPlayerDevice:
                 case pfKIMsg::kRemovePlayerDevice:
                     {
-                        str = pkimsg->GetStringU();
-                        if ( str.length() > 0 )
-                            value = PyUnicode_FromWideChar(str.c_str(), str.length());
+                        str = pkimsg->GetString().ToWchar();
+                        if ( str.GetSize() > 0 )
+                            value = PyUnicode_FromWideChar(str, str.GetSize());
                         else
                         {
                             Py_INCREF(Py_None);
@@ -1915,8 +1916,8 @@ hsBool plPythonFileMod::MsgReceive(plMessage* msg)
                 case pfKIMsg::kKIOKDialogNoQuit:
                 case pfKIMsg::kGZFlashUpdate:
                 case pfKIMsg::kKICreateMarkerNode:
-                    str = pkimsg->GetStringU();
-                    value = PyUnicode_FromWideChar(str.c_str(), str.length());
+                    str = pkimsg->GetString().ToWchar();
+                    value = PyUnicode_FromWideChar(str, str.GetSize());
                     break;
                 case pfKIMsg::kMGStartCGZGame:
                 case pfKIMsg::kMGStopCGZGame:
@@ -2300,16 +2301,14 @@ hsBool plPythonFileMod::MsgReceive(plMessage* msg)
         plSDLNotificationMsg* sn = plSDLNotificationMsg::ConvertNoRef(msg);
         if (sn)
         {
-            const char* tag = sn->fHintString.c_str();
-            if (tag == nil)
-                tag = "";
+            plString tag = sn->fHintString;
             // yes... then call it
             plProfile_BeginTiming(PythonUpdate);
             PyObject* retVal = PyObject_CallMethod(
                     fPyFunctionInstances[kfunc_SDLNotify],
                     (char*)fFunctionNames[kfunc_SDLNotify],
-                    "ssls", sn->fVar->GetName(), sn->fSDLName.c_str(),
-                    sn->fPlayerID, tag);
+                    "ssls", sn->fVar->GetName().c_str(), sn->fSDLName.c_str(),
+                    sn->fPlayerID, tag.c_str());
             if ( retVal == nil )
             {
 #ifndef PLASMA_EXTERNAL_RELEASE
@@ -2905,7 +2904,7 @@ hsBool plPythonFileMod::MsgReceive(plMessage* msg)
 void plPythonFileMod::ReportError()
 {
     plString objectName = this->GetKeyName();
-    objectName += _TEMP_CONVERT_FROM_LITERAL(" - ");
+    objectName += " - ";
 
     PythonInterface::WriteToStdErr(objectName.c_str());
 
@@ -3050,4 +3049,4 @@ void plPythonFileMod::Write(hsStream* stream, hsResMgr* mgr)
 //// kGlobalNameKonstant /////////////////////////////////////////////////
 //  My continued attempt to spread the CORRECT way to spell konstant. -mcn
 
-plString plPythonFileMod::kGlobalNameKonstant = _TEMP_CONVERT_FROM_LITERAL("VeryVerySpecialPythonFileMod");
+plString plPythonFileMod::kGlobalNameKonstant("VeryVerySpecialPythonFileMod");

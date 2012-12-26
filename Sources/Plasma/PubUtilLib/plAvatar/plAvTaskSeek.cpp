@@ -54,7 +54,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAGAnim.h"
 #include "plArmatureMod.h"
 #include "plAvatarMgr.h"
-#include "plAvCallbackAction.h"
+#include "plPhysicalControllerCore.h"
 
 // other
 #include "plMessage/plAvatarMsg.h"
@@ -89,7 +89,7 @@ void MakeMatrixUpright(hsMatrix44 &mat);
 #define kDefaultMaxSidleRange 4.0f
 #define kDefaultMaxSidleAngle 0.2f
 
-hsBool plAvTaskSeek::fLogProcess = false;
+bool plAvTaskSeek::fLogProcess = false;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -203,7 +203,7 @@ void plAvTaskSeek::SetTarget(hsPoint3 &pos, hsPoint3 &lookAt)
 
 // Start -----------------------------------------------------------------------------------------
 // ------
-hsBool plAvTaskSeek::Start(plArmatureMod *avatar, plArmatureBrain *brain, double time, float elapsed)
+bool plAvTaskSeek::Start(plArmatureMod *avatar, plArmatureBrain *brain, double time, float elapsed)
 {
     plAvBrainHuman *huBrain = plAvBrainHuman::ConvertNoRef(brain);
     hsAssert(huBrain, "Seek task only works on human brains");
@@ -243,7 +243,7 @@ hsBool plAvTaskSeek::Start(plArmatureMod *avatar, plArmatureBrain *brain, double
 
 // Process -------------------------------------------------------------------------------------------
 // --------
-hsBool plAvTaskSeek::Process(plArmatureMod *avatar, plArmatureBrain *brain, double time, float elapsed)
+bool plAvTaskSeek::Process(plArmatureMod *avatar, plArmatureBrain *brain, double time, float elapsed)
 {
     if (fState == kSeekAbort)
         return false;
@@ -257,7 +257,7 @@ hsBool plAvTaskSeek::Process(plArmatureMod *avatar, plArmatureBrain *brain, doub
         }
         
         IAnalyze(avatar);
-        hsBool result = IMoveTowardsGoal(avatar, uBrain, time, elapsed);
+        bool result = IMoveTowardsGoal(avatar, uBrain, time, elapsed);
         if (fLogProcess)
             DumpToAvatarLog(avatar);
         return result;
@@ -311,7 +311,7 @@ void plAvTaskSeek::LeaveAge(plArmatureMod *avatar)
 
 // IAnalyze ----------------------------------------
 // ---------
-hsBool plAvTaskSeek::IAnalyze(plArmatureMod *avatar)
+bool plAvTaskSeek::IAnalyze(plArmatureMod *avatar)
 {
     avatar->GetPositionAndRotationSim(&fPosition, &fRotation);
     hsScalarTriple tmp(fSeekPos - fPosition);
@@ -350,7 +350,7 @@ hsBool plAvTaskSeek::IAnalyze(plArmatureMod *avatar)
 
 // IMoveTowardsGoal --------------------------------------------------------------
 // -----------------
-hsBool plAvTaskSeek::IMoveTowardsGoal(plArmatureMod *avatar, plAvBrainHuman *brain,
+bool plAvTaskSeek::IMoveTowardsGoal(plArmatureMod *avatar, plAvBrainHuman *brain,
                                       double time, float elapsed)
 {
     bool stillRunning = true;
@@ -438,7 +438,7 @@ hsBool plAvTaskSeek::IMoveTowardsGoal(plArmatureMod *avatar, plAvBrainHuman *bra
 // ITRYFINISH
 bool plAvTaskSeek::ITryFinish(plArmatureMod *avatar, plAvBrainHuman *brain, double time, float elapsed)
 {
-    hsBool animsDone = brain->IsMovementZeroBlend();
+    bool animsDone = brain->IsMovementZeroBlend();
 
     hsPoint3 newPosition = fPosition;
     hsQuat newRotation = fRotation;
@@ -457,16 +457,16 @@ bool plAvTaskSeek::ITryFinish(plArmatureMod *avatar, plAvBrainHuman *brain, doub
     return fStillPositioning || fStillRotating || !animsDone;
 }
 
-hsBool plAvTaskSeek::IFinishPosition(hsPoint3 &newPosition,
+bool plAvTaskSeek::IFinishPosition(hsPoint3 &newPosition,
                                      plArmatureMod *avatar, plAvBrainHuman *brain,
                                      double time, float elapsed)
 {
     // While warping, we might be hovering just above the ground. Don't want that to
     // trigger any falling behavior.
-    if(brain&&brain->fCallbackAction)
+    if(brain&&brain->fWalkingStrategy)
     {
         
-        brain->fCallbackAction->ResetAirTime();
+        brain->fWalkingStrategy->ResetAirTime();
     }
     // how far will we translate this frame?
     float thisDist = kFloatSpeed * elapsed;
@@ -493,7 +493,7 @@ hsBool plAvTaskSeek::IFinishPosition(hsPoint3 &newPosition,
 
 // IFinishRotation --------------------------------------
 // ----------------
-hsBool plAvTaskSeek::IFinishRotation(hsQuat &newRotation,
+bool plAvTaskSeek::IFinishRotation(hsQuat &newRotation,
                                      plArmatureMod *avatar, plAvBrainHuman *brain,
                                      double time, float elapsed)
 {
@@ -504,7 +504,7 @@ hsBool plAvTaskSeek::IFinishRotation(hsQuat &newRotation,
 
 // IUpdateObjective ----------------------------------------
 // -----------------
-hsBool plAvTaskSeek::IUpdateObjective(plArmatureMod *avatar)
+bool plAvTaskSeek::IUpdateObjective(plArmatureMod *avatar)
 {
     // This is an entirely valid case. It just means our goal is fixed.
     if (fSeekObject == nil)
@@ -535,7 +535,7 @@ hsBool plAvTaskSeek::IUpdateObjective(plArmatureMod *avatar)
                 plAGAnim *anim = avatar->FindCustomAnim(fAnimName);
                 // don't need to do this every frame; the animation doesn't change.
                 // *** cache the adjustment;
-                GetStartToEndTransform(anim, nil, &adjustment, _TEMP_CONVERT_FROM_LITERAL("Handle"));   // actually getting end-to-start
+                GetStartToEndTransform(anim, nil, &adjustment, "Handle");   // actually getting end-to-start
                 // ... but we do still need to multiply by the (potentially changed) target
                 targL2W = targL2W * adjustment;
             }

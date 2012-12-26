@@ -134,7 +134,6 @@ target_link_libraries(plClient plSurface)
 target_link_libraries(plClient plTransform)
 target_link_libraries(plClient plUnifiedTime)
 target_link_libraries(plClient plVault)
-target_link_libraries(plClient pnAddrInfo)
 target_link_libraries(plClient pnAsyncCore)
 target_link_libraries(plClient pnAsyncCoreExe)
 target_link_libraries(plClient pnDispatch)
@@ -177,6 +176,10 @@ target_link_libraries(plClient ${CURL_LIBRARY})
 
 if(Bink_SDK_AVAILABLE)
     target_link_libraries(plClient ${Bink_LIBRARIES})
+endif()
+
+if(USE_VLD)
+    target_link_libraries(plClient ${VLD_LIBRARY})
 endif()
 
 if (WIN32)

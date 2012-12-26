@@ -109,13 +109,13 @@ extern const plArmatureMod * FindArmatureMod(const plSceneObject *obj);
     return nil;
 }*/
 
-hsBool plFootstepSoundComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
+bool plFootstepSoundComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
 {
     plGenRefMsg *msg;
     plArmatureEffectFootSound *effect = new plArmatureEffectFootSound();
     
     // Note: MUST be a hard-coded keyname, since we search for same name in plArmatureMod.cpp
-    hsgResMgr::ResMgr()->NewKey( _TEMP_CONVERT_FROM_LITERAL("FootstepSounds"), effect, node->GetLocation());
+    hsgResMgr::ResMgr()->NewKey( "FootstepSounds", effect, node->GetLocation());
 
     int i;
     for (i = 0; i < plArmatureEffectsMgr::kMaxSurface; i++)

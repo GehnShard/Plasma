@@ -51,6 +51,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "pyGUIDialog.h"
 #include "pyColor.h"
+#include "pyGeometry3.h"
 
 #include "pyGUIControlCheckBox.h"
 
@@ -81,7 +82,7 @@ pyGUIControl& pyGUIControl::Copy(const pyGUIControl& other)
 }
 
 // override the equals to operator
-hsBool pyGUIControl::operator==(const pyGUIControl &gcobj) const
+bool pyGUIControl::operator==(const pyGUIControl &gcobj) const
 {
     plKey theirs = ((pyGUIControl&)gcobj).getObjKey();
     if ( fGCkey == nil && theirs == nil )
@@ -121,7 +122,7 @@ uint32_t  pyGUIControl::GetTagID()
 }
 
 
-void pyGUIControl::SetEnabled( hsBool e )
+void pyGUIControl::SetEnabled( bool e )
 {
     if ( fGCkey )
     {
@@ -138,7 +139,7 @@ void pyGUIControl::SetEnabled( hsBool e )
     }
 }
 
-hsBool pyGUIControl::IsEnabled( void )
+bool pyGUIControl::IsEnabled( void )
 {
     if ( fGCkey )
     {
@@ -150,7 +151,7 @@ hsBool pyGUIControl::IsEnabled( void )
     return false;
 }
 
-void pyGUIControl::SetFocused( hsBool e )
+void pyGUIControl::SetFocused( bool e )
 {
     if ( fGCkey )
     {
@@ -161,7 +162,7 @@ void pyGUIControl::SetFocused( hsBool e )
     }
 }
 
-hsBool pyGUIControl::IsFocused( void )
+bool pyGUIControl::IsFocused( void )
 {
     if ( fGCkey )
     {
@@ -173,7 +174,7 @@ hsBool pyGUIControl::IsFocused( void )
     return false;
 }
 
-void pyGUIControl::SetVisible( hsBool vis )
+void pyGUIControl::SetVisible( bool vis )
 {
     if ( fGCkey )
     {
@@ -184,7 +185,7 @@ void pyGUIControl::SetVisible( hsBool vis )
     }
 }
 
-hsBool pyGUIControl::IsVisible( void )
+bool pyGUIControl::IsVisible( void )
 {
     if ( fGCkey )
     {
@@ -196,7 +197,7 @@ hsBool pyGUIControl::IsVisible( void )
     return false;
 }
 
-hsBool pyGUIControl::IsInteresting( void )
+bool pyGUIControl::IsInteresting( void )
 {
     if ( fGCkey )
     {
@@ -208,7 +209,7 @@ hsBool pyGUIControl::IsInteresting( void )
     return false;
 }
 
-void pyGUIControl::SetNotifyOnInteresting( hsBool state )
+void pyGUIControl::SetNotifyOnInteresting( bool state )
 {
     if ( fGCkey )
     {

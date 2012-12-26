@@ -54,7 +54,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plMessage/plAvatarMsg.h"
 #include "plPhysical.h"
 #include "plPhysical/plSimDefs.h"
-#include "plAvatar/plAvCallbackAction.h"
 
 #include "plAvatar/plAvBrainGeneric.h"
 
@@ -136,7 +135,7 @@ void plExcludeRegionModifier::ISetPhysicalState(bool cleared)
     }
 }
 
-hsBool plExcludeRegionModifier::MsgReceive(plMessage* msg)
+bool plExcludeRegionModifier::MsgReceive(plMessage* msg)
 {
     plExcludeRegionMsg *exclMsg = plExcludeRegionMsg::ConvertNoRef(msg);
     if (exclMsg)
