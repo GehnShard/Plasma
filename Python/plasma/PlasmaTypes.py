@@ -223,10 +223,9 @@ def PtFindAvatar(events):
 ####################################
 # Exceptions
 ####################################
-import exceptions
-class ptResponderStateError(exceptions.Exception):
+class ptResponderStateError(Exception):
     def __init__(self,args=None):
-        self.args = args
+        Exception.__init__(self, args)
 
 #
 # Attributes that will be exposed in Max to be filled in by <someone>

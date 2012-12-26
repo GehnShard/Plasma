@@ -4247,6 +4247,10 @@ class ptGUIControlMultiLineEdit(ptGUIControl):
         """Returns a ptGUIDialog of the dialog that owns this GUI control"""
         pass
 
+    def getScrollPosition(self):
+        """Returns what line is the top line."""
+        pass
+
     def getSelectColor(self):
         """Returns the selection color"""
         pass
@@ -4290,6 +4294,10 @@ class ptGUIControlMultiLineEdit(ptGUIControl):
 
     def insertStyle(self,style):
         """Inserts an encoded font style at the current cursor position."""
+        pass
+
+    def isAtEnd(self):
+        """Returns whether the cursor is at the end."""
         pass
 
     def isEnabled(self):
@@ -6215,6 +6223,10 @@ class ptSimpleStateVariable:
 
     def isInternal(self):
         """Is this an internal variable?"""
+        pass
+
+    def isUsed(self):
+        """Is this variable used?"""
         pass
 
     def setBool(self,val,idx=0):
