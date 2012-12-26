@@ -124,7 +124,10 @@ class xBlueSpiral(ptResponder, object):
         ageSDL = PtGetAgeSDL()
         seq = []
         for cloth in str(ageSDL[SDLBSKey.value][0]).split():
-            seq.append(int(cloth))
+            try:
+                seq.append(int(cloth))
+            except ValueError:
+                return None
         return seq
     def _clothmap_set(self, value):
         ageSDL = PtGetAgeSDL()
@@ -156,10 +159,8 @@ class xBlueSpiral(ptResponder, object):
 
     def _solution_get(self):
         ageSDL = PtGetAgeSDL()
-        seq = []
         for cloth in str(ageSDL[SDLBSSolution.value][0]).split():
-            seq.append(int(cloth))
-        return seq
+            yield int(cloth)
     def _solution_set(self, value):
         ageSDL = PtGetAgeSDL()
         if value:
@@ -228,7 +229,7 @@ class xBlueSpiral(ptResponder, object):
 
         # Need to generate the cloth map?
         cm = self.clothmap
-        if cm == "empty" or cm == "" or not cm:
+        if cm is None:
             cm = self._GenerateClothSeq()
             self.clothmap = cm
             PtDebugPrint("xBlueSpiral.OnServerInitComplete():\tKey: " + repr(cm))
