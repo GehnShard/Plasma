@@ -39,17 +39,24 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+
 #include "HeadSpin.h"
+#include "hsResMgr.h"
+#include "plFileSystem.h"
+
+#include "MaxComponent/plComponentBase.h"
+#include "plMaxNode.h"
+
+#include <guplib.h>
+#pragma hdrstop
+
 #include "GlobalUtility.h"
 
-#include "hsResMgr.h"
-#include "plMaxNode.h"
 #include "MaxSceneViewer/SceneSync.h"
 
 #include "MaxComponent/ComponentDummies.h"
 #include "plActionTableMgr.h"
 #include "plMaxMenu.h"
-#include "MaxComponent/plComponentBase.h"
 #include "MaxSceneViewer/plMaxFileData.h"
 #include "pfPython/cyPythonInterface.h"
 #include "MaxPlasmaMtls/Layers/plPlasmaMAXLayer.h"
@@ -88,7 +95,7 @@ ClassDesc* GetGUPDesc() { return &PlasmaMaxCD; }
 //////////////////////////////////////////
 
 // This function is from the console.  This dummy version is here so that plNetLinkingMgr will build.
-plKey FindSceneObjectByName(const char* name, const char* ageName, char* statusStr, bool subString)
+plKey FindSceneObjectByName(const plString& name, const plString& ageName, char* statusStr, bool subString)
 {
     return nil;
 }
@@ -165,7 +172,6 @@ DWORD PlasmaMax::Start()
     DummyCodeIncludeFuncInventStuff();      //Inventory Object comp
     DummyCodeIncludeFuncVolumeGadget();     // inside/enter/exit phys volume activator
 //  DummyCodeIncludeFuncActivatorGadget();  // activator activator
-    DummyCodeIncludeFuncImpactGadget();     // collision activator
     DummyCodeIncludeFuncSoftVolume();       // Soft Volumes
     DummyCodeIncludeFuncPhysConst();        // Phys Constraints
     DummyCodeIncludeFuncCameras();          // new camera code
@@ -216,15 +222,14 @@ DWORD PlasmaMax::Start()
 
     // Setup the localization mgr
     // Dirty hacks are because Cyan sucks...
-    const char* pathTemp = plMaxConfig::GetClientPath(false, true);
-    if (pathTemp == nil) 
+    plFileName pathTemp = plMaxConfig::GetClientPath(false, true);
+    if (!pathTemp.IsValid())
     {
         hsMessageBox("PlasmaMAX2.ini is missing or invalid", "Plasma/2.0 Error", hsMessageBoxNormal);
-    } 
-    else 
+    }
+    else
     {
-        std::string clientPath(pathTemp);
-        clientPath += "dat";
+        plFileName clientPath = plFileName::Join(pathTemp, "dat");
         pfLocalizationMgr::Initialize(clientPath);
     }
 

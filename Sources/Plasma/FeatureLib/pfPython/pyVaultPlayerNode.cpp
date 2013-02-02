@@ -236,10 +236,8 @@ PyObject *pyVaultPlayerNode::GetVisitAgeLink(const pyAgeInfoStruct *info)
 
 void pyVaultPlayerNode::RemoveVisitAgeLink(const char *guidstr)
 {
-    Uuid uuid;
-    GuidFromString(guidstr, &uuid);
     plAgeInfoStruct info;
-    plUUID guid(uuid);
+    plUUID guid(guidstr);
     info.SetAgeInstanceGuid(&guid);
     VaultUnregisterOwnedAgeAndWait(&info);
 }
@@ -268,8 +266,8 @@ std::string pyVaultPlayerNode::GetPlayerName()
         return "";
 
     VaultPlayerNode player(fNode);
-    char ansiStr[MAX_PATH];     
-    StrToAnsi(ansiStr, player.playerName, arrsize(ansiStr));
+    char ansiStr[MAX_PATH];
+    StrToAnsi(ansiStr, player.GetPlayerName(), arrsize(ansiStr));
     return ansiStr;
 }
 
@@ -284,8 +282,8 @@ std::string pyVaultPlayerNode::GetAvatarShapeName()
         return "";
 
     VaultPlayerNode player(fNode);
-    char ansiStr[MAX_PATH];     
-    StrToAnsi(ansiStr, player.avatarShapeName, arrsize(ansiStr));
+    char ansiStr[MAX_PATH];
+    StrToAnsi(ansiStr, player.GetAvatarShapeName(), arrsize(ansiStr));
     return ansiStr;
 }
 
@@ -300,7 +298,7 @@ bool pyVaultPlayerNode::IsDisabled()
         return false;
 
     VaultPlayerNode player(fNode);
-    return player.disabled;
+    return player.GetDisabled();
 }
 
 void pyVaultPlayerNode::SetOnlineTime(uint32_t value)
@@ -314,7 +312,7 @@ uint32_t pyVaultPlayerNode::GetOnlineTime()
         return 0;
 
     VaultPlayerNode player(fNode);
-    return player.onlineTime;
+    return player.GetOnlineTime();
 }
 
 void pyVaultPlayerNode::SetExplorer (bool b) {
@@ -330,5 +328,5 @@ bool pyVaultPlayerNode::IsExplorer () {
         return false;
 
     VaultPlayerNode player(fNode);
-    return player.explorer;
+    return player.GetExplorer();
 }

@@ -40,20 +40,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
-#include "HeadSpin.h"
-#include "hsTemplates.h"
-#include <comutil.h>
-#include <vector>
-
-using std::vector;
-
-class ISpinnerControl;
 class plAgeDescription;
 class plAgeFile;
+class MaxAssBranchAccess;
+class ISpinnerControl;
 
 typedef struct _TREEITEM    *HTREEITEM;
 
-class MaxAssBranchAccess;
 class plAgeDescInterface
 {
 protected:
@@ -75,8 +68,7 @@ protected:
     HFONT       fBoldFont;
     HBRUSH      fHiliteBrush;
 
-    vector<plAgeFile*> fAgeFiles;
-//   vector<_variant_t> fAssetIds;
+    std::vector<plAgeFile*> fAgeFiles;
    
     MaxAssBranchAccess  *fAssetManIface;
 
@@ -92,12 +84,12 @@ public:
     static BOOL CALLBACK ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
     BOOL DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
-    static void BuildAgeFileList( hsTArray<char *> &ageList );
+    static hsTArray<plFileName> BuildAgeFileList();
 
 protected:
-    static int IFindAge(const char* ageName, vector<plAgeFile*>& ageFiles);
-    static void IGetAgeFiles(vector<plAgeFile*>& ageFiles);
-    static void IClearAgeFiles(vector<plAgeFile*>& ageFiles);
+    static int IFindAge(const char* ageName, std::vector<plAgeFile*>& ageFiles);
+    static void IGetAgeFiles(std::vector<plAgeFile*>& ageFiles);
+    static void IClearAgeFiles(std::vector<plAgeFile*>& ageFiles);
 
     void IResetParams();
     
@@ -109,10 +101,10 @@ protected:
     
     // Save the settings for the last age and load the settings for the currently one
     void IUpdateCurAge();
-    void ISaveCurAge( const char *path, bool checkSeqNum = false );
-    void ILoadAge( const char *path, bool checkSeqNum = false );
+    void ISaveCurAge( const plFileName &path, bool checkSeqNum = false );
+    void ILoadAge( const plFileName &path, bool checkSeqNum = false );
 
-    static bool IGetLocalAgePath(char *path);
+    static plFileName IGetLocalAgePath();
 
     // Fill out the age tree view
     void IFillAgeTree( void );

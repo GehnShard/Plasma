@@ -43,11 +43,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define __HSMATERIALCONVERTER_H
 
 #include "HeadSpin.h"
-#include "hsTemplates.h"
-
-#include "Max.h"
-
-class Interface;
+#include <maxtypes.h>
 
 class hsStream;
 class hsScene;
@@ -64,19 +60,20 @@ class plBitmap;
 class plMipmap;
 class plErrorMsg;
 class plString;
-
-class Mtl;
-class Texmap;
-class plMaxNode;
-class StdUVGen;
-class BitmapTex;
-class StdMat;
-class TSTR;
-class Animatable;
-class Bitmap;
 class plLocation;
 
+class Animatable;
+class Bitmap;
+class BitmapTex;
+class Color;
+class Interface;
+class Mtl;
+class Point3;
+class StdMat;
+class StdUVGen;
+class Texmap;
 
+class plMaxNode;
 class plLayerTex;
 class plBitmapData;
 class plCubicRenderTarget;
@@ -309,7 +306,6 @@ private:
     hsGMaterial *ICheckForProjectedTexture(plMaxNode *node);
     hsGMaterial *IWrapTextureInMaterial(Texmap *texMap, plMaxNode *node);
 
-    BMM_Color_64 ICubeSample(Bitmap *bitmap[6], double phi, double theta);
     void IBuildSphereMap(Bitmap *bitmap[6], Bitmap *bm);
 #if 0 // DEFER_ANIM_MAT
     void IProcessAnimMaterial(BitmapTex *bitmapTex, hsGAnimLayer* at, uint32_t texFlags, uint32_t procFlags);

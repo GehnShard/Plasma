@@ -39,6 +39,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+#include "hsWindows.h"
 #include "plNetClientRecorder.h"
 #include "hsStream.h"
 #include "hsTimer.h"
@@ -56,7 +57,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plMessage/plAgeLoadedMsg.h"
 
 #include "plStatusLog/plStatusLog.h"
-#include "hsFiles.h"
 
 plNetClientRecorder::plNetClientRecorder(TimeWrapper* timeWrapper) :
 fTimeWrapper(timeWrapper)

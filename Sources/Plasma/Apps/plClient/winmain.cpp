@@ -40,9 +40,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
-#include <stdio.h>
+#include "HeadSpin.h"
+#include "hsWindows.h"
+
 #include <direct.h>     // windows directory handling fxns (for chdir)
 #include <process.h>
+#include <shellapi.h>   // ShellExecuteA
 
 //#define DETACH_EXE  // Microsoft trick to force loading of exe to memory 
 #ifdef DETACH_EXE
@@ -51,7 +54,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <curl/curl.h>
 
-#include "HeadSpin.h"
 #include "hsStream.h"
 
 #include "plClient.h"
@@ -70,15 +72,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnEncryption/plChallengeHash.h"
 
 #include "plStatusLog/plStatusLog.h"
-#include "pnProduct/pnProduct.h"
+#include "plProduct.h"
 #include "plNetGameLib/plNetGameLib.h"
-#include "plFileUtils.h"
 
 #include "plPhysX/plSimulationMgr.h"
 
 #include "res/resource.h"
 
-//#include <shellapi.h>
 //
 // Defines
 //
@@ -303,11 +303,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 bool active = (LOWORD(wParam) == WA_ACTIVE || LOWORD(wParam) == WA_CLICKACTIVE);
                 bool minimized = (HIWORD(wParam) != 0);
 
-                DebugMsgF("Got WM_ACTIVATE, active=%s, minimized=%s, clicked=%s",
-                    active ? "true" : "false",
-                    minimized ? "true" : "false",
-                    (LOWORD(wParam) == WA_CLICKACTIVE) ? "true" : "false");
-
                 if (gClient && !minimized && !gClient->GetDone())
                 {
                     gClient->WindowActivate(active);
@@ -322,7 +317,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         // Let go of the mouse if the window is being moved.
         case WM_ENTERSIZEMOVE:
-            DebugMsgF("Got WM_ENTERSIZEMOVE%s", gClient ? "" : ", no client, ignoring");
             gDragging = true;
             if( gClient )
                 gClient->WindowActivate(false);
@@ -330,7 +324,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         // Redo the mouse capture if the window gets moved
         case WM_EXITSIZEMOVE:
-            DebugMsgF("Got WM_EXITSIZEMOVE%s", gClient ? "" : ", no client, ignoring");
             gDragging = false;
             if( gClient )
                 gClient->WindowActivate(true);
@@ -340,12 +333,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // and his cool program that bumps windows out from under the taskbar)
         case WM_MOVE:
             if (!gDragging && gClient && gClient->GetInputManager())
-            {
                 gClient->GetInputManager()->Activate(true);
-                DebugMsgF("Got WM_MOVE");
-            }
-            else
-                DebugMsgF("Got WM_MOVE, but ignoring");
             break;
 
         /// Resize the window
@@ -356,7 +344,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         //  size, not when the window is minimized or restored)
         case WM_SIZING:
             {
-                DebugMsgF("Got WM_SIZING");
                 RECT r;
                 ::GetClientRect(hWnd, &r);
                 gClient->GetPipeline()->Resize(r.right - r.left, r.bottom - r.top);
@@ -367,14 +354,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // Let go of the mouse if the window is being minimized
             if (wParam == SIZE_MINIMIZED)
             {
-                DebugMsgF("Got WM_SIZE, SIZE_MINIMIZED%s", gClient ? "" : ", but no client, ignoring");
                 if (gClient)
                     gClient->WindowActivate(false);
             }
             // Redo the mouse capture if the window gets restored
             else if (wParam == SIZE_RESTORED)
             {
-                DebugMsgF("Got WM_SIZE, SIZE_RESTORED%s", gClient ?  "" : ", but no client, ignoring");
                 if (gClient)
                     gClient->WindowActivate(true);
             }
@@ -555,7 +540,7 @@ bool    InitClient( HWND hWnd )
     resMgr->SetDataPath("dat");
     hsgResMgr::Init(resMgr);
 
-    if(!plFileUtils::FileExists("resource.dat"))
+    if (!plFileInfo("resource.dat").Exists())
     {
         hsMessageBox("Required file 'resource.dat' not found.", "Error", hsMessageBoxNormal);
         return false;
@@ -621,16 +606,11 @@ BOOL WinInit(HINSTANCE hInst, int nCmdShow)
     /// 8.11.2000 - Test for OpenGL fullscreen, and if so use no border, no caption;
     /// else, use our normal styles
 
-    char windowName[256];
-    wchar_t productString[256];
-    StrCopy(productString, ProductLongName(), arrsize(productString));
-    StrToAnsi(windowName, productString, arrsize(windowName));
-    
     // Create a window
     HWND hWnd = CreateWindow(
-        CLASSNAME, windowName, 
+        CLASSNAME, plProduct::LongName().c_str(),
         WS_OVERLAPPEDWINDOW,
-        0, 0, 
+        0, 0,
         800 + gWinBorderDX * 2,
         600 + gWinBorderDY * 2 + gWinMenuDY,
          NULL, NULL, hInst, NULL
@@ -656,32 +636,40 @@ BOOL WinInit(HINSTANCE hInst, int nCmdShow)
 //
 // For error logging
 //
-static FILE* gDebugFile=NULL;
-void DebugMessageProc(const char* msg)
+static plStatusLog* s_DebugLog = nullptr;
+static void _DebugMessageProc(const char* msg)
 {
-    OutputDebugString(msg);
-    OutputDebugString("\n");
-    if (gDebugFile != NULL)
-    {
-        fprintf(gDebugFile, "%s\n", msg);
-        fflush(gDebugFile);
-    }
+#if defined(HS_DEBUGGING) || !defined(PLASMA_EXTERNAL_RELEASE)
+    s_DebugLog->AddLine(msg, plStatusLog::kRed);
+#endif // defined(HS_DEBUGGING) || !defined(PLASMA_EXTERNAL_RELEASE)
 }
 
-void DebugMsgF(const char* format, ...)
+static void _StatusMessageProc(const char* msg)
 {
-#ifndef PLASMA_EXTERNAL_RELEASE
+#if defined(HS_DEBUGGING) || !defined(PLASMA_EXTERNAL_RELEASE)
+    s_DebugLog->AddLine(msg);
+#endif // defined(HS_DEBUGGING) || !defined(PLASMA_EXTERNAL_RELEASE)
+}
+
+static void DebugMsgF(const char* format, ...)
+{
+#if defined(HS_DEBUGGING) || !defined(PLASMA_EXTERNAL_RELEASE)
     va_list args;
     va_start(args, format);
-
-    char buf[256];
-    int numWritten = _vsnprintf(buf, sizeof(buf), format, args);
-    hsAssert(numWritten > 0, "Buffer too small");
-
+    s_DebugLog->AddLineV(plStatusLog::kYellow, format, args);
     va_end(args);
+#endif // defined(HS_DEBUGGING) || !defined(PLASMA_EXTERNAL_RELEASE)
+}
 
-    DebugMessageProc(buf);
-#endif
+static void DebugInit()
+{
+#if defined(HS_DEBUGGING) || !defined(PLASMA_EXTERNAL_RELEASE)
+    plStatusLogMgr& mgr = plStatusLogMgr::GetInstance();
+    s_DebugLog = mgr.CreateStatusLog(30, "plasmadbg.log", plStatusLog::kFilledBackground |
+                 plStatusLog::kDeleteForMe | plStatusLog::kAlignToTop | plStatusLog::kTimestamp);
+    hsSetDebugMessageProc(_DebugMessageProc);
+    hsSetStatusMessageProc(_StatusMessageProc);
+#endif // defined(HS_DEBUGGING) || !defined(PLASMA_EXTERNAL_RELEASE)
 }
 
 static void AuthFailedStrings (ENetError authError,
@@ -827,10 +815,10 @@ static void SaveUserPass (LoginDialogParam *pLoginParam, char *password)
     // loaded the namePassHash from the file
     if (thePass.Compare(FAKE_PASS_STRING) != 0)
     {
-        wchar_t domain[15];
-        PathSplitEmail(theUser.ToWchar(), nil, 0, domain, arrsize(domain), nil, 0, nil, 0, 0);
+        // Regex search for primary email domain
+        std::vector<plString> match = theUser.RESearch("[^@]+@([^.]+\\.)*([^.]+)\\.[^.]+");
 
-        if (StrLen(domain) == 0 || StrCmpI(domain, L"gametap") == 0) {
+        if (match.empty() || match[2].CompareI("gametap") == 0) {
             plSHA1Checksum shasum(StrLen(password) * sizeof(password[0]), (uint8_t*)password);
             uint32_t* dest = reinterpret_cast<uint32_t*>(pLoginParam->namePassHash);
             const uint32_t* from = reinterpret_cast<const uint32_t*>(shasum.GetValue());
@@ -853,17 +841,14 @@ static void SaveUserPass (LoginDialogParam *pLoginParam, char *password)
     // FIXME: Real OS detection
     NetCommSetAuthTokenAndOS(nil, L"win");
 
-    wchar_t fileAndPath[MAX_PATH];
-    PathGetInitDirectory(fileAndPath, arrsize(fileAndPath));
-    PathAddFilename(fileAndPath, fileAndPath, L"login.dat", arrsize(fileAndPath));
+    plFileName loginDat = plFileName::Join(plFileSystem::GetInitPath(), "login.dat");
 #ifndef PLASMA_EXTERNAL_RELEASE
     // internal builds can use the local init directory
-    wchar_t localFileAndPath[MAX_PATH];
-    StrCopy(localFileAndPath, L"init\\login.dat", arrsize(localFileAndPath));
-    if (PathDoesFileExist(localFileAndPath))
-        StrCopy(fileAndPath, localFileAndPath, arrsize(localFileAndPath));
+    plFileName local("init\\login.dat");
+    if (plFileInfo(local).Exists())
+        loginDat = local;
 #endif
-    hsStream* stream = plEncryptedStream::OpenEncryptedFileWrite(fileAndPath, cryptKey);
+    hsStream* stream = plEncryptedStream::OpenEncryptedFileWrite(loginDat, cryptKey);
     if (stream)
     {
         stream->Write(sizeof(cryptKey), cryptKey);
@@ -887,17 +872,14 @@ static void LoadUserPass (LoginDialogParam *pLoginParam)
     pLoginParam->remember = false;
     pLoginParam->username[0] = '\0';
 
-    wchar_t fileAndPath[MAX_PATH];
-    PathGetInitDirectory(fileAndPath, arrsize(fileAndPath));
-    PathAddFilename(fileAndPath, fileAndPath, L"login.dat", arrsize(fileAndPath));
+    plFileName loginDat = plFileName::Join(plFileSystem::GetInitPath(), "login.dat");
 #ifndef PLASMA_EXTERNAL_RELEASE
     // internal builds can use the local init directory
-    wchar_t localFileAndPath[MAX_PATH];
-    StrCopy(localFileAndPath, L"init\\login.dat", arrsize(localFileAndPath));
-    if (PathDoesFileExist(localFileAndPath))
-        StrCopy(fileAndPath, localFileAndPath, arrsize(localFileAndPath));
+    plFileName local("init\\login.dat");
+    if (plFileInfo(local).Exists())
+        loginDat = local;
 #endif
-    hsStream* stream = plEncryptedStream::OpenEncryptedFile(fileAndPath, cryptKey);
+    hsStream* stream = plEncryptedStream::OpenEncryptedFile(loginDat, cryptKey);
     if (stream && !stream->AtEnd())
     {
         uint32_t savedKey[4];
@@ -1009,11 +991,8 @@ BOOL CALLBACK UruLoginDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM
                 showAuthFailed = true;
             }
 
-            char windowName[256];
-            wchar_t productString[256];
-            ProductString(productString, arrsize(productString));
-            StrToAnsi(windowName, productString, arrsize(windowName));
-            SendMessage(GetDlgItem(hwndDlg, IDC_PRODUCTSTRING), WM_SETTEXT, 0, (LPARAM) windowName);
+            SendMessage(GetDlgItem(hwndDlg, IDC_PRODUCTSTRING), WM_SETTEXT, 0,
+                        (LPARAM)plProduct::ProductString().c_str());
 
             for (int i = 0; i < plLocalization::GetNumLocales(); i++)
             {
@@ -1075,9 +1054,7 @@ BOOL CALLBACK UruLoginDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM
                     // The code to write general.ini really doesn't belong here, but it works... for now.
                     // When general.ini gets expanded, this will need to find a proper home somewhere.
                     {
-                        wchar_t gipath[MAX_PATH];
-                        PathGetInitDirectory(gipath, arrsize(gipath));
-                        PathAddFilename(gipath, gipath, L"general.ini", arrsize(gipath));
+                        plFileName gipath = plFileName::Join(plFileSystem::GetInitPath(), "general.ini");
                         plString ini_str = plString::Format("App.SetLanguage %s\n", plLocalization::GetLanguageName(new_language));
                         hsStream* gini = plEncryptedStream::OpenEncryptedFileWrite(gipath);
                         gini->WriteString(ini_str);
@@ -1209,6 +1186,7 @@ LONG WINAPI plCustomUnhandledExceptionFilter( struct _EXCEPTION_POINTERS *Except
 #include "pfConsoleCore/pfConsoleEngine.h"
 PF_CONSOLE_LINK_ALL()
 
+#include "plResMgr/plVersion.h"
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow)
 {
     PF_CONSOLE_INIT_ALL()
@@ -1227,9 +1205,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
         gDataServerLocal = true;
 #endif
 
-    const wchar_t *serverIni = L"server.ini";
+    plFileName serverIni = "server.ini";
     if (cmdParser.IsSpecified(kArgServerIni))
-        serverIni = cmdParser.GetString(kArgServerIni);
+        serverIni = plString::FromWchar(cmdParser.GetString(kArgServerIni));
 
     // check to see if we were launched from the patcher
     bool eventExists = false;
@@ -1284,10 +1262,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 #endif
 
     // Load an optional general.ini
-    wchar_t gipath[MAX_PATH];
-    PathGetInitDirectory(gipath, arrsize(gipath));
-    PathAddFilename(gipath, gipath, L"general.ini", arrsize(gipath));
-    FILE *generalini = _wfopen(gipath, L"rb");
+    plFileName gipath = plFileName::Join(plFileSystem::GetInitPath(), "general.ini");
+    FILE *generalini = plFileSystem::Open(gipath, "rb");
     if (generalini)
     {
         fclose(generalini);
@@ -1324,7 +1300,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
     }
 #endif
 
-    FILE *serverIniFile = _wfopen(serverIni, L"rb");
+    FILE *serverIniFile = plFileSystem::Open(serverIni, "rb");
     if (serverIniFile)
     {
         fclose(serverIniFile);
@@ -1404,25 +1380,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
     //
     // Set up to log errors by using hsDebugMessage
     //
-    gDebugFile = NULL;
-    if ( !plStatusLog::fLoggingOff )
-    {
-        wchar_t fileAndPath[MAX_PATH];
-        PathGetLogDirectory(fileAndPath, arrsize(fileAndPath));
-        PathAddFilename(fileAndPath, fileAndPath, L"plasmalog.txt", arrsize(fileAndPath));
-        gDebugFile = _wfopen(fileAndPath, L"wt");
-        hsAssert(gDebugFile != NULL, "Error creating debug file plasmalog.txt");
-        hsSetDebugMessageProc(DebugMessageProc);
-        if (gDebugFile != NULL)
-        {
-            char prdName[256];
-            wchar_t prdString[256];
-            ProductString(prdString, arrsize(prdString));
-            StrToAnsi(prdName, prdString, arrsize(prdName));
-            fprintf(gDebugFile, "%s\n", prdName);
-            fflush(gDebugFile);
-        }
-    }
+    DebugInit();
+    DebugMsgF("Plasma 2.0.%i.%i - %s", PLASMA2_MAJOR_VERSION, PLASMA2_MINOR_VERSION, plProduct::ProductString().c_str());
 
     for (;;) {
         // Create Window
@@ -1494,32 +1453,17 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
         break;
     }
 
-#ifndef _DEBUG
-    try
+    //
+    // Cleanup
+    //
+    if (gClient)
     {
-#endif
-        // 
-        // Cleanup
-        //
-        if (gClient)
-        {
-            gClient->Shutdown(); // shuts down PhysX for us
-            gClient = nil;
-        }
-        hsAssert(hsgResMgr::ResMgr()->RefCnt()==1, "resMgr has too many refs, expect mem leaks");
-        hsgResMgr::Shutdown();  // deletes fResMgr
-        DeInitNetClientComm();
-#ifndef _DEBUG
-    } catch (...)
-    {
-        // just catch all the crashes on exit... just to keep GameTap from complaining
-        if (gDebugFile)
-            fprintf(gDebugFile, "Crashed on shutdown.\n");
+        gClient->Shutdown(); // shuts down PhysX for us
+        gClient = nil;
     }
-#endif
-
-    if (gDebugFile)
-        fclose(gDebugFile);
+    hsAssert(hsgResMgr::ResMgr()->RefCnt()==1, "resMgr has too many refs, expect mem leaks");
+    hsgResMgr::Shutdown();  // deletes fResMgr
+    DeInitNetClientComm();
 
     // Uninstall our unhandled exception filter, if we installed one
 #ifndef HS_DEBUGGING
@@ -1562,3 +1506,7 @@ static void GetCryptKey(uint32_t* cryptKey, unsigned numElements)
     }
 }
 
+/* Enable themes in Windows XP and later */
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")

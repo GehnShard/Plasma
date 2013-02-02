@@ -39,13 +39,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include <float.h>
+#include <cfloat>
 #include "hsStream.h"
 #include "hsTimer.h"
-#include "hsStlUtils.h"
 #include "plSDL.h"
 
-#include "pnProduct/pnProduct.h"
+#include "plProduct.h"
 #include "pnFactory/plCreatable.h"
 #include "pnKeyedObject/plUoid.h"
 #include "pnKeyedObject/plKey.h"
@@ -117,7 +116,7 @@ void plStateVarNotificationInfo::Write(hsStream* s, uint32_t writeOptions) const
 {
     uint8_t saveFlags=0;              // unused   
     s->WriteLE(saveFlags);
-    s->WriteSafeString(fHintString.c_str());
+    s->WriteSafeString(fHintString);
 }
 
 /////////////////////////////////////////////////////
@@ -318,7 +317,7 @@ void plSimpleStateVariable::CopyFrom(plVarDescriptor* v)
     }
 }
 
-void plSimpleStateVariable::TimeStamp( const plUnifiedTime & ut/*=plUnifiedTime::GetCurrentTime()*/ )
+void plSimpleStateVariable::TimeStamp( const plUnifiedTime & ut/*=plUnifiedTime::GetCurrent()*/ )
 {
     fTimeStamp = ut;
 }
@@ -1186,7 +1185,7 @@ bool plSimpleStateVariable::ConvertTo(plSimpleVarDescriptor* toVar, bool force )
         return true;
 
     hsLogEntry( plNetApp::StaticDebugMsg( "SSV(%p) converting %s from %s to %s",
-        this, fVar.GetName(), fVar.GetTypeString(), toVar->GetTypeString() ) );
+        this, fVar.GetName().c_str(), fVar.GetTypeString().c_str(), toVar->GetTypeString().c_str() ) );
 
     switch(fVar.GetType())  // original type
     {
@@ -2326,7 +2325,7 @@ void plSimpleStateVariable::DumpToStream(hsStream* stream, bool dirtyOnly, int l
     plString logMsg = plString::Format( "%sSimpleVar, name:%s[%d]", pad.c_str(), GetName().c_str(), GetCount());
     if (GetCount()>1)
     {
-        stream->WriteString(logMsg.c_str());    // it's going to be a long msg, so print it on its own line
+        stream->WriteString(logMsg);    // it's going to be a long msg, so print it on its own line
         logMsg = "";
     }
     
@@ -2349,7 +2348,7 @@ void plSimpleStateVariable::DumpToStream(hsStream* stream, bool dirtyOnly, int l
         if ( !dirtyOnly )
             logMsg += plString::Format( " dirty:%d", IsDirty() );
 
-        stream->WriteString(logMsg.c_str());
+        stream->WriteString(logMsg);
         logMsg = "";
     }
 }
@@ -2683,8 +2682,8 @@ void plSDStateVariable::DumpToObjectDebugger(bool dirtyOnly, int level) const
         pad += "   ";
 
     int cnt = dirtyOnly ? GetDirtyCount() : GetUsedCount();
-    dbg->LogMsg(xtl::format( "%sSDVar, name:%s dirtyOnly:%d count:%d", 
-        pad.c_str(), GetName(), dirtyOnly, cnt).c_str());
+    dbg->LogMsg(plString::Format( "%sSDVar, name:%s dirtyOnly:%d count:%d",
+        pad.c_str(), GetName().c_str(), dirtyOnly, cnt).c_str());
 
     for(i=0;i<GetCount();i++)
     {
@@ -2704,8 +2703,8 @@ void plSDStateVariable::DumpToStream(hsStream* stream, bool dirtyOnly, int level
         pad += "   ";
 
     int cnt = dirtyOnly ? GetDirtyCount() : GetUsedCount();
-    stream->WriteString(xtl::format( "%sSDVar, name:%s dirtyOnly:%d count:%d", 
-        pad.c_str(), GetName(), dirtyOnly, cnt).c_str());
+    stream->WriteString(plString::Format( "%sSDVar, name:%s dirtyOnly:%d count:%d",
+        pad.c_str(), GetName().c_str(), dirtyOnly, cnt));
 
     for(i=0;i<GetCount();i++)
     {
@@ -2745,7 +2744,7 @@ void plSDStateVariable::SetFromDefaults(bool timeStampNow)
         GetStateDataRecord(i)->SetFromDefaults(timeStampNow);
 }
 
-void plSDStateVariable::TimeStamp( const plUnifiedTime & ut/*=plUnifiedTime::GetCurrentTime()*/ )
+void plSDStateVariable::TimeStamp( const plUnifiedTime & ut/*=plUnifiedTime::GetCurrent()*/ )
 {
     hsAssert( false, "not impl" );
 }

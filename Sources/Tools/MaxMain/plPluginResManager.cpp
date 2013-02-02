@@ -40,34 +40,32 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "HeadSpin.h"
-#include "plPluginResManager.h"
-#include "HeadSpin.h"
-#include "hsTemplates.h"
-#include "plResMgr/plRegistryNode.h"
-#include "plResMgr/plRegistryHelpers.h"
-#include "plResMgr/plVersion.h"
-#include "plResMgr/plResMgrSettings.h"
-#include "plScene/plSceneNode.h"
-#include "pnKeyedObject/plKey.h"
-#include "pnKeyedObject/plKeyImp.h"
-#include "plAgeDescription/plAgeDescription.h"
 #include "plgDispatch.h"
+#include "pnKeyedObject/plKey.h"
+#include "hsTemplates.h"
+#pragma hdrstop
 
 // For our common object libs
 #include "plCommonObjLib.h"
 #include "MaxComponent/plMiscComponents.h"
 
-plKey plPluginResManager::NameToLoc(const char* age, const char* page, int32_t sequenceNumber, bool itinerant)
-{
-    // Hack for now--always prefer paging out sceneNodes first
-    fPageOutHint = plSceneNode::Index();
+#include "plPluginResManager.h"
+#include "plResMgr/plRegistryNode.h"
+#include "plResMgr/plRegistryHelpers.h"
+#include "plResMgr/plVersion.h"
+#include "plResMgr/plResMgrSettings.h"
+#include "plScene/plSceneNode.h"
+#include "pnKeyedObject/plKeyImp.h"
+#include "plAgeDescription/plAgeDescription.h"
 
+plKey plPluginResManager::NameToLoc(const plString& age, const plString& page, int32_t sequenceNumber, bool itinerant)
+{
     // Get or create our page
     plRegistryPageNode* pageNode = INameToPage(age, page, sequenceNumber, itinerant);
     hsAssert(pageNode != nil, "No page returned from INameToPage(), shouldn't be possible");
 
     // Go find the sceneNode now, since we know the page exists (go through our normal channels, though)
-    plString keyName = plString::Format("%s_%s", age, page);
+    plString keyName = plString::Format("%s_%s", age.c_str(), page.c_str());
 
     plUoid nodeUoid(pageNode->GetPageInfo().GetLocation(), plSceneNode::Index(), keyName);
 
@@ -109,7 +107,7 @@ plKey plPluginResManager::NameToLoc(const char* age, const char* page, int32_t s
 //  seqNumber, returns the page for that combo (either by preloading it or
 //  by creating it).
 
-plRegistryPageNode* plPluginResManager::INameToPage(const char* age, const char* page, int32_t sequenceNumber, bool itinerant)
+plRegistryPageNode* plPluginResManager::INameToPage(const plString& age, const plString& page, int32_t sequenceNumber, bool itinerant)
 {
     // Find the location first, to see if it already exists
     plRegistryPageNode* pageNode = FindPage(age, page);
@@ -119,12 +117,12 @@ plRegistryPageNode* plPluginResManager::INameToPage(const char* age, const char*
         if (sequenceNumber != uint32_t(-1))
         {
             const plLocation& newLoc = ICreateLocation(age, page, sequenceNumber, itinerant);
-            pageNode = CreatePage(newLoc, age, page);
+            pageNode = CreatePage(newLoc, age.c_str(), page.c_str());
         }
         else
         {
             const plLocation& newLoc = ICreateLocation(age, page, itinerant);
-            pageNode = CreatePage(newLoc, age, page);
+            pageNode = CreatePage(newLoc, age.c_str(), page.c_str());
         }
         // Still preload textures on this guy. This should be a no-op for this page since it's new, but won't be
         // for the shared textures page
@@ -195,7 +193,7 @@ void plPluginResManager::IPreLoadTextures(plRegistryPageNode* pageNode, int32_t 
     bool common = false;
     for (int i = 0; i < plAgeDescription::kNumCommonPages; i++)
     {
-        if (strcmpi(plAgeDescription::GetCommonPage(i), pageNode->GetPageInfo().GetPage()) == 0)
+        if (pageNode->GetPageInfo().GetPage().CompareI(plAgeDescription::GetCommonPage(i)) == 0)
         {
             common = true;
             break;
@@ -319,15 +317,15 @@ public:
 };
 
 
-plLocation plPluginResManager::ICreateLocation(const char* age, const char* page, bool itinerant)
+plLocation plPluginResManager::ICreateLocation(const plString& age, const plString& page, bool itinerant)
 {
     int32_t seqNum = VerifySeqNumber(0, age, page);
     return ICreateLocation(age, page, seqNum, itinerant);
 }
 
-plLocation plPluginResManager::ICreateLocation(const char* age, const char* page, int32_t seqNum, bool itinerant)
+plLocation plPluginResManager::ICreateLocation(const plString& age, const plString& page, int32_t seqNum, bool itinerant)
 {
-    bool willBeReserved = strcmpi(age, "global") == 0;
+    bool willBeReserved = age.CompareI("global") == 0;
 
     int32_t oldNum = seqNum;
     seqNum = VerifySeqNumber(seqNum, age, page);
@@ -351,7 +349,7 @@ plLocation plPluginResManager::ICreateLocation(const char* age, const char* page
     // Flag common pages
     for (int i = 0; i < plAgeDescription::kNumCommonPages; i++)
     {
-        if (strcmp(plAgeDescription::GetCommonPage(i), page) == 0)
+        if (page.Compare(plAgeDescription::GetCommonPage(i)) == 0)
         {
             newLoc.SetFlags(plLocation::kBuiltIn);
             break;
@@ -360,8 +358,8 @@ plLocation plPluginResManager::ICreateLocation(const char* age, const char* page
 
     // If we have an age description file for the age we're creating a location
     // for, grab some extra flags from it
-    plAgeDescription* ageDesc = plPageInfoUtils::GetAgeDesc(age);
-    plAgePage* agePage = ageDesc ? ageDesc->FindPage(page) : nil;
+    plAgeDescription* ageDesc = plPageInfoUtils::GetAgeDesc(age.c_str());
+    plAgePage* agePage = ageDesc ? ageDesc->FindPage(page.c_str()) : nil;
     if (agePage)
     {
         if (agePage->GetFlags() & plAgePage::kIsLocalOnly)
@@ -426,9 +424,9 @@ void plPluginResManager::AddLooseEnd(plKey key)
     }
 }
 // Verifies that the given sequence number belongs to the given string combo and ONLY that combo. Returns a new, unique sequenceNumber if not
-int32_t plPluginResManager::VerifySeqNumber(int32_t sequenceNumber, const char* age, const char* page)
+int32_t plPluginResManager::VerifySeqNumber(int32_t sequenceNumber, const plString& age, const plString& page)
 {
-    bool negated = false, willBeReserved = strcmpi(age, "global") == 0;
+    bool negated = false, willBeReserved = age.CompareI("global") == 0;
     if (sequenceNumber < 0)
     {
         sequenceNumber = -sequenceNumber;

@@ -42,19 +42,15 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include <marshal.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <ctime>
+#include <string>
 
 #include "HeadSpin.h"
-#include "hsStlUtils.h"
 #include "hsStream.h"
-#include "hsStlSortUtils.h"
 #pragma hdrstop
 
 #include "plPythonPack.h"
 
-#include "hsFiles.h"
 #include "plFile/plSecureStream.h"
 #include "plFile/plStreamSource.h"
 
@@ -126,7 +122,7 @@ bool plPythonPack::Open()
     fPackNotFound = true;
 
     // Get the names of all the pak files
-    std::vector<std::wstring> files = plStreamSource::GetInstance()->GetListOfNames(L"python", L".pak");
+    std::vector<plFileName> files = plStreamSource::GetInstance()->GetListOfNames("python", "pak");
 
     std::vector<time_t> modTimes; // the modification time for each of the streams (to resolve duplicate file issues)
 
@@ -140,13 +136,11 @@ bool plPythonPack::Open()
             fPackStream->Rewind(); // make sure we're at the beginning of the file
             fPackNotFound = false;
 
-            char* tempFilename = hsWStringToString(files[curName].c_str());
-            struct stat buf;
             time_t curModTime = 0;
-            if (stat(tempFilename,&buf)==0)
-                curModTime = buf.st_mtime;
+            plFileInfo info(files[curName]);
+            if (info.Exists())
+                curModTime = info.ModifyTime();
             modTimes.push_back(curModTime);
-            delete [] tempFilename;
 
             // read the index data
             int numFiles = fPackStream->ReadLE32();
@@ -192,9 +186,8 @@ void plPythonPack::Close()
         // do NOT close or delete the streams, the preloader will do that for us
         fPackStreams[i] = nil;
     }
-    
-    fPackStreams.clear();
 
+    fPackStreams.clear();
     fFileOffsets.clear();
 }
 
@@ -219,7 +212,7 @@ PyObject* plPythonPack::OpenPacked(const char* fileName)
         {
             char *buf = new char[size];
             uint32_t readSize = fPackStream->Read(size, buf);
-            hsAssert(readSize <= size, xtl::format("Python PackFile %s: Incorrect amount of data, read %d instead of %d",
+            hsAssert(readSize <= size, plString::Format("Python PackFile %s: Incorrect amount of data, read %d instead of %d",
                 fileName, readSize, size).c_str());
 
             // let the python marshal make it back into a code object

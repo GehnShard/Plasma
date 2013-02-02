@@ -78,15 +78,17 @@ struct plNCAgeLeaver {
         kUnloadAge,
         kNotifyAgeUnloaded,
     };
-    
+
     NextOp                  nextOp;
     bool                    quitting;
+    bool                    muteLinkSfx;
     bool                    complete;
     FNCAgeLeaverCallback    callback;
     void *                  userState;
-    
+
     plNCAgeLeaver (
         bool                    quitting,
+        bool                    muteSfx,
         FNCAgeLeaverCallback    callback,
         void *                  userState
     );
@@ -109,10 +111,12 @@ struct plNCAgeLeaver {
 //============================================================================
 plNCAgeLeaver::plNCAgeLeaver (
     bool                    quitting,
+    bool                    muteSfx,
     FNCAgeLeaverCallback    callback,
     void *                  userState
 ) : nextOp(kNoOp)
 ,   quitting(quitting)
+,   muteLinkSfx(muteSfx)
 ,   complete(false)
 ,   callback(callback)
 ,   userState(userState)
@@ -200,7 +204,13 @@ void plNCAgeLeaver::ExecNextOp () {
 
         //====================================================================
         case kLinkOutFX: {
-            nc->StartLinkOutFX();
+            plLinkEffectsTriggerMsg* lem = new plLinkEffectsTriggerMsg();
+            lem->MuteLinkSfx(muteLinkSfx);
+            lem->SetLeavingAge(true);
+            lem->SetLinkKey(nc->GetLocalPlayerKey());
+            lem->SetBCastFlag(plMessage::kNetPropagate);
+            lem->SetBCastFlag(plMessage::kNetForce);    // Necessary?
+            lem->Send(hsgResMgr::ResMgr()->FindKey(plUoid(kLinkEffectsMgr_KEY)));
         }
         break;
 
@@ -264,6 +274,7 @@ void plNCAgeLeaver::Update () {
 void NCAgeLeaverCreate (
     plNCAgeLeaver **        pleaver,
     bool                    quitting,
+    bool                    muteSfx,
     FNCAgeLeaverCallback    callback,
     void *                  userState
 ) {
@@ -271,8 +282,9 @@ void NCAgeLeaverCreate (
     ASSERT(callback);
     
     plNCAgeLeaver * leaver;
-    *pleaver = leaver = NEWZERO(plNCAgeLeaver)(
+    *pleaver = leaver = new plNCAgeLeaver(
         quitting,
+        muteSfx,
         callback,
         userState
     );

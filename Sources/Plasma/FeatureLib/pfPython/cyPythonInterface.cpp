@@ -906,7 +906,8 @@ PyObject *ptImportHook_load_module_detail(ptImportHook *self, char* module_name,
     PyObject* modules = PyImport_GetModuleDict();
     hsAssert(PyDict_Check(modules), "sys.modules is not a dict");
 
-    if (result = PyDict_GetItemString(modules, module_name))
+    result = PyDict_GetItemString(modules, module_name);
+    if (result)
     {
         if (!PyModule_Check(result))
         {
@@ -1193,7 +1194,7 @@ void PythonInterface::initPython()
             getOutputAndReset(&error);
         }
 
- #ifndef BUILDING_PYPLASMA
+#ifndef BUILDING_PYPLASMA
         // Begin PEP 302 Import Hook stuff
         // We need to create a ptImportHook object
         ptImportHook* hook = PyObject_New(ptImportHook, &ptImportHook_type);

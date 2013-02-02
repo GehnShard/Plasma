@@ -67,7 +67,7 @@ struct CliFileConn : AtomicRef {
     char                name[MAX_PATH];
     plNetAddress        addr;
     unsigned            seq;
-    ARRAY(uint8_t)         recvBuffer;
+    ARRAY(uint8_t)      recvBuffer;
     AsyncCancelId       cancelId;
     bool                abandoned;
     unsigned            buildId;
@@ -145,7 +145,7 @@ struct BuildIdRequestTrans : NetFileTrans {
 struct ManifestRequestTrans : NetFileTrans {
     FNetCliFileManifestRequestCallback  m_callback;
     void *                              m_param;
-    wchar_t                               m_group[MAX_PATH];
+    wchar_t                             m_group[MAX_PATH];
     unsigned                            m_buildId;
 
     ARRAY(NetCliFileManifestEntry)      m_manifest;
@@ -154,7 +154,7 @@ struct ManifestRequestTrans : NetFileTrans {
     ManifestRequestTrans (
         FNetCliFileManifestRequestCallback  callback,
         void *                              param,
-        const wchar_t                         group[],
+        const wchar_t                       group[],
         unsigned                            buildId
     );
 
@@ -173,7 +173,7 @@ struct DownloadRequestTrans : NetFileTrans {
     FNetCliFileDownloadRequestCallback  m_callback;
     void *                              m_param;
 
-    wchar_t                               m_filename[MAX_PATH];
+    plFileName                          m_filename;
     hsStream *                          m_writer;
     unsigned                            m_buildId;
     
@@ -182,7 +182,7 @@ struct DownloadRequestTrans : NetFileTrans {
     DownloadRequestTrans (
         FNetCliFileDownloadRequestCallback  callback,
         void *                              param,
-        const wchar_t                         filename[],
+        const plFileName &                  filename,
         hsStream *                          writer,
         unsigned                            buildId
     );
@@ -518,9 +518,9 @@ static void Connect (CliFileConn * conn) {
     connect.hdr.connType    = kConnTypeCliToFile;
     connect.hdr.hdrBytes    = sizeof(connect.hdr);
     connect.hdr.buildId     = kFileSrvBuildId;
-    connect.hdr.buildType   = BUILD_TYPE_LIVE;
-    connect.hdr.branchId    = BranchId();
-    connect.hdr.productId   = ProductId();
+    connect.hdr.buildType   = plProduct::BuildType();
+    connect.hdr.branchId    = plProduct::BranchId();
+    connect.hdr.productId   = plProduct::UUID();
     connect.data.buildId    = conn->buildId;
     connect.data.serverType = conn->serverType;
     connect.data.dataBytes  = sizeof(connect.data);
@@ -544,7 +544,7 @@ static void Connect (
 ) {
     ASSERT(s_running);
     
-    CliFileConn * conn = NEWZERO(CliFileConn);
+    CliFileConn * conn = new CliFileConn;
     strncpy(conn->name, name, arrsize(conn->name));
     conn->addr          = addr;
     conn->buildId       = s_connectBuildId;
@@ -580,7 +580,13 @@ static void AsyncLookupCallback (
 ***/
 
 //============================================================================
-CliFileConn::CliFileConn () {
+CliFileConn::CliFileConn ()
+    : sock(nil), seq(0), cancelId(nil), abandoned(false), buildId(0), serverType(0)
+    , reconnectTimer(nil), reconnectStartMs(0), connectStartMs(0)
+    , numImmediateDisconnects(0), numFailedConnects(0)
+    , pingTimer(nil), pingSendTimeMs(0), lastHeardTimeMs(0)
+{
+    memset(name, 0, sizeof(name));
     AtomicAdd(&s_perf[kPerfConnCount], 1);
 }
 
@@ -900,7 +906,7 @@ bool BuildIdRequestTrans::Recv (
 ManifestRequestTrans::ManifestRequestTrans (
     FNetCliFileManifestRequestCallback  callback,
     void *                              param,
-    const wchar_t                         group[],
+    const wchar_t                       group[],
     unsigned                            buildId
 ) : NetFileTrans(kManifestRequestTrans)
 ,   m_callback(callback)
@@ -937,11 +943,13 @@ void ManifestRequestTrans::Post () {
 }
 
 //============================================================================
-void ReadStringFromMsg(const wchar_t* curMsgPtr, wchar_t str[], unsigned maxStrLen, unsigned* length) {
-    StrCopy(str, curMsgPtr, maxStrLen);
-    str[maxStrLen - 1] = L'\0'; // make sure it's terminated
-
-    (*length) = StrLen(str);
+void ReadStringFromMsg(const wchar_t* curMsgPtr, wchar_t* destPtr, unsigned* length) {
+    if (!(*length)) {
+        size_t maxlen = wcsnlen(curMsgPtr, MAX_PATH - 1);   // Hacky sack
+        (*length) = maxlen;
+        destPtr[maxlen] = 0;    // Don't do this on fixed length, because there's no room for it
+    }
+    memcpy(destPtr, curMsgPtr, *length * sizeof(wchar_t));
 }
 
 //============================================================================
@@ -997,8 +1005,8 @@ bool ManifestRequestTrans::Recv (
 
         // --------------------------------------------------------------------
         // read in the clientFilename
-        unsigned filenameLen;
-        ReadStringFromMsg(curChar, entry.clientName, arrsize(entry.clientName), &filenameLen);
+        unsigned filenameLen = 0;
+        ReadStringFromMsg(curChar, entry.clientName, &filenameLen);
         curChar += filenameLen; // advance the pointer
         wchar_tCount -= filenameLen; // keep track of the amount remaining
         if ((*curChar != L'\0') || (wchar_tCount <= 0))
@@ -1010,7 +1018,8 @@ bool ManifestRequestTrans::Recv (
 
         // --------------------------------------------------------------------
         // read in the downloadFilename
-        ReadStringFromMsg(curChar, entry.downloadName, arrsize(entry.downloadName), &filenameLen);
+        filenameLen = 0;
+        ReadStringFromMsg(curChar, entry.downloadName, &filenameLen);
         curChar += filenameLen; // advance the pointer
         wchar_tCount -= filenameLen; // keep track of the amount remaining
         if ((*curChar != L'\0') || (wchar_tCount <= 0))
@@ -1022,7 +1031,8 @@ bool ManifestRequestTrans::Recv (
 
         // --------------------------------------------------------------------
         // read in the md5
-        ReadStringFromMsg(curChar, entry.md5, arrsize(entry.md5), &filenameLen);
+        filenameLen = 32;
+        ReadStringFromMsg(curChar, entry.md5, &filenameLen);
         curChar += filenameLen; // advance the pointer
         wchar_tCount -= filenameLen; // keep track of the amount remaining
         if ((*curChar != L'\0') || (wchar_tCount <= 0))
@@ -1034,7 +1044,8 @@ bool ManifestRequestTrans::Recv (
 
         // --------------------------------------------------------------------
         // read in the md5 for compressed files
-        ReadStringFromMsg(curChar, entry.md5compressed, arrsize(entry.md5compressed), &filenameLen);
+        filenameLen = 32;
+        ReadStringFromMsg(curChar, entry.md5compressed, &filenameLen);
         curChar += filenameLen; // advance the pointer
         wchar_tCount -= filenameLen; // keep track of the amount remaining
         if ((*curChar != L'\0') || (wchar_tCount <= 0))
@@ -1123,17 +1134,17 @@ bool ManifestRequestTrans::Recv (
 DownloadRequestTrans::DownloadRequestTrans (
     FNetCliFileDownloadRequestCallback  callback,
     void *                              param,
-    const wchar_t                         filename[],
+    const plFileName &                  filename,
     hsStream *                          writer,
     unsigned                            buildId
 ) : NetFileTrans(kDownloadRequestTrans)
 ,   m_callback(callback)
 ,   m_param(param)
+,   m_filename(filename)
 ,   m_writer(writer)
 ,   m_totalBytesReceived(0)
 ,   m_buildId(buildId)
 {
-    StrCopy(m_filename, filename, arrsize(m_filename));
     // This transaction issues "sub transactions" which must complete
     // before this one even though they were issued after us.
     m_hasSubTrans = true;
@@ -1145,7 +1156,7 @@ bool DownloadRequestTrans::Send () {
         return false;
 
     Cli2File_FileDownloadRequest filedownloadReq;
-    StrCopy(filedownloadReq.filename, m_filename, arrsize(m_filename));
+    StrCopy(filedownloadReq.filename, m_filename.AsString().ToWchar(), arrsize(filedownloadReq.filename));
     filedownloadReq.messageId = kCli2File_FileDownloadRequest;
     filedownloadReq.transId = m_transId;
     filedownloadReq.messageBytes = sizeof(filedownloadReq);
@@ -1341,7 +1352,7 @@ void NetCliFileStartConnect (
     // TEMP: Only connect to one file server until we fill out this module
     // to choose the "best" file connection.
     fileAddrCount = min(fileAddrCount, 1);
-    s_connectBuildId = isPatcher ? kFileSrvBuildId : BuildId();
+    s_connectBuildId = isPatcher ? kFileSrvBuildId : plProduct::BuildId();
     s_serverType = kSrvTypeNone;
 
     for (unsigned i = 0; i < fileAddrCount; ++i) {
@@ -1437,7 +1448,7 @@ void NetCliFileRegisterBuildIdUpdate (FNetCliFileBuildIdUpdateCallback callback)
 void NetCliFileManifestRequest (
     FNetCliFileManifestRequestCallback  callback,
     void *                              param,
-    const wchar_t                         group[],
+    const wchar_t                       group[],
     unsigned                            buildId /* = 0 */
 ) {
     ManifestRequestTrans * trans = new ManifestRequestTrans(
@@ -1451,7 +1462,7 @@ void NetCliFileManifestRequest (
 
 //============================================================================
 void NetCliFileDownloadRequest (
-    const wchar_t                         filename[],
+    const plFileName &                  filename,
     hsStream *                          writer,
     FNetCliFileDownloadRequestCallback  callback,
     void *                              param,

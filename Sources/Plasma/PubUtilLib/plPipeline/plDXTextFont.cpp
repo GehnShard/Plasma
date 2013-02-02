@@ -51,13 +51,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "HeadSpin.h"
+#include "hsWindows.h"
 
 #include <d3d9.h>
 #include <ddraw.h>
 #include <d3dx9mesh.h>
 
 #include "hsWinRef.h"
-#include "HeadSpin.h"
 #include "plDXTextFont.h"
 #include "plDXPipeline.h"
 
@@ -120,7 +120,7 @@ void    plDXTextFont::ICreateTexture( uint16_t *data )
     // Lock the texture and write our values out
     fD3DTexture->LockRect( 0, &lockInfo, 0, 0 );
     memcpy( lockInfo.pBits, data, fTextureWidth * fTextureHeight * sizeof( uint16_t ) );
-    fD3DTexture->UnlockRect( nil );
+    fD3DTexture->UnlockRect( 0 );
 }
 
 void plDXTextFont::CreateShared(IDirect3DDevice9* device)

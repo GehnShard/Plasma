@@ -58,6 +58,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pyNetLinkingMgr.h"
 #include "pyAgeInfoStruct.h"
 
+#include "pnUUID/pnUUID.h"
 #include "plVault/plVault.h"
 
 // should only be created from C++ side
@@ -68,7 +69,7 @@ pyVaultAgeInfoNode::pyVaultAgeInfoNode(RelVaultNode* nfsNode)
 
 //create from the Python side
 pyVaultAgeInfoNode::pyVaultAgeInfoNode(int n)
-: pyVaultNode(NEWZERO(RelVaultNode))
+: pyVaultNode(new RelVaultNode)
 {
     fNode->SetNodeType(plVault::kNodeType_AgeInfo);
 }
@@ -188,7 +189,7 @@ const char * pyVaultAgeInfoNode::GetAgeFilename() const
     if (fNode) {
         char str[MAX_PATH];
         VaultAgeInfoNode access(fNode);
-        StrToAnsi(str, access.ageFilename, arrsize(str));
+        StrToAnsi(str, access.GetAgeFilename(), arrsize(str));
         fAgeFilename = str;
     }
     return fAgeFilename.c_str();
@@ -203,7 +204,7 @@ const char * pyVaultAgeInfoNode::GetAgeInstanceName() const
     if (fNode) {
         char str[MAX_PATH];
         VaultAgeInfoNode access(fNode);
-        StrToAnsi(str, access.ageInstName, arrsize(str));
+        StrToAnsi(str, access.GetAgeInstanceName(), arrsize(str));
         fAgeInstName = str;
     }
     return fAgeInstName.c_str();
@@ -218,7 +219,7 @@ const char * pyVaultAgeInfoNode::GetAgeUserDefinedName() const
     if (fNode) {
         char str[MAX_PATH];
         VaultAgeInfoNode access(fNode);
-        StrToAnsi(str, access.ageUserDefinedName, arrsize(str));
+        StrToAnsi(str, access.GetAgeUserDefinedName(), arrsize(str));
         fAgeUserName = str;
     }
     return fAgeUserName.c_str();
@@ -228,15 +229,14 @@ void pyVaultAgeInfoNode::SetAgeUserDefinedName( const char * v )
 {
 }
 
-const char * pyVaultAgeInfoNode::GetAgeInstanceGuid() const
+plUUID pyVaultAgeInfoNode::GetAgeInstanceGuid() const
 {
-    fAgeInstGuid[0] = 0;
-    
     if (fNode) {
         VaultAgeInfoNode access(fNode);
-        GuidToString(access.ageInstUuid, fAgeInstGuid, arrsize(fAgeInstGuid));
+
+        return access.GetAgeInstanceGuid();
     }
-    return fAgeInstGuid;
+    return kNilUuid;
 }
 
 void pyVaultAgeInfoNode::SetAgeInstanceGuid( const char * sguid )
@@ -249,7 +249,7 @@ const char * pyVaultAgeInfoNode::GetAgeDescription() const
         char str[MAX_PATH];
         memset(str, 0, sizeof(str));
         VaultAgeInfoNode access(fNode);
-        StrToAnsi(str, access.ageDescription, arrsize(str));
+        StrToAnsi(str, access.GetAgeDescription(), arrsize(str));
         fAgeDescription = str;
     }
     return fAgeDescription.c_str();
@@ -263,9 +263,9 @@ int32_t pyVaultAgeInfoNode::GetSequenceNumber() const
 {
     if (!fNode)
         return -1;
-        
+
     VaultAgeInfoNode access(fNode);
-    return access.ageSequenceNumber;
+    return access.GetAgeSequenceNumber();
 }
 
 void pyVaultAgeInfoNode::SetSequenceNumber( int32_t v )
@@ -276,9 +276,9 @@ int32_t pyVaultAgeInfoNode::GetAgeLanguage() const
 {
     if (!fNode)
         return -1;
-        
+
     VaultAgeInfoNode access(fNode);
-    return access.ageLanguage;
+    return access.GetAgeLanguage();
 }
 
 void pyVaultAgeInfoNode::SetAgeLanguage( int32_t v )
@@ -305,7 +305,7 @@ bool pyVaultAgeInfoNode::IsPublic() const
 {
     if (fNode) {
         VaultAgeInfoNode access(fNode);
-        return access.ageIsPublic;
+        return access.GetIsPublic();
     }
     return false;
 }
@@ -315,10 +315,10 @@ const char * pyVaultAgeInfoNode::GetDisplayName() const
     if (fNode) {
         char str[MAX_PATH];
         VaultAgeInfoNode access(fNode);
-        if (access.ageSequenceNumber > 0)
-            StrPrintf(str, arrsize(str), "%S(%d) %S", access.ageUserDefinedName, access.ageSequenceNumber, access.ageInstName);
+        if (access.GetAgeSequenceNumber() > 0)
+            StrPrintf(str, arrsize(str), "%S(%d) %S", access.GetAgeUserDefinedName(), access.GetAgeSequenceNumber(), access.GetAgeInstanceName());
         else
-            StrPrintf(str, arrsize(str), "%S %S", access.ageUserDefinedName, access.ageInstName);
+            StrPrintf(str, arrsize(str), "%S %S", access.GetAgeUserDefinedName(), access.GetAgeInstanceName());
         fAgeDispName = str;
     }
     return fAgeDispName.c_str();

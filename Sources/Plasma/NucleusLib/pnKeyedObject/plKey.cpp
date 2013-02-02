@@ -50,7 +50,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "HeadSpin.h"
 #include "plKey.h"
 #include "plUoid.h"
-#include <string.h>
 #include "hsResMgr.h"
 
 #define TRACK_REFS 0 // MEMLEAKFISH
@@ -79,7 +78,7 @@ static int IsTracked(const plKeyData* keyData)
 {
     if( mlfTrack && keyData )
     {
-        if( keyData->GetUoid().GetObjectName() && !stricmp(keyData->GetUoid().GetObjectName(), keyNameToLookFor)
+        if( !keyData->GetUoid().GetObjectName().CompareI(keyNameToLookFor)
             && (keyData->GetUoid().GetClassType() == CLASS_TO_TRACK) )
         {
             if( (kCloneID < 0)
@@ -120,15 +119,6 @@ static const char* CloneString(const plKeyData* keyData)
 #endif
 
 
-plKey::plKey() : fKeyData(nil)
-{
-}
-
-plKey::plKey(void* ptr) : fKeyData(nil)
-{
-    hsAssert(!ptr, "Attempting to publically construct a non-nil key");
-}
-
 plKey::plKey(const plKey& rhs) : fKeyData(rhs.fKeyData)
 {
 #if TRACK_REFS  // FOR DEBUGGING ONLY
@@ -143,13 +133,13 @@ plKey::plKey(const plKey& rhs) : fKeyData(rhs.fKeyData)
     IIncRef();
 }
 
-plKey::plKey(plKeyData* data, bool ignore) : fKeyData(data)
+plKey::plKey(plKeyData* data) : fKeyData(data)
 {
 #if TRACK_REFS  // FOR DEBUGGING ONLY
     if( IsTracked(fKeyData) )
     {
         char msg[ 512 ];
-        sprintf( msg, "C: Key %s %s is being constructed using the plKey(plKeyData*, bool) constructor", keyNameToLookFor, CloneString(fKeyData) );
+        sprintf( msg, "C: Key %s %s is being constructed using the plKey(plKeyData*) constructor", keyNameToLookFor, CloneString(fKeyData) );
         //hsAssert( false, msg );
         hsStatusMessageF(msg);
     }
@@ -180,9 +170,12 @@ plKey &plKey::operator=( const plKey &rhs )
         {
             char msg[ 512 ];
             if (fKeyData == nil)
-                sprintf( msg, "=: Key %s %s is being assigned to a nil key", keyNameToLookFor, CloneString(rhs.fKeyData) );
+                sprintf( msg, "=: Key %s %s is being assigned to a nil key",
+                         keyNameToLookFor, CloneString(rhs.fKeyData) );
             else
-                sprintf( msg, "=: Key %s %s is being assigned to %s", keyNameToLookFor, CloneString(rhs.fKeyData), fKeyData->GetUoid().GetObjectName() );
+                sprintf( msg, "=: Key %s %s is being assigned to %s",
+                         keyNameToLookFor, CloneString(rhs.fKeyData),
+                         fKeyData->GetUoid().GetObjectName().c_str() );
             //hsAssert( false, msg );
             hsStatusMessageF(msg);
         }
@@ -190,9 +183,12 @@ plKey &plKey::operator=( const plKey &rhs )
         {
             char msg[ 512 ];
             if (fKeyData == nil)
-                sprintf( msg, "=: Nil key is being assigned to %s %s", keyNameToLookFor, CloneString(fKeyData) );
+                sprintf( msg, "=: Nil key is being assigned to %s %s",
+                         keyNameToLookFor, CloneString(fKeyData) );
             else
-                sprintf( msg, "=: Key %s %s is being assigned to %s", fKeyData->GetUoid().GetObjectName(), CloneString(fKeyData), keyNameToLookFor );
+                sprintf( msg, "=: Key %s %s is being assigned to %s",
+                         fKeyData->GetUoid().GetObjectName().c_str(),
+                         CloneString(fKeyData), keyNameToLookFor );
             //hsAssert( false, msg );
             hsStatusMessageF(msg);
         }

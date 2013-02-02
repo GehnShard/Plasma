@@ -41,6 +41,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
+#include <algorithm>
+
 #include "plVirtualCamNeu.h"
 #include "plCameraModifier.h"
 #include "plCameraBrain.h"
@@ -185,16 +187,10 @@ plVirtualCam1::plVirtualCam1()
 #ifndef PLASMA_EXTERNAL_RELEASE
     // only open log file if logging is on
     if ( !plStatusLog::fLoggingOff )
-    {
-        wchar_t fileAndPath[MAX_PATH];
-        PathGetLogDirectory(fileAndPath, arrsize(fileAndPath));
-        PathAddFilename(fileAndPath, fileAndPath, L"camLog.txt", arrsize(fileAndPath));
-        foutLog = hsWFopen( fileAndPath, L"wt" );
-    }
+        foutLog = plFileSystem::Open(plFileName::Join(plFileSystem::GetLogPath(), "camLog.txt"), "wt");
 #endif
 
     SetFlags(kFirstPersonEnabled);
-
 }
 
 plVirtualCam1::~plVirtualCam1()

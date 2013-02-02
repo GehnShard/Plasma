@@ -61,7 +61,7 @@ pyVaultSDLNode::pyVaultSDLNode(RelVaultNode* nfsNode)
 
 //create from the Python side
 pyVaultSDLNode::pyVaultSDLNode()
-: pyVaultNode(NEWZERO(RelVaultNode))
+: pyVaultNode(new RelVaultNode)
 {
     fNode->SetNodeType(plVault::kNodeType_SDL);
 }
@@ -76,7 +76,7 @@ void pyVaultSDLNode::SetIdent( int v )
         return;
     
     VaultSDLNode sdl(fNode);
-    sdl.SetSdlIdent(v);
+    sdl.SetSDLIdent(v);
 }
 
 int pyVaultSDLNode::GetIdent() const
@@ -85,7 +85,7 @@ int pyVaultSDLNode::GetIdent() const
         return 0;
     
     VaultSDLNode sdl(fNode);
-    return sdl.sdlIdent;
+    return sdl.GetSDLIdent();
 }
 
 PyObject * pyVaultSDLNode::GetStateDataRecord() const
@@ -94,7 +94,7 @@ PyObject * pyVaultSDLNode::GetStateDataRecord() const
         PYTHON_RETURN_NONE;
         
     VaultSDLNode sdl(fNode);
-    plStateDataRecord * rec = NEWZERO(plStateDataRecord);
+    plStateDataRecord * rec = new plStateDataRecord;
     if (sdl.GetStateDataRecord(rec))
         return pySDLStateDataRecord::New(rec);
     else

@@ -53,7 +53,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnNetBase/pnNetBase.h"
 #include "pnAsyncCore/pnAsyncCore.h"
 #include "pnNetCli/pnNetCli.h"
-#include "pnProduct/pnProduct.h"
+#include "plProduct.h"
 #include "plNetGameLib/plNetGameLib.h"
 
 #pragma warning(push, 0)
@@ -86,7 +86,7 @@ public:
     void Read(hsStream *, hsResMgr *) { FATAL("not impl"); }
     void Write(hsStream *, hsResMgr *) { FATAL("not impl"); }
 
-    pfGameMgrMsg ();
+    pfGameMgrMsg () : netMsg(nil) { }
     ~pfGameMgrMsg ();
     
     void Set (const GameMsgHeader & msg);
@@ -108,8 +108,8 @@ public:
     CLASSNAME_REGISTER(pfGameCliMsg);
     GETINTERFACE_ANY(pfGameCliMsg, plMessage);
     #pragma warning(pop)
-    
-    pfGameCliMsg ();
+
+    pfGameCliMsg () : gameCli(nil), netMsg(nil) { }
     ~pfGameCliMsg ();
 
     void Read(hsStream *, hsResMgr *) { FATAL("not impl"); }
@@ -170,7 +170,7 @@ public:
     // Create a new game
     void CreateGame (
         plKey           receiver,       // Receiver of pfGameCliMsgs for this game
-        const Uuid &    gameTypeId,     // typeid of game to create
+        const plUUID&   gameTypeId,     // typeid of game to create
         unsigned        createOptions,  // Game create options from pnGameMgr.h
         unsigned        initBytes,      // Game-specific initialization data
         const void *    initData
@@ -178,7 +178,7 @@ public:
     // Join or create the specified common game
     void JoinCommonGame (
         plKey           receiver,       // Receiver of pfGameCliMsgs for this game
-        const Uuid &    gameTypeId,     // typeid of common game to create/join
+        const plUUID&   gameTypeId,     // typeid of common game to create/join
         unsigned        gameNumber,     // "table number" of common game to create/join
         // In case the common game needs to
         // be created on the server, these

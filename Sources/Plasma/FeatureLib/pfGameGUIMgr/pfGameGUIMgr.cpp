@@ -49,7 +49,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //                                                                          //
 //////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>
 #include "hsTimer.h"
 #include "HeadSpin.h"
 #include "pfGameGUIMgr.h"
@@ -615,7 +614,7 @@ bool    pfGameGUIMgr::IHandleKeyPress( wchar_t key, uint8_t modifiers )
     pfGUIDialogMod  *dlg;
 
     // Really... Don't handle any nil keypresses
-    if (key == nil)
+    if (!key)
         return false;
 
     for( dlg = fActiveDialogs; dlg != nil; dlg = dlg->GetNext() )
@@ -796,7 +795,7 @@ bool    pfGameUIInputInterface::InterpretInputEvent( plInputEventMsg *pMsg )
                 if ((keymap->GetKey1().IsSatisfiedBy(combo)) || (keymap->GetKey2().IsSatisfiedBy(combo)))
                 {
                     // tell the KI to take the shot
-                    plConsoleMsg * consoleMsg = NEWZERO(plConsoleMsg);
+                    plConsoleMsg * consoleMsg = new plConsoleMsg;
                     consoleMsg->SetCmd(plConsoleMsg::kExecuteLine);
                     consoleMsg->SetString("Game.KITakePicture");
                     consoleMsg->Send(nil, true);

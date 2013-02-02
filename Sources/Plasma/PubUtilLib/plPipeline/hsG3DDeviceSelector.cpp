@@ -43,8 +43,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //#define DYNAHEADER_CREATE_STORAGE
 
 #include "HeadSpin.h"
+#include "hsWindows.h"
 
-#include <time.h>
+#include <ctime>
 
 
 
@@ -1491,7 +1492,7 @@ void    hsG3DDeviceSelector::IFudgeDirectXDevice( hsG3DDeviceRecord &record,
                                                     D3DEnum_DeviceInfo *deviceInfo )
 {
     char        desc[ 512 ];    // Can't rely on D3D constant, since that's in another file now
-    DWORD       vendorID, deviceID;
+    uint32_t    vendorID, deviceID;
     char        *szDriver, *szDesc;
 
 
@@ -1567,6 +1568,14 @@ void    hsG3DDeviceSelector::IFudgeDirectXDevice( hsG3DDeviceRecord &record,
     }
 
     //// ATI-based Cards //////////////////////////////////////////////////////
+    /// Detect ATI Radeon HD
+    else if (strstr( desc, "radeon hd" ) != nullptr)
+    {
+        hsStatusMessage( "== Using fudge factors for an ATI Radeon HD chipset ==\n" );
+        plDemoDebugFile::Write( "   Using fudge factors for an ATI Radeon HD chipset" );
+        ISetFudgeFactors( kDefaultChipset, record );
+    }
+
     /// Detect ATI Rage 128 Pro chipset
     else if( ( deviceID == 0x00005046 &&            // Normal ATI Rage 128 Pro detection
                 ( stricmp( szDriver, "ati2dvaa.dll" ) == 0 

@@ -39,11 +39,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include <float.h>
+#include <cfloat>
 #include <cmath>
+#include <ctime>
 #include "plUnifiedTime.h"
-#include "hsStlUtils.h"
-
+#include "hsWindows.h"
+#include "hsStream.h"
 
 #if HS_BUILD_FOR_UNIX
 #include <sys/time.h>
@@ -53,11 +54,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #if HS_BUILD_FOR_WIN32
 #include <sys/timeb.h>  // for timeb
 #endif
-
-
-
-#include <time.h>
-#include "hsStream.h"
 
 
 #if HS_BUILD_FOR_WIN32
@@ -193,7 +189,7 @@ plUnifiedTime::plUnifiedTime(const plUnifiedTime * src)
     *this = *src;
 }
 
-plUnifiedTime plUnifiedTime::GetCurrentTime(Mode mode)
+plUnifiedTime plUnifiedTime::GetCurrent(Mode mode)
 {
     plUnifiedTime t;
     t.SetMode(mode);
@@ -309,8 +305,8 @@ const char* plUnifiedTime::Print() const
 //  short year, month, day, hour, minute, second;
 //  GetTime(year, month, day, hour, minute, second);
 //
-//  xtl::format(s,"yr %d mo %d day %d hour %d min %d sec %d",
-//      year, month, day, hour, minute, second);
+//  s = plString::Format("yr %d mo %d day %d hour %d min %d sec %d",
+//          year, month, day, hour, minute, second);
 
     s = Format("%c");
     return s.c_str();
@@ -318,8 +314,8 @@ const char* plUnifiedTime::Print() const
 
 const char* plUnifiedTime::PrintWMillis() const
 {
-    static std::string s;
-    xtl::format(s,"%s,s:%lu,ms:%d",
+    static plString s;
+    s = plString::Format("%s,s:%lu,ms:%d",
         Print(), (unsigned long)GetSecs(), GetMillis() );
     return s.c_str();
 }

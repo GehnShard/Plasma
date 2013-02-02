@@ -57,6 +57,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 
 #if HS_BUILD_FOR_WIN32
+#include "hsWindows.h"
 #include <mmsystem.h>
 
 
@@ -148,9 +149,9 @@ plWinMicLevel::plWinMicLevel()
     if( sNumMixers == 0 )
         return;
 
-    if( ::mixerOpen( &sMixerHandle, 0, 
-                                    nil,    // Window handle to receive callback messages
-                                    nil, MIXER_OBJECTF_MIXER ) != MMSYSERR_NOERROR )
+    if( ::mixerOpen( &sMixerHandle, 0,
+                     0,    // Window handle to receive callback messages
+                     0, MIXER_OBJECTF_MIXER ) != MMSYSERR_NOERROR )
     {
         sMixerHandle = nil; // Just to be sure
         return;

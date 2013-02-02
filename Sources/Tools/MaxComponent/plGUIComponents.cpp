@@ -39,19 +39,27 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+
 #include "HeadSpin.h"
-#include "max.h"
-#include "resource.h"
+#include "plgDispatch.h"
 #include "hsTemplates.h"
+
 #include "plComponent.h"
 #include "plComponentReg.h"
-#include "plMiscComponents.h"
 #include "plAnimComponent.h"
+#include "plAudioComponents.h"
+#include "plMiscComponents.h"
+#include "resource.h"
+#include "MaxMain/plMaxNode.h"
+
+#include <iparamm2.h>
+#include <string>
+#include <vector>
+#pragma hdrstop
+
 #include "plNotetrackAnim.h"
 
 #include "plGUIComponents.h"
-
-#include "plAudioComponents.h"
 
 #include "MaxMain/plPlasmaRefMsgs.h"
 
@@ -72,7 +80,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "MaxMain/plPluginResManager.h"
 
 
-#include "plgDispatch.h"
 #include "pnMessage/plObjRefMsg.h"
 #include "pnMessage/plIntRefMsg.h"
 #include "pnMessage/plNodeRefMsg.h"
@@ -85,8 +92,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "MaxConvert/plLayerConverter.h"
 #include "plInterp/plController.h"
 #include "plInterp/plAnimEaseTypes.h"
-#include "MaxMain/plMaxNode.h"
-#include "pnKeyedObject/plKey.h"
 
 // GUIDialog component.
 #include "plScene/plPostEffectMod.h"
@@ -115,7 +120,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAgeDescription/plAgeDescription.h"
 #include "MaxMain/plMaxCFGFile.h"
 #include "MaxMain/plAgeDescInterface.h"
-#include "hsFiles.h"
 #include "MaxConvert/plConvert.h"
 #include "MaxPlasmaMtls/Layers/plDynamicTextLayer.h"
 #include "MaxPlasmaMtls/Layers/plLayerTexBitmapPB.h"
@@ -134,9 +138,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plResMgr/plLocalization.h"
 
 #include "plPickLocalizationDlg.h"
-
-#include <vector>
-#include <string>
 
 
 void DummyCodeIncludeFuncGUI() {}
@@ -1447,8 +1448,8 @@ void    plGUIDialogProc::ILoadPages( HWND hWnd, IParamBlock2 *pb )
 
     while( ( page = aged->GetNextPage() ) != nil )
     {
-        int idx = ComboBox_AddString( hWnd, page->GetName() );
-        if( selPageName && stricmp( page->GetName(), selPageName ) == 0 )
+        int idx = ComboBox_AddString( hWnd, page->GetName().c_str() );
+        if( selPageName && page->GetName().CompareI( selPageName ) == 0 )
             ComboBox_SetCurSel( hWnd, idx );
     }
 
@@ -1462,19 +1463,17 @@ BOOL plGUIDialogProc::DlgProc( TimeValue t, IParamMap2 *pmap, HWND hWnd, UINT ms
         case WM_INITDIALOG:
             // Load the age combo box
             {
-                int                 i, idx, selIdx = 0;
-                HWND                ageCombo = GetDlgItem( hWnd, IDC_GUIDLG_AGE );
-                hsTArray<char *>    ageList;
+                int     i, idx, selIdx = 0;
+                HWND    ageCombo = GetDlgItem( hWnd, IDC_GUIDLG_AGE );
 
-                plAgeDescInterface::BuildAgeFileList( ageList );
+                hsTArray<plFileName> ageList = plAgeDescInterface::BuildAgeFileList();
                 ComboBox_ResetContent( ageCombo );
                 for( i = 0; i < ageList.GetCount(); i++ )
                 {
-                    char ageName[ _MAX_FNAME ];
-                    _splitpath( ageList[ i ], nil, nil, ageName, nil );
+                    plString ageName = ageList[i].GetFileNameNoExt();
 
-                    idx = ComboBox_AddString( ageCombo, ageName );
-                    if( stricmp( ageName, pmap->GetParamBlock()->GetStr( plGUIDialogComponent::kRefAgeName ) ) == 0 )
+                    idx = ComboBox_AddString( ageCombo, ageName.c_str() );
+                    if( ageName.CompareI( pmap->GetParamBlock()->GetStr( plGUIDialogComponent::kRefAgeName ) ) == 0 )
                     {
                         selIdx = idx;
                     }

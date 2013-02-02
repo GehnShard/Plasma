@@ -41,15 +41,30 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
-#include "Max.h"
-#include "istdplug.h"
-#include "custcont.h"
-
-#include "MaxExport/SimpleExport.h"
-#include "MaxMain/MaxCompat.h"
+#include "hsTemplates.h"
 
 #include "MaxComponent/plComponentMgr.h"
+#include "MaxCompat.h"
+
+
+#include <custcont.h>
+#include <direct.h>
+#include <istdplug.h>
+
+// "TEMP" -- who's gonna rewrite that now? >.<
+#include <CustAttrib.h>
+#include <ICustAttribContainer.h>
+#pragma hdrstop
+
+#include "MaxExport/SimpleExport.h"
+
 #include "MaxPlasmaMtls/plMtlImport.h"
+
+#include "plPythonMgr.h"
+#include "plPluginResManager.h"
+#include "plSDL/plSDL.h"
+#include "plMaxCFGFile.h"
+
 extern ClassDesc* GetGUPDesc();
 extern ClassDesc* GetComponentUtilDesc();
 extern ClassDesc* GetComponentMgrDesc();
@@ -133,13 +148,6 @@ __declspec(dllexport) ULONG LibVersion()
     return VERSION_3DSMAX; 
 }
 
-#include "plPythonMgr.h"
-#include "plPluginResManager.h"
-#include "plSDL/plSDL.h"
-#include "plMaxCFGFile.h"
-#include <direct.h>
-#include "hsFiles.h"
-
 //
 // DLLMAIN
 //
@@ -159,16 +167,15 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,ULONG fdwReason,LPVOID lpvReserved)
 
         plPythonMgr::Instance().LoadPythonFiles();
 
-        const char *clientPath = plMaxConfig::GetClientPath(false, true);
-        if (clientPath)
+        plFileName clientPath = plMaxConfig::GetClientPath(false, true);
+        if (clientPath.IsValid())
         {
-            char oldCwd[kFolderIterator_MaxPath];
-            _getcwd(oldCwd, sizeof(oldCwd));
-            _chdir(clientPath);
+            plFileName oldCwd = plFileSystem::GetCWD();
+            plFileSystem::SetCWD(clientPath);
             plSDLMgr::GetInstance()->Init();
-            _chdir(oldCwd);
+            plFileSystem::SetCWD(oldCwd);
         }
-        
+
         // Initialize the ResManager
         plResManager* pRmgr = new plPluginResManager;
         hsgResMgr::Init(pRmgr);
@@ -191,9 +198,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,ULONG fdwReason,LPVOID lpvReserved)
 //////////////////////////////////////////////////////////////////////////////////
 // TEMP
 //////////////////////////////////////////////////////////////////////////////////
-#include "CustAttrib.h"
-#include "ICustAttribContainer.h"
-#include "iparamb2.h"
 
 #define PL_GEN_ATTRIB_CLASS_ID Class_ID(0x24c36e6e, 0x53ec2ce4)
 
@@ -229,7 +233,7 @@ public:
     ReferenceTarget *Clone(RemapDir &remap = DEFAULTREMAP);
     virtual bool CheckCopyAttribTo(ICustAttribContainer *to) { return true; }
     
-    const TCHAR* GetName() { return (const TCHAR*)_T(fClassDesc->ClassName()); }
+    GETNAME_RETURN_TYPE GetName() { return (GETNAME_RETURN_TYPE)_T(fClassDesc->ClassName()); }
     void DeleteThis() { delete this; }
 };
 

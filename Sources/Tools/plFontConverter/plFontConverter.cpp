@@ -43,6 +43,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define WINDOWNAME  "plFontConverter"
 
 #include "HeadSpin.h"
+#include "hsWindows.h"
 #include "res/resource.h"
 
 #include "pnAllCreatables.h"
@@ -86,3 +87,8 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
     return 0;
 }
+
+/* Enable themes in Windows XP and later */
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")

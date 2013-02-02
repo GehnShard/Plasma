@@ -39,17 +39,24 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+
 #include "HeadSpin.h"
-#include "max.h"
-#include "resource.h"
-//
+#include "hsResMgr.h"
 #include "hsTemplates.h"
+
+#include "plComponent.h"
+#include "plComponentReg.h"
+#include "MaxMain/plMaxNode.h"
+
+#include <iparamm2.h>
+#include "resource.h"
+#pragma hdrstop
+
 #include "plResMgr/plKeyFinder.h"
 #include "plResMgr/plPageInfo.h"
-#include "hsResMgr.h"
-#include "MaxMain/plMaxNode.h"
+
 #include "plClothingComponent.h"
-#include "plComponentReg.h"
+
 #include "MaxPlasmaMtls/Materials/plClothingMtl.h"
 #include "pnMessage/plRefMsg.h"
 #include "plAvatar/plAvatarClothing.h"
@@ -226,7 +233,7 @@ bool plClothingComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     }
 
     const plPageInfo* thisInfo = plKeyFinder::Instance().GetLocationInfo(locationNode ? locationNode->GetLocation() : node->GetLocation());
-    const plLocation &loc = plKeyFinder::Instance().FindLocation("GlobalClothing", thisInfo->GetPage());
+    const plLocation &loc = plKeyFinder::Instance().FindLocation("GlobalClothing", thisInfo->GetPage().c_str());
 
     for (i = 0; i < fCompPB->Count(plClothingComponent::kMaterials); i++)
     {

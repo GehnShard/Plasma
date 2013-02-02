@@ -1339,7 +1339,7 @@ bool plArmatureMod::MsgReceive(plMessage* msg)
         }
         else
         {
-            if (cloneMsg->GetCloneKey() == GetFollowerParticleSystemSO())
+            if (cloneMsg->GetCloneKey() == GetFollowerParticleSystemSO()->GetKey())
             {
                 SetFollowerParticleSystemSO(nil);
                 return true;
@@ -1735,7 +1735,7 @@ void plArmatureMod::Write(hsStream *stream, hsResMgr *mgr)
     stream->WriteLEFloat(fPhysHeight);
     stream->WriteLEFloat(fPhysWidth);
 
-    stream->WriteSafeString(fAnimationPrefix.c_str());
+    stream->WriteSafeString(fAnimationPrefix);
     stream->WriteSafeString(fBodyAgeName.c_str());
     stream->WriteSafeString(fBodyFootstepSoundPage.c_str());
 }
@@ -2380,7 +2380,7 @@ bool plArmatureMod::FindMatchingGenericBrain(const char *names[], int count)
     return false;
 }
 
-plString plArmatureMod::MakeAnimationName(const char *baseName) const
+plString plArmatureMod::MakeAnimationName(const plString& baseName) const
 {
     return fAnimationPrefix + baseName;
 }
@@ -2395,7 +2395,7 @@ void plArmatureMod::SetRootName(const plString &name)
     fRootName = name;
 }
 
-plAGAnim *plArmatureMod::FindCustomAnim(const char *baseName) const
+plAGAnim *plArmatureMod::FindCustomAnim(const plString& baseName) const
 {
     plString customName = MakeAnimationName(baseName);
     plAGAnim *result = plAGAnim::FindAnim(customName);
@@ -2433,7 +2433,7 @@ void plArmatureMod::ISetupMarkerCallbacks(plATCAnim *anim, plAnimTimeConvert *at
             iMsg->AddReceiver(fEffects->GetKey());
             iMsg->fEventTime = time;
             iMsg->fEvent = kTime;
-            iMsg->SetMessage(msg);
+            iMsg->SetMessageRef(msg);
             atc->AddCallback(iMsg);
             hsRefCnt_SafeUnRef(msg);
             hsRefCnt_SafeUnRef(iMsg);
@@ -2445,7 +2445,7 @@ void plArmatureMod::ISetupMarkerCallbacks(plATCAnim *anim, plAnimTimeConvert *at
             iMsg->AddReceiver(fEffects->GetKey());
             iMsg->fEventTime = time;
             iMsg->fEvent = kTime;
-            iMsg->SetMessage(foot);
+            iMsg->SetMessageRef(foot);
             atc->AddCallback(iMsg);
             hsRefCnt_SafeUnRef(foot);
             hsRefCnt_SafeUnRef(iMsg);

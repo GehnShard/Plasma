@@ -63,8 +63,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 
 #include "hsColorRGBA.h"
-              // EVIL
 #include "hsTemplates.h"
+#include "hsWindows.h" // FIXME: Windows header level include :(
 
 #if HS_BUILD_FOR_WIN32
 
@@ -90,10 +90,9 @@ class plWinFontCache
         class plCustFont
         {
             public:
-                char    *fFilename;
+                plFileName fFilename;
 
-                plCustFont( const char *c ) { fFilename = hsStrcpy( c ); }
-                ~plCustFont() { delete [] fFilename; }
+                plCustFont(const plFileName &c) { fFilename = c; }
         };
 
         bool    fInShutdown;

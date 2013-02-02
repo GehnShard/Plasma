@@ -39,23 +39,27 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+
 #include "HeadSpin.h"
-#include "plMultistageBehComponent.h"
+#include "hsResMgr.h"
+#include "hsStream.h"
+
+#include <map>
+
 #include "plComponent.h"
 #include "plComponentReg.h"
+#include "MaxMain/plMaxNode.h"
+#include "resource.h"
+#pragma hdrstop
+
+#include "plMultistageBehComponent.h"
 
 #include "plMultistageStage.h"
 
-#include "hsStream.h"
-#include "resource.h"
-#include "MaxMain/plMaxNode.h"
 #include "MaxMain/plMaxAccelerators.h"
 
 #include "plAvatar/plAnimStage.h"
 #include "plAvatar/plMultistageBehMod.h"
-#include "hsResMgr.h"
-
-#include <map>
 
 
 void DummyCodeIncludeFuncMultistageBeh() {}
@@ -486,11 +490,10 @@ public:
     MaxStream(ILoad* iload) : fSave(nil), fLoad(iload) {}
 
     // Don't support any of this
-    virtual bool Open(const char *, const char * = "rb") { hsAssert(0, "Not supported"); return false; }
-    virtual bool Open(const wchar_t *, const wchar_t * = L"rb") { hsAssert(0, "Not supported"); return false; }
+    virtual bool Open(const plFileName &, const char * = "rb") { hsAssert(0, "Not supported"); return false; }
     virtual bool Close() {  hsAssert(0, "Not supported"); return false; }
-    virtual void   Skip(uint32_t deltaByteCount) { hsAssert(0, "Not supported"); }
-    virtual void   Rewind() { hsAssert(0, "Not supported"); }
+    virtual void Skip(uint32_t deltaByteCount) { hsAssert(0, "Not supported"); }
+    virtual void Rewind() { hsAssert(0, "Not supported"); }
 
     virtual uint32_t  GetEOF() { return (uint32_t)fLoad->CurChunkLength(); }
 

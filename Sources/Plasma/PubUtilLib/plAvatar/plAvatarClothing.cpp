@@ -277,7 +277,7 @@ void plClothingItem::Write(hsStream *s, hsResMgr *mgr)
     if (fAccessoryName)
     {
         plString strBuf = plString::Format("CItm_%s", fAccessoryName);
-        accessoryKey = plKeyFinder::Instance().StupidSearch("GlobalClothing", nil, plClothingItem::Index(), strBuf);
+        accessoryKey = plKeyFinder::Instance().StupidSearch("GlobalClothing", "", plClothingItem::Index(), strBuf);
         if (accessoryKey == nil)
         {
             strBuf = plString::Format("Couldn't find accessory \"%s\". It won't show at runtime.", fAccessoryName);
@@ -632,10 +632,11 @@ void plClothingOutfit::IAddItem(plClothingItem *item)
 
             for (i = 0; i < num; i++)
             {
-                if (soundEffect = plArmatureEffectFootSound::ConvertNoRef(mgr->GetEffect(i)))
+                soundEffect = plArmatureEffectFootSound::ConvertNoRef(mgr->GetEffect(i));
+                if (soundEffect)
                     break;
             }
-            
+
             if (soundEffect)
             {
                 if (!strcmp(item->fName, "03_MLFoot04_01") || !strcmp(item->fName, "03_FLFoot04_01"))
@@ -816,9 +817,9 @@ void plClothingOutfit::ReadFromVault()
 
     for (unsigned i = 0; i < nodes.Count(); ++i) {
         VaultSDLNode sdl(nodes[i]);
-        if (sdl.sdlDataLen) {
+        if (sdl.GetSDLDataLength()) {
             hsRAMStream ram;
-            ram.Write(sdl.sdlDataLen, sdl.sdlData);
+            ram.Write(sdl.GetSDLDataLength(), sdl.GetSDLData());
             ram.Rewind();
             
             plString sdlRecName;
@@ -934,7 +935,7 @@ void plClothingOutfit::WriteToVault(const ARRAY(plStateDataRecord*) & SDRs)
                 node->DecRef(); // REF: Find
             }
             else {
-                RelVaultNode * templateNode = NEWZERO(RelVaultNode);
+                RelVaultNode * templateNode = new RelVaultNode;
                 templateNode->SetNodeType(plVault::kNodeType_SDL);
                 templates.Add(templateNode);
                 node = templateNode;
@@ -947,33 +948,33 @@ void plClothingOutfit::WriteToVault(const ARRAY(plStateDataRecord*) & SDRs)
             node->DecRef();     // REF: Work
         }
     }
-        
+
     // Delete any leftover nodes
-    { for (unsigned i = 0; i < nodes.Count(); ++i) {
-        VaultDeleteNode(nodes[i]->nodeId);
+    for (unsigned i = 0; i < nodes.Count(); ++i) {
+        VaultDeleteNode(nodes[i]->GetNodeId());
         nodes[i]->DecRef(); // REF: Array
-    }}
-    
+    }
+
     // Create actual new nodes from their templates
-    { for (unsigned i = 0; i < templates.Count(); ++i) {
+    for (unsigned i = 0; i < templates.Count(); ++i) {
         ENetError result;
         if (RelVaultNode * actual = VaultCreateNodeAndWaitIncRef(templates[i], &result)) {
             actuals.Add(actual);
         }
         templates[i]->DecRef(); // REF: Create
-    }}
+    }
 
     // Add new nodes to outfit folder
-    { for (unsigned i = 0; i < actuals.Count(); ++i) {
-        VaultAddChildNodeAndWait(rvn->nodeId, actuals[i]->nodeId, NetCommGetPlayer()->playerInt);
+    for (unsigned i = 0; i < actuals.Count(); ++i) {
+        VaultAddChildNodeAndWait(rvn->GetNodeId(), actuals[i]->GetNodeId(), NetCommGetPlayer()->playerInt);
         actuals[i]->DecRef();   // REF: Create
-    }}
+    }
 
     // Cleanup morph SDRs
-    {for (unsigned i = 0; i < morphs.Count(); ++i) {
+    for (unsigned i = 0; i < morphs.Count(); ++i) {
         delete morphs[i];
-    }}
-    
+    }
+
     rvn->DecRef();
 }
 
@@ -1533,7 +1534,7 @@ plClothingLayout *plClothingMgr::GetLayout(char *name)
     return nil;
 }
 
-plClothingElement *plClothingMgr::FindElementByName(char *name)
+plClothingElement *plClothingMgr::FindElementByName(const char *name)
 {
     int i;
     for (i = 0; i < fElements.GetCount(); i++)
@@ -1571,7 +1572,7 @@ void plClothingMgr::AddItemsToCloset(hsTArray<plClosetItem> &items)
         plStateDataRecord rec(plClothingSDLModifier::GetClothingItemSDRName());
         plClothingSDLModifier::PutSingleItemIntoSDR(&items[i], &rec);
         
-        RelVaultNode * templateNode = NEWZERO(RelVaultNode);
+        RelVaultNode * templateNode = new RelVaultNode;
         templateNode->IncRef();
         templateNode->SetNodeType(plVault::kNodeType_SDL);
         
@@ -1585,8 +1586,8 @@ void plClothingMgr::AddItemsToCloset(hsTArray<plClosetItem> &items)
         ENetError result;
         if (RelVaultNode * actual = VaultCreateNodeAndWaitIncRef(templates[i], &result)) {
             VaultAddChildNodeAndWait(
-                rvn->nodeId,
-                actual->nodeId,
+                rvn->GetNodeId(),
+                actual->GetNodeId(),
                 NetCommGetPlayer()->playerInt
             );
             actual->DecRef(); // REF: Create
@@ -1609,7 +1610,7 @@ void plClothingMgr::GetClosetItems(hsTArray<plClosetItem> &out)
     
     for (unsigned i = 0; i < nodes.Count(); ++i) {
         VaultSDLNode sdl(nodes[i]);
-        plStateDataRecord * rec = NEWZERO(plStateDataRecord);
+        plStateDataRecord * rec = new plStateDataRecord;
         if (sdl.GetStateDataRecord(rec, 0))
             plClothingSDLModifier::HandleSingleSDR(rec, nil, &out[i]);
         delete rec;

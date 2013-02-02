@@ -39,23 +39,18 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include <ctype.h>
 #include "hsStream.h"
 #include "hsMemory.h"
 
-
 #include "hsTemplates.h"
-#include "hsStlUtils.h"
 
 #if HS_BUILD_FOR_UNIX
 #include <unistd.h>
 #endif
 
-
 #if HS_BUILD_FOR_WIN32
 #include <io.h>
 #endif
-#include "hsStlUtils.h"
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -123,9 +118,8 @@ uint32_t hsStream::WriteFmt(const char * fmt, ...)
 
 uint32_t hsStream::WriteFmtV(const char * fmt, va_list av)
 {
-    std::string buf;
-    xtl::formatv( buf, fmt, av );
-    return Write( buf.length(), buf.data() );
+    plString buf = plString::IFormat(fmt, av);
+    return Write( buf.GetSize(), buf.c_str() );
 }
 
 uint32_t hsStream::WriteSafeStringLong(const plString &string)
@@ -678,128 +672,6 @@ uint32_t hsStream::ReadLEAtom(uint32_t* sizePtr)
     return tag;
 }
 
-//////////////////////////////////////////////////////////////////////////////////
-
-#define kFileStream_Uninitialized       ~0
-
-bool hsFileStream::Open(const char *name, const char *mode)
-{
-    hsAssert(0, "hsFileStream::Open  NotImplemented");
-    return false;
-}
-
-bool hsFileStream::Open(const wchar_t *name, const wchar_t *mode)
-{
-    hsAssert(0, "hsFileStream::Open  NotImplemented");
-    return false;
-}
-
-bool hsFileStream::Close ()
-{
-    hsAssert(0, "hsFileStream::Close  NotImplemented");
-    return false;
-}
-
-uint32_t hsFileStream::GetFileRef()
-{
-    return fRef;
-}
-
-void hsFileStream::SetFileRef(uint32_t ref)
-{
-    hsAssert(ref != kFileStream_Uninitialized, "bad ref");
-    fRef = ref;
-}
-
-hsFileStream::hsFileStream()
-{
-    fRef = kFileStream_Uninitialized;
-}
-
-hsFileStream::~hsFileStream()
-{
-}
-
-uint32_t hsFileStream::Read(uint32_t bytes,  void* buffer)
-{
-    hsAssert(fRef != kFileStream_Uninitialized, "fRef uninitialized");
-
-    fBytesRead += bytes;
-    fPosition += bytes;
-
-#if HS_BUILD_FOR_WIN32
-    uint32_t rBytes;
-    ReadFile((HANDLE)fRef, buffer, bytes, (LPDWORD)&rBytes, nil);
-    if(bytes == rBytes)
-        return bytes;
-    else
-        return 0;
-#else
-    return 0;
-#endif
-}
-
-uint32_t hsFileStream::Write(uint32_t bytes, const void* buffer)
-{
-    hsAssert(fRef != kFileStream_Uninitialized, "fRef uninitialized");
-
-    fBytesRead += bytes;
-    fPosition += bytes;
-
-#if HS_BUILD_FOR_WIN32
-    uint32_t wBytes;
-    WriteFile((HANDLE)fRef, buffer, bytes, (LPDWORD)&wBytes, nil);
-    if(bytes == wBytes)
-        return bytes;
-    else
-    {
-        char str[128];
-        sprintf(str, "hsFileStream::Write failed.  err %d", GetLastError());
-        hsAssert(false, str);
-        return 0;
-    }
-#else
-    return 0;
-#endif
-}
-
-
-bool hsFileStream::AtEnd()
-{
-#if HS_BUILD_FOR_WIN32
-    uint32_t bytes;
-    PeekNamedPipe((void*)fRef, nil, 0, nil, (LPDWORD)&bytes, nil);
-    return bytes>0;
-#else
-    hsAssert(0,"No hsStream::AtEnd() implemented for this stream class");
-    return false;
-#endif
-}
-
-void hsFileStream::Skip(uint32_t delta)
-{
-    fBytesRead += delta;
-    fPosition += delta;
-
-#if HS_BUILD_FOR_WIN32
-    hsDebugMessage("hsFileStream::Skip unimplemented", 0);
-#endif
-}
-
-void hsFileStream::Rewind()
-{
-    fBytesRead = 0;
-    fPosition = 0;
-
-#if HS_BUILD_FOR_WIN32
-    hsDebugMessage("hsFileStream::Rewind unimplemented", 0);
-#endif
-}
-
-void hsFileStream::Truncate()
-{
-    hsDebugMessage("hsFileStream::Truncate unimplemented", 0);
-}
 
 //////////////////////////////////////////////////////////////////////////////////////
 
@@ -809,17 +681,10 @@ hsUNIXStream::~hsUNIXStream()
     // Don't Close here, because Sub classes Don't always want that behaviour!
 }
 
-bool hsUNIXStream::Open(const char *name, const char *mode)
+bool hsUNIXStream::Open(const plFileName &name, const char *mode)
 {
     fPosition = 0;
-    fRef = hsFopen(name, mode);
-    return (fRef) ? true : false;
-}
-
-bool hsUNIXStream::Open(const wchar_t *name, const wchar_t *mode)
-{
-    fPosition = 0;
-    fRef = hsWFopen(name, mode);
+    fRef = plFileSystem::Open(name, mode);
     return (fRef) ? true : false;
 }
 
@@ -839,17 +704,13 @@ uint32_t hsUNIXStream::Read(uint32_t bytes,  void* buffer)
 {
     if (!fRef || !bytes)
         return 0;
-    int numItems = ::fread(buffer, 1 /*size*/, bytes /*count*/, fRef);
+    size_t numItems = ::fread(buffer, 1 /*size*/, bytes /*count*/, fRef);
     fBytesRead += numItems;
     fPosition += numItems;
-    if ((unsigned)numItems < bytes) {
-        if (feof(fRef)) {
-            // EOF ocurred
-            char str[128];
-            sprintf(str, "Hit EOF on UNIX Read, only read %d out of requested %d bytes\n", numItems, bytes);
-            hsDebugMessage(str, 0);
-        }
-        else {
+    if (numItems < bytes)
+    {
+        if (!feof(fRef))
+        {
             hsDebugMessage("Error on UNIX Read", ferror(fRef));
         }
     }
@@ -1351,23 +1212,15 @@ hsBufferedStream::hsBufferedStream()
 , fBufferReadOut(0)
 , fReadDirect(0)
 , fLastReadPos(0)
-, fFilename(nil)
 , fCloseReason(nil)
 #endif
 {
 }
 
-hsBufferedStream::~hsBufferedStream()
-{
-#ifdef LOG_BUFFERED
-    delete [] fFilename;
-#endif // LOG_BUFFERED
-}
-
-bool hsBufferedStream::Open(const char* name, const char* mode)
+bool hsBufferedStream::Open(const plFileName& name, const char* mode)
 {
     hsAssert(!fRef, "hsBufferedStream:Open Stream already opened");
-    fRef = hsFopen(name, mode);
+    fRef = plFileSystem::Open(name, mode);
     if (!fRef)
         return false;
 
@@ -1376,18 +1229,11 @@ bool hsBufferedStream::Open(const char* name, const char* mode)
 #ifdef LOG_BUFFERED
     fBufferHits = fBufferMisses = 0;
     fBufferReadIn = fBufferReadOut = fReadDirect = fLastReadPos = 0;
-    delete [] fFilename;
-    fFilename = hsStrdup(name);
+    fFilename = name;
     fCloseReason = nil;
 #endif // LOG_BUFFERED
 
     return true;
-}
-
-bool hsBufferedStream::Open(const wchar_t *name, const wchar_t *mode)
-{
-    hsAssert(0, "hsFileStream::Open  NotImplemented for wchar_t");
-    return false;
 }
 
 bool hsBufferedStream::Close()
@@ -1414,7 +1260,7 @@ bool hsBufferedStream::Close()
         wasted -= int((float(fBufferReadOut+fReadDirect) / float(fBufferReadIn+fReadDirect)) * 100.f);
 
     s.WriteFmt("%s,%d,%d,%u,%u,%u,%d,%s\n",
-        fFilename, fBufferHits, fBufferMisses, fBufferReadIn, fBufferReadOut, fReadDirect,
+        fFilename.c_str(), fBufferHits, fBufferMisses, fBufferReadIn, fBufferReadOut, fReadDirect,
         wasted,
         fCloseReason ? fCloseReason : "Unknown");
 

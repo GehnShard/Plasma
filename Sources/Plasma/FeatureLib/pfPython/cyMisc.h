@@ -59,12 +59,14 @@ class pyPoint3;
 
 #include "HeadSpin.h"
 #include <vector>
+#include <string>
 
 class pyGUIDialog;
 class plPipeline;
 class plDisplayMode;
+class plUUID;
+class plFileName;
 struct PipelineParams;
-struct Uuid;
 
 typedef struct _object PyObject;
 typedef struct PyMethodDef PyMethodDef;
@@ -633,7 +635,7 @@ public:
     static void NotifyOffererPublicLinkCompleted(uint32_t offerer);
     static void ToggleAvatarClickability(bool on);
     static void SetShareSpawnPoint(const char* spawnPoint);
-    static void SetShareAgeInstanceGuid(const Uuid& guid);
+    static void SetShareAgeInstanceGuid(const plUUID& guid);
     
     //////////////////////////////////////////////////////////////////////////////
     //
@@ -919,7 +921,7 @@ public:
     //              properly replaced (the list is a list of unicode strings) Name
     //              is in "Age.Set.Name" format
     //
-    static std::wstring GetLocalizedString(std::wstring name, const std::vector<std::wstring> & arguments);
+    static plString GetLocalizedString(plString name, const std::vector<plString> & arguments);
 
     static void EnablePlanarReflections(bool enable = true);
     static void SetGraphicsOptions(int Width, int Height, int ColorDepth, bool Windowed, int NumAASamples, int MaxAnisotropicSamples, bool VSync);
@@ -931,11 +933,11 @@ public:
 
     static bool DumpLogs(const std::wstring & folder);
 
-    static bool FileExists(const std::wstring & filename);
-    static bool CreateDir(const std::wstring & directory);
+    static bool FileExists(const plFileName & filename);
+    static bool CreateDir(const plFileName & directory);
 
-    static std::wstring GetUserPath();
-    static std::wstring GetInitPath();
+    static plFileName GetUserPath();
+    static plFileName GetInitPath();
 
     static void SetBehaviorNetFlags(pyKey & behKey, bool netForce, bool netProp);
     static void SendFriendInvite(const wchar_t email[], const wchar_t toName[]);

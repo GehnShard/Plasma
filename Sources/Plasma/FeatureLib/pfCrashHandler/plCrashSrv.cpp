@@ -42,8 +42,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "plCrashSrv.h"
 #include "plCrash_Private.h"
-#include "plFileUtils.h"
-#include "pnProduct/pnProduct.h"
+#include "plProduct.h"
+#include "plFileSystem.h"
 
 #ifdef HS_BUILD_FOR_WIN32
 
@@ -77,14 +77,8 @@ plCrashSrv::~plCrashSrv()
 
 void plCrashSrv::IHandleCrash()
 {
-    // Begin Hackiness
-    wchar_t dumpPath[1024];
-    SHGetSpecialFolderPathW(NULL, dumpPath, CSIDL_LOCAL_APPDATA, TRUE);
-    plFileUtils::ConcatFileName(dumpPath, ProductLongName());
-    plFileUtils::ConcatFileName(dumpPath, L"Log");
-    plFileUtils::EnsureFilePathExists(dumpPath);
-    plFileUtils::ConcatFileName(dumpPath, L"crash.dmp");
-    HANDLE file = CreateFileW(dumpPath,
+    plFileName dumpPath = plFileName::Join(plFileSystem::GetLogPath(), "crash.dmp");
+    HANDLE file = CreateFileW(dumpPath.AsString().ToWchar(),
                               GENERIC_WRITE,
                               0,
                               NULL,
@@ -92,7 +86,6 @@ void plCrashSrv::IHandleCrash()
                               FILE_ATTRIBUTE_NORMAL,
                               NULL
     );
-    // End Hackiness
 
     MINIDUMP_EXCEPTION_INFORMATION e;
     e.ClientPointers = TRUE;

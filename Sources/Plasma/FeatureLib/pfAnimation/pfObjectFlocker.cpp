@@ -40,7 +40,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "HeadSpin.h"
-#include "hsStlUtils.h"
 #include "hsMatrix44.h"
 #include "hsGeometry3.h"
 #include "plgDispatch.h"
@@ -57,7 +56,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 //#include "../plPipeline/plDebugGeometry.h"
 
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 
 #include "pfObjectFlocker.h"

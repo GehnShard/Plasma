@@ -52,9 +52,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <algorithm>
 #include <exception>
 #include <locale>
+#include <string>
 
 // Platform Library Includes
-#include <time.h>
+#include <ctime>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -69,8 +70,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsGeometry3.h"
 #include "hsQuat.h"
 #include "hsResMgr.h"
-#include "hsStlSortUtils.h"
-#include "hsStlUtils.h"
 #include "hsStream.h"
 #include "hsTemplates.h"
 #include "hsTimer.h"

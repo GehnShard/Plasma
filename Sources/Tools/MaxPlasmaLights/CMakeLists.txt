@@ -10,15 +10,11 @@ set(MaxPlasmaLights_HEADERS
     plRealTimeLightBase.h
     plRealTimeLights.h
     plRealTimeLightsPBDec.h
-    plRTLightBaseAnimDlgProc.h
-    plRTLightBaseAnimPBDec.h
     plRTObjLightDesc.h
     plRTPlasmaLights.def
     plRTProjDirLight.h
     plRTProjDirLightClassDesc.h
     plRTProjDirLightPBDec.h
-    prim.h
-    target.h
 )
 
 set(MaxPlasmaLights_RESOURCES
@@ -35,6 +31,7 @@ set(MaxPlasmaLights_SOURCES
 )
 
 SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Plasma_BINARY_DIR}/bin)
+use_precompiled_header(Pch.h Pch.cpp MaxPlasmaLights_HEADERS MaxPlasmaLights_SOURCES)
 add_library(MaxPlasmaLights SHARED ${MaxPlasmaLights_HEADERS} ${MaxPlasmaLights_RESOURCES} ${MaxPlasmaLights_SOURCES})
 set_target_properties(MaxPlasmaLights PROPERTIES SUFFIX ".dlo")
 
@@ -77,7 +74,6 @@ target_link_libraries(MaxPlasmaLights plGLight)
 target_link_libraries(MaxPlasmaLights plInputCore)
 target_link_libraries(MaxPlasmaLights plInterp)
 target_link_libraries(MaxPlasmaLights plIntersect)
-target_link_libraries(MaxPlasmaLights plJPEG)
 target_link_libraries(MaxPlasmaLights plMath)
 target_link_libraries(MaxPlasmaLights plMessage)
 target_link_libraries(MaxPlasmaLights plModifier)
@@ -118,7 +114,6 @@ target_link_libraries(MaxPlasmaLights pnNetBase)
 target_link_libraries(MaxPlasmaLights pnNetCli)
 target_link_libraries(MaxPlasmaLights pnNetCommon)
 target_link_libraries(MaxPlasmaLights pnNucleusInc)
-target_link_libraries(MaxPlasmaLights pnProduct)
 target_link_libraries(MaxPlasmaLights pnSceneObject)
 target_link_libraries(MaxPlasmaLights pnTimer)
 target_link_libraries(MaxPlasmaLights pnUtils)

@@ -59,8 +59,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsColorRGBA.h"
 #include "plPipeline/hsGDeviceRef.h"
 #include "plProfile.h"
-#include "plJPEG/plJPEG.h"
-#include <math.h>
+#include "plJPEG.h"
+#include <cmath>
 
 plProfile_CreateMemCounter("Mipmaps", "Memory", MemMipmaps);
 

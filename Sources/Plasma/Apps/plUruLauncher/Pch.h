@@ -50,19 +50,19 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #endif
 #define PLASMA20_SOURCES_PLASMA_APPS_PLURULAUNCHER_PCH_H
 
+#include "hsWindows.h"
 #include <process.h>
-#include <time.h>
+#include <ctime>
 
 #include <curl/curl.h>
 
 #include "pnUtils/pnUtils.h"
 #include "pnNetBase/pnNetBase.h"
 #include "pnAsyncCore/pnAsyncCore.h"
-#include "pnProduct/pnProduct.h"
+#include "plProduct.h"
 #include "pnNetCli/pnNetCli.h"
 #include "plNetGameLib/plNetGameLib.h"
 #include "pnEncryption/plChecksum.h"
-#include "plFileUtils.h"
 
 #include "plCompression/plZlibStream.h"
 #include "plClientPatcher/UruPlayer.h"

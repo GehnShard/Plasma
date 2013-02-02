@@ -128,17 +128,17 @@ struct NetCliAuthPlayerInfo {
 typedef void (*FNetCliAuthLoginRequestCallback)(
     ENetError                   result,
     void *                      param,
-    const Uuid &                accountId,
+    const plUUID&               accountId,
     unsigned                    accountFlags,
     unsigned                    billingType,
     const NetCliAuthPlayerInfo  playerInfoArr[],
     unsigned                    playerCount
 );
 void NetCliAuthLoginRequest (
-    const wchar_t                     accountName[],  // nil --> reuse previous acct name
+    const wchar_t                   accountName[],  // nil --> reuse previous acct name
     const ShaDigest *               accountNamePassHash,  // nil --> reuse previous acct pass
-    const wchar_t                     authToken[],  // nil --> reuse previous auth token
-    const wchar_t                     os[],  // nil --> reuse previous os
+    const wchar_t                   authToken[],  // nil --> reuse previous auth token
+    const wchar_t                   os[],  // nil --> reuse previous os
     FNetCliAuthLoginRequestCallback callback,
     void *                          param
 );
@@ -162,7 +162,7 @@ void NetCliAuthSetPlayerRequest (
 typedef void (*FNetCliAuthAccountCreateRequestCallback)(
     ENetError                       result,
     void *                          param,
-    const Uuid &                    accountId
+    const plUUID&                   accountId
 );
 void NetCliAuthAccountCreateRequest (
     const wchar_t                             accountName[],
@@ -179,13 +179,13 @@ void NetCliAuthAccountCreateRequest (
 typedef void (*FNetCliAuthAccountCreateFromKeyRequestCallback)(
     ENetError                       result,
     void *                          param,
-    const Uuid &                    accountId,
-    const Uuid &                    activationKey
+    const plUUID&                   accountId,
+    const plUUID&                   activationKey
 );
 void NetCliAuthAccountCreateFromKeyRequest (
     const wchar_t                                     accountName[],
     const wchar_t                                     accountPass[],
-    Uuid                                            key,
+    plUUID                                          key,
     unsigned                                        billingType,
     FNetCliAuthAccountCreateFromKeyRequestCallback  callback,
     void *                                          param
@@ -313,7 +313,7 @@ typedef void (*FNetCliAuthAccountActivateRequestCallback)(
     void *                          param
 );
 void NetCliAuthAccountActivateRequest (
-    const Uuid &                                activationKey,
+    const plUUID&                               activationKey,
     FNetCliAuthAccountActivateRequestCallback   callback,
     void *                                      param
 );
@@ -326,12 +326,12 @@ typedef void (*FNetCliAuthAgeRequestCallback)(
     void *          param,
     unsigned        ageMcpId,
     unsigned        ageVaultId,
-    const Uuid &    ageInstId,
+    const plUUID&   ageInstId,
     plNetAddress    gameAddr
 );
 void NetCliAuthAgeRequest (
     const wchar_t                         ageName[],      // L"Teledahn"
-    const Uuid &                        ageInstId,
+    const plUUID&                       ageInstId,
     FNetCliAuthAgeRequestCallback       callback,
     void *                              param
 );
@@ -348,7 +348,7 @@ void NetCliAuthGetEncryptionKey (
 // File List
 //============================================================================
 struct NetCliAuthFileInfo {
-    wchar_t       filename[MAX_PATH];
+    wchar_t     filename[MAX_PATH];
     unsigned    filesize;
 };
 typedef void (*FNetCliAuthFileListRequestCallback)(
@@ -358,8 +358,8 @@ typedef void (*FNetCliAuthFileListRequestCallback)(
     unsigned                    infoCount
 );
 void NetCliAuthFileListRequest (
-    const wchar_t                         dir[],
-    const wchar_t                         ext[],
+    const wchar_t                       dir[],
+    const wchar_t                       ext[],
     FNetCliAuthFileListRequestCallback  callback,
     void *                              param
 );
@@ -368,13 +368,13 @@ void NetCliAuthFileListRequest (
 // File Download
 //============================================================================
 typedef void (*FNetCliAuthFileRequestCallback)(
-    ENetError       result,
-    void *          param,
-    const wchar_t     filename[],
-    hsStream *      writer
+    ENetError           result,
+    void *              param,
+    const plFileName &  filename,
+    hsStream *          writer
 );
 void NetCliAuthFileRequest (
-    const wchar_t                     filename[],
+    const plFileName &              filename,
     hsStream *                      writer,
     FNetCliAuthFileRequestCallback  callback,
     void *                          param
@@ -389,7 +389,7 @@ struct NetVaultNodeRef;
 // VaultNodeChanged
 typedef void (*FNetCliAuthVaultNodeChanged)(
     unsigned        nodeId,
-    const Uuid &    revisionId
+    const plUUID&   revisionId
 );
 void NetCliAuthVaultSetRecvNodeChangedHandler (
     FNetCliAuthVaultNodeChanged handler
@@ -519,8 +519,8 @@ typedef void (*FNetCliAuthAgeInitCallback) (
     unsigned            ageInfoVaultId
 );
 void NetCliAuthVaultInitAge (
-    const Uuid &                ageInstId,          // optional. is used in match
-    const Uuid &                parentAgeInstId,    // optional. is used in match
+    const plUUID&               ageInstId,          // optional. is used in match
+    const plUUID&               parentAgeInstId,    // optional. is used in match
     const wchar_t                 ageFilename[],      // optional. is used in match
     const wchar_t                 ageInstName[],      // optional. not used in match
     const wchar_t                 ageUserName[],      // optional. not used in match
@@ -589,7 +589,7 @@ typedef void (*FNetCliAuthSendFriendInviteCallback)(
 void NetCliAuthSendFriendInvite (
     const wchar_t                         emailAddress[],
     const wchar_t                         toName[],
-    const Uuid&                         inviteUuid,
+    const plUUID&                         inviteUuid,
     FNetCliAuthSendFriendInviteCallback callback,
     void *                              param
 );

@@ -42,6 +42,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plPhysicalControllerCore.h"
 
 #include "HeadSpin.h"
+#include <cmath>
 
 // singular
 #include "plAvLadderModifier.h"
@@ -254,7 +255,7 @@ void plAvLadderMod::EmitCommand(const plKey receiver)
                 plSceneObject *seekObj = GetTarget();
                 plKey seekKey = seekObj->GetKey();      // this modifier's target is the seek object
 
-                char *mountName, *dismountName, *traverseName;
+                const char *mountName, *dismountName, *traverseName;
 
                 if(fGoingUp)
                 {

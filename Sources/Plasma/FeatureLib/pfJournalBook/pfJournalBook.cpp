@@ -51,7 +51,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pfJournalBook.h"
 #include <wchar.h>
 
-#include "hsStlUtils.h"
 #include "hsResMgr.h"
 #include "pcSmallRect.h"
 #include "plgDispatch.h"
@@ -2492,7 +2491,7 @@ void    pfJournalBook::IFreeSource( void )
 // image name.
 
 #ifndef PLASMA_EXTERNAL_RELEASE
-#include "plJPEG/plJPEG.h"
+#include "plGImage/plJPEG.h"
 #include "plGImage/plPNG.h"
 #endif
 
@@ -2536,10 +2535,10 @@ plKey   pfJournalBook::IGetMipmapKey( const wchar_t *name, const plLocation &loc
     // Do a search through our current age with just the name given
     if( plNetClientMgr::GetInstance() != nil )
     {
-        const char *thisAge = plAgeLoader::GetInstance()->GetCurrAgeDesc().GetAgeName();
-        if( thisAge != nil )
+        plString thisAge = plAgeLoader::GetInstance()->GetCurrAgeDesc().GetAgeName();
+        if (!thisAge.IsNull())
         {
-            key = plKeyFinder::Instance().StupidSearch( thisAge, nil, plMipmap::Index(), cName, true );
+            key = plKeyFinder::Instance().StupidSearch( thisAge, "", plMipmap::Index(), cName, true );
             if( key != nil )
             {
                 return key;
@@ -2666,7 +2665,7 @@ void    pfJournalBook::IRenderPage( uint32_t page, uint32_t whichDTMap, bool sup
                             idx--;
                         break;
                     }
-                    if( chunk->fText[ lastChar ] != 0 )
+                    if (lastChar < chunk->fText.size() && chunk->fText[lastChar] != 0)
                     {
                         // Didn't get to render the whole paragraph in this go, so we're going to cheat
                         // and split the paragraph up into two so that we can handle it properly. Note:

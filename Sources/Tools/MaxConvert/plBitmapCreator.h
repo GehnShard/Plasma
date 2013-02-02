@@ -39,16 +39,17 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "HeadSpin.h"
-#include "pnKeyedObject/plKey.h"
+
+#include "plFileSystem.h"
 
 class BitmapInfo;
 class Bitmap;
 class plBitmap;
+class plErrorMsg;
+class plKey;
+class plLocation;
 class plMipmap;
 class hsMaxLayerBase;
-class plLocation;
-class plErrorMsg;
 
 
 class plBitmapData
@@ -60,7 +61,7 @@ public:
         kClampV = 0x02
     };
 
-    const char *fileName;
+    plFileName fileName;
     uint32_t texFlags;
     uint32_t createFlags;
     float detailDropoffStart;
@@ -77,7 +78,6 @@ public:
 
     plBitmapData()
     {
-        fileName = nil;
         texFlags = 0;
         createFlags = 0;
         detailDropoffStart = detailDropoffStop = 0.f;
@@ -120,7 +120,7 @@ class plBitmapCreator
         plBitmap    *ICreateTexture( plBitmapData *bd, const plLocation &loc, int clipID = -1 );
         plMipmap    *ICreateBitmap( plBitmapData *bd );
 
-        void    ICheckOutBitmap( BitmapInfo *bInfo, Bitmap *bm, const char *fileName );
+        void    ICheckOutBitmap( BitmapInfo *bInfo, Bitmap *bm, const plFileName &fileName );
         int     IResampBitmap( Bitmap *bm, plMipmap &hBitmap );
         int     ICopyBitmap( Bitmap *bm, plMipmap &hBitmap );
         int     IInvertAlpha( plMipmap &hBitmap );

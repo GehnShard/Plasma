@@ -50,7 +50,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plNetObjectDebugger.h"
 
 #include "pnUtils/pnUtils.h"
-#include "pnProduct/pnProduct.h"
+#include "plProduct.h"
 #include "pnNetCommon/plSynchedObject.h"
 #include "pnNetCommon/plNetServers.h"
 #include "pnNetCommon/plSDLTypes.h"
@@ -210,7 +210,9 @@ void plNetClientMgr::Shutdown()
 //
 void plNetClientMgr::IClearPendingLoads()
 {
-    std::for_each( fPendingLoads.begin(), fPendingLoads.end(), xtl::delete_ptr() );
+    std::for_each( fPendingLoads.begin(), fPendingLoads.end(),
+        [](PendingLoad *pl) { delete pl; }
+    );
     fPendingLoads.clear();
 }
 
@@ -250,10 +252,10 @@ void plNetClientMgr::SetNullSend(bool on)
 //
 // returns server time in the form "[m/d/y h:m:s]"
 //
-const char* plNetClientMgr::GetServerLogTimeAsString(std::string& timestamp) const
+const char* plNetClientMgr::GetServerLogTimeAsString(plString& timestamp) const
 {
     const plUnifiedTime st=GetServerTime();
-    xtl::format(timestamp, "{%02d/%02d %02d:%02d:%02d}", 
+    timestamp = plString::Format("{%02d/%02d %02d:%02d:%02d}",
         st.GetMonth(), st.GetDay(), st.GetHour(), st.GetMinute(), st.GetSecond());
     return timestamp.c_str();
 }
@@ -263,10 +265,10 @@ const char* plNetClientMgr::GetServerLogTimeAsString(std::string& timestamp) con
 //
 const char* ProcessTab(const char* fmt)
 {
-    static std::string s;
+    static plString s;
     if (fmt && *fmt=='\t')
     {
-        s = xtl::format("  %s", fmt);
+        s = plString::Format("  %s", fmt);
         return s.c_str();
     }
     return fmt;
@@ -277,11 +279,11 @@ const char* ProcessTab(const char* fmt)
 //
 bool plNetClientMgr::Log(const char* str) const
 {
-    if (strlen(str)==nil)
+    if (strlen(str) == 0)
         return true;
 
     // prepend raw time
-    std::string buf2 = xtl::format("%.2f %s", hsTimer::GetSeconds(), ProcessTab(str));
+    plString buf2 = plString::Format("%.2f %s", hsTimer::GetSeconds(), ProcessTab(str));
 
     if ( GetConsoleOutput() )
         hsStatusMessage(buf2.c_str());
@@ -322,7 +324,7 @@ void plNetClientMgr::IDumpOSVersionInfo() const
 int plNetClientMgr::Init()
 {
     int ret=hsOK;
-    hsLogEntry( DebugMsg("*** plNetClientMgr::Init GMT:%s", plUnifiedTime::GetCurrentTime().Print()) );
+    hsLogEntry( DebugMsg("*** plNetClientMgr::Init GMT:%s", plUnifiedTime::GetCurrent().Print()) );
     
     IDumpOSVersionInfo();
     
@@ -436,55 +438,6 @@ void plNetClientMgr::IUnloadNPCs()
 }
 
 //
-// begin linking out sounds and gfx
-//
-void plNetClientMgr::StartLinkOutFX()
-{
-    // send msg to trigger link out effect
-    if (fLocalPlayerKey)
-    {
-        plNetLinkingMgr * lm = plNetLinkingMgr::GetInstance();
-
-        plLinkEffectsTriggerMsg* lem = new plLinkEffectsTriggerMsg();
-        lem->SetLeavingAge(true);
-        lem->SetLinkKey(fLocalPlayerKey);
-        lem->SetBCastFlag(plMessage::kNetPropagate);
-        lem->SetBCastFlag(plMessage::kNetForce);    // Necessary?
-        lem->AddReceiver(hsgResMgr::ResMgr()->FindKey(plUoid(kLinkEffectsMgr_KEY)));
-        lem->Send();
-    }
-}
-
-//
-// beging linking in sounds snd gfx
-//
-void plNetClientMgr::StartLinkInFX()
-{
-    if (fLocalPlayerKey)
-    {
-        const plArmatureMod *avMod = plAvatarMgr::GetInstance()->GetLocalAvatar();
-
-        plLinkEffectsTriggerMsg* lem = new plLinkEffectsTriggerMsg();
-        lem->SetLeavingAge(false);  // linking in
-        lem->SetLinkKey(fLocalPlayerKey);
-        plKey animKey = avMod->GetLinkInAnimKey();
-        lem->SetLinkInAnimKey(animKey);
-        
-        // indicate if we are invisible 
-        if (avMod && avMod->IsInStealthMode() && avMod->GetTarget(0))
-        {
-            lem->SetInvisLevel(avMod->GetStealthLevel());
-        }
-
-        lem->SetBCastFlag(plMessage::kNetPropagate);
-
-        lem->AddReceiver(hsgResMgr::ResMgr()->FindKey(plUoid(kLinkEffectsMgr_KEY)));
-        lem->AddReceiver(hsgResMgr::ResMgr()->FindKey(plUoid(kClient_KEY)));
-        plgDispatch::MsgSend(lem);
-    }
-}
-
-//
 // compute the difference between our clock and the server's in unified time
 //
 void plNetClientMgr::UpdateServerTimeOffset(plNetMessage* msg)
@@ -496,7 +449,7 @@ void plNetClientMgr::UpdateServerTimeOffset(plNetMessage* msg)
         const plUnifiedTime& msgSentUT = msg->GetTimeSent();
         if (!msgSentUT.AtEpoch())
         {
-            double diff = plUnifiedTime::GetTimeDifference(msgSentUT, plClientUnifiedTime::GetCurrentTime());
+            double diff = plUnifiedTime::GetTimeDifference(msgSentUT, plUnifiedTime::GetCurrent());
 
             if (fServerTimeOffset == 0)
             {
@@ -526,13 +479,13 @@ void plNetClientMgr::ResetServerTimeOffset(bool delayed)
 plUnifiedTime plNetClientMgr::GetServerTime() const 
 { 
     if ( fServerTimeOffset==0 )     // offline mode or before connecting/calibrating to a server
-        return plUnifiedTime::GetCurrentTime();
+        return plUnifiedTime::GetCurrent();
     
     plUnifiedTime serverUT;
     if (fServerTimeOffset<0)
-        return plUnifiedTime::GetCurrentTime() - plUnifiedTime(fabs(fServerTimeOffset)); 
+        return plUnifiedTime::GetCurrent() - plUnifiedTime(fabs(fServerTimeOffset));
     else
-        return  plUnifiedTime::GetCurrentTime() + plUnifiedTime(fServerTimeOffset); 
+        return  plUnifiedTime::GetCurrent() + plUnifiedTime(fServerTimeOffset);
 }
 
 //
@@ -606,7 +559,7 @@ int plNetClientMgr::Update(double secs)
 //
 void plNetClientMgr::ICheckPendingStateLoad(double secs)
 {
-    if (!fPendingLoads.empty() && GetFlagsBit( kPlayingGame ) || (GetFlagsBit(kLoadingInitialAgeState) && !GetFlagsBit(kNeedInitialAgeStateCount)))
+    if ((!fPendingLoads.empty() && GetFlagsBit(kPlayingGame)) || (GetFlagsBit(kLoadingInitialAgeState) && !GetFlagsBit(kNeedInitialAgeStateCount)))
     {
         PendingLoadsList::iterator it = fPendingLoads.begin();
         while ( it!=fPendingLoads.end() )
@@ -1054,20 +1007,6 @@ bool plNetClientMgr::MsgReceive( plMessage* msg )
         return true;
     }
 
-
-    plInitialAgeStateLoadedMsg *stateMsg = plInitialAgeStateLoadedMsg::ConvertNoRef( msg );
-    if( stateMsg != nil )
-    {
-        // done receiving the initial state of the age from the server
-        plNetObjectDebugger::GetInstance()->LogMsg("OnServerInitComplete");
-
-        // delete fProgressBar;
-        // fProgressBar=nil;
-
-        SetFlagsBit(kLoadingInitialAgeState, false);
-        StartLinkInFX();
-    }
-
     plNetVoiceListMsg* voxList = plNetVoiceListMsg::ConvertNoRef(msg);
     if (voxList)
     {
@@ -1137,8 +1076,7 @@ void plNetClientMgr::IncNumInitialSDLStates()
 
 void plNetClientMgr::NotifyRcvdAllSDLStates() {
     DebugMsg( "Got all initial SDL states" );
-    plNetClientMgrMsg * msg = new plNetClientMgrMsg();
-    msg->type = plNetClientMgrMsg::kNotifyRcvdAllSDLStates;
+    plNetClientMgrMsg * msg = new plNetClientMgrMsg(plNetClientMgrMsg::kNotifyRcvdAllSDLStates);
     msg->SetBCastFlag(plMessage::kBCastByType);
     msg->Send();
 }
@@ -1197,8 +1135,8 @@ plString plNetClientMgr::GetPlayerNameById (unsigned playerId) const {
 unsigned plNetClientMgr::GetPlayerIdByName (const plString & name) const {
     // local case
     if (0 == name.Compare(NetCommGetPlayer()->playerNameAnsi))
-        NetCommGetPlayer()->playerInt;
-    
+        return NetCommGetPlayer()->playerInt;
+
     unsigned n = TransportMgr().GetNumMembers();
     for (unsigned i = 0; i < n; ++i)
         if (plNetTransportMember * member = TransportMgr().GetMember(i))
@@ -1235,7 +1173,7 @@ bool plNetClientMgr::ObjectInLocalAge(const plSynchedObject* obj) const
 {
     plLocation loc = obj->GetKey()->GetUoid().GetLocation();
     const plPageInfo* pageInfo = plKeyFinder::Instance().GetLocationInfo(loc);
-    bool ret= IsLocalAge(pageInfo->GetAge());
+    bool ret= IsLocalAge(pageInfo->GetAge().c_str());
     return ret;
 }
 
@@ -1301,11 +1239,8 @@ void plNetClientMgr::MakeCCRInvisible(plKey avKey, int level)
 
 void plNetClientMgr::QueueDisableNet (bool showDlg, const char str[]) {
 
-    plNetClientMgrMsg * msg = NEWZERO(plNetClientMgrMsg);
-    msg->type   = plNetClientMgrMsg::kCmdDisableNet;
-    msg->yes    = showDlg;
-    if (str)
-        StrCopy(msg->str, str, arrsize(msg->str));
+    plNetClientMgrMsg * msg = new plNetClientMgrMsg(plNetClientMgrMsg::kCmdDisableNet,
+                                                    showDlg, str);
 
 #if 0
     msg->Send(GetKey());
@@ -1332,7 +1267,7 @@ void plNetClientMgr::IDisableNet () {
             {
                 // KI may not be loaded
                 char title[256];
-                StrPrintf(title, arrsize(title), "%S Error", ProductCoreName());
+                snprintf(title, arrsize(title), "%s Error", plProduct::CoreName().c_str());
                 hsMessageBox(fDisableMsg->str, title, hsMessageBoxNormal, hsMessageBoxIconError );
                 plClientMsg *quitMsg = new plClientMsg(plClientMsg::kQuit);
                 quitMsg->Send(hsgResMgr::ResMgr()->FindKey(kClient_KEY));
@@ -1476,8 +1411,7 @@ plUoid plNetClientMgr::GetAgeSDLObjectUoid(const char* ageName) const
     if (!loc.IsValid())
     {
         // check current age des
-        if (plAgeLoader::GetInstance()->GetCurrAgeDesc().GetAgeName() &&
-            !strcmp(plAgeLoader::GetInstance()->GetCurrAgeDesc().GetAgeName(), ageName))
+        if (plAgeLoader::GetInstance()->GetCurrAgeDesc().GetAgeName() == ageName)
             loc=plAgeLoader::GetInstance()->GetCurrAgeDesc().CalcPageLocation("BuiltIn");
 
         if (!loc.IsValid())
@@ -1557,7 +1491,9 @@ void plNetClientMgr::SendPendingPagingRoomMsgs()
 
 void plNetClientMgr::ClearPendingPagingRoomMsgs()
 {
-    std::for_each( fPendingPagingRoomMsgs.begin(), fPendingPagingRoomMsgs.end(), xtl::delete_ptr() );
+    std::for_each( fPendingPagingRoomMsgs.begin(), fPendingPagingRoomMsgs.end(),
+        [](plNetMsgPagingRoom *pr) { delete pr; }
+    );
     fPendingPagingRoomMsgs.clear();
 }
 

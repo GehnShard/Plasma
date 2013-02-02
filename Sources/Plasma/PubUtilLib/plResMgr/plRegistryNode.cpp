@@ -43,24 +43,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plRegistryKeyList.h"
 #include "plRegistryHelpers.h"
 
+#include "plString.h"
 #include "pnKeyedObject/plKeyImp.h"
 #include "plStatusLog/plStatusLog.h"
 #include "pnFactory/plFactory.h"
-#include "plFileUtils.h"
-#include "hsStlUtils.h"
 
 #include "plVersion.h"
 
-plRegistryPageNode::plRegistryPageNode(const char* path)
+plRegistryPageNode::plRegistryPageNode(const plFileName& path)
     : fValid(kPageCorrupt)
-    , fPath(nil)
-    , fDynLoadedTypes(0)
-    , fStaticLoadedTypes(0)
+    , fPath(path)
+    , fLoadedTypes(0)
     , fOpenRequests(0)
     , fIsNewPage(false)
 {
-    fPath = hsStrcpy(path);
-
     hsStream* stream = OpenStream();
     if (stream)
     {
@@ -70,36 +66,24 @@ plRegistryPageNode::plRegistryPageNode(const char* path)
     }
 }
 
-plRegistryPageNode::plRegistryPageNode(const plLocation& location, const char* age, const char* page, const char* dataPath)
+plRegistryPageNode::plRegistryPageNode(const plLocation& location, const plString& age,
+                                       const plString& page, const plFileName& dataPath)
     : fValid(kPageOk)
-    , fPath(nil)
     , fPageInfo(location)
-    , fDynLoadedTypes(0)
-    , fStaticLoadedTypes(0)
+    , fLoadedTypes(0)
     , fOpenRequests(0)
     , fIsNewPage(true)
 {
     fPageInfo.SetStrings(age, page);
 
-    char filePath[512];
-
-    // Copy the path over
-    strncpy(filePath, dataPath, sizeof(filePath));
-    plFileUtils::AddSlash(filePath);
-
     // Time to construct our actual file name. For now, we'll use the same old format
     // of age_page.extension
-    strncat(filePath, fPageInfo.GetAge(), sizeof(filePath));
-    strncat(filePath, "_District_", sizeof(filePath));
-    strncat(filePath, fPageInfo.GetPage(), sizeof(filePath));
-    strncat(filePath, ".prp", sizeof(filePath));
-
-    fPath = hsStrcpy(filePath);
+    fPath = plFileName::Join(dataPath, plString::Format("%s_District_%s.prp",
+                fPageInfo.GetAge().c_str(), fPageInfo.GetPage().c_str()));
 }
 
 plRegistryPageNode::~plRegistryPageNode()
 {
-    delete [] fPath;
     UnloadKeys();
 }
 
@@ -168,8 +152,8 @@ void plRegistryPageNode::LoadKeys()
     hsStream* stream = OpenStream();
     if (!stream)
     {
-        hsAssert(0, xtl::format("plRegistryPageNode::LoadKeysFromSource - bad stream %s,%s", 
-            GetPageInfo().GetAge(), GetPageInfo().GetPage()).c_str());
+        hsAssert(0, plString::Format("plRegistryPageNode::LoadKeysFromSource - bad stream %s,%s",
+            GetPageInfo().GetAge().c_str(), GetPageInfo().GetPage().c_str()).c_str());
         return;
     }
 
@@ -194,7 +178,7 @@ void plRegistryPageNode::LoadKeys()
 
     stream->SetPosition(oldPos);
     CloseStream();
-    fStaticLoadedTypes = fKeyLists.size();
+    fLoadedTypes = fKeyLists.size();
 }
 
 void plRegistryPageNode::UnloadKeys()
@@ -207,8 +191,7 @@ void plRegistryPageNode::UnloadKeys()
     }
     fKeyLists.clear();
 
-    fDynLoadedTypes = 0;
-    fStaticLoadedTypes = 0;
+    fLoadedTypes = 0;
 }
 
 //// plWriteIterator /////////////////////////////////////////////////////////
@@ -247,8 +230,6 @@ void plRegistryPageNode::Write()
     for (it = fKeyLists.begin(); it != fKeyLists.end(); it++)
     {
         plRegistryKeyList* keyList = it->second;
-        keyList->PrepForWrite();
-
         int ver = plVersion::GetCreatableVersion(keyList->GetClassType());
         fPageInfo.AddClassVersion(keyList->GetClassType(), ver);
     }
@@ -370,8 +351,8 @@ void plRegistryPageNode::AddKey(plKeyImp* key)
     plRegistryKeyList::LoadStatus loadStatusChange;
     keys->AddKey(key, loadStatusChange);
 
-    if (loadStatusChange == plRegistryKeyList::kDynLoaded)
-        fDynLoadedTypes++;
+    if (loadStatusChange == plRegistryKeyList::kTypeLoaded)
+        ++fLoadedTypes;
 }
 
 void plRegistryPageNode::SetKeyUsed(plKeyImp* key)
@@ -393,10 +374,8 @@ bool plRegistryPageNode::SetKeyUnused(plKeyImp* key)
     bool removed = keys->SetKeyUnused(key, loadStatusChange);
 
     // If the key type just changed load status, update our load counts
-    if (loadStatusChange == plRegistryKeyList::kDynUnloaded)
-        fDynLoadedTypes--;
-    else if (loadStatusChange == plRegistryKeyList::kStaticUnloaded)
-        fStaticLoadedTypes--;
+    if (loadStatusChange == plRegistryKeyList::kTypeUnloaded)
+        --fLoadedTypes;
 
     return removed;
 }
@@ -413,6 +392,5 @@ plRegistryKeyList* plRegistryPageNode::IGetKeyList(uint16_t classType) const
 void plRegistryPageNode::DeleteSource()
 {
     hsAssert(fOpenRequests == 0, "Deleting a stream that's open for reading");
-    plFileUtils::RemoveFile(fPath);
+    plFileSystem::Unlink(fPath);
 }
-

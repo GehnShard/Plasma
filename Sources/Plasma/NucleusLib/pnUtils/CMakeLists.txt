@@ -12,14 +12,12 @@ set(pnUtils_HEADERS
     pnUtHash.h
     pnUtList.h
     pnUtMisc.h
-    pnUtPath.h
     pnUtPragma.h
     pnUtPriQ.h
     pnUtRef.h
     pnUtSort.h
     pnUtStr.h
     pnUtTime.h
-    pnUtUuid.h
 )
 
 set(pnUtils_SOURCES
@@ -29,23 +27,18 @@ set(pnUtils_SOURCES
     pnUtHash.cpp
     pnUtList.cpp
     pnUtMisc.cpp
-    pnUtPath.cpp
     pnUtStr.cpp
     pnUtTime.cpp
-    pnUtUuid.cpp
 )
 
 if(WIN32)
     set(pnUtils_WIN32
         Win32/pnUtW32Misc.cpp
-        Win32/pnUtW32Path.cpp
         Win32/pnUtW32Str.cpp
-        Win32/pnUtW32Uuid.cpp
     )
 else()
     set(pnUtils_UNIX
         Unix/pnUtUxStr.cpp
-        Unix/pnUtUxUuid.cpp
     )
 endif()
 

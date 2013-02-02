@@ -41,6 +41,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 #pragma warning(disable: 4284)
 #include "HeadSpin.h"
+#include "hsWindows.h"
 #include "plClient.h"
 #include "hsStream.h"
 #include "plResMgr/plResManager.h"
@@ -57,7 +58,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsTimer.h"
 #include "plPipeline/hsG3DDeviceSelector.h"
 #include "plFile/plEncryptedStream.h"
-#include "plFileUtils.h"
 #include "plInputCore/plInputManager.h"
 #include "plInputCore/plInputInterfaceMgr.h"
 #include "plInputCore/plInputDevice.h"
@@ -83,7 +83,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pfConsole/pfConsoleDirSrc.h"
 #include "plScene/plPageTreeMgr.h"
 #include "plScene/plVisMgr.h"
-#include "hsFiles.h"
 
 #include "pfKI/pfKI.h"
 
@@ -230,13 +229,12 @@ plClient::plClient()
     plAgeLoader::SetInstance(new plAgeLoader);
 
     // Use it to parse the init directory
-    wchar_t initFolder[MAX_PATH];
-    PathGetInitDirectory(initFolder, arrsize(initFolder));
-    pfConsoleDirSrc     dirSrc( fConsoleEngine, initFolder, L"*.ini" );
-    
+    plFileName initFolder = plFileSystem::GetInitPath();
+    pfConsoleDirSrc dirSrc(fConsoleEngine, initFolder, "*.ini");
+
 #ifndef PLASMA_EXTERNAL_RELEASE
     // internal builds also parse the local init folder
-    dirSrc.ParseDirectory( L"init", L"*.ini" );
+    dirSrc.ParseDirectory("init", "*.ini");
 #endif
 
     /// End of console stuff
@@ -466,9 +464,7 @@ void plClient::InitInputs()
 void plClient::ISetGraphicsDefaults()
 {
     // couldn't find display mode set defaults write to ini file
-    wchar_t graphicsIniFile[MAX_PATH];
-    PathGetInitDirectory(graphicsIniFile, arrsize(graphicsIniFile));
-    PathAddFilename(graphicsIniFile, graphicsIniFile, L"graphics.ini", arrsize(graphicsIniFile));
+    plFileName graphicsIniFile = plFileName::Join(plFileSystem::GetInitPath(), "graphics.ini");
     IWriteDefaultGraphicsSettings(graphicsIniFile);
     plPipeline::fInitialPipeParams.Windowed = plPipeline::fDefaultPipeParams.Windowed;
     plPipeline::fInitialPipeParams.AntiAliasingAmount = plPipeline::fDefaultPipeParams.AntiAliasingAmount;
@@ -989,7 +985,7 @@ void plClient::SetHoldLoadRequests(bool hold)
 void plClient::IQueueRoomLoad(const std::vector<plLocation>& locs, bool hold)
 {
     bool allSameAge = true;
-    const char* lastAgeName = nil;
+    plString lastAgeName;
 
     uint32_t numRooms = 0;
     for (int i = 0; i < locs.size(); i++)
@@ -1005,9 +1001,9 @@ void plClient::IQueueRoomLoad(const std::vector<plLocation>& locs, bool hold)
             if (!info)
                 hsStatusMessageF("Ignoring LoadRoom request for location 0x%x because we can't find the location", loc.GetSequenceNumber());
             else if (alreadyLoaded)
-                hsStatusMessageF("Ignoring LoadRoom request for %s-%s, since room is already loaded", info->GetAge(), info->GetPage());
+                hsStatusMessageF("Ignoring LoadRoom request for %s-%s, since room is already loaded", info->GetAge().c_str(), info->GetPage().c_str());
             else if (isLoading)
-                hsStatusMessageF("Ignoring LoadRoom request for %s-%s, since room is currently loading", info->GetAge(), info->GetPage());
+                hsStatusMessageF("Ignoring LoadRoom request for %s-%s, since room is currently loading", info->GetAge().c_str(), info->GetPage().c_str());
             #endif
 
             continue;
@@ -1015,7 +1011,7 @@ void plClient::IQueueRoomLoad(const std::vector<plLocation>& locs, bool hold)
 
         fLoadRooms.push_back(new LoadRequest(loc, hold));
 
-        if (!lastAgeName || strcmp(info->GetAge(), lastAgeName) == 0)
+        if (lastAgeName.IsNull() || info->GetAge() == lastAgeName)
             lastAgeName = info->GetAge();
         else
             allSameAge = false;
@@ -1623,12 +1619,12 @@ void    plClient::IPatchGlobalAgeFiles( void )
     plResPatcher* patcher = plResPatcher::GetInstance();
     if (!gDataServerLocal)
     {
-        patcher->RequestManifest(L"CustomAvatars");
-        patcher->RequestManifest(L"GlobalAnimations");
-        patcher->RequestManifest(L"GlobalAvatars");
-        patcher->RequestManifest(L"GlobalClothing");
-        patcher->RequestManifest(L"GlobalMarkers");
-        patcher->RequestManifest(L"GUI");
+        patcher->RequestManifest("CustomAvatars");
+        patcher->RequestManifest("GlobalAnimations");
+        patcher->RequestManifest("GlobalAvatars");
+        patcher->RequestManifest("GlobalClothing");
+        patcher->RequestManifest("GlobalMarkers");
+        patcher->RequestManifest("GUI");
     }
 
     plgDispatch::Dispatch()->RegisterForExactType(plResPatcherMsg::Index(), GetKey());
@@ -1638,19 +1634,17 @@ void    plClient::IPatchGlobalAgeFiles( void )
 void plClient::InitDLLs()
 {
     hsStatusMessage("Init dlls client\n");
-    char str[255];
     typedef void (*PInitGlobalsFunc) (hsResMgr *, plFactory *, plTimerCallbackManager *, plTimerShare*,
         plNetClientApp*);
 
-    hsFolderIterator modDllFolder("ModDLL\\");
-    while (modDllFolder.NextFileSuffix(".dll")) 
+    std::vector<plFileName> dlls = plFileSystem::ListDir("ModDLL", "*.dll");
+    for (auto iter = dlls.begin(); iter != dlls.end(); ++iter)
     {
-        modDllFolder.GetPathAndName(str);
-        HMODULE hMod = LoadLibrary(str);
+        HMODULE hMod = LoadLibraryW(iter->AsString().ToWchar());
         if (hMod)
         {
             PInitGlobalsFunc initGlobals = (PInitGlobalsFunc)GetProcAddress(hMod, "InitGlobals");
-            initGlobals(hsgResMgr::ResMgr(), plFactory::GetTheFactory(), plgTimerCallbackMgr::Mgr(), 
+            (*initGlobals)(hsgResMgr::ResMgr(), plFactory::GetTheFactory(), plgTimerCallbackMgr::Mgr(),
                 hsTimer::GetTheTimer(), plNetClientApp::GetInstance());
             fLoadedDLLs.Append(hMod);
         }
@@ -2203,7 +2197,7 @@ void plClient::ResizeDisplayDevice(int Width, int Height, bool Windowed)
     if( Windowed )
     {
         // WS_VISIBLE appears necessary to avoid leaving behind framebuffer junk when going from windowed to a smaller window
-        winStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+        winStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VISIBLE;
         winExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
     } else {
         winStyle = WS_POPUP;
@@ -2343,18 +2337,15 @@ void plClient::IDetectAudioVideoSettings()
     int val = 0;
     hsStream *stream = nil;
     hsUNIXStream s;
-    wchar_t audioIniFile[MAX_PATH], graphicsIniFile[MAX_PATH];
-    PathGetInitDirectory(audioIniFile, arrsize(audioIniFile));
-    StrCopy(graphicsIniFile, audioIniFile, arrsize(audioIniFile));
-    PathAddFilename(audioIniFile, audioIniFile, L"audio.ini", arrsize(audioIniFile));
-    PathAddFilename(graphicsIniFile, graphicsIniFile, L"graphics.ini", arrsize(graphicsIniFile));
+    plFileName audioIniFile = plFileName::Join(plFileSystem::GetInitPath(), "audio.ini");
+    plFileName graphicsIniFile = plFileName::Join(plFileSystem::GetInitPath(), "graphics.ini");
 
 #ifndef PLASMA_EXTERNAL_RELEASE
     // internal builds can use the local dir
-    if (PathDoesFileExist(L"init//audio.ini"))
-        StrCopy(audioIniFile, L"init//audio.ini", arrsize(audioIniFile));
-    if (PathDoesFileExist(L"init//graphics.ini"))
-        StrCopy(graphicsIniFile, L"init//graphics.ini", arrsize(audioIniFile));
+    if (plFileInfo("init/audio.ini").Exists())
+        audioIniFile = "init/audio.ini";
+    if (plFileInfo("init/graphics.ini").Exists())
+        graphicsIniFile = "init/graphics.ini";
 #endif
 
     //check to see if audio.ini exists
@@ -2397,7 +2388,7 @@ void plClient::IDetectAudioVideoSettings()
     }
 }
 
-void plClient::IWriteDefaultGraphicsSettings(const wchar_t* destFile)
+void plClient::IWriteDefaultGraphicsSettings(const plFileName& destFile)
 {
     hsStream *stream = plEncryptedStream::OpenEncryptedFileWrite(destFile);
 
@@ -2407,7 +2398,7 @@ void plClient::IWriteDefaultGraphicsSettings(const wchar_t* destFile)
     WriteBool(stream, "Graphics.Windowed", plPipeline::fDefaultPipeParams.Windowed);
     WriteInt(stream, "Graphics.AntiAliasAmount", plPipeline::fDefaultPipeParams.AntiAliasingAmount);
     WriteInt(stream, "Graphics.AnisotropicLevel", plPipeline::fDefaultPipeParams.AnisotropicLevel );
-    WriteInt(stream, "Graphics.TextureQuality",plPipeline::fDefaultPipeParams.TextureQuality);
+    WriteInt(stream, "Graphics.TextureQuality", plPipeline::fDefaultPipeParams.TextureQuality);
     WriteInt(stream, "Quality.Level", plPipeline::fDefaultPipeParams.VideoQuality);
     WriteInt(stream, "Graphics.Shadow.Enable", plPipeline::fDefaultPipeParams.Shadows);
     WriteInt(stream, "Graphics.EnablePlanarReflections", plPipeline::fDefaultPipeParams.PlanarReflections);
@@ -2486,25 +2477,24 @@ void plClient::IOnAsyncInitComplete () {
 
     /// Now parse final init files (*.fni). These are files just like ini files, only to be run
     /// after all hell has broken loose in the client.
-    wchar_t initFolder[MAX_PATH];
-    PathGetInitDirectory(initFolder, arrsize(initFolder));
-    pfConsoleDirSrc     dirSrc( fConsoleEngine, initFolder, L"net*.fni" );  // connect to net first
+    plFileName initFolder = plFileSystem::GetInitPath();
+    pfConsoleDirSrc dirSrc(fConsoleEngine, initFolder, "net*.fni");  // connect to net first
 #ifndef PLASMA_EXTERNAL_RELEASE
     // internal builds also parse the local init folder
-    dirSrc.ParseDirectory( L"init", L"net*.fni" );
+    dirSrc.ParseDirectory("init", "net*.fni");
 #endif
 
-    dirSrc.ParseDirectory( initFolder, L"*.fni" );
+    dirSrc.ParseDirectory(initFolder, "*.fni");
 #ifndef PLASMA_EXTERNAL_RELEASE
     // internal builds also parse the local init folder
-    dirSrc.ParseDirectory( L"init", L"*.fni" );
+    dirSrc.ParseDirectory("init", "*.fni");
 #endif
 
     // run fni in the Aux Init dir
     if (fpAuxInitDir)
-    {   
-        dirSrc.ParseDirectory(fpAuxInitDir, "net*.fni" );   // connect to net first
-        dirSrc.ParseDirectory(fpAuxInitDir, "*.fni" );
+    {
+        dirSrc.ParseDirectory(fpAuxInitDir, "net*.fni");   // connect to net first
+        dirSrc.ParseDirectory(fpAuxInitDir, "*.fni");
     }
 
     fNumLoadingRooms--;

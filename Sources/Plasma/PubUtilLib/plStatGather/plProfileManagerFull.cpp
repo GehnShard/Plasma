@@ -50,7 +50,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsStream.h"
 #include "pnUtils/pnUtils.h"
 #include "plUnifiedTime/plUnifiedTime.h"
-#include "plFileUtils.h"
 
 plProfileManagerFull::plProfileManagerFull() :
     fVars(plProfileManager::Instance().fVars),
@@ -110,17 +109,17 @@ void plProfileManagerFull::ShowGroup(const char* groupName)
 
 void plProfileManagerFull::ShowNextGroup()
 {
-    const char* curGroup = nil;
+    plString curGroup;
     if (fShowGroups.begin() != fShowGroups.end())
         curGroup = *(fShowGroups.begin());
 
     GroupSet groups;
     GetGroups(groups);
 
-    const char* nextGroup = nil;
-    if (curGroup)
+    plString nextGroup;
+    if (!curGroup.IsNull())
     {
-        CreateStandardGraphs(curGroup, false);
+        CreateStandardGraphs(curGroup.c_str(), false);
 
         GroupSet::iterator it = groups.find(curGroup);
         it++;
@@ -128,7 +127,7 @@ void plProfileManagerFull::ShowNextGroup()
         {
             nextGroup = *it;
         }
-        ISetActive(curGroup,false);
+        ISetActive(curGroup.c_str(), false);
     }
     else
     {
@@ -136,10 +135,10 @@ void plProfileManagerFull::ShowNextGroup()
     }
 
     fShowGroups.clear();
-    if (nextGroup)
+    if (!nextGroup.IsNull())
     {
-        ISetActive(nextGroup, true);
-        CreateStandardGraphs(nextGroup, true);
+        ISetActive(nextGroup.c_str(), true);
+        CreateStandardGraphs(nextGroup.c_str(), true);
         fShowGroups.insert(nextGroup);
     }
 }
@@ -305,16 +304,16 @@ void plProfileManagerFull::Update()
     GroupSet::iterator it;
     for (it = fShowGroups.begin(); it != fShowGroups.end(); it++)
     {
-        const char* groupName = *it;
+        plString groupName = *it;
 
         std::vector<plProfileBase*> group;
 
         for (int i = 0; i < fVars.size(); i++)
-            if (strcmp(fVars[i]->GetGroup(), groupName) == 0)
+            if (groupName.Compare(fVars[i]->GetGroup()) == 0)
                 group.push_back(fVars[i]);
 
         int x = 10;
-        PrintGroup(group, groupName, x, y);
+        PrintGroup(group, groupName.c_str(), x, y);
 
         maxX = hsMaximum(maxX, x);
         y += 10;
@@ -418,40 +417,28 @@ void plProfileManagerFull::IPrintGroup(hsStream* s, const char* groupName, bool 
     }
 }
 
-void plProfileManagerFull::LogStats(const char* ageName, const char* spawnName)
+void plProfileManagerFull::LogStats(const plString& ageName, const plString& spawnName)
 {
     fLogStats = true;
-    wchar_t* temp = hsStringToWString(ageName);
-    fLogAgeName = temp;
-    delete [] temp;
+    fLogAgeName = ageName;
     fLogSpawnName = spawnName;
 }
 
-const wchar_t* plProfileManagerFull::GetProfilePath()
+plFileName plProfileManagerFull::GetProfilePath()
 {
-    static wchar_t profilePath[MAX_PATH];
-    static bool initialized = false;
+    static plFileName profilePath;
 
-    if (!initialized)
+    if (!profilePath.IsValid())
     {
-        initialized = true;
+        plUnifiedTime curTime = plUnifiedTime::GetCurrent(plUnifiedTime::kLocal);
 
-        plUnifiedTime curTime = plUnifiedTime::GetCurrentTime(plUnifiedTime::kLocal);
+        profilePath = plFileName::Join(plFileSystem::GetUserDataPath(), "Profile",
+            plString::Format("%02d-%02d-%04d_%02d-%02d",
+                             curTime.GetMonth(), curTime.GetDay(),
+                             curTime.GetYear(), curTime.GetHour(),
+                             curTime.GetMinute()));
 
-        PathGetUserDirectory(profilePath, arrsize(profilePath));
-        PathAddFilename(profilePath, profilePath, L"Profile", arrsize(profilePath));
-        plFileUtils::CreateDir(profilePath);
-    
-        wchar_t buff[256];
-        hsSnwprintf(buff, 256, L"%02d-%02d-%04d_%02d-%02d//",
-            curTime.GetMonth(),
-            curTime.GetDay(),
-            curTime.GetYear(),
-            curTime.GetHour(),
-            curTime.GetMinute());
-
-        PathAddFilename(profilePath, profilePath, buff, arrsize(profilePath));
-        plFileUtils::CreateDir(profilePath);
+        plFileSystem::CreateDir(profilePath, true);
     }
 
     return profilePath;
@@ -459,13 +446,12 @@ const wchar_t* plProfileManagerFull::GetProfilePath()
 
 void plProfileManagerFull::ILogStats()
 {
-    wchar_t statFilename[256];
-    hsSnwprintf(statFilename, 256, L"%s%s.csv", GetProfilePath(), fLogAgeName.c_str());
+    plFileName statFilename = plFileName::Join(GetProfilePath(), fLogAgeName + ".csv");
 
-    bool exists = plFileUtils::FileExists(statFilename);
+    bool exists = plFileInfo(statFilename).Exists();
 
     hsUNIXStream s;
-    if (s.Open(statFilename, L"ab"))
+    if (s.Open(statFilename, "ab"))
     {
         GroupSet groups;
         GetGroups(groups);
@@ -474,26 +460,26 @@ void plProfileManagerFull::ILogStats()
 
         if (!exists)
         {
-            const char* kSpawn = "Spawn";
+            static const char kSpawn[] = "Spawn";
             s.Write(strlen(kSpawn), kSpawn);
             s.WriteByte(',');
 
             for (it = groups.begin(); it != groups.end(); it++)
             {
-                const char* groupName = *it;
-                IPrintGroup(&s, groupName, true);
+                plString groupName = *it;
+                IPrintGroup(&s, groupName.c_str(), true);
             }
             s.WriteByte('\r');
             s.WriteByte('\n');
         }
 
-        s.Write(fLogSpawnName.length(), fLogSpawnName.c_str());
+        s.Write(fLogSpawnName.GetSize(), fLogSpawnName.c_str());
         s.WriteByte(',');
 
         for (it = groups.begin(); it != groups.end(); it++)
         {
-            const char* groupName = *it;
-            IPrintGroup(&s, groupName);
+            plString groupName = *it;
+            IPrintGroup(&s, groupName.c_str());
         }
         s.WriteByte('\r');
         s.WriteByte('\n');
@@ -502,7 +488,7 @@ void plProfileManagerFull::ILogStats()
     }
 
     fLogStats = false;
-    fLogAgeName = L"";
+    fLogAgeName = "";
     fLogSpawnName = "";
 }
 

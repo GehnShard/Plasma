@@ -44,7 +44,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define _pfEditDlg_h
 
 #include "HeadSpin.h"
-#include <string>
+#include "hsWindows.h"
+
+class plString;
 
 // Little trick to show a wait cursor while something is working
 class plWaitCursor
@@ -62,9 +64,9 @@ public:
     }
 };
 
-void SplitLocalizationPath(std::wstring path, std::wstring &ageName, std::wstring &setName, std::wstring &locName, std::wstring &locLanguage);
+void SplitLocalizationPath(plString path, plString &ageName, plString &setName, plString &locName, plString &locLanguage);
 void SaveLocalizationText();
-void UpdateEditDlg(std::wstring subtitlePath);
+void UpdateEditDlg(plString subtitlePath);
 BOOL CALLBACK EditDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 #endif

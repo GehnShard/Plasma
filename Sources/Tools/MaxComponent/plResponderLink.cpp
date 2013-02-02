@@ -39,17 +39,25 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+
 #include "HeadSpin.h"
+#include "hsResMgr.h"
+
+#include "plComponentBase.h"
+#include "plActivatorBaseComponent.h"
+#include "plCameraComponents.h"
+#include "plMiscComponents.h"
+#include "MaxMain/plMaxNode.h"
+#include "resource.h"
+
+#include <iparamm2.h>
+#pragma hdrstop
+
 #include "plResponderLink.h"
 #include "plResponderComponentPriv.h"
-#include "resource.h"
-#include "max.h"
-#include "MaxMain/plMaxNode.h"
-#include "hsResMgr.h"
-#include "plMiscComponents.h"
+
 // Needed for the dialog
 #include "MaxMain/plMaxCFGFile.h"
-#include "hsFiles.h"
 #include "plAgeDescription/plAgeDescription.h"
 
 // Needed to create the message
@@ -309,30 +317,23 @@ void plResponderLinkProc::ILoadAgeFilenamesCombo(HWND hWnd, IParamBlock2 *pb)
     SendMessage(hAge, CB_RESETCONTENT, 0, 0);
 
     // Get the path to the description folder
-    char agePath[MAX_PATH];
-    const char *plasmaPath = plMaxConfig::GetClientPath();
-    if (!plasmaPath)
+    plFileName plasmaPath = plMaxConfig::GetClientPath();
+    if (!plasmaPath.IsValid())
         return;
-    strcpy(agePath, plasmaPath);
-    strcat(agePath, plAgeDescription::kAgeDescPath);
+
+    plFileName agePath = plFileName::Join(plasmaPath, plAgeDescription::kAgeDescPath);
 
     const char *savedName = pb->GetStr(kLinkAgeFilename);
     if (!savedName)
         savedName = "";
 
     // Iterate through the age descriptions
-    hsFolderIterator ageFolder(agePath);
-    while (ageFolder.NextFileSuffix(".age")) 
+    std::vector<plFileName> ages = plFileSystem::ListDir(agePath, "*.age");
+    for (auto iter = ages.begin(); iter != ages.end(); ++iter)
     {
-        char ageFile[MAX_PATH];
-        ageFolder.GetPathAndName(ageFile);
+        int idx = SendMessage(hAge, CB_ADDSTRING, 0, (LPARAM)iter->GetFileNameNoExt().c_str());
 
-        char name[_MAX_FNAME];
-        _splitpath(ageFile, nil, nil, name, nil);
-
-        int idx = SendMessage(hAge, CB_ADDSTRING, 0, (LPARAM)name);
-
-        if (strcmp(name, savedName) == 0)
+        if (iter->GetFileNameNoExt() == savedName)
             SendMessage(hAge, CB_SETCURSEL, idx, 0);
     }
 }
@@ -346,38 +347,28 @@ void plResponderLinkProc::ILoadParentAgeFilenamesCombo(HWND hWnd, IParamBlock2 *
     SendMessage(hAge, CB_ADDSTRING, 0, (LPARAM)"<None>");
 
     // Get the path to the description folder
-    char agePath[MAX_PATH];
-    const char *plasmaPath = plMaxConfig::GetClientPath();
-    if (!plasmaPath)
+    plFileName plasmaPath = plMaxConfig::GetClientPath();
+    if (!plasmaPath.IsValid())
         return;
-    strcpy(agePath, plasmaPath);
-    strcat(agePath, plAgeDescription::kAgeDescPath);
+    plFileName agePath = plFileName::Join(plasmaPath, plAgeDescription::kAgeDescPath);
 
     const char *savedName = pb->GetStr(kLinkParentAgeFilename);
     if (!savedName)
         savedName = "<None>";
 
     // Iterate through the age descriptions
-    hsFolderIterator ageFolder(agePath);
-    while (ageFolder.NextFileSuffix(".age")) 
+    std::vector<plFileName> ages = plFileSystem::ListDir(agePath, "*.age");
+    for (auto iter = ages.begin(); iter != ages.end(); ++iter)
     {
-        char ageFile[MAX_PATH];
-        ageFolder.GetPathAndName(ageFile);
+        int idx = SendMessage(hAge, CB_ADDSTRING, 0, (LPARAM)iter->GetFileNameNoExt().c_str());
 
-        char name[_MAX_FNAME];
-        _splitpath(ageFile, nil, nil, name, nil);
-
-        int idx = SendMessage(hAge, CB_ADDSTRING, 0, (LPARAM)name);
-
-        if (strcmp(name, savedName) == 0)
+        if (iter->GetFileNameNoExt() == savedName)
             SendMessage(hAge, CB_SETCURSEL, idx, 0);
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
-
-#include "plComponentBase.h"
 
 // Needed for message creation
 #include "plModifier/plResponderModifier.h"
@@ -725,7 +716,6 @@ plMessage *plResponderCmdNotify::CreateMsg(plMaxNode* node, plErrorMsg *pErrMsg,
 ///////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "plCameraComponents.h"
 #include "plPickNode.h"
 
 enum { kActivatorComp, kActivatorEnable };
@@ -806,7 +796,6 @@ const char *plResponderCmdDetectorEnable::GetInstanceName(IParamBlock2 *pb)
 }
 
 #include "pnMessage/plEnableMsg.h"
-#include "plActivatorBaseComponent.h"
 #include "plVolumeGadgetComponent.h"
 #include "plNavigableComponents.h"
 
@@ -1089,7 +1078,6 @@ const char *plResponderCmdCamTransition::GetInstanceName(IParamBlock2 *pb)
 }
 
 #include "pnMessage/plCameraMsg.h"
-#include "plCameraComponents.h"
 
 plMessage *plResponderCmdCamTransition::CreateMsg(plMaxNode* node, plErrorMsg *pErrMsg, IParamBlock2 *pb)
 {

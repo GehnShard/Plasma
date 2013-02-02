@@ -84,11 +84,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plUnifiedTime/plUnifiedTime.h"
 //end for agedefn test
 
-#include "hsFiles.h"
-
 #include "plStatusLog/plStatusLog.h"
 
-#include "hsStlUtils.h"
 #include "hsTemplates.h"
 
 #include "plVault/plVault.h"
@@ -197,9 +194,9 @@ PF_CONSOLE_FILE_DUMMY(Net)
 // utility functions
 //
 //////////////////////////////////////////////////////////////////////////////
-plKey FindSceneObjectByName(const plString& name, const char* ageName, char* statusStr, bool subString=false);
-plKey FindObjectByName(const plString& name, int type, const char* ageName, char* statusStr, bool subString=false);
-plKey FindObjectByNameAndType(const plString& name, const char* typeName, const char* ageName,
+plKey FindSceneObjectByName(const plString& name, const plString& ageName, char* statusStr, bool subString=false);
+plKey FindObjectByName(const plString& name, int type, const plString& ageName, char* statusStr, bool subString=false);
+plKey FindObjectByNameAndType(const plString& name, const char* typeName, const plString& ageName,
                                char* statusStr, bool subString=false);
 void PrintStringF(void pfun(const char *),const char * fmt, ...);
 
@@ -508,9 +505,9 @@ PF_CONSOLE_CMD( Net,            // groupName
                SetObjUpdateFreq,        // fxnName
                "string objName, float freqInSecs", // paramList
                "Instructs the server to only send me updates about this object periodically" )  // helpString
-{   
+{
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(static_cast<const char *>(params[0]), "", str);
     PrintString(str);
     if (!key)
         return;
@@ -811,7 +808,7 @@ PF_CONSOLE_CMD( Net_Vault,
     plAgeLinkStruct link;
     link.GetAgeInfo()->SetAgeFilename( params[0] );
     link.GetAgeInfo()->SetAgeInstanceName( params[0] );
-    plUUID guid(GuidGenerate());
+    plUUID guid = plUUID::Generate();
     link.GetAgeInfo()->SetAgeInstanceGuid( &guid);
     link.SetSpawnPoint( kDefaultSpawnPoint );
     bool success = VaultRegisterOwnedAgeAndWait(&link);
@@ -839,7 +836,7 @@ PF_CONSOLE_CMD( Net_Vault,
     plAgeLinkStruct link;
     link.GetAgeInfo()->SetAgeFilename( params[0] );
     link.GetAgeInfo()->SetAgeInstanceName( params[0] );
-    plUUID guid(GuidGenerate());
+    plUUID guid = plUUID::Generate();
     link.GetAgeInfo()->SetAgeInstanceGuid( &guid);
     link.SetSpawnPoint( kDefaultSpawnPoint );
     bool success = VaultRegisterOwnedAgeAndWait(&link);

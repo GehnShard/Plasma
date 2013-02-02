@@ -50,12 +50,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #endif
 #define PLASMA20_SOURCES_PLASMA_APPS_PLCLIENTPATCHER_PCH_H
 
+#include "hsWindows.h"
 #include <process.h>
-#include <time.h>
+#include <ctime>
 #include "pnUtils/pnUtils.h"
 #include "pnNetBase/pnNetBase.h"
 #include "pnAsyncCore/pnAsyncCore.h"
-#include "pnProduct/pnProduct.h"
+#include "plProduct.h"
 #include "pnNetCli/pnNetCli.h"
 #include "plNetGameLib/plNetGameLib.h"
 #include "pnEncryption/plChecksum.h"

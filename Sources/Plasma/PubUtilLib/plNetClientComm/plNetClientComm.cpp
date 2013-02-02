@@ -48,7 +48,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plNetClientComm.h"
 
 #include "pnAsyncCore/pnAsyncCore.h"
-#include "pnProduct/pnProduct.h"
+#include "plProduct.h"
 #include "pnNetCli/pnNetCli.h"
 #include "plNetGameLib/plNetGameLib.h"
 #include "pnEncryption/plChallengeHash.h"
@@ -121,7 +121,7 @@ static wchar_t                s_iniAuthToken[kMaxPublisherAuthKeyLength];
 static wchar_t                s_iniOS[kMaxGTOSIdLength];
 static bool                 s_iniReadAccountInfo = true;
 static wchar_t                s_iniStartupAgeName[kMaxAgeNameLength];
-static Uuid                 s_iniStartupAgeInstId;
+static plUUID               s_iniStartupAgeInstId;
 static wchar_t                s_iniStartupPlayerName[kMaxPlayerNameLength];
 static bool                 s_netError = false;
 
@@ -158,9 +158,8 @@ static void INetErrorCallback (
 ) {
     NetClientDestroy(false);
     
-    plNetClientMgrMsg * msg = NEWZERO(plNetClientMgrMsg);
-    msg->type   = plNetClientMgrMsg::kCmdDisableNet;
-    msg->yes    = true;
+    plNetClientMgrMsg * msg = new plNetClientMgrMsg(plNetClientMgrMsg::kCmdDisableNet,
+                                                    true, nil);
     msg->AddReceiver(plNetClientApp::GetInstance()->GetKey());
 
     switch (error)
@@ -259,7 +258,7 @@ static void INotifyAuthConnectedCallback () {
     if (!hsgResMgr::ResMgr())
         return;
         
-    plNetCommAuthConnectedMsg * msg = NEWZERO(plNetCommAuthConnectedMsg);
+    plNetCommAuthConnectedMsg * msg = new plNetCommAuthConnectedMsg;
     msg->Send();
 }
 
@@ -382,7 +381,7 @@ static void INetCliAuthLoginSetPlayerRequestCallback (
 static void INetCliAuthLoginRequestCallback (
     ENetError                   result,
     void *                      param,
-    const Uuid &                accountUuid,
+    const plUUID&               accountUuid,
     unsigned                    accountFlags,
     unsigned                    billingType,
     const NetCliAuthPlayerInfo  playerInfoArr[],
@@ -417,7 +416,7 @@ static void INetCliAuthLoginRequestCallback (
         }
     }
     else
-        s_account.accountUuid = kNilGuid;
+        s_account.accountUuid = kNilUuid;
 
     // If they specified an alternate age, but we couldn't find the player, force
     // the StartUp age to load so that they may select/create a player first.    
@@ -535,7 +534,7 @@ static void INetCliAuthGetPublicAgeListCallback (
 ) {
     NetCommParam * cp = (NetCommParam *) param;
     
-    plNetCommPublicAgeListMsg * msg = NEWZERO(plNetCommPublicAgeListMsg);
+    plNetCommPublicAgeListMsg * msg = new plNetCommPublicAgeListMsg;
     msg->result     = result;
     msg->param      = cp->param;
     msg->ptype      = cp->type;
@@ -590,20 +589,23 @@ static void INetCliAuthAgeRequestCallback (
     void *          param,
     unsigned        ageMcpId,
     unsigned        ageVaultId,
-    const Uuid &    ageInstId,
+    const plUUID&   ageInstId,
     plNetAddress    gameAddr
 ) {
     if (!IS_NET_ERROR(result) || result == kNetErrVaultNodeNotFound) {
         s_age.ageInstId = ageInstId;
         s_age.ageVaultId = ageVaultId;
-        
-        wchar_t ageInstIdStr[64];
+
+        plString gameAddrStr = gameAddr.GetHostString();
+        plString ageInstIdStr = ageInstId.AsString();
+
         LogMsg(
             kLogPerf,
-            L"Connecting to game server %s, ageInstId %s",
-            gameAddr.GetHostString().ToWchar().GetData(),
-            GuidToString(ageInstId, ageInstIdStr, arrsize(ageInstIdStr))
+            L"Connecting to game server %S, ageInstId %S",
+            gameAddrStr.c_str(),
+            ageInstIdStr.c_str()
         );
+
         NetCliGameDisconnect();
         NetCliGameStartConnect(gameAddr.GetHost());
         NetCliGameJoinAgeRequest(
@@ -745,9 +747,7 @@ void NetCommStartup () {
     s_shutdown = false;
 
     AsyncCoreInitialize();
-    wchar_t productString[256];
-    ProductString(productString, arrsize(productString));
-    LogMsg(kLogPerf, L"Client: %s", productString);
+    LogMsg(kLogPerf, "Client: %s", plProduct::ProductString().c_str());
 
     NetClientInitialize();
     NetClientSetErrorHandler(IPreInitNetErrorCallback);
@@ -783,7 +783,7 @@ void NetCommShutdown () {
     if (!gDataServerLocal)
         NetCliFileDisconnect();
 
-    NetClientDestroy(false);
+    NetClientDestroy();
     AsyncCoreDestroy(30 * 1000);
 }
 
@@ -1118,7 +1118,7 @@ void NetCommSetActivePlayer (//--> plNetCommActivePlayerMsg
         if (RelVaultNode* rvn = VaultGetPlayerInfoNodeIncRef()) {
             VaultPlayerInfoNode pInfo(rvn);
             pInfo.SetAgeInstName(nil);
-            pInfo.SetAgeInstUuid(kNilGuid);
+            pInfo.SetAgeInstUuid(kNilUuid);
             pInfo.SetOnline(false);
             NetCliAuthVaultNodeSave(rvn, nil, nil);
 
@@ -1242,14 +1242,14 @@ void NetCommSetAgePublic (  // --> no msg
 //============================================================================
 void NetCommCreatePublicAge (// --> plNetCommPublicAgeMsg
     const char              ageName[],
-    const Uuid &            ageInstId,
+    const plUUID&           ageInstId,
     void *                  param
 ) {
 }
 
 //============================================================================
 void NetCommRemovePublicAge(// --> plNetCommPublicAgeMsg
-    const Uuid &            ageInstId,
+    const plUUID&           ageInstId,
     void *                  param
 ) {
 }
@@ -1282,7 +1282,7 @@ void NetCommRegisterVisitAge (
 
 //============================================================================
 void NetCommUnregisterVisitAge (
-    const Uuid &            ageInstId,
+    const plUUID&           ageInstId,
     unsigned                playerInt,
     void *                  param
 ) {
@@ -1296,7 +1296,7 @@ void NetCommConnectPlayerVault (
 
 //============================================================================
 void NetCommConnectAgeVault (
-    const Uuid &            ageInstId,
+    const plUUID&           ageInstId,
     void *                  param
 ) {
 }
@@ -1330,7 +1330,7 @@ void NetCommSetCCRLevel (
 void NetCommSendFriendInvite (
     const wchar_t     emailAddress[],
     const wchar_t     toName[],
-    const Uuid&     inviteUuid
+    const plUUID&   inviteUuid
 ) {
     NetCliAuthSendFriendInvite(
         emailAddress,

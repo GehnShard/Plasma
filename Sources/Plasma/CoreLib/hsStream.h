@@ -42,11 +42,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef hsStream_Defined
 #define hsStream_Defined
 
-#include <stdarg.h> // Included for GCC 3.2.2+
-
 #include "HeadSpin.h"
 #include "hsMemory.h"
-#include "plString.h"
+#include "plFileSystem.h"
 
 
 // Define this for use of Streams with Logging (commonly used w/ a packet sniffer)
@@ -83,8 +81,7 @@ public:
                 hsStream() : fBytesRead(0), fPosition(0) {}
     virtual     ~hsStream() { }
 
-    virtual bool      Open(const char *, const char * = "rb")=0;
-    virtual bool      Open(const wchar_t *, const wchar_t * = L"rb")=0;
+    virtual bool      Open(const plFileName &, const char * = "rb") = 0;
     virtual bool      Close()=0;
     virtual bool      AtEnd();
     virtual uint32_t  Read(uint32_t byteCount, void * buffer) = 0;
@@ -288,28 +285,6 @@ public:
     virtual uint32_t  GetStreamSize() = 0;
 };
 
-class hsFileStream: public hsStream
-{   
-    uint32_t      fRef;
-
-public:
-                  hsFileStream();
-    virtual       ~hsFileStream();
-    virtual bool  Open(const char *name, const char *mode = "rb");
-    virtual bool  Open(const wchar_t *name, const wchar_t *mode = L"rb");
-    virtual bool  Close();
-
-    virtual bool      AtEnd();
-    virtual uint32_t  Read(uint32_t byteCount, void* buffer);
-    virtual uint32_t  Write(uint32_t byteCount, const void* buffer);
-    virtual void      Skip(uint32_t deltaByteCount);
-    virtual void      Rewind();
-    virtual void      Truncate();
-
-    virtual uint32_t  GetFileRef();
-    virtual void    SetFileRef(uint32_t refNum);
-};
-
 class hsUNIXStream: public hsStream
 {   
     FILE*       fRef;
@@ -318,8 +293,7 @@ class hsUNIXStream: public hsStream
 public:
     hsUNIXStream(): fRef(0), fBuff(nil) {}
     ~hsUNIXStream();
-    virtual bool  Open(const char* name, const char* mode = "rb");
-    virtual bool  Open(const wchar_t *name, const wchar_t *mode = L"rb");
+    virtual bool  Open(const plFileName& name, const char* mode = "rb");
     virtual bool  Close();
 
     virtual bool      AtEnd();
@@ -353,8 +327,7 @@ public:
     plReadOnlySubStream(): fBase( nil ), fOffset( 0 ), fLength( 0 ) {}
     ~plReadOnlySubStream();
 
-    virtual bool      Open(const char *, const char *)    { hsAssert(0, "plReadOnlySubStream::Open  NotImplemented"); return false; }
-    virtual bool      Open(const wchar_t *, const wchar_t *)  { hsAssert(0, "plReadOnlySubStream::Open  NotImplemented"); return false; }
+    virtual bool      Open(const plFileName &, const char *) { hsAssert(0, "plReadOnlySubStream::Open  NotImplemented"); return false; }
     void              Open( hsStream *base, uint32_t offset, uint32_t length );
     virtual bool      Close() { fBase = nil; fOffset = 0; fLength = 0; return true; }
     virtual bool      AtEnd();
@@ -376,8 +349,7 @@ public:
                 hsRAMStream(uint32_t chunkSize);
     virtual     ~hsRAMStream();
 
-    virtual bool  Open(const char *, const char *)    { hsAssert(0, "hsRAMStream::Open  NotImplemented"); return false; }
-    virtual bool  Open(const wchar_t *, const wchar_t *)  { hsAssert(0, "hsRAMStream::Open  NotImplemented"); return false; }
+    virtual bool  Open(const plFileName &, const char *) { hsAssert(0, "hsRAMStream::Open  NotImplemented"); return false; }
     virtual bool  Close()             { hsAssert(0, "hsRAMStream::Close  NotImplemented"); return false; }
 
     
@@ -397,8 +369,7 @@ public:
 class hsNullStream : public hsStream {
 public:
 
-    virtual bool      Open(const char *, const char *)    { return true; }
-    virtual bool      Open(const wchar_t *, const wchar_t *)  { return true; }
+    virtual bool      Open(const plFileName &, const char *) { return true; }
     virtual bool      Close()             { return true; }
 
     virtual uint32_t  Read(uint32_t byteCount, void * buffer);  // throw's exception
@@ -422,8 +393,7 @@ public:
     hsReadOnlyStream() {}
 
     virtual void      Init(int size, const void* data) { fStart=((char*)data); fData=((char*)data); fStop=((char*)data + size); }
-    virtual bool      Open(const char *, const char *)    { hsAssert(0, "hsReadOnlyStream::Open  NotImplemented"); return false; }
-    virtual bool      Open(const wchar_t *, const wchar_t *)  { hsAssert(0, "hsReadOnlyStream::Open  NotImplemented"); return false; }
+    virtual bool      Open(const plFileName &, const char *) { hsAssert(0, "hsReadOnlyStream::Open  NotImplemented"); return false; }
     virtual bool      Close() { hsAssert(0, "hsReadOnlyStream::Close  NotImplemented"); return false; }
     virtual bool      AtEnd();
     virtual uint32_t  Read(uint32_t byteCount, void * buffer);
@@ -442,8 +412,7 @@ public:
     hsWriteOnlyStream(int size, const void* data) : hsReadOnlyStream(size, data) {}
     hsWriteOnlyStream() {}
 
-    virtual bool      Open(const char *, const char *)    { hsAssert(0, "hsWriteOnlyStream::Open  NotImplemented"); return false; }
-    virtual bool      Open(const wchar_t *, const wchar_t *)  { hsAssert(0, "hsWriteOnlyStream::Open  NotImplemented"); return false; }
+    virtual bool      Open(const plFileName &, const char *) { hsAssert(0, "hsWriteOnlyStream::Open  NotImplemented"); return false; }
     virtual bool      Close() { hsAssert(0, "hsWriteOnlyStream::Close  NotImplemented"); return false; }
     virtual uint32_t  Read(uint32_t byteCount, void * buffer);  // throws exception
     virtual uint32_t  Write(uint32_t byteCount, const void* buffer);    
@@ -463,8 +432,7 @@ public:
     hsQueueStream(int32_t size);
     ~hsQueueStream();
 
-    virtual bool  Open(const char *, const char *)    { hsAssert(0, "hsQueueStream::Open  NotImplemented"); return false; }
-    virtual bool  Open(const wchar_t *, const wchar_t *)  { hsAssert(0, "hsQueueStream::Open  NotImplemented"); return false; }
+    virtual bool  Open(const plFileName &, const char *) { hsAssert(0, "hsQueueStream::Open  NotImplemented"); return false; }
     virtual bool  Close() { hsAssert(0, "hsQueueStream::Close  NotImplemented"); return false; }
 
     virtual uint32_t  Read(uint32_t byteCount, void * buffer);
@@ -498,16 +466,15 @@ class hsBufferedStream : public hsStream
     // For doing statistics on how efficient we are
     int fBufferHits, fBufferMisses;
     uint32_t fBufferReadIn, fBufferReadOut, fReadDirect, fLastReadPos;
-    char* fFilename;
+    plFileName fFilename;
     const char* fCloseReason;
 #endif
 
 public:
     hsBufferedStream();
-    virtual ~hsBufferedStream();
+    virtual ~hsBufferedStream() { }
 
-    virtual bool  Open(const char* name, const char* mode = "rb");
-    virtual bool  Open(const wchar_t* name, const wchar_t* mode = L"rb");
+    virtual bool  Open(const plFileName& name, const char* mode = "rb");
     virtual bool  Close();
 
     virtual bool      AtEnd();

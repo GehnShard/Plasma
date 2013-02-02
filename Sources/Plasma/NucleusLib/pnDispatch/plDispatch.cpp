@@ -103,12 +103,16 @@ plDispatch::plDispatch()
 
 plDispatch::~plDispatch()
 {
-    int i;
-    for( i = 0; i < fRegisteredExactTypes.GetCount(); i++ )
-        delete fRegisteredExactTypes[i];
-
+    hsAssert(fRegisteredExactTypes.GetCount() == 0, "registered type after Dispatch shutdown");
     ITrashUndelivered();
+}
 
+void plDispatch::BeginShutdown()
+{
+    for (int i = 0; i < fRegisteredExactTypes.Count(); ++i)
+        delete fRegisteredExactTypes[i];
+    fRegisteredExactTypes.Reset();
+    ITrashUndelivered();
 }
 
 void plDispatch::ITrashUndelivered()
@@ -331,7 +335,7 @@ void plDispatch::IMsgDispatch()
                         if (plNetObjectDebuggerBase::GetInstance()->IsDebugObject(ko))
                         {
                             hsLogEntry(plNetObjectDebuggerBase::GetInstance()->LogMsg(
-                                xtl::format("<RCV> object:%s, GameMessage %s st=%.3f rt=%.3f", 
+                                plString::Format("<RCV> object:%s, GameMessage %s st=%.3f rt=%.3f",
                                 ko->GetKeyName().c_str(), msg->ClassName(), hsTimer::GetSysSeconds(), hsTimer::GetSeconds()).c_str()));
                         }
                     }

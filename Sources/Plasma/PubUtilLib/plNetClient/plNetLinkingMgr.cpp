@@ -63,7 +63,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plNetMessage/plNetMessage.h"
 #include "plAvatar/plAvatarMgr.h"
 #include "plAvatar/plArmatureMod.h"
-#include "hsFiles.h"
 
 
 /*****************************************************************************
@@ -101,6 +100,7 @@ struct NlmOpWaitOp : NlmOp {
 
 struct NlmJoinAgeOp : NlmOp {
     NetCommAge  age;
+    bool muteSfx;
     NlmJoinAgeOp ()
     : NlmOp(kNlmOpJoinAgeOp)
     { }
@@ -108,8 +108,9 @@ struct NlmJoinAgeOp : NlmOp {
 
 struct NlmLeaveAgeOp : NlmOp {
     bool    quitting;
+    bool    muteSfx;
     NlmLeaveAgeOp ()
-    : NlmOp(kNlmOpLeaveAgeOp)
+    : NlmOp(kNlmOpLeaveAgeOp), quitting(false)
     { }
 };
 
@@ -231,13 +232,14 @@ void plNetLinkingMgr::ExecNextOp () {
             ASSERT(!s_ageLeaver);
 
             // Insert a wait operation into the exec queue
-            NlmOpWaitOp * waitOp = NEWZERO(NlmOpWaitOp);
+            NlmOpWaitOp * waitOp = new NlmOpWaitOp;
             QueueOp(waitOp, true);
 
             NlmJoinAgeOp * joinAgeOp = (NlmJoinAgeOp *)op;
             NCAgeJoinerCreate(
                 &s_ageJoiner,
                 joinAgeOp->age,
+                joinAgeOp->muteSfx,
                 NCAgeJoinerCallback,
                 waitOp
             );
@@ -249,7 +251,7 @@ void plNetLinkingMgr::ExecNextOp () {
             ASSERT(!s_ageLeaver);
 
             // Insert a wait operation into the exec queue
-            NlmOpWaitOp * waitOp = NEWZERO(NlmOpWaitOp);
+            NlmOpWaitOp * waitOp = new NlmOpWaitOp;
             QueueOp(waitOp, true);
 
             lm->SetEnabled(false);
@@ -259,11 +261,15 @@ void plNetLinkingMgr::ExecNextOp () {
             NCAgeLeaverCreate(
                 &s_ageLeaver,
                 leaveAgeOp->quitting,
+                leaveAgeOp->muteSfx,
                 NCAgeLeaverCallback,
                 waitOp
             );
         }
         break;
+
+        default:
+            break;
     }
 
     s_opqueue.remove(op);
@@ -277,6 +283,13 @@ plNetLinkingMgr::plNetLinkingMgr()
 :   fLinkingEnabled(true)
 ,   fLinkedIn (false)
 {
+}
+
+plNetLinkingMgr::~plNetLinkingMgr()
+{
+    std::for_each(s_opqueue.begin(), s_opqueue.end(),
+        [](NlmOp * op) { delete op; }
+    );
 }
 
 plNetLinkingMgr * plNetLinkingMgr::GetInstance()
@@ -298,15 +311,14 @@ void plNetLinkingMgr::SetEnabled( bool b )
 ////////////////////////////////////////////////////////////////////
 
 // static
-std::string plNetLinkingMgr::GetProperAgeName( const char * ageName )
+plString plNetLinkingMgr::GetProperAgeName( const plString & ageName )
 {
     plNetClientMgr * nc = plNetClientMgr::GetInstance();
-    hsFolderIterator it("dat"PATH_SEPARATOR_STR"*.age", true);
-    while ( it.NextFile() )
+    std::vector<plFileName> files = plFileSystem::ListDir("dat", "*.age");
+    for (auto iter = files.begin(); iter != files.end(); ++iter)
     {
-        std::string work = it.GetFileName();
-        work.erase( work.find( ".age" ) );
-        if ( stricmp( ageName, work.c_str() )==0 )
+        plString work = iter->GetFileNameNoExt();
+        if (ageName.CompareI(work) == 0)
             return work;
     }
     return ageName;
@@ -413,13 +425,15 @@ void plNetLinkingMgr::IDoLink(plLinkToAgeMsg* msg)
             avMod->SetLinkInAnim(msg->GetLinkInAnimName());
         }
         // Queue leave op
-        NlmLeaveAgeOp * leaveAgeOp = NEWZERO(NlmLeaveAgeOp);
+        NlmLeaveAgeOp * leaveAgeOp = new NlmLeaveAgeOp;
+        leaveAgeOp->muteSfx = !msg->PlayLinkOutSfx();
         QueueOp(leaveAgeOp);
     }
 
-    // Queue join op        
-    NlmJoinAgeOp * joinAgeOp = NEWZERO(NlmJoinAgeOp);
-    joinAgeOp->age.ageInstId = (Uuid) *GetAgeLink()->GetAgeInfo()->GetAgeInstanceGuid();
+    // Queue join op
+    NlmJoinAgeOp * joinAgeOp = new NlmJoinAgeOp;
+    joinAgeOp->age.ageInstId = *GetAgeLink()->GetAgeInfo()->GetAgeInstanceGuid();
+    joinAgeOp->muteSfx = !msg->PlayLinkInSfx();
     StrCopy(
         joinAgeOp->age.ageDatasetName,
         GetAgeLink()->GetAgeInfo()->GetAgeFilename(),
@@ -536,12 +550,12 @@ bool plNetLinkingMgr::IProcessVaultNotifyMsg(plVaultNotifyMsg* msg)
 
 ////////////////////////////////////////////////////////////////////
 
-bool plNetLinkingMgr::IDispatchMsg( plMessage * msg, uint32_t playerID )
+bool plNetLinkingMgr::IDispatchMsg( plMessage* msg, uint32_t playerID )
 {
     plNetClientMgr * nc = plNetClientMgr::GetInstance();
-
     msg->AddReceiver( plNetClientMgr::GetInstance()->GetKey() );
 
+    plLinkToAgeMsg* linkToAge = plLinkToAgeMsg::ConvertNoRef(msg);
     if ( playerID!=kInvalidPlayerID && playerID!=nc->GetPlayerID() )
     {
         msg->SetBCastFlag( plMessage::kNetAllowInterAge );
@@ -552,17 +566,17 @@ bool plNetLinkingMgr::IDispatchMsg( plMessage * msg, uint32_t playerID )
         msg->AddNetReceiver( playerID );
     }
 
-    return ( msg->Send()!=0 );
+    return msg->Send();
 }
 
 ////////////////////////////////////////////////////////////////////
 
-void plNetLinkingMgr::LinkToAge( plAgeLinkStruct * link, uint32_t playerID )
+void plNetLinkingMgr::LinkToAge( plAgeLinkStruct * link, bool linkInSfx, bool linkOutSfx, uint32_t playerID )
 {
-    LinkToAge(link, nil, playerID);
+    LinkToAge(link, nil, linkInSfx, linkOutSfx, playerID);
 }
 
-void plNetLinkingMgr::LinkToAge( plAgeLinkStruct * link, const char* linkAnim, uint32_t playerID )
+void plNetLinkingMgr::LinkToAge( plAgeLinkStruct * link, const char* linkAnim, bool linkInSfx, bool linkOutSfx, uint32_t playerID )
 {
     if ( !fLinkingEnabled )
     {
@@ -573,6 +587,7 @@ void plNetLinkingMgr::LinkToAge( plAgeLinkStruct * link, const char* linkAnim, u
     plLinkToAgeMsg* pMsg = new plLinkToAgeMsg( link );
     if (linkAnim)
         pMsg->SetLinkInAnimName(linkAnim);
+    pMsg->PlayLinkSfx(linkInSfx, linkOutSfx);
     IDispatchMsg( pMsg, playerID );
 }
 
@@ -768,7 +783,7 @@ void plNetLinkingMgr::IPostProcessLink( void )
     if (RelVaultNode* rvnInfo = VaultGetPlayerInfoNodeIncRef()) {
         VaultPlayerInfoNode accInfo(rvnInfo);
         wchar_t ageInstName[MAX_PATH];
-        Uuid ageInstGuid = *info->GetAgeInstanceGuid();
+        plUUID ageInstGuid = *info->GetAgeInstanceGuid();
         StrToUnicode(ageInstName, info->GetAgeInstanceName(), arrsize(ageInstName));
         accInfo.SetAgeInstName(ageInstName);
         accInfo.SetAgeInstUuid(ageInstGuid);
@@ -788,10 +803,10 @@ void plNetLinkingMgr::IPostProcessLink( void )
                 RelVaultNode* info = VaultGetPlayerInfoNodeIncRef();
                 
                 if (fldr && info)
-                    if (!fldr->IsParentOf(info->nodeId, 1))
+                    if (!fldr->IsParentOf(info->GetNodeId(), 1))
                         VaultAddChildNode(
-                            fldr->nodeId,
-                            info->nodeId,
+                            fldr->GetNodeId(),
+                            info->GetNodeId(),
                             NetCommGetPlayer()->playerInt,
                             nil,
                             nil
@@ -815,10 +830,10 @@ void plNetLinkingMgr::IPostProcessLink( void )
                 RelVaultNode* info = VaultGetPlayerInfoNodeIncRef();
                 
                 if (fldr && info)
-                    if (!fldr->IsParentOf(info->nodeId, 1))
+                    if (!fldr->IsParentOf(info->GetNodeId(), 1))
                         VaultAddChildNode(
-                            fldr->nodeId,
-                            info->nodeId,
+                            fldr->GetNodeId(),
+                            info->GetNodeId(),
                             NetCommGetPlayer()->playerInt,
                             nil,
                             nil
@@ -863,7 +878,7 @@ uint8_t plNetLinkingMgr::IPreProcessLink(void)
     if (RelVaultNode * rvnInfo = VaultGetPlayerInfoNodeIncRef()) {
         VaultPlayerInfoNode accInfo(rvnInfo);
         accInfo.SetAgeInstName(nil);
-        accInfo.SetAgeInstUuid(kNilGuid);
+        accInfo.SetAgeInstUuid(kNilUuid);
         accInfo.SetOnline(false);
         rvnInfo->DecRef();
     }
@@ -872,7 +887,7 @@ uint8_t plNetLinkingMgr::IPreProcessLink(void)
     if (RelVaultNode * rvnInfo = VaultGetPlayerInfoNodeIncRef()) {
         VaultPlayerInfoNode accInfo(rvnInfo);
         wchar_t ageInstName[MAX_PATH];
-        Uuid ageInstGuid = *GetAgeLink()->GetAgeInfo()->GetAgeInstanceGuid();
+        plUUID ageInstGuid = *GetAgeLink()->GetAgeInfo()->GetAgeInstanceGuid();
         StrToUnicode(ageInstName, info->GetAgeInstanceName(), arrsize(ageInstName));
         accInfo.SetAgeInstName(ageInstName);
         accInfo.SetAgeInstUuid(ageInstGuid);
@@ -920,7 +935,7 @@ uint8_t plNetLinkingMgr::IPreProcessLink(void)
         // BASIC LINK. Link to a unique instance of the age, if no instance specified.
         case plNetCommon::LinkingRules::kBasicLink:
             if (!info->HasAgeInstanceGuid()) {
-                plUUID newuuid(GuidGenerate());
+                plUUID newuuid = plUUID::Generate();
                 info->SetAgeInstanceGuid(&newuuid);
             }
         break;
@@ -961,7 +976,7 @@ uint8_t plNetLinkingMgr::IPreProcessLink(void)
                         info->SetAgeDescription(desc.c_str());
                     }
                     if (!info->HasAgeInstanceGuid()) {
-                        plUUID newuuid(GuidGenerate());
+                        plUUID newuuid = plUUID::Generate();
                         info->SetAgeInstanceGuid(&newuuid);
                     }
                     
@@ -974,7 +989,7 @@ uint8_t plNetLinkingMgr::IPreProcessLink(void)
                 else if (RelVaultNode* linkNode = VaultGetOwnedAgeLinkIncRef(&ageInfo)) {
                     // We have the age in our AgesIOwnFolder. If its volatile, dump it for the new one.
                     VaultAgeLinkNode linkAcc(linkNode);
-                    if (linkAcc.volat) {
+                    if (linkAcc.GetVolatile()) {
                         if (VaultUnregisterOwnedAgeAndWait(&ageInfo)) {
                             // Fill in fields for new age create.
                             if (!info->HasAgeUserDefinedName())
@@ -1002,7 +1017,7 @@ uint8_t plNetLinkingMgr::IPreProcessLink(void)
                             }
 
                             if (!info->HasAgeInstanceGuid()) {
-                                plUUID newuuid(GuidGenerate());
+                                plUUID newuuid = plUUID::Generate();
                                 info->SetAgeInstanceGuid(&newuuid);
                             }
 
@@ -1086,7 +1101,7 @@ uint8_t plNetLinkingMgr::IPreProcessLink(void)
                       info,
                       &childLink))
                 {
-                    case hsFail:
+                    case static_cast<uint8_t>(hsFail):
                         success = kLinkFailed;
                         break;
                     case false:
@@ -1118,7 +1133,7 @@ uint8_t plNetLinkingMgr::IPreProcessLink(void)
 ////////////////////////////////////////////////////////////////////
 void plNetLinkingMgr::LeaveAge (bool quitting) {
     // Queue leave op
-    NlmLeaveAgeOp * leaveAgeOp = NEWZERO(NlmLeaveAgeOp);
+    NlmLeaveAgeOp * leaveAgeOp = new NlmLeaveAgeOp;
     leaveAgeOp->quitting = quitting;
     QueueOp(leaveAgeOp);
 

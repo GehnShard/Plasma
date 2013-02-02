@@ -51,7 +51,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #    include <unistd.h>
 #endif
 
-#include "pnProduct/pnProduct.h"
+#include "plProduct.h"
 
 #include "pnKeyedObject/plKey.h"
 #include "pnKeyedObject/plFixedKey.h"
@@ -178,10 +178,8 @@ void plAgeLoader::UpdateAge(const char ageName[])
         plgDispatch::Dispatch()->MsgSend(new plResPatcherMsg);
     else
     {
-        wchar_t* wideAgeName = hsStringToWString(ageName);
-        plResPatcher::GetInstance()->RequestManifest(wideAgeName);
+        plResPatcher::GetInstance()->RequestManifest(ageName);
         plResPatcher::GetInstance()->Start();
-        delete[] wideAgeName;
     }
 }
 
@@ -212,8 +210,9 @@ bool plAgeLoader::ILoadAge(const char ageName[])
     nc->DebugMsg( "Net: Loading age %s", fAgeName);
 
     if ((fFlags & kLoadMask) != 0)
-        ErrorAssert(__LINE__, __FILE__, "Fatal Error:\nAlready loading or unloading an age.\n%S will now exit.", ProductShortName());
-        
+        ErrorAssert(__LINE__, __FILE__, "Fatal Error:\nAlready loading or unloading an age.\n%s will now exit.",
+                                        plProduct::ShortName().c_str());
+
     fFlags |= kLoadingAge;
     
     plAgeBeginLoadingMsg* ageBeginLoading = new plAgeBeginLoadingMsg();
@@ -295,14 +294,14 @@ bool plAgeLoader::ILoadAge(const char ageName[])
     {
         if( IsPageExcluded( page, fAgeName) )
         {
-            nc->DebugMsg( "\tExcluding page %s\n", page->GetName() );
+            nc->DebugMsg("\tExcluding page %s\n", page->GetName().c_str());
             continue;
         }
 
         nPages++;
 
         pMsg1->AddRoomLoc(ad.CalcPageLocation(page->GetName()));
-        nc->DebugMsg("\tPaging in room %s\n", page->GetName());
+        nc->DebugMsg("\tPaging in room %s\n", page->GetName().c_str());
     }
 
     pMsg1->Send(clientKey);
@@ -337,7 +336,7 @@ class plUnloadAgeCollector : public plRegistryPageIterator
 
         virtual bool EatPage( plRegistryPageNode *page )
         {
-            if( fAge && stricmp( page->GetPageInfo().GetAge(), fAge ) == 0 )
+            if( fAge && page->GetPageInfo().GetAge().CompareI(fAge) == 0 )
             {
                 fPages.Append( page );
             }
@@ -382,7 +381,7 @@ bool    plAgeLoader::IUnloadAge()
         plKey roomKey = plKeyFinder::Instance().FindSceneNodeKey( page->GetPageInfo().GetLocation() );
         if( roomKey != nil && roomKey->ObjectIsLoaded() )
         {
-            nc->DebugMsg( "\tPaging out room %s\n", page->GetPageInfo().GetPage() );
+            nc->DebugMsg( "\tPaging out room %s\n", page->GetPageInfo().GetPage().c_str() );
             newPageOuts.push_back(roomKey);
         }
     }

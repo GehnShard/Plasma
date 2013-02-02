@@ -48,10 +48,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //#define NEW_CAMERA_CODE
 
 #include "HeadSpin.h"
+#include <list>
+
 #include "hsBitVector.h"
 #include "hsTemplates.h"
 
-#include "hsStlUtils.h"
 #include "pnKeyedObject/hsKeyedObject.h"
 #include "pnKeyedObject/plUoid.h"
 #include "plScene/plRenderRequest.h"
@@ -295,7 +296,7 @@ public:
     void ResetDisplayDevice(int Width, int Height, int ColorDepth, bool Windowed, int NumAASamples, int MaxAnisotropicSamples, bool VSync = false);
     void ResizeDisplayDevice(int Width, int Height, bool Windowed);
     void IDetectAudioVideoSettings();
-    void IWriteDefaultGraphicsSettings(const wchar_t* destFile);
+    void IWriteDefaultGraphicsSettings(const plFileName& destFile);
 
     plAnimDebugList *fAnimDebugList;
 

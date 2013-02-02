@@ -833,19 +833,18 @@ void plSceneInputInterface::ILinkOffereeToAge()
     else if (!VaultGetOwnedAgeLink(&info, &link)) {
     
         // We must have an owned copy of the age before we can offer it, so make one now
-        plUUID guid(GuidGenerate());
+        plUUID guid = plUUID::Generate();
         info.SetAgeInstanceGuid(&guid);
-        std::string title;
-        std::string desc;
+        plString title, desc;
 
         unsigned nameLen = plNetClientMgr::GetInstance()->GetPlayerName().GetSize();
         if (plNetClientMgr::GetInstance()->GetPlayerName().CharAt(nameLen - 1) == 's' || plNetClientMgr::GetInstance()->GetPlayerName().CharAt(nameLen - 1) == 'S') {
-            xtl::format( title, "%s'", plNetClientMgr::GetInstance()->GetPlayerName().c_str() );
-            xtl::format( desc, "%s' %s", plNetClientMgr::GetInstance()->GetPlayerName().c_str(), link.GetAgeInfo()->GetAgeInstanceName() );
+            title = plString::Format( "%s'", plNetClientMgr::GetInstance()->GetPlayerName().c_str() );
+            desc = plString::Format( "%s' %s", plNetClientMgr::GetInstance()->GetPlayerName().c_str(), link.GetAgeInfo()->GetAgeInstanceName() );
         }
         else {
-            xtl::format( title, "%s's", plNetClientMgr::GetInstance()->GetPlayerName().c_str() );
-            xtl::format( desc, "%s's %s", plNetClientMgr::GetInstance()->GetPlayerName().c_str(), link.GetAgeInfo()->GetAgeInstanceName() );
+            title = plString::Format( "%s's", plNetClientMgr::GetInstance()->GetPlayerName().c_str() );
+            desc = plString::Format( "%s's %s", plNetClientMgr::GetInstance()->GetPlayerName().c_str(), link.GetAgeInfo()->GetAgeInstanceName() );
         }
 
         info.SetAgeUserDefinedName( title.c_str() );
@@ -860,9 +859,9 @@ void plSceneInputInterface::ILinkOffereeToAge()
     else if (RelVaultNode * linkNode = VaultGetOwnedAgeLinkIncRef(&info)) {
         // We have the age in our AgesIOwnFolder. If its volatile, dump it for the new one.
         VaultAgeLinkNode linkAcc(linkNode);
-        if (linkAcc.volat) {
+        if (linkAcc.GetVolatile()) {
             if (VaultUnregisterOwnedAgeAndWait(link.GetAgeInfo())) {
-                plUUID guid(GuidGenerate());
+                plUUID guid = plUUID::Generate();
                 link.GetAgeInfo()->SetAgeInstanceGuid(&guid);
                 VaultRegisterOwnedAgeAndWait(&link);
             }

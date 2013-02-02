@@ -66,7 +66,7 @@ pyVaultAgeLinkNode::pyVaultAgeLinkNode(RelVaultNode* nfsNode)
 
 //create from the Python side
 pyVaultAgeLinkNode::pyVaultAgeLinkNode(int n)
-: pyVaultNode(NEWZERO(RelVaultNode))
+: pyVaultNode(new RelVaultNode)
 {
     fNode->SetNodeType(plVault::kNodeType_AgeLink);
 }
@@ -109,7 +109,7 @@ bool pyVaultAgeLinkNode::GetLocked() const
         return false;
 
     VaultAgeLinkNode access(fNode);
-    return !access.unlocked;
+    return !access.GetUnlocked();
 }
 
 void pyVaultAgeLinkNode::SetVolatile( bool v )
@@ -127,7 +127,7 @@ bool pyVaultAgeLinkNode::GetVolatile() const
         return false;
 
     VaultAgeLinkNode access(fNode);
-    return access.volat;
+    return access.GetVolatile();
 }
 
 void pyVaultAgeLinkNode::AddSpawnPoint( pySpawnPointInfo & point )

@@ -155,13 +155,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plUnifiedTime/plUnifiedTime.h"
 //end for agedefn test
 
-#include "hsFiles.h"
 #include "pnSceneObject/plAudioInterface.h"
 
 #include "plStatusLog/plStatusLog.h"
 #include "pnTimer/pnBuildDates.h"
 
-#include "hsStlUtils.h"
 #include "hsTemplates.h"
 
 #include "plResMgr/plResManagerHelper.h"
@@ -264,9 +262,9 @@ PF_CONSOLE_FILE_DUMMY(Main)
 // utility functions
 //
 //////////////////////////////////////////////////////////////////////////////
-plKey FindSceneObjectByName(const plString& name, const char* ageName, char* statusStr, bool subString=false);
-plKey FindObjectByName(const plString& name, int type, const char* ageName, char* statusStr, bool subString=false);
-plKey FindObjectByNameAndType(const plString& name, const char* typeName, const char* ageName,
+plKey FindSceneObjectByName(const plString& name, const plString& ageName, char* statusStr, bool subString=false);
+plKey FindObjectByName(const plString& name, int type, const plString& ageName, char* statusStr, bool subString=false);
+plKey FindObjectByNameAndType(const plString& name, const char* typeName, const plString& ageName,
                                char* statusStr, bool subString=false);
 void PrintStringF(void pfun(const char *),const char * fmt, ...);
 
@@ -274,7 +272,7 @@ void PrintStringF(void pfun(const char *),const char * fmt, ...);
 // Find an object from name, type (int), and optionally age.
 // Name can be an alias specified by saying $foo
 //
-plKey FindObjectByName(const plString& name, int type, const char* ageName, char* statusStr, bool subString)
+plKey FindObjectByName(const plString& name, int type, const plString& ageName, char* statusStr, bool subString)
 {
     if (name.IsNull())
     {
@@ -294,22 +292,22 @@ plKey FindObjectByName(const plString& name, int type, const char* ageName, char
     // Try restricted to our age first, if we're not given an age name. This works
     // around most of the problems associated with unused keys in pages causing the pages to be marked
     // as not loaded and thus screwing up our searches
-    if( ageName == nil && plNetClientMgr::GetInstance() != nil )
+    if (ageName.IsNull() && plNetClientMgr::GetInstance() != nil)
     {
-        const char *thisAge = plAgeLoader::GetInstance()->GetCurrAgeDesc().GetAgeName();
-        if (thisAge != nil)
+        plString thisAge = plAgeLoader::GetInstance()->GetCurrAgeDesc().GetAgeName();
+        if (!thisAge.IsNull())
         {
-            key = plKeyFinder::Instance().StupidSearch(thisAge, nil, type, name, subString);
+            key = plKeyFinder::Instance().StupidSearch(thisAge, "", type, name, subString);
             if (key != nil)
             {
-                if (statusStr)  
+                if (statusStr)
                     sprintf(statusStr, "Found Object");
                 return key;
             }
         }
     }
     // Fallback
-    key = plKeyFinder::Instance().StupidSearch(ageName,nil,type, name, subString);
+    key = plKeyFinder::Instance().StupidSearch(ageName, "", type, name, subString);
 
     if (!key)
     {
@@ -335,7 +333,7 @@ plKey FindObjectByName(const plString& name, int type, const char* ageName, char
 // Name can be an alias specified by saying $foo.
 // Will load the object if necessary.
 //
-plKey FindSceneObjectByName(const plString& name, const char* ageName, char* statusStr, bool subString)
+plKey FindSceneObjectByName(const plString& name, const plString& ageName, char* statusStr, bool subString)
 {
     plKey key=FindObjectByName(name, plSceneObject::Index(), ageName, statusStr, subString);
 
@@ -353,7 +351,7 @@ plKey FindSceneObjectByName(const plString& name, const char* ageName, char* sta
 // Find an object from name, type (string) and optionally age.
 // Name can be an alias specified by saying $foo
 //
-plKey FindObjectByNameAndType(const plString& name, const char* typeName, const char* ageName,
+plKey FindObjectByNameAndType(const plString& name, const char* typeName, const plString& ageName,
                                char* statusStr, bool subString)
 {
     if (!typeName)
@@ -463,7 +461,7 @@ PF_CONSOLE_BASE_CMD( PrevStatusLog, "", "Cycles backwards through the status log
 
 PF_CONSOLE_BASE_CMD( ShowStatusLog, "string logName", "Advances the status log display to the given log" )
 {
-    plStatusLogMgr::GetInstance().SetCurrStatusLog( params[ 0 ] );
+    plStatusLogMgr::GetInstance().SetCurrStatusLog(static_cast<const char *>(params[0]));
 }
 
 #endif // LIMIT_CONSOLE_COMMANDS
@@ -482,7 +480,7 @@ PF_CONSOLE_BASE_CMD( EnableLogging, "", "Turns on logging" )
 
 PF_CONSOLE_BASE_CMD( DumpLogs, "string folderName", "Dumps all current logs to the folder specified, relative to the log folder" )
 {
-    plStatusLogMgr::GetInstance().DumpLogs( params[ 0 ] );
+    plStatusLogMgr::GetInstance().DumpLogs(static_cast<const char *>(params[0]));
 }
 
 
@@ -538,7 +536,7 @@ PF_CONSOLE_CMD(Stats, ListGroups, "", "Prints the names of all the stat groups t
 
     plProfileManagerFull::GroupSet::iterator it;
     for (it = groups.begin(); it != groups.end(); it++)
-        PrintString((char*)*it);
+        PrintString(it->c_str());
 }
 
 PF_CONSOLE_CMD(Stats, ListLaps, "", "Prints the names of all the stats with laps to the console")
@@ -1580,8 +1578,8 @@ PF_CONSOLE_CMD( Graphics_Renderer, GrabCubeMap,
                "Take cubemap from sceneObject's position and name it prefix_XX.jpg")
 {
     char str[512];
-    plString objName = plString::FromUtf8(params[0]);
-    plKey key = FindSceneObjectByName(objName, nil, str);
+    plString objName = static_cast<const char *>(params[0]);
+    plKey key = FindSceneObjectByName(objName, "", str);
     PrintString( str );
     if( !key )
         return;
@@ -1607,7 +1605,7 @@ PF_CONSOLE_CMD( Graphics_Renderer, GrabCubeCam,
     grabCube.GrabCube(pfConsole::GetPipeline(), pos, pref, clearColor);
 }
 
-#include "plJPEG/plJPEG.h"
+#include "plGImage/plJPEG.h"
 
 PF_CONSOLE_CMD( Graphics_Renderer, TakeJPEGScreenshot, "...", "Takes a shot of the current frame and saves it to the given file" )
 {
@@ -1842,7 +1840,7 @@ PF_CONSOLE_CMD( Graphics_Show, SingleSound,
 {
     char    str[ 512 ];
 
-    const char *ageName = plAgeLoader::GetInstance()->GetCurrAgeDesc().GetAgeName();
+    plString ageName = plAgeLoader::GetInstance()->GetCurrAgeDesc().GetAgeName();
 
     plKey key = FindSceneObjectByName( plString::FromUtf8( params[ 0 ] ), ageName, str, true );
     plSceneObject *obj = ( key != nil ) ? plSceneObject::ConvertNoRef( key->GetObjectPtr() ) : nil;
@@ -2176,7 +2174,7 @@ PF_CONSOLE_CMD( App,
 {
 
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), "", str);
     plSceneObject* obj = plSceneObject::ConvertNoRef(key->GetObjectPtr());
     if( !obj )
     {
@@ -2253,7 +2251,7 @@ PF_CONSOLE_CMD( App,
 {
 
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), "", str);
     plSceneObject* obj = plSceneObject::ConvertNoRef(key->GetObjectPtr());
     if( !obj )
     {
@@ -2308,7 +2306,7 @@ PF_CONSOLE_CMD( App,
 {
     char str[256];
     plString name = plString::FromUtf8(params[0]);
-    plKey key = FindSceneObjectByName(name, nil, str);
+    plKey key = FindSceneObjectByName(name, "", str);
     if( !key )
     {
         sprintf(str, "%s - Not Found!", name.c_str());
@@ -2774,7 +2772,7 @@ PF_CONSOLE_CMD( Registry, ListRefs, "string keyType, string keyName", "For the g
                "the objects who currently have active refs on it." )
 {
     char result[ 256 ];
-    plKey obj = FindObjectByNameAndType( plString::FromUtf8( params[ 1 ] ), params[ 0 ], nil, result);
+    plKey obj = FindObjectByNameAndType( plString::FromUtf8( params[ 1 ] ), params[ 0 ], "", result);
     if( obj == nil )
     {
         PrintString( result );
@@ -2951,7 +2949,7 @@ PF_CONSOLE_CMD( Camera, SwitchTo, "string cameraName", "Switch to the named came
 {
     char str[256];
     plString foo = plString::Format("%s_", (char*)params[0]);
-    plKey key = FindObjectByNameAndType(foo, "plCameraModifier1", nil, str, true);
+    plKey key = FindObjectByNameAndType(foo, "plCameraModifier1", "", str, true);
     PrintString(str);
 
     if (key)
@@ -3077,7 +3075,7 @@ PF_CONSOLE_GROUP( Logic )
 static plLogicModBase *FindLogicMod(const plString &name)
 {
     char str[256];
-    plKey key = FindObjectByNameAndType(name, "plLogicModifier", nil, str, true);
+    plKey key = FindObjectByNameAndType(name, "plLogicModifier", "", str, true);
     pfConsole::AddLine(str);
 
     if (key)
@@ -3174,7 +3172,7 @@ PF_CONSOLE_CMD( Logic, TriggerResponderNum, "int responderNum, ...", "Triggers t
     }
 
     char str[256];
-    plKey key = FindObjectByNameAndType(responderNames[responderNum-1], "plResponderModifier", nil, str, true);
+    plKey key = FindObjectByNameAndType(responderNames[responderNum-1], "plResponderModifier", "", str, true);
     PrintString(str);
 
     if (key)
@@ -3190,7 +3188,7 @@ PF_CONSOLE_CMD( Logic, TriggerResponder, "string responderComp, ...", "Triggers 
     }
     
     char str[256];
-    plKey key = FindObjectByNameAndType(plString::FromUtf8(params[0]), "plResponderModifier", nil, str, true);
+    plKey key = FindObjectByNameAndType(plString::FromUtf8(params[0]), "plResponderModifier", "", str, true);
     PrintString(str);
 
     int responderState = -1;
@@ -3212,7 +3210,7 @@ PF_CONSOLE_CMD( Logic, FastForwardResponder, "string responderComp, ...", "Fastf
     }
     
     char str[256];
-    plKey key = FindObjectByNameAndType(plString::FromUtf8(params[0]), "plResponderModifier", nil, str, true);
+    plKey key = FindObjectByNameAndType(plString::FromUtf8(params[0]), "plResponderModifier", "", str, true);
     PrintString(str);
 
     int responderState = -1;
@@ -3523,7 +3521,7 @@ PF_CONSOLE_CMD( Audio, SetVolume,
                 "string obj, float vol", "Sets the volume on a given object. 1 is max volume, 0 is silence" )
 {
     char    str[ 256 ];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[ 0 ]), nil, str);
+    plKey key = FindSceneObjectByName(plString::FromUtf8(params[ 0 ]), "", str);
     if( key == nil )
         return;
 
@@ -3552,7 +3550,7 @@ PF_CONSOLE_CMD( Audio, IsolateSound,
     plKey           key;
     plAudioSysMsg   *asMsg;
 
-    key = FindSceneObjectByName( plString::FromUtf8( params[ 0 ] ), nil, str );
+    key = FindSceneObjectByName( plString::FromUtf8( params[ 0 ] ), "", str );
     if( key == nil )
     {
         sprintf( str, "Cannot find sound %s", (char *)params[ 0 ] );
@@ -3929,34 +3927,8 @@ PF_CONSOLE_CMD( Nav, PageInNode,    // Group name, Function name
     plSynchEnabler ps(false);   // disable dirty tracking while paging in
     plClientMsg* pMsg1 = new plClientMsg(plClientMsg::kLoadRoom);
     pMsg1->AddReceiver( plClient::GetInstance()->GetKey() );
-    pMsg1->AddRoomLoc(plKeyFinder::Instance().FindLocation(nil, params[0]));
+    pMsg1->AddRoomLoc(plKeyFinder::Instance().FindLocation("", static_cast<const char *>(params[0])));
     plgDispatch::MsgSend(pMsg1);
-}
-
-PF_CONSOLE_CMD( Nav, PageInNodeList,    // Group name, Function name
-               "string roomNameBase",           // Params
-               "Pages in all scene nodes that start with name." )   // Help string
-{
-/* This is really old and hasn't worked since 2002 anyways. */
-#if HS_BUILD_FOR_WIN32
-    plSynchEnabler ps(false);   // disable dirty tracking while paging in
-
-    std::string pageInNodesStr;
-    pageInNodesStr += "dat\\";
-    pageInNodesStr += (char*)params[0];
-    pageInNodesStr += "*.prx";
-    hsFolderIterator pageInNodesIter(pageInNodesStr.data(), true);
-
-    plClientMsg* pMsg1 = new plClientMsg(plClientMsg::kLoadRoom);
-    while (pageInNodesIter.NextFile()) 
-    {
-        char nodeName[255];
-        _splitpath(pageInNodesIter.GetFileName(), NULL, NULL, nodeName, NULL);
-        pMsg1->AddRoomLoc(plKeyFinder::Instance().FindLocation(nil, nodeName));
-    }
-    pMsg1->AddReceiver( plClient::GetInstance()->GetKey() );
-    plgDispatch::MsgSend(pMsg1);
-#endif
 }
 
 #ifndef LIMIT_CONSOLE_COMMANDS
@@ -3969,7 +3941,7 @@ PF_CONSOLE_CMD( Nav, PageOutNode,   // Group name, Function name
     plSynchEnabler ps(false);   // disable dirty tracking while paging out
     plClientMsg* pMsg1 = new plClientMsg(plClientMsg::kUnloadRoom);
     pMsg1->AddReceiver( plClient::GetInstance()->GetKey() );
-    pMsg1->AddRoomLoc(plKeyFinder::Instance().FindLocation(nil, params[0]));
+    pMsg1->AddRoomLoc(plKeyFinder::Instance().FindLocation("", static_cast<const char *>(params[0])));
     plgDispatch::MsgSend(pMsg1);
 }
 
@@ -3978,7 +3950,7 @@ PF_CONSOLE_CMD( Nav, UnloadPlayer,  // Group name, Function name
                 "unloads a named player" )  // Help string
 {
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), "", str);
     PrintString("UnloadPlayer (console version) is currently broken. Hassle Matt.");
     // plNetClientMgr::UnloadPlayer(key);
 }
@@ -3996,12 +3968,12 @@ PF_CONSOLE_CMD( Nav, MovePlayer,    // Group name, Function name
                 "moves a player from one paging unit to another" )  // Help string
 {
     char str[256];
-    plKey playerKey = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey playerKey = FindSceneObjectByName(static_cast<const char *>(params[0]), "", str);
     PrintString(str);
     if( !playerKey )
         return;
 
-    plKey nodeKey = FindObjectByName(plString::FromUtf8(params[1]), plSceneNode::Index(), nil, str);
+    plKey nodeKey = FindObjectByName(static_cast<const char *>(params[1]), plSceneNode::Index(), "", str);
     PrintString(str);
     if( !nodeKey )
         return;
@@ -4308,7 +4280,7 @@ PF_CONSOLE_CMD( Access,
     char str[256];
     char* preFix = params[0];
     plString name = plString::Format("%s_plMorphSequence_0", preFix);
-    plKey key = FindObjectByName(name, plMorphSequence::Index(), nil, str);
+    plKey key = FindObjectByName(name, plMorphSequence::Index(), "", str);
     PrintString(str);
     if (!key)
         return;
@@ -4333,7 +4305,7 @@ PF_CONSOLE_CMD( Access,
     char str[256];
     char* preFix = params[0];
     plString name = plString::Format("%s_plMorphSequence_2", preFix);
-    plKey key = FindObjectByName(name, plMorphSequence::Index(), nil, str);
+    plKey key = FindObjectByName(name, plMorphSequence::Index(), "", str);
     PrintString(str);
     if (!key)
         return;
@@ -4354,7 +4326,7 @@ PF_CONSOLE_CMD( Access,
     char str[256];
     char* preFix = params[0];
     plString name = plString::Format("%s_plMorphSequence_2", preFix);
-    plKey key = FindObjectByName(name, plMorphSequence::Index(), nil, str);
+    plKey key = FindObjectByName(name, plMorphSequence::Index(), "", str);
     PrintString(str);
     if (!key)
         return;
@@ -4573,7 +4545,7 @@ PF_CONSOLE_CMD( Access,
                    "Test fading on visibility" )
 {
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), "", str);
     PrintString(str);
     if( !key )
         return;
@@ -4605,7 +4577,7 @@ PF_CONSOLE_CMD( Access,
                    "Set the los test marker" )
 {
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(static_cast<const char *>(params[0]), "", str);
     PrintString(str);
     if( !key )
         return;
@@ -4619,7 +4591,7 @@ PF_CONSOLE_CMD( Access,
                    "Set the Los hack marker" )
 {
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(static_cast<const char *>(params[0]), "", str);
     PrintString(str);
 
     plSceneObject* so = nil;
@@ -4694,7 +4666,7 @@ PF_CONSOLE_CMD( Access,
                    "Fire shot along gun's z-axis, creating decal of radius <radius>, with optional max-range (def 1000)" )
 {
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(static_cast<const char *>(params[0]), "", str);
     PrintString(str);
     if( !key )
         return;
@@ -4775,7 +4747,7 @@ PF_CONSOLE_CMD( Access,
                "Add particle system <psys> to bulletMgr <bull>")
 {
     char str[256];
-    plKey bullKey = FindObjectByName(plString::FromUtf8(params[0]), plDynaBulletMgr::Index(), nil, str, false);
+    plKey bullKey = FindObjectByName(static_cast<const char *>(params[0]), plDynaBulletMgr::Index(), "", str, false);
     PrintString(str);
     if( !(bullKey && bullKey->GetObjectPtr()) )
     {
@@ -4783,7 +4755,7 @@ PF_CONSOLE_CMD( Access,
         return;
     }
 
-    plKey sysKey = FindSceneObjectByName(plString::FromUtf8(params[1]), nil, str);
+    plKey sysKey = FindSceneObjectByName(static_cast<const char *>(params[1]), "", str);
     if( !(sysKey && sysKey->GetObjectPtr()) )
     {
         PrintString("Psys not found");
@@ -4983,7 +4955,7 @@ static void IDisplayWaveVal(PrintFunk PrintString, plWaveSet7* wave, plWaveCmd::
 static plWaveSet7* IGetWaveSet(PrintFunk PrintString, const plString& name)
 {
     char str[256];
-    plKey waveKey = FindObjectByName(name, plWaveSet7::Index(), nil, str, false);
+    plKey waveKey = FindObjectByName(name, plWaveSet7::Index(), "", str, false);
     PrintString(str);
     if (!waveKey)
         return nil;
@@ -5464,7 +5436,7 @@ PF_CONSOLE_CMD( SceneObject_SetEnable, Drawable,    // Group name, Function name
                 "Enable or disable drawing of a sceneobject" )  // Help string
 {
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(static_cast<const char *>(params[0]), "", str);
     PrintString(str);
     if (!key)
         return;
@@ -5483,7 +5455,7 @@ PF_CONSOLE_CMD( SceneObject_SetEnable, Physical,    // Group name, Function name
                 "Enable or disable the physical of a sceneobject" ) // Help string
 {
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(static_cast<const char *>(params[0]), "", str);
     PrintString(str);
     if (!key)
         return;
@@ -5525,7 +5497,7 @@ PF_CONSOLE_CMD( SceneObject_SetEnable, Audible,     // Group name, Function name
                 "Enable or disable the audible of a sceneobject" )  // Help string
 {
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(static_cast<const char *>(params[0]), "", str);
     PrintString(str);
     if (!key)
         return;
@@ -5544,7 +5516,7 @@ PF_CONSOLE_CMD( SceneObject_SetEnable, All,         // Group name, Function name
                 "Enable or disable all fxns of a sceneobject" ) // Help string
 {
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(static_cast<const char *>(params[0]), "", str);
     PrintString(str);
     if (!key)
         return;
@@ -5564,10 +5536,10 @@ PF_CONSOLE_CMD( SceneObject, Attach,            // Group name, Function name
 {
     char str[256];
 
-    plString childName = plString::FromUtf8(params[0]);
-    plString parentName = plString::FromUtf8(params[1]);
+    plString childName = static_cast<const char *>(params[0]);
+    plString parentName = static_cast<const char *>(params[1]);
 
-    plKey childKey = FindSceneObjectByName(childName, nil, str);
+    plKey childKey = FindSceneObjectByName(childName, "", str);
     if( !childKey )
     {
         PrintString(str);
@@ -5581,7 +5553,7 @@ PF_CONSOLE_CMD( SceneObject, Attach,            // Group name, Function name
         return;
     }
 
-    plKey parentKey = FindSceneObjectByName(parentName, nil, str);
+    plKey parentKey = FindSceneObjectByName(parentName, "", str);
     if( !parentKey )
     {
         PrintString(str);
@@ -5602,9 +5574,9 @@ PF_CONSOLE_CMD( SceneObject, Detach,            // Group name, Function name
 {
     char str[256];
 
-    plString childName = plString::FromUtf8(params[0]);
+    plString childName = static_cast<const char *>(params[0]);
 
-    plKey childKey = FindSceneObjectByName(childName, nil, str);
+    plKey childKey = FindSceneObjectByName(childName, "", str);
     if( !childKey )
     {
         PrintString(str);
@@ -6037,7 +6009,7 @@ PF_CONSOLE_GROUP( Age )
 
 PF_CONSOLE_CMD(Age, ShowSDL, "", "Prints the age SDL values")
 {
-    plStateDataRecord * rec = NEWZERO(plStateDataRecord);
+    plStateDataRecord * rec = new plStateDataRecord;
     if (!VaultAgeGetAgeSDL(rec)) {
         PrintString("Age SDL not found");
         delete rec;
@@ -6065,7 +6037,7 @@ PF_CONSOLE_CMD(Age, ShowSDL, "", "Prints the age SDL values")
 PF_CONSOLE_CMD( Age, GetElapsedDays, "string agedefnfile", "Gets the elapsed days and fractions" )
 {
     hsUNIXStream s;
-    if (!s.Open(params[0]))
+    if (!s.Open(static_cast<const char *>(params[0])))
     {
         PrintString("Couldn't open age defn file!");
         return;
@@ -6086,7 +6058,7 @@ PF_CONSOLE_CMD( Age, GetElapsedDays, "string agedefnfile", "Gets the elapsed day
 PF_CONSOLE_CMD( Age, GetTimeOfDay, "string agedefnfile", "Gets the elapsed days and fractions" )
 {
     hsUNIXStream s;
-    if (!s.Open(params[0]))
+    if (!s.Open(static_cast<const char *>(params[0])))
     {
         PrintString("Couldn't open age defn file!");
         return;
@@ -6187,7 +6159,7 @@ PF_CONSOLE_GROUP( ParticleSystem ) // Defines a main command group
 void UpdateParticleParam(const plString &objName, int32_t paramID, float value, void (*PrintString)(const char *))
 {
     char str[256];
-    plKey key = FindSceneObjectByName(objName, nil, str);
+    plKey key = FindSceneObjectByName(objName, "", str);
     PrintString(str);
     if (key == nil) return;
 
@@ -6310,7 +6282,7 @@ PF_CONSOLE_CMD( ParticleSystem,
                "Creates a system (if necessary) on the avatar, and transfers particles" )
 {
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(static_cast<const char *>(params[0]), "", str);
     if (key == nil) 
         return;
     
@@ -6318,7 +6290,7 @@ PF_CONSOLE_CMD( ParticleSystem,
     if (so == nil) 
         return;
     
-    plArmatureMod *avMod = plAvatarMgr::GetInstance()->GetLocalAvatar();    
+    plArmatureMod *avMod = plAvatarMgr::GetInstance()->GetLocalAvatar();
     if (avMod)
         (new plParticleTransferMsg(nil, avMod->GetKey(), 0, so->GetKey(), (int)params[1]))->Send();
 }
@@ -6329,7 +6301,7 @@ PF_CONSOLE_CMD( ParticleSystem,
                "Flag some particles for death." )
 {
     char str[256];
-    plKey key = FindSceneObjectByName(plString::FromUtf8(params[0]), nil, str);
+    plKey key = FindSceneObjectByName(static_cast<const char *>(params[0]), "", str);
     if (key == nil) 
         return;
     
@@ -6351,7 +6323,7 @@ PF_CONSOLE_SUBGROUP( ParticleSystem, Flock )
 static plParticleFlockEffect *FindFlock(const plString &objName)
 {
     char str[256];
-    plKey key = FindSceneObjectByName(objName, nil, str);
+    plKey key = FindSceneObjectByName(objName, "", str);
     
     if (key == nil)
         return nil;
@@ -6529,7 +6501,7 @@ PF_CONSOLE_GROUP( Animation ) // Defines a main command group
 void SendAnimCmdMsg(const plString &objName, plMessage *msg)
 {
     char str[256];
-    plKey key = FindSceneObjectByName(objName, nil, str);
+    plKey key = FindSceneObjectByName(objName, "", str);
     if (key != nil)
     {
         msg->AddReceiver(key);

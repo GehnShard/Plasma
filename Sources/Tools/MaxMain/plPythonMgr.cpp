@@ -40,16 +40,26 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "HeadSpin.h"
+#include "plgDispatch.h"
+#include "hsWindows.h"
+#include "plFileSystem.h"
+
+#include <Python.h>
+#include <string>
+#include <vector>
+
+#include <iparamb2.h>
+#include <max.h>
+#include <direct.h>
+#pragma hdrstop
+
 #include "plPythonMgr.h"
+#include "plMaxCFGFile.h"
 
 #include "MaxComponent/plAutoUIBlock.h"
-//#include "Python.h"
-#include "plMaxCFGFile.h"
-#include "hsFiles.h"
-
-#include "plgDispatch.h"
+#include "MaxComponent/plPythonFileComponent.h"
+#include "MaxComponent/plResponderComponent.h"
 #include "pfPython/cyPythonInterface.h"
-
 
 plPythonMgr::plPythonMgr()
 {
@@ -126,10 +136,6 @@ bool ICallStrFunc(PyObject *dict, char *funcName, char*& val)
 
     return false;
 }
-
-
-#include "MaxComponent/plPythonFileComponent.h"
-
 
 enum ParamTypes
 {
@@ -224,7 +230,7 @@ void IExtractVisInfo(PyObject* tuple, int* id, std::vector<std::string>* vec)
     }
 }
 
-bool plPythonMgr::IQueryPythonFile(char *fileName)
+bool plPythonMgr::IQueryPythonFile(const char *fileName)
 {
     PyObject *module = PyImport_ImportModule(fileName);
     if (module)
@@ -565,8 +571,6 @@ void plPythonMgr::IAddGUISkin(plAutoUIBlock *autoUI, PyObject *tuple, char *para
     autoUI->AddPickGUISkinButton(id, nil, paramName, vid, vstates);
 }
 
-#include "MaxComponent/plResponderComponent.h"
-
 void plPythonMgr::IAddResponder(plAutoUIBlock *autoUI, PyObject *tuple, char *paramName, int id, int vid, std::vector<std::string>* vstates)
 {
     std::vector<Class_ID> cids;
@@ -593,39 +597,32 @@ void plPythonMgr::IAddGrassComponent(plAutoUIBlock *autoUI, PyObject *objTuple, 
     autoUI->AddPickGrassComponentButton(id, nil, paramName.c_str(), vid, vstates);
 }
 
-#include <direct.h>
-
 void plPythonMgr::LoadPythonFiles()
 {
-    const char *clientPath = plMaxConfig::GetClientPath(false, true);
-    if (clientPath)
+    plFileName clientPath = plMaxConfig::GetClientPath(false, true);
+    if (clientPath.IsValid())
     {
-        char oldCwd[MAX_PATH];
-        _getcwd(oldCwd, sizeof(oldCwd));
-        _chdir(clientPath);
+        plFileName oldCwd = plFileSystem::GetCWD();
+        plFileSystem::SetCWD(clientPath);
 
         // Get the path to the Python subdirectory of the client
-        char pythonPath[MAX_PATH];
-        strcpy(pythonPath, clientPath);
-        strcat(pythonPath, "Python");
+        plFileName pythonPath = plFileName::Join(clientPath, "Python");
 
         PythonInterface::initPython();
 
         // Iterate through all the Python files in the folder
-        hsFolderIterator folder(pythonPath);
-        while (folder.NextFileSuffix(".py"))
+        std::vector<plFileName> pys = plFileSystem::ListDir(pythonPath, "*.py");
+        for (auto iter = pys.begin(); iter != pys.end(); ++iter)
         {
             // Get the filename without the ".py" (module name)
-            const char *fullFileName = folder.GetFileName();
-            char fileName[_MAX_FNAME];
-            _splitpath(fullFileName, NULL, NULL, fileName, NULL);
+            plString fileName = iter->GetFileNameNoExt();
 
-            IQueryPythonFile(fileName);
+            IQueryPythonFile(fileName.c_str());
         }
 
         PythonInterface::finiPython();
 
-        _chdir(oldCwd);
+        plFileSystem::SetCWD(oldCwd);
     }
 }
 

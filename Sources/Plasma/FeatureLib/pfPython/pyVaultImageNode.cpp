@@ -96,7 +96,7 @@ pyVaultImageNode::pyVaultImageNode(RelVaultNode* nfsNode)
 
 //create from the Python side
 pyVaultImageNode::pyVaultImageNode(int n)
-: pyVaultNode(NEWZERO(RelVaultNode))
+: pyVaultNode(new RelVaultNode)
 , fMipmapKey(nil)
 , fMipmap(nil)
 {
@@ -141,9 +141,9 @@ std::string pyVaultImageNode::Image_GetTitle( void )
     VaultImageNode image(fNode);
 
     std::string retVal = "";
-    if (image.title)
+    if (image.GetImageTitle())
     {
-        char* temp = hsWStringToString(image.title);
+        char* temp = hsWStringToString(image.GetImageTitle());
         retVal = temp;
         delete [] temp;
     }
@@ -157,7 +157,7 @@ std::wstring pyVaultImageNode::Image_GetTitleW( void )
         return L"";
 
     VaultImageNode image(fNode);
-    return image.title ? image.title : L"";
+    return image.GetImageTitle() ? image.GetImageTitle() : L"";
 }
 
 PyObject* pyVaultImageNode::Image_GetImage( void )
@@ -170,7 +170,7 @@ PyObject* pyVaultImageNode::Image_GetImage( void )
         if (access.ExtractImage(&fMipmap)) {
             fMipmapKey = fMipmap->GetKey();
             if (!fMipmapKey)
-                fMipmapKey = CreateAndRefImageKey(fNode->nodeId, fMipmap);
+                fMipmapKey = CreateAndRefImageKey(fNode->GetNodeId(), fMipmap);
             else
                 fMipmapKey->RefObject();
         }
@@ -192,13 +192,14 @@ void pyVaultImageNode::Image_SetImage(pyImage& image)
         fMipmap = nil;
     }
 
-    if (fMipmap = image.GetImage()) {
+    fMipmap = image.GetImage();
+    if (fMipmap) {
         VaultImageNode access(fNode);
         access.StuffImage(fMipmap);
-        
+
         fMipmapKey = image.GetKey();
         if (!fMipmapKey)
-            fMipmapKey = CreateAndRefImageKey(fNode->nodeId, fMipmap);
+            fMipmapKey = CreateAndRefImageKey(fNode->GetNodeId(), fMipmap);
         else
             fMipmapKey->RefObject();
     }
@@ -242,7 +243,7 @@ void pyVaultImageNode::SetImageFromScrShot()
         if (cyMisc::GetPipeline()->CaptureScreen(fMipmap, false, 800, 600)) {
             fMipmapKey = fMipmap->GetKey();
             if (!fMipmapKey)
-                fMipmapKey = CreateAndRefImageKey(fNode->nodeId, fMipmap);
+                fMipmapKey = CreateAndRefImageKey(fNode->GetNodeId(), fMipmap);
             else
                 fMipmapKey->RefObject();
             access.StuffImage(fMipmap);

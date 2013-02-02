@@ -46,9 +46,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 // Code for the State Description Language (SDL)
 //
 
-#include "plSDLDescriptor.h"
+#include <list>
 
-#include "hsStlUtils.h"
+#include "plSDLDescriptor.h"
 
 #include "pnFactory/plCreatable.h"
 #include "pnKeyedObject/plKey.h"
@@ -154,7 +154,7 @@ public:
     void SetDirty(bool d) { if (d) fFlags |= kDirty; else fFlags &= ~kDirty; }
     void SetUsed(bool d) { if (d) fFlags |= kUsed; else fFlags &= ~kUsed; }
     virtual void SetFromDefaults(bool timeStampNow) = 0;
-    virtual void TimeStamp( const plUnifiedTime & ut=plUnifiedTime::GetCurrentTime() ) = 0;
+    virtual void TimeStamp( const plUnifiedTime & ut=plUnifiedTime::GetCurrent() ) = 0;
     virtual const plUnifiedTime& GetTimeStamp() const = 0;
 
     plStateVarNotificationInfo& GetNotificationInfo() { return fNotificationInfo; }
@@ -263,7 +263,7 @@ public:
     plSDStateVariable* GetAsSDStateVar() { return nil; }
     bool operator==(const plSimpleStateVariable &other) const;  // assumes matching var descriptors
 
-    void TimeStamp( const plUnifiedTime & ut=plUnifiedTime::GetCurrentTime() );
+    void TimeStamp( const plUnifiedTime & ut=plUnifiedTime::GetCurrent() );
     void CopyFrom(plVarDescriptor* v);
     void CopyData(const plSimpleStateVariable* other, uint32_t writeOptions=0);
     bool SetFromString(const plString& value, int idx, bool timeStampNow);  // set value from string, type.  return false on err
@@ -355,7 +355,7 @@ public:
     void AddStateDataRecord(plStateDataRecord *sdr) { fDataRecList.push_back(sdr); SetDirty(true); SetUsed(true); }
     void InsertStateDataRecord(plStateDataRecord *sdr, int i) { fDataRecList[i] = sdr; SetDirty(true); SetUsed(true);}
     void SetFromDefaults(bool timeStampNow);
-    void TimeStamp( const plUnifiedTime & ut=plUnifiedTime::GetCurrentTime() );
+    void TimeStamp( const plUnifiedTime & ut=plUnifiedTime::GetCurrent() );
     const plUnifiedTime& GetTimeStamp() const { static plUnifiedTime foo; return foo; }
     
     void Alloc(int cnt=-1 /* -1 means don't change count */);   // wipe and re-create
@@ -433,9 +433,9 @@ public:
     plStateDataRecord(const plString& sdName, int version=plSDL::kLatestVersion);
     plStateDataRecord(plStateDescriptor* sd);
     plStateDataRecord(const plStateDataRecord &other, uint32_t writeOptions=0 ):fFlags(0) { CopyFrom(other, writeOptions); }
-    plStateDataRecord():fFlags(0) {}
+    plStateDataRecord() : fDescriptor(nil), fFlags(0) {}
     ~plStateDataRecord();
-    
+
     bool ConvertTo(plStateDescriptor* other, bool force=false );
     bool operator==(const plStateDataRecord &other) const;  // assumes matching state descriptors
 
@@ -510,10 +510,11 @@ class plSDLParser
 {
 private:
     bool IReadDescriptors() const;
-    bool ILoadSDLFile(const char* fileName) const;
-    bool IParseVarDesc(const char* fileName, hsStream* stream, char token[], plStateDescriptor*& curDesc, 
-        plVarDescriptor*& curVar) const;
-    bool IParseStateDesc(const char* fileName, hsStream* stream, char token[], plStateDescriptor*& curDesc) const;
+    bool ILoadSDLFile(const plFileName& fileName) const;
+    bool IParseVarDesc(const plFileName& fileName, hsStream* stream, char token[],
+                       plStateDescriptor*& curDesc, plVarDescriptor*& curVar) const;
+    bool IParseStateDesc(const plFileName& fileName, hsStream* stream, char token[],
+                         plStateDescriptor*& curDesc) const;
 
     void DebugMsg(const char* fmt, ...) const;
     void DebugMsgV(const char* fmt, va_list args) const;
@@ -532,10 +533,10 @@ class plSDLMgr
 {
     friend class plSDLParser;
 private:
-    std::string fSDLDir;
+    plFileName  fSDLDir;
     plSDL::DescriptorList fDescriptors;
     plNetApp*   fNetApp;
-    uint32_t      fBehaviorFlags;
+    uint32_t    fBehaviorFlags;
 
     void IDeleteDescriptors(plSDL::DescriptorList* dl);
 public:
@@ -547,8 +548,8 @@ public:
     
     const plSDL::DescriptorList * GetDescriptors( void ) const { return &fDescriptors;}
 
-    void SetSDLDir(const char* s) { fSDLDir=s; }
-    const char* GetSDLDir() const { return fSDLDir.c_str(); }
+    void SetSDLDir(const plFileName& s) { fSDLDir=s; }
+    plFileName GetSDLDir() const { return fSDLDir; }
 
     void SetNetApp(plNetApp* a) { fNetApp=a; }
     plNetApp* GetNetApp() const { return fNetApp; }

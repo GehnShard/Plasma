@@ -1,5 +1,14 @@
-include_directories(../PubUtilLib/plUnifiedTime)    # EVIL:  For plFileUtils.cpp
+include_directories(${PCRE_INCLUDE_DIR})
+
 add_definitions(-D_LIB)
+
+add_definitions(-DPRODUCT_BRANCH_ID=${PRODUCT_BRANCH_ID})
+add_definitions(-DPRODUCT_BUILD_ID=${PRODUCT_BUILD_ID})
+add_definitions(-DPRODUCT_BUILD_TYPE=${PRODUCT_BUILD_TYPE})
+add_definitions(-DPRODUCT_CORE_NAME="${PRODUCT_CORE_NAME}")
+add_definitions(-DPRODUCT_SHORT_NAME="${PRODUCT_SHORT_NAME}")
+add_definitions(-DPRODUCT_LONG_NAME="${PRODUCT_LONG_NAME}")
+add_definitions(-DPRODUCT_UUID="${PRODUCT_UUID}")
 
 if(NOT WCHAR_BYTES)
     include(CheckTypeSize)
@@ -20,7 +29,6 @@ set(CoreLib_SOURCES
     hsCritSect.cpp
     hsExceptionStack.cpp
     hsFastMath.cpp
-    hsFiles.cpp
     hsGeometry3.cpp
     hsMatrix33.cpp
     hsMatrix44.cpp
@@ -29,16 +37,16 @@ set(CoreLib_SOURCES
     hsRefCnt.cpp
     hsSafeRefCnt.cpp
     hsSTLStream.cpp
-    hsStlUtils.cpp
     hsStream.cpp
     hsStringTokenizer.cpp
     hsTemplates.cpp
     hsThread.cpp
     hsWide.cpp
     pcSmallRect.cpp
-    plFileUtils.cpp
+    plFileSystem.cpp
     plGeneric.cpp
     plLoadMask.cpp
+    plProduct.cpp
     plString.cpp
     plViewTransform.cpp
 )
@@ -46,13 +54,11 @@ set(CoreLib_SOURCES
 if(WIN32 AND NOT CYGWIN)
     set(CoreLib_SOURCES ${CoreLib_SOURCES}
         hsThread_Win.cpp
-        hsFiles_Win.cpp
     )
 endif(WIN32 AND NOT CYGWIN)
 if(UNIX)
     set(CoreLib_SOURCES ${CoreLib_SOURCES}
         hsThread_Unix.cpp
-        hsFiles_Unix.cpp
     )
 endif(UNIX)
 
@@ -66,7 +72,6 @@ set(CoreLib_HEADERS
     hsCritSect.h
     hsExceptions.h
     hsFastMath.h
-    hsFiles.h
     hsGeometry3.h
     hsHashTable.h
     hsMatrix44.h
@@ -75,18 +80,18 @@ set(CoreLib_HEADERS
     hsQuat.h
     hsRefCnt.h
     hsSafeRefCnt.h
-    hsStlSortUtils.h
     hsSTLStream.h
-    hsStlUtils.h
     hsStream.h
     hsStringTokenizer.h
     hsTemplates.h
     hsThread.h
     hsWide.h
+    hsWindows.h
     pcSmallRect.h
-    plFileUtils.h
+    plFileSystem.h
     plGeneric.h
     plLoadMask.h
+    plProduct.h
     plQuality.h
     plString.h
     plTweak.h
@@ -94,6 +99,8 @@ set(CoreLib_HEADERS
 )
 
 add_library(CoreLib STATIC ${CoreLib_SOURCES} ${CoreLib_HEADERS})
+target_link_libraries(CoreLib ${PCRE_LIBRARY})
+
 if(UNIX)
     target_link_libraries(CoreLib pthread)
 endif(UNIX)

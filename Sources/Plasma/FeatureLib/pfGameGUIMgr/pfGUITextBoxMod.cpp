@@ -46,7 +46,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //////////////////////////////////////////////////////////////////////////////
 
 #include "HeadSpin.h"
-#include "hsStlUtils.h"
 #include "pfGUITextBoxMod.h"
 #include "pfGameGUIMgr.h"
 
@@ -122,7 +121,7 @@ void    pfGUITextBoxMod::IUpdate( void )
 
     std::wstring drawStr;
     if (fUseLocalizationPath && !fLocalizationPath.IsEmpty() && pfLocalizationMgr::InstanceValid())
-        drawStr = pfLocalizationMgr::Instance().GetString(fLocalizationPath.ToWchar().GetData());
+        drawStr = pfLocalizationMgr::Instance().GetString(fLocalizationPath).ToWchar().GetData();
     else
     {
         if( fText != nil )

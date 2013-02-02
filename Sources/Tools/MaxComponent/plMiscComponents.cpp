@@ -39,17 +39,27 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+
 #include "HeadSpin.h"
-#include "max.h"
-#include "resource.h"
-#include "plMiscComponents.h"
+#include "plCreatableIndex.h"
+#include "plgDispatch.h"
+
 #include "plComponentReg.h"
+#include "plMiscComponents.h"
+#include "MaxMain/plMaxNode.h"
+#include "MaxMain/plMaxNodeData.h"
+#include "resource.h"
+
+#include <iparamm2.h>
+#include <memory>
+#include <notify.h>
+#pragma hdrstop
+
 #ifdef MAXASS_AVAILABLE
-#include "../../AssetMan/PublicInterface/MaxAssInterface.h"
+#   include "../../AssetMan/PublicInterface/MaxAssInterface.h"
 #endif
 
 #include "MaxMain/plPlasmaRefMsgs.h"
-#include "MaxMain/plMaxNodeData.h"
 
 #include "pnSceneObject/plSceneObject.h"
 #include "pnSceneObject/plCoordinateInterface.h"
@@ -57,20 +67,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "MaxMain/plPluginResManager.h"
 
-
-#include "plgDispatch.h"
 #include "pnMessage/plObjRefMsg.h"
 #include "pnMessage/plIntRefMsg.h"
 #include "pnMessage/plNodeRefMsg.h"
-
 
 #include "plScene/plSceneNode.h"
 #include "MaxConvert/hsConverterUtils.h"
 #include "MaxConvert/hsControlConverter.h"
 #include "plInterp/plController.h"
-#include "MaxMain/plMaxNode.h"
-#include "pnKeyedObject/plKey.h"
-#include "plFileUtils.h"
 
 // Follow mod
 #include "plInterp/plAnimPath.h"
@@ -93,9 +97,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 // Location Related
 #include "plAgeDescription/plAgeDescription.h"
+#include "plFile/plEncryptedStream.h"
 #include "MaxMain/plMaxCFGFile.h"
 #include "MaxMain/plAgeDescInterface.h"
-#include "hsFiles.h"
 #include "plResMgr/plPageInfo.h"
 
 #include "plDrawable/plGeometrySpan.h"
@@ -107,6 +111,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "MaxPlasmaMtls/Layers/plLayerTex.h"
 #include "MaxConvert/plLayerConverter.h"
 #include "plGImage/plBitmap.h"
+
+// NetSync
+#include "pnNetCommon/plSDLTypes.h"
+#include "MaxConvert/hsMaterialConverter.h"
+#include "plSurface/hsGMaterial.h"
+#include "plSurface/plLayerInterface.h"
 
 void DummyCodeIncludeFuncMisc() 
 {
@@ -227,8 +237,8 @@ protected:
         aged.SeekFirstPage();
         while( ( page = aged.GetNextPage() ) != nil )
         {
-            int idx = ComboBox_AddString(hPageCombo, page->GetName() );
-            if (curPage && !strcmp(page->GetName(), curPage))
+            int idx = ComboBox_AddString(hPageCombo, page->GetName().c_str() );
+            if (curPage && (page->GetName() == curPage))
                 ComboBox_SetCurSel(hPageCombo, idx);
             ComboBox_SetItemData( hPageCombo, idx, (int)page->GetSeqSuffix() );
         }
@@ -250,8 +260,7 @@ protected:
         HWND hAgeCombo = GetDlgItem(fhDlg, IDC_COMP_LOCATION_AGECOMBO);
         IClearAges( hAgeCombo );
 
-        hsTArray<char *>    ageFiles;
-        plAgeDescInterface::BuildAgeFileList( ageFiles );
+        hsTArray<plFileName> ageFiles = plAgeDescInterface::BuildAgeFileList();
 
         const char *curAge = fPB->GetStr(plPageInfoComponent::kInfoAge);
         if (!curAge || *curAge == '\0')
@@ -259,14 +268,13 @@ protected:
 
         for( int i = 0; i < ageFiles.GetCount(); i++ )
         {
-            char ageName[_MAX_FNAME];
-            _splitpath( ageFiles[ i ], nil, nil, ageName, nil );
+            plString ageName = ageFiles[i].GetFileNameNoExt();
 
-            int idx = ComboBox_AddString( hAgeCombo, ageName );
+            int idx = ComboBox_AddString( hAgeCombo, ageName.c_str() );
             // Store the pathas the item data for later (so don't free it yet!)
-            ComboBox_SetItemData( hAgeCombo, idx, (LPARAM)ageFiles[ i ] );
+            ComboBox_SetItemData( hAgeCombo, idx, (LPARAM)hsStrcpy(ageFiles[i].AsString().c_str()) );
 
-            if( !strcmp( ageName, curAge ) )
+            if (ageName == curAge)
                 ComboBox_SetCurSel( hAgeCombo, idx );
         }
         
@@ -462,7 +470,7 @@ bool plPageInfoComponent::SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg)
                     "for playing over the network or released for external use.\n\n"
                     "\t(Original sequence #: 0x%X)\n\t(Temporary sequence #: 0x%X)", 
                                     age, room, pNode->GetName(), 
-                                    lastPage->GetAge(), lastPage->GetPage(), age, room, seqNum, newNum );
+                                    lastPage->GetAge().c_str(), lastPage->GetPage().c_str(), age, room, seqNum, newNum );
             }
             else if( plPluginResManager::ResMgr()->GetLastVerifyError() == plPluginResManager::kErrSeqAlreadyTaken )
             {
@@ -475,7 +483,7 @@ bool plPageInfoComponent::SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg)
                     "for playing over the network or released for external use.\n\n"
                     "\t(Original sequence #: 0x%X)\n\t(Temporary sequence #: 0x%X)", 
                                     age, room, pNode->GetName(), 
-                                    lastPage->GetAge(), lastPage->GetPage(), age, room, seqNum, newNum );
+                                    lastPage->GetAge().c_str(), lastPage->GetPage().c_str(), age, room, seqNum, newNum );
             }
             else if( plPluginResManager::ResMgr()->GetLastVerifyError() == plPluginResManager::kErrCantFindValid )
             {
@@ -566,33 +574,32 @@ const char *plPageInfoComponent::GetAgeName()
 //  Checks in assetMan to make sure we have the latest .age file to export 
 //  with.
 
-void    plPageInfoComponent::IVerifyLatestAgeAsset( const char *ageName, const char *localPath, plErrorMsg *errMsg )
+void    plPageInfoComponent::IVerifyLatestAgeAsset( const plString &ageName, const plFileName &localPath, plErrorMsg *errMsg )
 {
 #ifdef MAXASS_AVAILABLE
-    char                ageFileName[ MAX_PATH ], assetPath[ MAX_PATH ];
-
+    plFileName ageFileName, assetPath;
 
    MaxAssInterface *assetMan = GetMaxAssInterface();
    if( assetMan == nil )
        return;      // No AssetMan available
 
     // Try to find it in assetMan
-    sprintf( ageFileName, "%s.age", ageName );
+    ageFileName = ageName + ".age";
     jvUniqueId assetId;
-    if (assetMan->FindAssetByFilename(ageFileName, assetId))
+    if (assetMan->FindAssetByFilename(ageFileName.AsString().c_str(), assetId))
     {
         // Get the latest version
         if (!assetMan->GetLatestVersionFile(assetId, assetPath, sizeof(assetPath)))
         {
             errMsg->Set( true, "PageInfo Convert Error",
-                        "Unable to update age file for '%s' because AssetMan was unable to get the latest version. Using local copy instead.", ageName ).Show();
+                "Unable to update age file for '%s' because AssetMan was unable to get the latest version. Using local copy instead.", ageName.c_str() ).Show();
             errMsg->Set( false );
             return;
         }
 
         // Got the latest version, just copy over and roll!
-        plFileUtils::RemoveFile( localPath );
-        plFileUtils::FileCopy( assetPath, localPath );
+        plFileSystem::Unlink(localPath);
+        plFileSystem::Copy(assetPath, localPath);
     }
     else
     {
@@ -615,10 +622,8 @@ void    plPageInfoComponent::IUpdateSeqNumbersFromAgeFile( plErrorMsg *errMsg )
     // Mark us as updated
     fCompPB->SetValue( kRefVolatile_PageInfoUpdated, 0, (int)true );
 
-    char path[MAX_PATH];
-
-    const char *ageFolder = plPageInfoUtils::GetAgeFolder();
-    if( ageFolder == nil )
+    plFileName ageFolder = plPageInfoUtils::GetAgeFolder();
+    if (!ageFolder.IsValid())
     {
         errMsg->Set( true,
                      "PageInfo Convert Error",
@@ -643,12 +648,12 @@ void    plPageInfoComponent::IUpdateSeqNumbersFromAgeFile( plErrorMsg *errMsg )
         fCompPB->SetValue( kInfoSeqSuffix, 0, 0 );
         return;
     }
-    sprintf(path, "%s%s.age", ageFolder, curAge);
+    plFileName path = plFileName::Join(ageFolder, plString::Format("%s.age", curAge));
 
     IVerifyLatestAgeAsset( curAge, path, errMsg );
+    std::unique_ptr<plAgeDescription> aged(plPageInfoUtils::GetAgeDesc(curAge));
 
-    hsUNIXStream s;
-    if (!s.Open(path))
+    if (!aged)
     {
         errMsg->Set( true,
                      "PageInfo Convert Error",
@@ -661,13 +666,8 @@ void    plPageInfoComponent::IUpdateSeqNumbersFromAgeFile( plErrorMsg *errMsg )
         return;
     }
 
-    // create and read the age desc
-    plAgeDescription aged;
-    aged.Read(&s);
-    s.Close();
-
     // Update based on the age file now
-    fCompPB->SetValue( kInfoSeqPrefix, 0, (int)aged.GetSequencePrefix() );
+    fCompPB->SetValue( kInfoSeqPrefix, 0, (int)aged->GetSequencePrefix() );
 
     // Find our page
     const char *compPBPageName = fCompPB->GetStr( kInfoPage );
@@ -685,16 +685,16 @@ void    plPageInfoComponent::IUpdateSeqNumbersFromAgeFile( plErrorMsg *errMsg )
     }
 
     plAgePage   *page;
-    aged.SeekFirstPage();
+    aged->SeekFirstPage();
 
-    while( ( page = aged.GetNextPage() ) != nil )
+    while( ( page = aged->GetNextPage() ) != nil )
     {
-        if( stricmp( page->GetName(), compPBPageName ) == 0 )
+        if( page->GetName().CompareI( compPBPageName ) == 0 )
         {
             fCompPB->SetValue( kInfoSeqSuffix, 0, (int)page->GetSeqSuffix() );
 
             // Also re-copy the page name, just to make sure the case is correct
-            fCompPB->SetValue( kInfoPage, 0, (char *)page->GetName() );
+            fCompPB->SetValue( kInfoPage, 0, const_cast<char*>(page->GetName().c_str()) );
             return;
         }
     }
@@ -710,28 +710,20 @@ void    plPageInfoComponent::IUpdateSeqNumbersFromAgeFile( plErrorMsg *errMsg )
     fCompPB->SetValue( kInfoSeqSuffix, 0, 0 );
 }
 
-const char *plPageInfoUtils::GetAgeFolder()
+plFileName plPageInfoUtils::GetAgeFolder()
 {
-    static char ageFolder[MAX_PATH];
-    static bool initialized = false;
+    static plFileName ageFolder;
 
-    if (!initialized)
+    if (!ageFolder.IsValid())
     {
-        initialized = true;
-        ageFolder[0] = '\0';
+        plFileName plasmaPath = plMaxConfig::GetClientPath();
+        if (!plasmaPath.IsValid())
+            return "";
 
-        const char *plasmaPath = plMaxConfig::GetClientPath();
-        if (!plasmaPath)
-            return nil;
-
-        strcpy(ageFolder, plasmaPath);
-        strcat(ageFolder, plAgeDescription::kAgeDescPath);
+        ageFolder = plFileName::Join(plasmaPath, plAgeDescription::kAgeDescPath);
     }
 
-    if (ageFolder[0] != '\0')
-        return ageFolder;
-    else
-        return nil;
+    return ageFolder;
 }
 
 int32_t   plPageInfoUtils::CombineSeqNum( int prefix, int suffix )
@@ -779,7 +771,7 @@ int32_t   plPageInfoUtils::GetSeqNumFromAgeDesc( const char *ageName, const char
     aged->SeekFirstPage();
     while( ( page = aged->GetNextPage() ) != nil )
     {
-        if( stricmp( pageName, page->GetName() ) == 0 )
+        if (page->GetName().CompareI(pageName) == 0)
         {
             seqSuffix = page->GetSeqSuffix();
             break;
@@ -791,26 +783,20 @@ int32_t   plPageInfoUtils::GetSeqNumFromAgeDesc( const char *ageName, const char
     return CombineSeqNum( seqPrefix, seqSuffix );
 }
 
-plAgeDescription    *plPageInfoUtils::GetAgeDesc( const char *ageName )
+plAgeDescription *plPageInfoUtils::GetAgeDesc( const plString &ageName )
 {
-    char                path[ MAX_PATH ];
+    plFileName ageFolder = plPageInfoUtils::GetAgeFolder();
+    if (!ageFolder.IsValid() || ageName.IsNull())
+        return nullptr;
 
-    const char *ageFolder = plPageInfoUtils::GetAgeFolder();
-    if( ageFolder == nil || ageName == nil )
-        return nil;
-
-    sprintf( path, "%s%s.age", ageFolder, ageName );
-
-    hsUNIXStream s;
-    if( !s.Open( path ) )
-        return nil;
-
-    // Create and read the age desc
-    plAgeDescription *aged = new plAgeDescription;
-    aged->Read( &s );
-    s.Close();
-
-    return aged;
+    plAgeDescription* aged = new plAgeDescription;
+    if (aged->ReadFromFile(plFileName::Join(ageFolder, ageName + ".age")))
+        return aged;
+    else
+    {
+        delete aged;
+        return nullptr;
+    }
 }
 
 const char* LocCompGetPage(plComponentBase* comp)
@@ -2028,12 +2014,6 @@ bool plReferencePointComponent::SetupProperties(plMaxNode *pNode, plErrorMsg *pE
 ///////////////////////////////////////////////////////////////////////////////
 //
 //
-
-#include "pnNetCommon/plSDLTypes.h"
-#include "MaxConvert/hsMaterialConverter.h"
-#include "plSurface/hsGMaterial.h"
-#include "plSurface/plLayerInterface.h"
-#include "plCreatableIndex.h"
 
 class plNetSyncComponent : public plComponent
 {

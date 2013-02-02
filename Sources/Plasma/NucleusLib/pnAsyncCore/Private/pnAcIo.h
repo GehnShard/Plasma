@@ -51,6 +51,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNASYNCCORE_PRIVATE_PNACIO_H
 
 #include "pnNetCommon/plNetAddress.h"
+#include "pnUUID/pnUUID.h"
 
 
 /****************************************************************************
@@ -79,7 +80,7 @@ struct AsyncSocketConnectPacket {
     uint32_t    buildId;
     uint32_t    buildType;
     uint32_t    branchId;
-    Uuid        productId;
+    plUUID      productId;
 };
 #pragma pack(pop)
 
@@ -102,29 +103,39 @@ enum EAsyncNotifySocket {
 struct AsyncNotifySocket {
     void *          param;
     AsyncId         asyncId;
+
+    AsyncNotifySocket() : param(nil), asyncId(nil) { }
 };
 
 struct AsyncNotifySocketConnect : AsyncNotifySocket {
     plNetAddress    localAddr;
     plNetAddress    remoteAddr;
     unsigned        connType;
+
+    AsyncNotifySocketConnect() : connType(0) { }
 };
 
 struct AsyncNotifySocketListen : AsyncNotifySocketConnect {
     unsigned        buildId;
     unsigned        buildType;
     unsigned        branchId;
-    Uuid            productId;
+    plUUID          productId;
     plNetAddress    addr;
     uint8_t *       buffer;
     unsigned        bytes;
     unsigned        bytesProcessed;
+
+    AsyncNotifySocketListen()
+        : buildId(0), buildType(0), branchId(0), buffer(nil), bytes(0),
+          bytesProcessed(0) { }
 };
 
 struct AsyncNotifySocketRead : AsyncNotifySocket {
     uint8_t *       buffer;
     unsigned        bytes;
     unsigned        bytesProcessed;
+
+    AsyncNotifySocketRead() : buffer(nil), bytes(0), bytesProcessed(0) { }
 };
 
 typedef AsyncNotifySocketRead AsyncNotifySocketWrite;
@@ -183,7 +194,7 @@ void AsyncSocketRegisterNotifyProc (
     unsigned                buildId = 0,
     unsigned                buildType = 0,
     unsigned                branchId = 0,
-    const Uuid &            productId = kNilGuid
+    const plUUID&           productId = kNilUuid
 );
 
 void AsyncSocketUnregisterNotifyProc (
@@ -192,7 +203,7 @@ void AsyncSocketUnregisterNotifyProc (
     unsigned                buildId = 0,
     unsigned                buildType = 0,
     unsigned                branchId = 0,
-    const Uuid &            productId = kNilGuid
+    const plUUID&           productId = kNilUuid
 );
 
 FAsyncNotifySocketProc AsyncSocketFindNotifyProc (
@@ -203,7 +214,7 @@ FAsyncNotifySocketProc AsyncSocketFindNotifyProc (
     unsigned *              buildId,
     unsigned *              buildType,
     unsigned *              branchId,
-    Uuid *                  productId
+    plUUID*                 productId
 );
 
 

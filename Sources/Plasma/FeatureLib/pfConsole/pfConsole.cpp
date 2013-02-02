@@ -283,7 +283,7 @@ bool    pfConsole::MsgReceive( plMessage *msg )
     {
         if( cmd->GetCmd() == plConsoleMsg::kExecuteFile )
         {
-            if( !fEngine->ExecuteFile( (char *)cmd->GetString() ) )
+            if( !fEngine->ExecuteFile( cmd->GetString() ) )
             {
                 // Change the following line once we have a better way of reporting
                 // errors in the parsing
@@ -844,7 +844,7 @@ void    pfConsole::IHandleKey( plKeyEventMsg *msg )
     {
         fWorkingCursor = 0;
     }
-    else if (msg->GetKeyChar() != nil)
+    else if (msg->GetKeyChar())
     {
         key = msg->GetKeyChar();
         // do they want to go into help mode?
@@ -1223,7 +1223,7 @@ void pfConsole::AddLineF(const char * fmt, ...) {
 //============================================================================
 void pfConsole::RunCommandAsync (const char cmd[]) {
 
-    plConsoleMsg * consoleMsg = NEWZERO(plConsoleMsg);
+    plConsoleMsg * consoleMsg = new plConsoleMsg;
     consoleMsg->SetCmd(plConsoleMsg::kExecuteLine);
     consoleMsg->SetString(cmd);
 //  consoleMsg->SetBreakBeforeDispatch(true);

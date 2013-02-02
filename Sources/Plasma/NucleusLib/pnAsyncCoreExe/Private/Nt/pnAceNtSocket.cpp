@@ -105,6 +105,8 @@ struct NtOpSocketWrite : Operation {
     unsigned                queueTimeMs;
     unsigned                bytesAlloc;
     AsyncNotifySocketWrite  write;
+
+    NtOpSocketWrite() : queueTimeMs(0), bytesAlloc(0) { }
 };
 
 struct NtOpSocketRead : Operation {
@@ -121,7 +123,7 @@ struct NtSock : NtObject {
     NtOpSocketRead          opRead;
     unsigned                backlogAlloc;
     unsigned                initTimeMs;
-    uint8_t                    buffer[kAsyncSocketBufferSize];
+    uint8_t                 buffer[kAsyncSocketBufferSize];
 
     NtSock ();
     ~NtSock ();
@@ -144,7 +146,12 @@ static LISTDECL(NtSock, link)           s_socketList;
 
 
 //===========================================================================
-inline NtSock::NtSock () {
+inline NtSock::NtSock ()
+    : closeTimeMs(0), connType(0), notifyProc(nil), bytesLeft(0)
+    , backlogAlloc(0), initTimeMs(0)
+{
+    memset(buffer, 0, sizeof(buffer));
+
     PerfAddCounter(kAsyncPerfSocketsCurr, 1);
     PerfAddCounter(kAsyncPerfSocketsTotal, 1);
 }
@@ -406,7 +413,7 @@ static NtSock * SocketInitCommon (SOCKET hSocket) {
         LogMsg(kLogError, "setsockopt(recv) failed (set recv buffer size)");
 
     // allocate a new socket
-    NtSock * sock       = NEWZERO(NtSock);
+    NtSock * sock       = new NtSock;
     sock->ioType        = kNtSocket;
     sock->handle        = (HANDLE) hSocket;
     sock->initTimeMs    = TimeGetMs();
@@ -489,7 +496,7 @@ static void SocketInitListen (
             notify.buildId          = 0;
             notify.buildType        = 0;
             notify.branchId         = 0;
-            notify.productId        = 0;
+            notify.productId        = kNilUuid;
             notify.addr             = listenAddr;
             notify.buffer           = sock->opRead.read.buffer;
             notify.bytes            = 0;
@@ -763,7 +770,7 @@ static unsigned THREADCALL ListenThreadProc (AsyncThread *) {
     for (NtOpConnAttempt * op; (op = s_connectList.Head()) != nil; s_connectList.Unlink(op)) {
         if (op->hSocket != INVALID_SOCKET) {
             closesocket(op->hSocket);
-            op->hSocket = nil;
+            op->hSocket = 0;
         }
         INtConnPostOperation(nil, op, 0);
     }
@@ -798,17 +805,15 @@ static void StartListenThread () {
 #ifdef HS_DEBUGGING
 #include <StdIo.h>
 static void __cdecl DumpInvalidData (
-    const wchar_t filename[],
+    const plFileName & filename,
     unsigned    bytes,
     const uint8_t  data[],
     const char  fmt[],
     ...
 ) {
-    wchar_t path[MAX_PATH];
-    PathGetProgramDirectory(path, arrsize(path));
-    PathAddFilename(path, path, L"Log", arrsize(path));
-    PathAddFilename(path, path, filename, arrsize(path));
-    if (FILE * f = _wfopen(path, L"wb")) {
+    plFileName path = plFileSystem::GetCurrentAppPath().StripFileName();
+    path = plFileName::Join(path, "Log", filename);
+    if (FILE * f = plFileSystem::Open(path, "wb")) {
         va_list args;
         va_start(args, fmt);
         vfprintf(f, fmt, args);
@@ -1020,7 +1025,7 @@ void INtSocketOpCompleteSocketRead (
                 static long s_once;
                 if (!AtomicAdd(&s_once, 1)) {
                     DumpInvalidData(
-                        L"NtSockErr.log",
+                        "NtSockErr.log",
                         sizeof(sock->buffer),
                         sock->buffer,
                         "SocketDispatchRead error for %p: %d %d %d\r\n",

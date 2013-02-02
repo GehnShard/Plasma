@@ -44,7 +44,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define plMiscComponents_inc
 
 #include "plComponent.h"
-#include "Notify.h"
+#include <notify.h>
 
 #define ROOM_CID Class_ID(0x70a1570d, 0x472f5647)
 #define PAGEINFO_CID Class_ID(0x54ee40f1, 0x4de45acc)
@@ -53,19 +53,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define CIRCLE_CAM_CID Class_ID(0x66f85282, 0x4daa1b8e)
 #define IMAGE_LIB_CID   Class_ID(0x736c18d3, 0x6a6d5dde)
 
-class plComponentBase;
+class plFileName;
 class plAgeDescription;
+class plComponentBase;
 
 const char* LocCompGetPage(plComponentBase* comp);
 
 namespace plPageInfoUtils
 {
-    const char *GetAgeFolder();
-    int32_t       GetSeqNumFromAgeDesc( const char *ageName, const char *pageName );
-    int32_t       CombineSeqNum( int prefix, int suffix );
-    int32_t       GetCommonSeqNumFromNormal( int32_t normalSeqNumber, int whichCommonPage );
+    plFileName  GetAgeFolder();
+    int32_t     GetSeqNumFromAgeDesc( const char *ageName, const char *pageName );
+    int32_t     CombineSeqNum( int prefix, int suffix );
+    int32_t     GetCommonSeqNumFromNormal( int32_t normalSeqNumber, int whichCommonPage );
 
-    plAgeDescription    *GetAgeDesc( const char *ageName );
+    plAgeDescription    *GetAgeDesc( const plString &ageName );
 };
 
 // PageInfo component definition, here so other components can get to the static function(s)
@@ -76,8 +77,8 @@ protected:
     bool        fItinerant;
     static char fCurrExportedAge[ 256 ];
 
-    void    IVerifyLatestAgeAsset( const char *ageName, const char *localPath, plErrorMsg *errMsg );
-    void    IUpdateSeqNumbersFromAgeFile( plErrorMsg *errMsg );     
+    void    IVerifyLatestAgeAsset( const plString &ageName, const plFileName &localPath, plErrorMsg *errMsg );
+    void    IUpdateSeqNumbersFromAgeFile( plErrorMsg *errMsg );
     
 public:
     plPageInfoComponent();

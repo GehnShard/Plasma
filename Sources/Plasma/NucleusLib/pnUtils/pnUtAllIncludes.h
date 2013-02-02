@@ -51,7 +51,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "pnUtCoreLib.h"    // must be first in list
 #include "pnUtPragma.h"
-#include "pnUtUuid.h"
 #include "pnUtSort.h"
 #include "pnUtArray.h"
 #include "pnUtList.h"
@@ -60,7 +59,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnUtTime.h"
 #include "pnUtStr.h"
 #include "pnUtRef.h"
-#include "pnUtPath.h"
 #include "pnUtCmd.h"
 #include "pnUtMisc.h"
 #include "pnUtCrypt.h"

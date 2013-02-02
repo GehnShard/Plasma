@@ -91,12 +91,12 @@ struct JoinAgeRequestTrans : NetGameTrans {
     void *                              m_param;
     // sent
     unsigned                            m_ageMcpId;
-    Uuid                                m_accountUuid;
+    plUUID                              m_accountUuid;
     unsigned                            m_playerInt;
 
     JoinAgeRequestTrans (
         unsigned                            ageMcpId,
-        const Uuid &                        accountUuid,
+        const plUUID&                       accountUuid,
         unsigned                            playerInt,
         FNetCliGameJoinAgeRequestCallback   callback,
         void *                              param
@@ -356,7 +356,7 @@ static bool SocketNotifyCallback (
 static void Connect (
     const plNetAddress& addr
 ) {
-    CliGmConn * conn = NEWZERO(CliGmConn);
+    CliGmConn * conn = new CliGmConn;
     conn->addr              = addr;
     conn->seq               = ConnNextSequence();
     conn->lastHeardTimeMs   = GetNonZeroTimeMs();
@@ -375,10 +375,10 @@ static void Connect (
     Cli2Game_Connect connect;
     connect.hdr.connType    = kConnTypeCliToGame;
     connect.hdr.hdrBytes    = sizeof(connect.hdr);
-    connect.hdr.buildId     = BuildId();
-    connect.hdr.buildType   = BUILD_TYPE_LIVE;
-    connect.hdr.branchId    = BranchId();
-    connect.hdr.productId   = ProductId();
+    connect.hdr.buildId     = plProduct::BuildId();
+    connect.hdr.buildType   = plProduct::BuildType();
+    connect.hdr.branchId    = plProduct::BranchId();
+    connect.hdr.productId   = plProduct::UUID();
     connect.data.dataBytes  = sizeof(connect.data);
 
     AsyncSocketConnect(
@@ -414,7 +414,10 @@ static unsigned CliGmConnPingTimerProc (void * param) {
 }
 
 //============================================================================
-CliGmConn::CliGmConn () {
+CliGmConn::CliGmConn ()
+    : sock(nil), cancelId(nil), cli(nil), seq(0), abandoned(false)
+    , pingTimer(nil), pingSendTimeMs(0), lastHeardTimeMs(0)
+{
     AtomicAdd(&s_perf[kPerfConnCount], 1);
 }
 
@@ -574,16 +577,16 @@ static NetMsgInitRecv s_recv[] = {
 //============================================================================
 JoinAgeRequestTrans::JoinAgeRequestTrans (
     unsigned                            ageMcpId,
-    const Uuid &                        accountUuid,
+    const plUUID&                       accountUuid,
     unsigned                            playerInt,
     FNetCliGameJoinAgeRequestCallback   callback,
     void *                              param
 ) : NetGameTrans(kJoinAgeRequestTrans)
+,   m_callback(callback)
+,   m_param(param)
 ,   m_ageMcpId(ageMcpId)
 ,   m_accountUuid(accountUuid)
 ,   m_playerInt(playerInt)
-,   m_callback(callback)
-,   m_param(param)
 {
 }
 
@@ -753,8 +756,7 @@ bool GameQueryConnected () {
     bool result;
     s_critsect.Enter();
     {
-        if (nil != (result = s_active))
-            result &= (nil != s_active->cli);
+        result = (s_active && s_active->cli);
     }
     s_critsect.Leave();
     return result;
@@ -817,12 +819,12 @@ void NetCliGameDisconnect () {
 //============================================================================
 void NetCliGameJoinAgeRequest (
     unsigned                            ageMcpId,
-    const Uuid &                        accountUuid,
+    const plUUID&                       accountUuid,
     unsigned                            playerInt,
     FNetCliGameJoinAgeRequestCallback   callback,
     void *                              param
 ) {
-    JoinAgeRequestTrans * trans = NEWZERO(JoinAgeRequestTrans)(
+    JoinAgeRequestTrans * trans = new JoinAgeRequestTrans(
         ageMcpId,
         accountUuid,
         playerInt,

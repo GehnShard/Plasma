@@ -42,7 +42,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plSimulationMgr_H
 #define plSimulationMgr_H
 
-#include "hsStlUtils.h"
+#include <map>
 #include "pnKeyedObject/hsKeyedObject.h"
 #include "hsTemplates.h"
 
@@ -170,7 +170,7 @@ protected:
 #define SIM_VERBOSE
 
 #ifdef SIM_VERBOSE
-#include <stdarg.h>     // only include when we need to call plSimulationMgr::Log
+#include <cstdarg>     // only include when we need to call plSimulationMgr::Log
 
 inline void SimLog(const char *str, ...)
 {

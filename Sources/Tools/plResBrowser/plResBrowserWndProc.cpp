@@ -40,9 +40,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "HeadSpin.h"
+#include "hsWindows.h"
 #include "hsTemplates.h"
 #include "res/resource.h"
+#include <commdlg.h>
 #include <commctrl.h>
+#include <shellapi.h>
 #include <shlwapi.h>
 #include <shlobj.h>
 
@@ -50,7 +53,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plResMgr/plResManager.h"
 #include "plResMgr/plResMgrSettings.h"
 #include "plWinRegistryTools.h"
-#include "hsFiles.h"
 
 #define IDC_REGTREEVIEW     1000
 
@@ -136,14 +138,10 @@ LRESULT CALLBACK HandleCommand( HWND hWnd, WPARAM wParam, LPARAM lParam )
                 // Load that source
                 plResManager *mgr = (plResManager *)hsgResMgr::ResMgr();
 
-                hsFolderIterator pathIterator(path);
-                while (pathIterator.NextFileSuffix(".prp"))
-                {
-                    char fileName[kFolderIterator_MaxPath];
-                    pathIterator.GetPathAndName(fileName);
-                    mgr->AddSinglePage(fileName);
-                }
-    
+                std::vector<plFileName> prpFiles = plFileSystem::ListDir(path, "*.prp");
+                for (auto iter = prpFiles.begin(); iter != prpFiles.end(); ++iter)
+                    mgr->AddSinglePage(*iter);
+
                 plResTreeView::FillTreeViewFromRegistry( gTreeView );
 
                 SetWindowTitle( hWnd, path );
@@ -372,7 +370,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
         case WM_DROPFILES:
             {
-                int     i, j, fileCount = DragQueryFile( (HDROP)wParam, -1, nil, nil );
+                int     i, j, fileCount = DragQueryFile( (HDROP)wParam, -1, nil, 0 );
                 char    path[ MAX_PATH ];
 
                 plWaitCursor    myWaitCursor;
@@ -385,13 +383,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
                     ( (char *)PathFindExtension( path ) )[ 0 ] == 0 )
                 {
                     // Must be a directory
-                    hsFolderIterator pathIterator(path);
-                    while (pathIterator.NextFileSuffix(".prp"))
-                    {
-                        char fileName[kFolderIterator_MaxPath];
-                        pathIterator.GetPathAndName(fileName);
-                        mgr->AddSinglePage(fileName);
-                    }
+                    std::vector<plFileName> prpFiles = plFileSystem::ListDir(path, "*.prp");
+                    for (auto iter = prpFiles.begin(); iter != prpFiles.end(); ++iter)
+                        mgr->AddSinglePage(*iter);
                 }
                 else
                 {

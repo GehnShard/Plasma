@@ -157,40 +157,38 @@ void plAvTask::IUndoLimitPlayersInput(plArmatureMod *avatar)
 
 // CTOR default
 plAvSeekTask::plAvSeekTask()
-: fAnimName(nil),
-  fAlign(kAlignHandle),
-  fDuration(0.25f),
+: fAlign(kAlignHandle),
+  fDuration(0.25),
   fTarget(nil),
   fAnimInstance(nil),
-  fTargetTime(nil),
+  fTargetTime(0),
   fPhysicalAtStart(false),
   fCleanup(false)
 {
 }
 
 // CTOR target, align, animName
-plAvSeekTask::plAvSeekTask(plKey target, plAvAlignment align, const char *animName)
-: fAlign(align),
-  fDuration(0.25f),
+plAvSeekTask::plAvSeekTask(plKey target, plAvAlignment align, const plString& animName)
+: fAnimName(animName),
+  fAlign(align),
+  fDuration(0.25),
   fTarget(target),
   fAnimInstance(nil),
-  fTargetTime(nil),
+  fTargetTime(0),
   fPhysicalAtStart(false),
   fCleanup(false)
 {
-    fAnimName = hsStrcpy(animName);
 }
 
 // CTOR target
 plAvSeekTask::plAvSeekTask(plKey target)
-: fAnimName(nil),
-fAlign(kAlignHandle),
-fDuration(0.25f),
-fTarget(target),
-fAnimInstance(nil),
-fTargetTime(nil),
-fPhysicalAtStart(false),
-fCleanup(false)
+: fAlign(kAlignHandle),
+  fDuration(0.25),
+  fTarget(target),
+  fAnimInstance(nil),
+  fTargetTime(0),
+  fPhysicalAtStart(false),
+  fCleanup(false)
 {
 }
 

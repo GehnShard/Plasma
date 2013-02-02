@@ -45,9 +45,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define plNetAddress_h_inc
 
 #include "HeadSpin.h"
+#include "hsWindows.h" // FIXME
 #include "plString.h"
 
-#include "hsStlUtils.h"
 #include "hsStream.h"
 
 #if defined(HS_BUILD_FOR_WIN32)

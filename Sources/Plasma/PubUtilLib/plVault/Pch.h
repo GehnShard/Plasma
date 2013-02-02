@@ -63,7 +63,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #pragma warning(push, 0)
 #include <algorithm>
 #include <sstream>
-#include "hsStlUtils.h"
 #include "hsStringTokenizer.h"
 #include "hsGeometry3.h"
 #include "plSDL/plSDL.h"
@@ -75,7 +74,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plDniCoordinateInfo.h"
 #include "plGImage/plMipmap.h"
 #include "plGImage/plPNG.h"
-#include "plJPEG/plJPEG.h"
+#include "plGImage/plJPEG.h"
 #include "plMessage/plVaultNotifyMsg.h"
 #include "plNetClientComm/plNetClientComm.h"
 

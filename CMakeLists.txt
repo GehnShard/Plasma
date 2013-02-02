@@ -1,6 +1,26 @@
 project(Plasma)
 cmake_minimum_required(VERSION 2.8)
 
+# Set up Product Identification parameters
+set(PRODUCT_BRANCH_ID   "1"         CACHE STRING "Branch ID")
+set(PRODUCT_BUILD_ID    "912"       CACHE STRING "Build ID")
+set(PRODUCT_BUILD_TYPE  "50"        CACHE STRING "Build Type")
+set(PRODUCT_CORE_NAME   "UruLive"   CACHE STRING "Product Core Name")
+set(PRODUCT_SHORT_NAME  "UruLive"   CACHE STRING "Product Short Name")
+set(PRODUCT_LONG_NAME   "Uru Live"  CACHE STRING "Product Long Name")
+set(PRODUCT_UUID        "ea489821-6c35-4bd0-9dae-bb17c585e680"
+                                    CACHE STRING "Product UUID")
+
+# Detect Clang compiler
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set(CMAKE_COMPILER_IS_CLANGXX 1)
+endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+
+# Require C++11
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANGXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+endif()
+
 # HeadSpin Configuration
 if(WIN32 AND NOT CYGWIN)
     add_definitions(-DHS_BUILD_FOR_WIN32)
@@ -8,10 +28,6 @@ endif(WIN32 AND NOT CYGWIN)
 if(UNIX)
     add_definitions(-DHS_BUILD_FOR_UNIX)
 endif(UNIX)
-
-if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-    add_definitions(-std=c++0x)
-endif()
 # End HeadSpin Configuration
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -28,6 +44,7 @@ find_package(Ogg REQUIRED)    #TODO: Not required if we aren't building the clie
 find_package(Vorbis REQUIRED) #TODO: Not required if we aren't building the client
 find_package(Speex REQUIRED)  #TODO: Not required if we aren't building the client
 find_package(CURL REQUIRED)
+find_package(PCRE REQUIRED)
 
 if(WIN32)
     find_package(PhysX REQUIRED)  #TODO: Not required if we aren't building the client
@@ -45,6 +62,12 @@ option(CURL_IS_STATIC "Using the static version of libcurl?" ON)
 if(CURL_IS_STATIC)
     add_definitions(-DCURL_STATICLIB)
 endif(CURL_IS_STATIC)
+
+#libpcre isn't smart enough to detect this either
+option(PCRE_IS_STATIC "Using the static version of libpcre?" ON)
+if(PCRE_IS_STATIC)
+    add_definitions(-DPCRE_STATIC)
+endif(PCRE_IS_STATIC)
 
 option(PLASMA_EXTERNAL_RELEASE "Is this release intended for the general public?" OFF)
 if(PLASMA_EXTERNAL_RELEASE)

@@ -39,13 +39,22 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+
 #include "HeadSpin.h"
-#include "max.h"
-#include "iMenuMan.h"
+#include "pnKeyedObject/plKey.h"
+#include "hsTemplates.h"
+#include "hsWindows.h"
+#include "plFileSystem.h"
+
+#include <iMenuMan.h>
+#include <max.h>
+#include <notify.h>
+#include "resource.h"
+#include <vector>
+#pragma hdrstop
 
 #include "plMaxMenu.h"
 #include "plActionTableMgr.h"
-#include "resource.h"
 #include "plSaveSelected.h"
 #include "plComponentDlg.h"
 #include "plMaxCFGFile.h"
@@ -316,7 +325,7 @@ void plCreateMenu()
     bool newlyRegistered = pMenuMan->RegisterMenuBarContext(kMyMenuContextId, kMenuName);
 
     // Is the Max menu version the most recent?
-    bool wrongVersion = GetPrivateProfileInt("Menu", "Version", 0, plMaxConfig::GetPluginIni()) < kMenuVersion;
+    bool wrongVersion = GetPrivateProfileIntW(L"Menu", L"Version", 0, plMaxConfig::GetPluginIni().AsString().ToWchar()) < kMenuVersion;
     if (wrongVersion)
     {
         // Delete the old version of the menu
@@ -325,8 +334,9 @@ void plCreateMenu()
             pMenuMan->UnRegisterMenu(oldMenu);
 
         // Update the menu version
-        char buf[30];
-        WritePrivateProfileString("Menu", "Version", itoa(kMenuVersion, buf, 10), plMaxConfig::GetPluginIni());
+        wchar_t buf[12];
+        snwprintf(buf, arrsize(buf), L"%d", kMenuVersion);
+        WritePrivateProfileStringW(L"Menu", L"Version", buf, plMaxConfig::GetPluginIni().AsString().ToWchar());
     }
     
     if (wrongVersion || newlyRegistered)

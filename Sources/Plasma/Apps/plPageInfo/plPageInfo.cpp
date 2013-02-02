@@ -41,8 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "hsTimer.h"
-#include "hsFiles.h"
-#include "plFileUtils.h"
 #include "plResMgr/plResManager.h"
 #include "plResMgr/plResMgrSettings.h"
 
@@ -54,22 +52,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAudioCore/plSoundBuffer.h"
 #include "hsStream.h"
 
-#include "pnProduct/pnProduct.h"
+#include "plProduct.h"
 
 
 //// Globals /////////////////////////////////////////////////////////////////
 
 plResManager* gResMgr = nil;
 
-bool DumpStats(const char* patchDir);
+bool DumpStats(const plFileName& patchDir);
 bool DumpSounds();
 
 //// PrintVersion ///////////////////////////////////////////////////////////////
 void PrintVersion()
 {
-    wchar_t productString[256];
-    ProductString(productString, arrsize(productString));
-    printf("%S\n\n", productString);
+    printf("%s\n\n", plProduct::ProductString().c_str());
 }
 
 //// PrintHelp ///////////////////////////////////////////////////////////////
@@ -95,7 +91,7 @@ int PrintHelp( void )
 
 int main(int argc, char* argv[])
 {
-    if (argc >= 1 && strcmp(argv[1], "-v") == 0)
+    if (argc >= 2 && strcmp(argv[1], "-v") == 0)
     {
         PrintVersion();
         return 0;
@@ -119,7 +115,7 @@ int main(int argc, char* argv[])
     }
 
     // Make sure we have 1 arg left after getting the options
-    char* pageFile = nil;
+    plFileName pageFile;
     if (arg < argc)
         pageFile = argv[arg];
     else
@@ -136,12 +132,7 @@ int main(int argc, char* argv[])
     if (sounds)
         DumpSounds();
     if (stats)
-    {
-        char path[256];
-        strcpy(path, pageFile);
-        plFileUtils::StripFile(path);
-        DumpStats(path);
-    }
+        DumpStats(pageFile.StripFileName());
 
     hsgResMgr::Shutdown();
 
@@ -182,12 +173,12 @@ bool DumpSounds()
             buffer->GetKey()->RefObject();
 
             // Get the filename from it and add that file if necessary
-            const char* filename = buffer->GetFileName();
-            if (filename)
+            plFileName filename = buffer->GetFileName();
+            if (filename.IsValid())
             {
                 uint32_t flags = 0;
 
-                if (stricmp(plFileUtils::GetFileExt(filename), "wav") != 0)
+                if (filename.GetFileExt().CompareI("wav") != 0)
                 {
                     if (buffer->HasFlag(plSoundBuffer::kOnlyLeftChannel) ||
                         buffer->HasFlag(plSoundBuffer::kOnlyRightChannel))
@@ -198,9 +189,9 @@ bool DumpSounds()
                         hsSetBits(flags, plManifestFile::kSndFlagCacheStereo);
                 }
 
-                printf("%s,%u\n", filename, flags);
+                printf("%s,%u\n", filename.AsString().c_str(), flags);
             }
-                
+
             // Unref the object so it goes away
             buffer->GetKey()->UnRefObject();
         }
@@ -220,11 +211,11 @@ bool DumpSounds()
 class plStatDumpIterator : public plRegistryPageIterator, public plRegistryKeyIterator
 {
 protected:
-    const char* fOutputDir;
+    plFileName fOutputDir;
     hsUNIXStream fStream;
 
 public:
-    plStatDumpIterator(const char* outputDir) : fOutputDir(outputDir) {}
+    plStatDumpIterator(const plFileName& outputDir) : fOutputDir(outputDir) {}
 
     bool EatKey(const plKey& key)
     {
@@ -248,8 +239,8 @@ public:
     {
         const plPageInfo& info = page->GetPageInfo();
 
-        char fileName[256];
-        sprintf(fileName, "%s%s_%s.csv", fOutputDir, info.GetAge(), info.GetPage());
+        plFileName fileName = plFileName::Join(fOutputDir,
+                plString::Format("%s_%s.csv", info.GetAge().c_str(), info.GetPage().c_str()));
         fStream.Open(fileName, "wt");
 
         page->LoadKeys();
@@ -261,7 +252,7 @@ public:
     }
 };
 
-bool DumpStats(const char* patchDir)
+bool DumpStats(const plFileName& patchDir)
 {
     plStatDumpIterator statDump(patchDir);
     gResMgr->IterateAllPages(&statDump);

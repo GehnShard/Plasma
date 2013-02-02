@@ -52,6 +52,7 @@ class plRegistryKeyList;
 class hsStream;
 class plKeyImp;
 class plRegistryKeyIterator;
+class plString;
 
 enum PageCond
 {
@@ -73,11 +74,10 @@ protected:
     // Map from class type to a list of keys of that type
     typedef std::map<uint16_t, plRegistryKeyList*> KeyMap;
     KeyMap fKeyLists;
-    int fDynLoadedTypes;    // The number of key types that have dynamic keys loaded
-    int fStaticLoadedTypes; // The number of key types that have all their keys loaded
+    uint32_t fLoadedTypes;      // The number of key types that have dynamic keys loaded
 
     PageCond    fValid;         // Condition of the page
-    char*       fPath;          // Path to the page file
+    plFileName  fPath;          // Path to the page file
     plPageInfo  fPageInfo;      // Info about this page
 
     hsBufferedStream fStream;   // Stream for reading/writing our page
@@ -92,19 +92,20 @@ protected:
 
 public:
     // For reading a page off disk
-    plRegistryPageNode(const char* path);
+    plRegistryPageNode(const plFileName& path);
 
     // For creating a new page.
-    plRegistryPageNode(const plLocation& location, const char* age, const char* page, const char* dataPath);
+    plRegistryPageNode(const plLocation& location, const plString& age,
+                       const plString& page, const plFileName& dataPath);
     ~plRegistryPageNode();
 
     bool IsValid() const { return fValid == kPageOk; }
     PageCond GetPageCondition() { return fValid; }
 
     // True if we have any static or dynamic keys loaded
-    bool IsLoaded() const     { return fDynLoadedTypes > 0 || fStaticLoadedTypes > 0; }
+    bool IsLoaded() const     { return fLoadedTypes > 0; }
     // True if all of our static keys are loaded
-    bool IsFullyLoaded() const    { return (fStaticLoadedTypes == fKeyLists.size() && !fKeyLists.empty()) || fIsNewPage; }
+    bool IsFullyLoaded() const    { return (fLoadedTypes == fKeyLists.size() && !fKeyLists.empty()) || fIsNewPage; }
 
     // Export time only.  If we want to reuse a page, load the keys we want then
     // call SetNewPage, so it will be considered a new page from now on.  That
@@ -142,7 +143,7 @@ public:
     void Write();
     void DeleteSource();
 
-    const char* GetPagePath() const { return fPath; }
+    const plFileName& GetPagePath() const { return fPath; }
 };
 
 #endif // plRegistryNode_h_inc

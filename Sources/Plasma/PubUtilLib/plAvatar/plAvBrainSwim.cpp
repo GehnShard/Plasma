@@ -46,6 +46,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
+#include <cmath>
+
 // singular
 #include "plAvBrainSwim.h"
 
@@ -274,7 +276,7 @@ bool plAvBrainSwim::Apply(double time, float elapsed)
                 iMsg->AddReceiver(fAvMod->GetArmatureEffects()->GetKey());
                 iMsg->fEventTime = (float)time;
                 iMsg->fEvent = kTime;
-                iMsg->SetMessage(msg);
+                iMsg->SetMessageRef(msg);
                 iMsg->Send();
             }
         }
@@ -584,6 +586,8 @@ bool plAvBrainSwim::IHandleControlMsg(plControlEventMsg* msg)
                 return true;
             }
             break;
+        default:
+            break;
         }
     }
     return false;
@@ -608,6 +612,8 @@ void plAvBrainSwim::DumpToDebugDisplay(int &x, int &y, int lineHeight, char *str
             break;
         case kAbort:
             sprintf(strBuf, "Mode: Abort (you should never see this)");
+            break;
+        default:
             break;
     }
     debugTxt.DrawString(x, y, strBuf);

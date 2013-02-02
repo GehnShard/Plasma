@@ -50,7 +50,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plPipeline.h"
 #include "plPlates.h"
 
-#include "plJPEG/plJPEG.h"
+#include "plGImage/plJPEG.h"
 #include "plGImage/plPNG.h"
 #include "plGImage/plMipmap.h"
 #include "plSurface/plLayer.h"
@@ -63,13 +63,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plClientResMgr/plClientResMgr.h"
 
 
-// A bit of a hack so that we will have the correct instance in the SceneViewer
-static HINSTANCE gHInstance = GetModuleHandle(nil);
-
-void SetHInstance(void *instance)
-{
-    gHInstance = (HINSTANCE)instance;
-}
 
 //////////////////////////////////////////////////////////////////////////////
 //// plPlate Functions ///////////////////////////////////////////////////////
@@ -130,14 +123,14 @@ void    plPlate::SetPosition( float x, float y, float z )
 
 //// SetSize /////////////////////////////////////////////////////////////////
 
-void    plPlate::SetSize( float width, float height, bool adjustByAspectRation )
+void    plPlate::SetSize( float width, float height, bool adjustByAspectRatio )
 {
     hsVector3   size;
 
     width *= fDepth / 1.0f;
     height *= fDepth / 1.0f;
 
-    size.fX = adjustByAspectRation ? (width * ((float)plPlateManager::Instance().GetPipeHeight() / (float)plPlateManager::Instance().GetPipeWidth())) : width;
+    size.fX = adjustByAspectRatio ? (width * ((float)plPlateManager::Instance().GetPipeHeight() / (float)plPlateManager::Instance().GetPipeWidth())) : width;
     size.fY = height;
     size.fZ = 1.0f;
 

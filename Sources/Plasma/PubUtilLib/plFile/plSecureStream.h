@@ -46,9 +46,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsStream.h"
 
 #if HS_BUILD_FOR_WIN32
-#    define hsFD HANDLE
+    typedef void* HANDLE;
+#   define hsFD HANDLE
 #else
-#    define hsFD FILE*
+#   define hsFD FILE*
 #endif
 
 // A slightly more secure stream then plEncryptedStream in that it uses windows file functions
@@ -67,8 +68,8 @@ protected:
     bool fBufferedStream;
 
     hsStream* fRAMStream;
-    
-    wchar_t* fWriteFileName;
+
+    plFileName fWriteFileName;
 
     enum OpenMode {kOpenRead, kOpenWrite, kOpenFail};
     OpenMode fOpenMode;
@@ -82,7 +83,7 @@ protected:
     void IEncipher(uint32_t* const v, uint32_t n);
     void IDecipher(uint32_t* const v, uint32_t n);
 
-    bool IWriteEncrypted(hsStream* sourceStream, const wchar_t* outputFile);
+    bool IWriteEncrypted(hsStream* sourceStream, const plFileName& outputFile);
 
     static bool ICheckMagicString(hsFD fp);
     static bool ICheckMagicString(hsStream* s);
@@ -92,9 +93,8 @@ public:
     plSecureStream(hsStream* base, uint32_t* key = nil);
     ~plSecureStream();
 
-    virtual bool Open(const char* name, const char* mode = "rb");
-    virtual bool Open(const wchar_t* name, const wchar_t* mode = L"rb");
-    bool           Open(hsStream* stream);
+    virtual bool Open(const plFileName& name, const char* mode = "rb");
+    bool         Open(hsStream* stream);
     virtual bool Close();
 
     virtual uint32_t Read(uint32_t byteCount, void* buffer);
@@ -107,10 +107,8 @@ public:
 
     uint32_t GetActualFileSize() const {return fActualFileSize;}
 
-    static bool FileEncrypt(const char* fileName, uint32_t* key = nil);
-    static bool FileEncrypt(const wchar_t* fileName, uint32_t* key = nil);
-    static bool FileDecrypt(const char* fileName, uint32_t* key = nil);
-    static bool FileDecrypt(const wchar_t* fileName, uint32_t* key = nil);
+    static bool FileEncrypt(const plFileName& fileName, uint32_t* key = nil);
+    static bool FileDecrypt(const plFileName& fileName, uint32_t* key = nil);
 
     enum OpenSecureFileFlags
     {
@@ -118,28 +116,23 @@ public:
         kDeleteOnExit = 0x02,
     };
 
-    static bool IsSecureFile(const char* fileName);
-    static bool IsSecureFile(const wchar_t* fileName);
+    static bool IsSecureFile(const plFileName& fileName);
 
     // Attempts to create a read-binary stream for the requested file (delete the stream
     // when you are done with it!)
-    static hsStream* OpenSecureFile(const char* fileName, const uint32_t flags = kRequireEncryption, uint32_t* key = nil);
-    static hsStream* OpenSecureFile(const wchar_t* fileName, const uint32_t flags = kRequireEncryption, uint32_t* key = nil);
+    static hsStream* OpenSecureFile(const plFileName& fileName, const uint32_t flags = kRequireEncryption, uint32_t* key = nil);
     // Attempts to create a write-binary stream for the requested file (delete the stream
     // when you are done with it!)
-    static hsStream* OpenSecureFileWrite(const char* fileName, uint32_t* key = nil);
-    static hsStream* OpenSecureFileWrite(const wchar_t* fileName, uint32_t* key = nil);
+    static hsStream* OpenSecureFileWrite(const plFileName& fileName, uint32_t* key = nil);
 
     static const uint32_t kDefaultKey[4]; // our default encryption key
 
     // searches the parent directory of filename for the encryption key file, and reads it
     // into the key passed in. Returns false if the key file didn't exist (and sets key to
     // the default key)
-    static bool GetSecureEncryptionKey(const char* filename, uint32_t* key, unsigned length);
-    static bool GetSecureEncryptionKey(const wchar_t* filename, uint32_t* key, unsigned length);
+    static bool GetSecureEncryptionKey(const plFileName& filename, uint32_t* key, unsigned length);
 
     static const char kKeyFilename[];
-    static const wchar_t kWKeyFilename[];
 };
 
 #endif // plSecureStream_h_inc

@@ -79,8 +79,8 @@ struct NetCommPlayer {
 };
 
 struct NetCommAccount {
-    Uuid        accountUuid;
-    wchar_t       accountName[kMaxAccountNameLength];
+    plUUID      accountUuid;
+    wchar_t     accountName[kMaxAccountNameLength];
     ShaDigest   accountNamePassHash;
     char        accountNameAnsi[kMaxAccountNameLength];
     unsigned    accountFlags;
@@ -88,10 +88,16 @@ struct NetCommAccount {
 };
 
 struct NetCommAge {
-    Uuid        ageInstId;
+    plUUID      ageInstId;
     unsigned    ageVaultId;
     char        ageDatasetName[kMaxAgeNameLength];
     char        spawnPtName[64];
+
+    NetCommAge() : ageVaultId(0)
+    {
+        memset(ageDatasetName, 0, sizeof(ageDatasetName));
+        memset(spawnPtName, 0, sizeof(spawnPtName));
+    }
 };
 
 const NetCommAge *                  NetCommGetAge ();
@@ -232,11 +238,11 @@ void NetCommSetAgePublic (  // --> no msg
 );
 void NetCommCreatePublicAge (// --> plNetCommPublicAgeMsg
     const char              ageName[],
-    const Uuid &            ageInstId,
+    const plUUID&           ageInstId,
     void *                  param
 );
 void NetCommRemovePublicAge(// --> plNetCommPublicAgeMsg
-    const Uuid &            ageInstId,
+    const plUUID&           ageInstId,
     void *                  param
 );
 void NetCommRegisterOwnedAge (
@@ -257,7 +263,7 @@ void NetCommRegisterVisitAge (
     void *                  param
 );
 void NetCommUnregisterVisitAge (
-    const Uuid &            ageInstId,
+    const plUUID&           ageInstId,
     unsigned                playerInt,
     void *                  param
 );
@@ -266,7 +272,7 @@ void NetCommConnectPlayerVault (
 );
 void NetCommDisconnectPlayerVault ();
 void NetCommConnectAgeVault (
-    const Uuid &            ageInstId,
+    const plUUID&           ageInstId,
     void *                  param
 );
 void NetCommDisconnectAgeVault ();
@@ -280,7 +286,7 @@ void NetCommSetCCRLevel (
 void NetCommSendFriendInvite (
     const wchar_t     emailAddress[],
     const wchar_t     toName[],
-    const Uuid&     inviteUuid
+    const plUUID&   inviteUuid
 );
 
 #endif // PLASMA20_SOURCES_PLASMA_PUBUTILLIB_PLNETCLIENTCOMM_PLNETCLIENTCOMM_H

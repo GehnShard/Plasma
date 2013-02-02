@@ -63,7 +63,7 @@ struct CliGkConn : AtomicRef {
     // Reconnection
     AsyncTimer *        reconnectTimer;
     unsigned            reconnectStartMs;
-    
+
     // Ping
     AsyncTimer *        pingTimer;
     unsigned            pingSendTimeMs;
@@ -77,12 +77,12 @@ struct CliGkConn : AtomicRef {
     void StopAutoReconnect (); // call before destruction
     void StartAutoReconnect ();
     void TimerReconnect ();
-    
+
     // ping
     void AutoPing ();
     void StopAutoPing ();
     void TimerPing ();
-    
+
     void Send (const uintptr_t fields[], unsigned count);
 
     CCritSect       critsect;
@@ -91,7 +91,7 @@ struct CliGkConn : AtomicRef {
     NetCli *        cli;
     char            name[MAX_PATH];
     plNetAddress    addr;
-    Uuid            token;
+    plUUID          token;
     unsigned        seq;
     unsigned        serverChallenge;
     AsyncCancelId   cancelId;
@@ -307,7 +307,7 @@ static void CheckedReconnect (CliGkConn * conn, ENetError error) {
         ReportNetError(kNetProtocolCli2GateKeeper, error);
     }
     else {
-        if (conn->token != kNilGuid)
+        if (conn->token != kNilUuid)
             // previously encrypted; reconnect quickly
             conn->reconnectStartMs = GetNonZeroTimeMs() + 500;
         else
@@ -442,10 +442,10 @@ static void Connect (
     Cli2GateKeeper_Connect connect;
     connect.hdr.connType        = kConnTypeCliToGateKeeper;
     connect.hdr.hdrBytes        = sizeof(connect.hdr);
-    connect.hdr.buildId         = BuildId();
-    connect.hdr.buildType       = BUILD_TYPE_LIVE;
-    connect.hdr.branchId        = BranchId();
-    connect.hdr.productId       = ProductId();
+    connect.hdr.buildId         = plProduct::BuildId();
+    connect.hdr.buildType       = plProduct::BuildType();
+    connect.hdr.branchId        = plProduct::BranchId();
+    connect.hdr.productId       = plProduct::UUID();
     connect.data.token          = conn->token;
     connect.data.dataBytes      = sizeof(connect.data);
 
@@ -468,7 +468,7 @@ static void Connect (
 ) {
     ASSERT(s_running);
     
-    CliGkConn * conn        = NEWZERO(CliGkConn);
+    CliGkConn * conn        = new CliGkConn;
     conn->addr              = addr;
     conn->seq               = ConnNextSequence();
     conn->lastHeardTimeMs   = GetNonZeroTimeMs();   // used in connect timeout, and ping timeout
@@ -524,7 +524,14 @@ static unsigned CliGkConnPingTimerProc (void * param) {
 }
 
 //============================================================================
-CliGkConn::CliGkConn () {
+CliGkConn::CliGkConn ()
+    : reconnectTimer(nil), reconnectStartMs(0)
+    , pingTimer(nil), pingSendTimeMs(0), lastHeardTimeMs(0)
+    , sock(nil), cli(nil), seq(0), serverChallenge(0)
+    , cancelId(nil), abandoned(false)
+{
+    memset(name, 0, sizeof(name));
+
     AtomicAdd(&s_perf[kPerfConnCount], 1);
 }
 
@@ -648,15 +655,15 @@ void CliGkConn::StopAutoPing () {
 void CliGkConn::TimerPing () {
     // Send a ping request
     pingSendTimeMs = GetNonZeroTimeMs();
-        
+
     const uintptr_t msg[] = {
         kCli2GateKeeper_PingRequest,
         pingSendTimeMs,
         0,      // not a transaction
         0,      // no payload
-        nil
+        reinterpret_cast<uintptr_t>(nullptr)
     };
-        
+
     Send(msg, arrsize(msg));
 }
 
@@ -841,7 +848,7 @@ bool FileSrvIpAddressRequestTrans::Send () {
     const uintptr_t msg[] = {
         kCli2GateKeeper_FileSrvIpAddressRequest,
                         m_transId,
-                        m_isPatcher == true ? 1 : 0
+                        (uintptr_t)(m_isPatcher == true ? 1 : 0)
     };
     
     m_conn->Send(msg, arrsize(msg));
@@ -1025,8 +1032,7 @@ bool GateKeeperQueryConnected () {
     bool result;
     s_critsect.Enter();
     {
-        if (nil != (result = s_active))
-            result &= (nil != s_active->cli);
+        result = (s_active && s_active->cli);
     }
     s_critsect.Leave();
     return result;

@@ -208,7 +208,7 @@ PyObject* cyMisc::FindSceneObject(const plString& name, const char* ageName)
         const char* theAge = ageName;
         if ( ageName[0] == 0 )
             theAge = nil;
-        key=plKeyFinder::Instance().StupidSearch(theAge,nil,plSceneObject::Index(), name, false);
+        key=plKeyFinder::Instance().StupidSearch(theAge, "", plSceneObject::Index(), name, false);
     }
 
     if ( key == nil )
@@ -1457,7 +1457,7 @@ void cyMisc::PageOutNode(const char* nodeName)
         plClientMsg* pMsg1 = new plClientMsg(plClientMsg::kUnloadRoom);
         plKey clientKey = hsgResMgr::ResMgr()->FindKey( kClient_KEY );
         pMsg1->AddReceiver( clientKey );
-        pMsg1->AddRoomLoc(plKeyFinder::Instance().FindLocation(nil, nodeName));
+        pMsg1->AddRoomLoc(plKeyFinder::Instance().FindLocation("", nodeName));
         plgDispatch::MsgSend(pMsg1);
     }
 }
@@ -1689,7 +1689,7 @@ void cyMisc::SetShareSpawnPoint(const char* spawnPoint)
     pMsg->Send();
 }
 
-void cyMisc::SetShareAgeInstanceGuid(const Uuid& guid)
+void cyMisc::SetShareAgeInstanceGuid(const plUUID& guid)
 {
     plInputIfaceMgrMsg* pMsg = new plInputIfaceMgrMsg(plInputIfaceMgrMsg::kSetShareAgeInstanceGuid);
     plKey k = plNetClientMgr::GetInstance()->GetLocalPlayerKey();
@@ -2436,15 +2436,15 @@ void cyMisc::RemovePublicAge( const char * ageInstanceGuid, PyObject * cbObject/
 int cyMisc::GetKILevel()
 {
     int result = pfKIMsg::kNanoKI;
-    
+
     wchar_t wStr[MAX_PATH];
     StrToUnicode(wStr, pfKIMsg::kChronicleKILevel, arrsize(wStr));
     if (RelVaultNode * rvn = VaultFindChronicleEntryIncRef(wStr)) {
         VaultChronicleNode chron(rvn);
-        result = wcstol(chron.entryValue, nil, 0);
+        result = wcstol(chron.GetEntryValue(), nil, 0);
         rvn->DecRef();
     }
-    
+
     return result;
 }
 
@@ -2484,7 +2484,7 @@ void cyMisc::RebuildCameraStack(const plString& name, const char* ageName)
 
     if ( !name.IsEmpty() )
     {
-        key=plKeyFinder::Instance().StupidSearch(nil,nil,plSceneObject::Index(), name, false);
+        key=plKeyFinder::Instance().StupidSearch("", "", plSceneObject::Index(), name, false);
     }
     if ( key == nil )
     {
@@ -2584,7 +2584,7 @@ void cyMisc::SetAlarm( float secs, PyObject * cb, uint32_t cbContext )
 //
 // PURPOSE    : captures the screen and saves it as a jpeg
 //
-#include "plJPEG/plJPEG.h"
+#include "plGImage/plJPEG.h"
 void cyMisc::SaveScreenShot(const char* fileName, int x, int y, int quality)
 {
     if ( cyMisc::GetPipeline() )
@@ -2685,7 +2685,7 @@ void cyMisc::FakeLinkToObjectNamed(const plString& name)
     plKey key = nil;
     if ( !name.IsEmpty() )
     {
-        key = plKeyFinder::Instance().StupidSearch(nil,nil,plSceneObject::Index(), name, false);
+        key = plKeyFinder::Instance().StupidSearch("", "", plSceneObject::Index(), name, false);
     }
 
     if (!key)
@@ -2725,11 +2725,11 @@ void cyMisc::ForceCursorShown()
 //              properly replaced (the list is a list of unicode strings) Name
 //              is in "Age.Set.Name" format
 //
-std::wstring cyMisc::GetLocalizedString(std::wstring name, const std::vector<std::wstring> & arguments)
+plString cyMisc::GetLocalizedString(plString name, const std::vector<plString> & arguments)
 {
     if (pfLocalizationMgr::InstanceValid())
         return pfLocalizationMgr::Instance().GetString(name, arguments);
-    return L"";
+    return "";
 }
 
 void cyMisc::EnablePlanarReflections(bool enable)
@@ -2790,28 +2790,24 @@ bool cyMisc::DumpLogs(const std::wstring & folder)
     return retVal;
 }
 
-bool cyMisc::FileExists(const std::wstring & filename)
+bool cyMisc::FileExists(const plFileName & filename)
 {
-    return PathDoesFileExist(filename.c_str());
+    return plFileInfo(filename).Exists();
 }
 
-bool cyMisc::CreateDir(const std::wstring & directory)
+bool cyMisc::CreateDir(const plFileName & directory)
 {
-    return PathCreateDirectory(directory.c_str(), kPathCreateDirFlagEntireTree) == kPathCreateDirSuccess;
+    return plFileSystem::CreateDir(directory, true);
 }
 
-std::wstring cyMisc::GetUserPath()
+plFileName cyMisc::GetUserPath()
 {
-    wchar_t path[MAX_PATH];
-    PathGetUserDirectory(path, arrsize(path));
-    return path;
+    return plFileSystem::GetUserDataPath();
 }
 
-std::wstring cyMisc::GetInitPath()
+plFileName cyMisc::GetInitPath()
 {
-    wchar_t path[MAX_PATH];
-    PathGetInitDirectory(path, arrsize(path));
-    return path;
+    return plFileSystem::GetInitPath();
 }
 
 void cyMisc::SetBehaviorNetFlags(pyKey & behKey, bool netForce, bool netProp)
@@ -2828,12 +2824,12 @@ void cyMisc::SendFriendInvite(const wchar_t email[], const wchar_t toName[])
     if (RelVaultNode* pNode = VaultGetPlayerNodeIncRef())
     {
         VaultPlayerNode player(pNode);
-        Uuid inviteUuid = player.inviteUuid;
+        plUUID inviteUuid = player.GetInviteUuid();
 
         // If we don't have an invite UUID set then make a new one
-        if (GuidIsNil(inviteUuid))
+        if (inviteUuid.IsNull())
         {
-            inviteUuid = GuidGenerate();
+            inviteUuid = plUUID::Generate();
             player.SetInviteUuid(inviteUuid);
         }
 
@@ -2844,11 +2840,9 @@ void cyMisc::SendFriendInvite(const wchar_t email[], const wchar_t toName[])
 
 PyObject* cyMisc::PyGuidGenerate()
 {
-    char guidStr[64];
-    Uuid newGuid = GuidGenerate();
-    GuidToString(newGuid, guidStr, arrsize(guidStr));
+    plUUID newGuid = plUUID::Generate();
 
-    return PyString_FromString(guidStr);
+    return PyString_FromString(newGuid.AsString().c_str());
 }
 
 PyObject* cyMisc::GetAIAvatarsByModelName(const char* name)
