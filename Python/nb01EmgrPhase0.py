@@ -182,10 +182,9 @@ class nb01EmgrPhase0(ptResponder):
             print "nb01EmgrPhase0.OnServerInitComplete(): will check the Eder Delin/Tsogal book and its stained glass..."
             self.IManageEders()
 
-        if ((byteGZGlass > numGZGlasses) or not byteGZGlass) and self.sceneobject.isLocallyOwned():
-            newGlass = random.randint(1, numGZGlasses)
-            print "nb01EmgrPhase0.OnServerInitComplete():  GZ stained glass randomly picked to be #: ",newGlass
-            ageSDL[sdlGZGlass] = (newGlass, )
+        # Disable GreatZero Stained Glass
+        if self.sceneobject.isLocallyOwned() and byteGZGlass != 0:
+            ageSDL[sdlGZGlass] = (0,)
 
         for variable in BooleanVARs:
             ageSDL.setNotify(self.key,variable,0.0)
