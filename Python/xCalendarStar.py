@@ -63,13 +63,12 @@ class xCalendarStar(ptResponder, object):
         return bool(psnl["YeeshaPage20"][0])
     _have_calendar_page = property(_get_have_calendar_page)
 
-    def OnFirstUpdate(self):
+    def OnServerInitComplete(self):
         # Determine the sparklie month
         if not sdlCalStar.value:
             raise RuntimeError("You forgot to specify the SDL Name!")
         self._month = int(sdlCalStar.value[-2:])
 
-    def OnServerInitComplete(self):
         if self.sceneobject.isLocallyOwned():
             tm = time.gmtime(PtGetServerTime()) # don't trust client time.
             time_case = tm.tm_mon == self._month
