@@ -960,7 +960,28 @@ PyObject* cyMisc::GetLocalPlayer()
                         0.0 );
 }
 
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function   : GetNPC
+//  PARAMETERS : npcID  - is the ID of an NPC
+//
+//  PURPOSE    : Returns a pySceneobject of an NPC
+//
+PyObject* cyMisc::GetNPC(int npcID)
+{
+    plSceneObject *so = plSceneObject::ConvertNoRef(plNetClientMgr::GetInstance()->GetNPC(npcID));
+    if ( so )
+        return pySceneObject::New(so->GetKey());
 
+    char* errmsg = "NPC not found";
+    PyErr_SetString(PyExc_NameError, errmsg);
+    PYTHON_RETURN_ERROR;
+}
+
+PyObject* cyMisc::GetNPCCount()
+{
+    return PyInt_FromLong(plNetClientMgr::GetInstance()->NPCKeys().size());
+}
 
 #if 1
 #include "plStatusLog/plStatusLog.h"
@@ -1089,7 +1110,7 @@ float cyMisc::GetMaxListenDistSq()
 //
 //  RETURNS    : the flags that were sent with the message (may be modified)
 //
-uint32_t cyMisc::SendRTChat(pyPlayer& from, const std::vector<pyPlayer*> & tolist, const char* message, uint32_t flags)
+uint32_t cyMisc::SendRTChat(const pyPlayer& from, const std::vector<pyPlayer*> & tolist, const plString& message, uint32_t flags)
 {
     // create the messge that will contain the chat message
     pfKIMsg *msg = new pfKIMsg( pfKIMsg::kHACKChatMsg );
@@ -1099,61 +1120,23 @@ uint32_t cyMisc::SendRTChat(pyPlayer& from, const std::vector<pyPlayer*> & tolis
     msg->SetBCastFlag(plMessage::kNetPropagate | plMessage::kNetForce);
     msg->SetBCastFlag(plMessage::kLocalPropagate, 0);
 
-    if (tolist.size() > 0)
+    // this goes to everybody on the shard
+    if (flags & pfKIMsg::kGlobalMsg)
+        msg->SetBCastFlag(plMessage::kCCRSendToAllPlayers);
+    // allow inter-age routing of this msg
+    if (flags & pfKIMsg::kInterAgeMsg)
+        msg->SetBCastFlag( plMessage::kNetAllowInterAge );
+
+    // add net rcvrs to msg
+    for ( auto it = tolist.begin(); it != tolist.end(); ++it )
     {
-        if (flags & 8/* kRTChatInterAge in PlasmaKITypes.py */)
-        {
-            // allow inter-age routing of this msg
-            msg->SetBCastFlag( plMessage::kNetAllowInterAge );
-        }
-        // add net rcvrs to msg
-        int i;
-        for ( i=0 ; i<tolist.size() ; i++ )
-        {
-            if ( !VaultAmIgnoringPlayer( tolist[i]->GetPlayerID() ) )
-                msg->AddNetReceiver(tolist[i]->GetPlayerID());
-        }
+        pyPlayer* to = *it;
+        if ( !VaultAmIgnoringPlayer( to->GetPlayerID() ) )
+            msg->AddNetReceiver(to->GetPlayerID());
     }
 
-    uint32_t msgFlags = msg->GetFlags();
-
-    if (tolist.size() == 0 || (msg->GetNetReceivers() && msg->GetNetReceivers()->size() > 0))
-        msg->Send();
-
-    return msgFlags;
-}
-
-uint32_t cyMisc::SendRTChat(pyPlayer& from, const std::vector<pyPlayer*> & tolist, const wchar_t* message, uint32_t flags)
-{
-    // create the messge that will contain the chat message
-    pfKIMsg *msg = new pfKIMsg( pfKIMsg::kHACKChatMsg );
-    msg->SetString( plString::FromWchar(message) );
-    msg->SetUser( from.GetPlayerName(), from.GetPlayerID() );
-    msg->SetFlags( flags );
-    msg->SetBCastFlag(plMessage::kNetPropagate | plMessage::kNetForce);
-    msg->SetBCastFlag(plMessage::kLocalPropagate, 0);
-
-    if (tolist.size() > 0)
-    {
-        if (flags & 8/* kRTChatInterAge in PlasmaKITypes.py */)
-        {
-            // allow inter-age routing of this msg
-            msg->SetBCastFlag( plMessage::kNetAllowInterAge );
-        }
-        // add net rcvrs to msg
-        for ( int i = 0 ; i < tolist.size() ; i++ )
-        {
-            if ( !VaultAmIgnoringPlayer( tolist[i]->GetPlayerID() ) )
-                msg->AddNetReceiver(tolist[i]->GetPlayerID());
-        }
-    }
-
-    uint32_t msgFlags = msg->GetFlags();
-
-    if (tolist.size() == 0 || (msg->GetNetReceivers() && msg->GetNetReceivers()->size() > 0))
-        msg->Send();
-
-    return msgFlags;
+    msg->Send();
+    return flags;
 }
 
 /////////////////////////////////////////////////////////////////////////////

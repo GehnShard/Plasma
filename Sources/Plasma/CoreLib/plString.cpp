@@ -41,13 +41,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
-#include "plString.h"
-
-#include <cstring>
-#include <cstdlib>
-#include <wchar.h>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <wchar.h>
+#pragma hdrstop
+
+#include "plString.h"
 #include <pcre.h>
 
 const plString plString::Null;
@@ -546,7 +545,7 @@ plString plString::Format(const char *fmt, ...)
     return str;
 }
 
-int plString::Find(char ch, CaseSensitivity sense) const
+ssize_t plString::Find(char ch, CaseSensitivity sense) const
 {
     if (sense == kCaseSensitive) {
         const char *cp = strchr(c_str(), ch);
@@ -562,7 +561,7 @@ int plString::Find(char ch, CaseSensitivity sense) const
     }
 }
 
-int plString::FindLast(char ch, CaseSensitivity sense) const
+ssize_t plString::FindLast(char ch, CaseSensitivity sense) const
 {
     if (IsEmpty())
         return -1;
@@ -582,7 +581,7 @@ int plString::FindLast(char ch, CaseSensitivity sense) const
     }
 }
 
-int plString::Find(const char *str, CaseSensitivity sense) const
+ssize_t plString::Find(const char *str, CaseSensitivity sense) const
 {
     if (!str || !str[0])
         return -1;
@@ -719,14 +718,18 @@ plString plString::Trim(const char *charset) const
     return Substr(lp - c_str(), rp - lp + 1);
 }
 
-plString plString::Substr(int start, size_t size) const
+plString plString::Substr(ssize_t start, size_t size) const
 {
     size_t maxSize = GetSize();
 
-    if (start > maxSize)
+    if (start < 0) {
+        // Handle negative indexes from the right of the string
+        start += maxSize;
+        if (start < 0)
+            start = 0;
+    } else if (static_cast<size_t>(start) > maxSize) {
         return Null;
-    if (start < 0)
-        start = 0;
+    }
     if (start + size > maxSize)
         size = maxSize - start;
 

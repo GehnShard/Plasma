@@ -441,6 +441,16 @@ public:
 
     /////////////////////////////////////////////////////////////////////////////
     //
+    //  Function   : GetNPC
+    //  PARAMETERS : npcID  - is the ID of a NPC
+    //
+    //  PURPOSE    : Returns a pySceneobject of a NPC
+    //
+    static PyObject* GetNPC(int npcID);
+    static PyObject* GetNPCCount();
+
+    /////////////////////////////////////////////////////////////////////////////
+    //
     //  Function   : SendRTChat
     //  PARAMETERS : from   - is a pyPlayer of the person who is sending this
     //             : tolist  - is a python list object, if empty then broadcast message
@@ -452,8 +462,7 @@ public:
     //
     //  RETURNS    : the flags that were sent with the message (may be modified)
     //
-    static uint32_t SendRTChat(pyPlayer& from, const std::vector<pyPlayer*> & tolist, const char* message, uint32_t flags);
-    static uint32_t SendRTChat(pyPlayer& from, const std::vector<pyPlayer*> & tolist, const wchar_t* message, uint32_t flags);
+    static uint32_t SendRTChat(const pyPlayer& from, const std::vector<pyPlayer*> & tolist, const plString& message, uint32_t flags);
 
     /////////////////////////////////////////////////////////////////////////////
     //
