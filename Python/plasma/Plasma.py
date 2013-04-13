@@ -472,6 +472,14 @@ def PtGetMouseTurnSensitivity():
     """Returns the sensitivity"""
     pass
 
+def PtGetNPCCount():
+    """This will return the number of NPCs in the current age"""
+    pass
+
+def PtGetNPCByID(npcID):
+    """This will return the NPC with a specific ID"""
+    pass
+
 def PtGetNumCameras():
     """returns camera stack size"""
     pass
@@ -6431,6 +6439,10 @@ class ptVault:
 
     def getAgesIOwnFolder(self):
         """Returns a ptVaultFolderNode of ages that I own"""
+        pass
+
+    def getAllPlayersFolder(self):
+        """Returns a ptVaultPlayerInfoListNode of the all players folder."""
         pass
 
     def getAvatarClosetFolder(self):

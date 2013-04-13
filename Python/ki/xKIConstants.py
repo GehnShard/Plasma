@@ -112,11 +112,8 @@ class kAges:
                "Descent" : "D'ni-Tiwah",
                "EderDelin" : "Eder Delin",
                "EderTsogal" : "Eder Tsogal",
-               "Ercana" : "Er'cana",
+               "Er'canaCitySilo" : "D'ni-Ashem'en",
                "ErcanaCitySilo" : "D'ni-Ashem'en",
-               "Garden" : "Eder Kemo",
-               "Garrison" : "Gahreesen",
-               "Gira" : "Eder Gira",
                "GreatTreePub" : "The Watcher's Pub",
                "Great Zero" : "D'ni-Rezeero",
                "GreatZero" : "D'ni-Rezeero",
@@ -130,23 +127,23 @@ class kAges:
                "Kveer" : "D'ni-K'veer",
                "Neighborhood02" : "D'ni-Kirel",
                "Old Spy Room" : "D'ni-Ae'gura",
-               "Personal" : "Relto",
                "philRelto" : "Phil's Relto",
                "Shaft" : "D'ni-Tiwah",
                "Spy Room" : "D'ni-Ae'gura",
-               "spyroom" : "D'ni-Ae'gura"}
+               "spyroom" : "D'ni-Ae'gura",
+               "Trebivdil" : "Tre'bivdil",
+               "trebivdil" : "Tre'bivdil",
+               "vothol" : "Vothol Gallery"}
     Hide = ["BahroCave", "PelletBahroCave", "Pellet Cave", "LiveBahroCave", "LiveBahroCaves"]
     NoInvite = ["Personal", "Nexus", "Cleft", "AvatarCustomization", "city",
                 "BahroCave", "LiveBahroCave", "LiveBahroCaves", 
                 "BaronCityOffice", "ErcanaCitySilo", "GreatZero", "Shaft",
                 "Descent", "Spyroom"]
-    Replace = {"Garrison" : "Gahreesen",
-               "Personal" : "Relto",
+    Replace = {"Ercana" : "Er'cana",
                "Garden" : "Eder Kemo",
-               "AhnonayCathedral" : "Ahnonay Cathedral",
-               "ErcanaCitySilo" : "D'ni-Ashem'en",
-               "Bevin" : "Hood",
-               "Ercana" : "Er'cana",
+               "Garrison" : "Gahreesen",
+               "Gira" : "Eder Gira",
+               "Personal" : "Relto",
               }
     
 ## Constants used for the chat.
