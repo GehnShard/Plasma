@@ -126,10 +126,10 @@ class nb01EmgrPhase0(ptResponder):
             }
         },
         "Right": {
-            "sdlState": "nb01LinkBookGZVis",
-            "sdlGlass": "nb01StainedGlassGZ",
+            "sdlState": "nb01LinkBookRightState",
+            "sdlGlass": "nb01StainedGlassRight",
             "Books" : {
-                1: {"Name": "GreatZero", "Glasses": (1, 2, 3)},
+                1: {"Name": "Trebivdil", "Glasses": (1, 2)},
             }
         }
     }
@@ -182,6 +182,9 @@ class nb01EmgrPhase0(ptResponder):
             for position in self.Pedestals:
                 if self.Pedestals[position]:
                     self.IManageLinkPedestal(position)
+
+            # Hard-coded hack: turn off GZ glass just in case...
+            ageSDL["nb01StainedGlassGZ"] = (0,)
 
         # Age State Randomization
         # This used to be in the Nexus, but that would never affect server-generated hoods
