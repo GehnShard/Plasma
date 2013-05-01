@@ -238,6 +238,7 @@ kPublicAgesDescription = {
      'GuildPub-Maintainers' : ("Nexus.Messages.GuildPubFull", "Nexus.Messages.GuildPubPopulation"),
      'GuildPub-Messengers' : ("Nexus.Messages.GuildPubFull", "Nexus.Messages.GuildPubPopulation"),
      'GuildPub-Writers' : ("Nexus.Messages.GuildPubFull", "Nexus.Messages.GuildPubPopulation"),
+     'FehnirHouse' : ("Nexus.Messages.CityFull", "Nexus.Messages.CityPopulation"),
      'vothol' : ("Nexus.Messages.CityFull", "Nexus.Messages.CityPopulation"),
 }
 
@@ -357,6 +358,7 @@ class nxusBookMachine(ptModifier):
             'guildPub' : AgeData(ageFilename = '', defaultMaxPop = 0, linkVisible = 0),
             'Neighborhood02' : AgeData(ageFilename = 'Neighborhood02', defaultMaxPop = 100, linkVisible = 0),
             'Kveer' : AgeData(ageFilename = 'Kveer', defaultMaxPop = 100, linkVisible = 0),
+            'FehnirHouse' : AgeData(ageFilename = 'FehnirHouse', defaultMaxPop = 25, linkVisible = 1),
             'vothol' : AgeData(ageFilename = 'vothol', defaultMaxPop= 50, linkVisible = 1)
             }
 
