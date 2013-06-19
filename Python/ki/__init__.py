@@ -4175,7 +4175,7 @@ class xKI(ptModifier):
                 myAgeLink = myAgeLink.upcastToAgeLinkNode()
                 myAge = myAgeLink.getAgeInfo()
                 if myAge is not None:
-                    if self.CanAgeInviteVistors(myAge, myAgeLink) and myAge.getAgeFilename() not in kAges.Hide and myAge.getAgeFilename() != "Myst":
+                    if self.CanAgeInviteVistors(myAge, myAgeLink) and myAge.getAgeFilename() not in kAges.Hide:
                         PtDebugPrint(u"xKI.BigKIRefreshAgeVisitorFolders(): Refreshing visitor list for {}.".format(GetAgeName(myAge)), level=kDebugDumpLevel)
                         folderName = xCensor.xCensor(PtGetLocalizedString("KI.Config.OwnerVisitors", [GetAgeName(myAge)]), self.censorLevel)
                         if folderName not in self.BKPlayerFolderDict:
@@ -6066,15 +6066,8 @@ class xKI(ptModifier):
                             pass
                         elif isinstance(self.BKPlayerSelected, Device):
                             if self.BKPlayerSelected.name in self.imagerMap:
-                                notify = ptNotify(self.key)
-                                notify.clearReceivers()
-                                notify.addReceiver(self.imagerMap[self.BKPlayerSelected.name])
-                                notify.netPropagate(1)
-                                notify.netForce(1)
-                                notify.setActivate(1.0)
                                 sName = "Upload={}".format(self.BKPlayerSelected.name)
-                                notify.addVarNumber(sName, sendElement.getID())
-                                notify.send()
+                                SendNote(self.key, self.imagerMap[self.BKPlayerSelected.name], sName, sendElement.getID(), True)
                             toPlayerBtn.hide()
                         elif isinstance(self.BKPlayerSelected, ptVaultNode):
                             if self.BKPlayerSelected.getType() == PtVaultNodeTypes.kPlayerInfoListNode:
