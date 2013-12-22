@@ -11,11 +11,11 @@
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    version="1.0"
-   width="1098.3755"
-   height="1098.3756"
+   width="544.15625"
+   height="544.15625"
    id="svg2"
    style="display:inline"
-   inkscape:version="0.48.2 r9819"
+   inkscape:version="0.48.4 r9939"
    sodipodi:docname="Writers_Logo.svg">
   <metadata
      id="metadata37">
@@ -44,13 +44,13 @@
      showgrid="false"
      showborder="false"
      inkscape:showpageshadow="false"
-     fit-margin-top="0"
-     fit-margin-left="0"
-     fit-margin-right="0"
-     fit-margin-bottom="0"
-     inkscape:zoom="0.3797669"
-     inkscape:cx="83.77068"
-     inkscape:cy="564.02129"
+     fit-margin-top="16"
+     fit-margin-left="16"
+     fit-margin-right="16"
+     fit-margin-bottom="16"
+     inkscape:zoom="1"
+     inkscape:cx="247.89037"
+     inkscape:cy="268.08036"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
@@ -64,56 +64,58 @@
        enabled="true"
        snapvisiblegridlinesonly="true"
        type="xygrid"
-       id="grid4804" />
+       id="grid4804"
+       originx="-277.10963px"
+       originy="-277.10964px" />
     <sodipodi:guide
        orientation="1,0"
-       position="293.10963,863.10966"
+       position="16,586.00002"
        id="guide4806" />
     <sodipodi:guide
        orientation="0,1"
-       position="403.10963,293.10966"
+       position="126,16.000017"
        id="guide4808" />
     <sodipodi:guide
        orientation="0,1"
-       position="223.10963,313.10966"
+       position="-54,36.000017"
        id="guide4810" />
     <sodipodi:guide
        orientation="1,0"
-       position="313.10963,543.10966"
+       position="36,266.00002"
        id="guide4812" />
     <sodipodi:guide
        orientation="1,0"
-       position="805.26191,835.9353"
+       position="528.15228,558.82566"
        id="guide4814" />
     <sodipodi:guide
        orientation="0,1"
-       position="592.40733,805.26194"
+       position="315.2977,528.1523"
        id="guide4816" />
     <sodipodi:guide
        orientation="1,0"
-       position="785.74249,688.14545"
+       position="508.63286,411.03581"
        id="guide4818" />
     <sodipodi:guide
        orientation="0,1"
-       position="632.37566,785.74252"
+       position="355.26603,508.63288"
        id="guide4820" />
   </sodipodi:namedview>
   <defs
      id="defs4">
     <linearGradient
-       id="linearGradient6005">
+       id="linearGradientRays">
       <stop
          style="stop-color:#ffffff;stop-opacity:0.3019608;"
          offset="0"
-         id="stop6007" />
+         id="stopOuter" />
       <stop
          style="stop-color:#ffffff;stop-opacity:0;"
          offset="1"
-         id="stop6009" />
+         id="stopInner" />
     </linearGradient>
     <linearGradient
        inkscape:collect="always"
-       xlink:href="#linearGradient6005"
+       xlink:href="#linearGradientRays"
        id="linearGradient5834"
        gradientUnits="userSpaceOnUse"
        x1="176.64456"
@@ -122,7 +124,7 @@
        y2="507.48044" />
     <linearGradient
        inkscape:collect="always"
-       xlink:href="#linearGradient6005"
+       xlink:href="#linearGradientRays"
        id="linearGradient5846"
        gradientUnits="userSpaceOnUse"
        x1="366.07434"
@@ -131,7 +133,7 @@
        y2="504.61725" />
     <linearGradient
        inkscape:collect="always"
-       xlink:href="#linearGradient6005"
+       xlink:href="#linearGradientRays"
        id="linearGradient5852"
        gradientUnits="userSpaceOnUse"
        gradientTransform="matrix(0.99349118,-0.11390903,0.11390903,0.99349118,-54.079934,33.71343)"
@@ -141,7 +143,7 @@
        y2="565.47345" />
     <linearGradient
        inkscape:collect="always"
-       xlink:href="#linearGradient6005"
+       xlink:href="#linearGradientRays"
        id="linearGradient6022"
        gradientUnits="userSpaceOnUse"
        x1="270.55472"
@@ -151,7 +153,7 @@
        gradientTransform="translate(-14.874995,-183.53125)" />
   </defs>
   <g
-     transform="translate(278.23463,109.73465)"
+     transform="translate(1.125,-167.375)"
      id="Rays"
      style="display:inline"
      inkscape:groupmode="layer">
@@ -186,7 +188,7 @@
        inkscape:connector-curvature="0" />
   </g>
   <g
-     transform="translate(278.23463,109.73465)"
+     transform="translate(1.125,-167.375)"
      id="Hills"
      style="display:inline"
      inkscape:groupmode="layer">
@@ -244,7 +246,7 @@
      inkscape:groupmode="layer"
      id="Pen"
      inkscape:label="Pen"
-     transform="translate(389.10607,358.785)"
+     transform="translate(111.99644,81.67535)"
      style="display:inline">
     <path
        style="fill:#ffffff;fill-opacity:1;stroke:none;display:inline"
@@ -266,7 +268,7 @@
      id="OuterCircle"
      inkscape:label="OuterCircle"
      style="display:inline"
-     transform="translate(293.10963,293.2659)">
+     transform="translate(16,16.15625)">
     <path
        inkscape:connector-curvature="0"
        inkscape:export-xdpi="90"
@@ -279,7 +281,8 @@
      inkscape:groupmode="layer"
      id="Circles"
      inkscape:label="Circles"
-     transform="translate(293.10963,293.2659)">
+     transform="translate(16,16.15625)"
+     style="display:none">
     <g
        id="g3224"
        transform="translate(-331.83067,-207.47985)"

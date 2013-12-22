@@ -43,6 +43,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 from __future__ import print_function
 from __future__ import with_statement
+from __future__ import division
 
 
 import os
@@ -127,6 +128,13 @@ def get_layers_from_svg(svgData):
 
 	return layers
 
+def getElementByTagId(document, tagName, elementId):
+	tags = document.getElementsByTagName(tagName)
+	for tag in tags:
+		if tag.hasAttribute("id") and tag.getAttribute("id") == elementId:
+			return tag
+	return None
+
 def render_cursors(inpath, outpath):
 	scalefactor = 4
 	with open(os.path.join(inpath,"Cursor_Base.svg"), "r") as svgFile:
@@ -165,9 +173,21 @@ def render_loading_logo(inpath, outpath):
 		ratioW = resSize["width"] / float(logoSVG.documentElement.getAttribute("width"))
 		ratioH = resSize["height"] / float(logoSVG.documentElement.getAttribute("height"))
 
-		for angle in range(0, 18):
+		numFrames = 180
+		for frame in range(0, numFrames):
 			surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, resSize["width"], resSize["height"])
 			ctx = cairo.Context(surface)
+
+			# Calculate Ray opacity for pulsing:
+			#  -- First half of the animation will fade in from 10% to 90% using QuadInOut
+			#  -- Second half will fade back out from 90% to 10% using CubicInOut
+			if frame < numFrames / 2:
+				opacity = QuadInOut(frame, 10, 90, (numFrames - 1) / 2) / 100
+			else:
+				opacity = CubicInOut(frame - ((numFrames - 1) / 2), 90, 10, (numFrames - 1) / 2) / 100
+
+			# Set new opacity for the current frame
+			getElementByTagId(logoSVG, "stop", "stopOuter").setAttribute("style", "stop-color:#ffffff;stop-opacity:{:.2f};".format(opacity))
 
 			# Draw Book and Black Background
 			enable_only_layers(["Rays", "Hills", "Pen", "OuterCircle"],layers)
@@ -177,16 +197,7 @@ def render_loading_logo(inpath, outpath):
 			svg.render_cairo(ctx)
 			ctx.restore()
 
-			# Draw Circles at appropriate angle
-			enable_only_layers(["Circles"],layers)
-			svg = rsvg.Handle(data=logoSVG.toxml())
-			ctx.translate(resSize["height"] / 2, resSize["width"] / 2)
-			ctx.rotate(math.radians(angle*(5)))
-			ctx.translate(-resSize["width"] / 2, -resSize["height"] / 2)
-			ctx.scale(ratioW, ratioH)
-			svg.render_cairo(ctx)
-
-			surface.write_to_png(os.path.join(outpath, "xLoading_Linking.{0:02}.png".format(angle)))
+			surface.write_to_png(os.path.join(outpath, "xLoading_Linking.{0:02}.png".format(frame)))
 
 def render_loading_text(inpath, outpath):
 	resSize = {"width":192, "height":41}
@@ -232,6 +243,32 @@ def render_voice_icons(inpath, outpath):
 			svg.render_cairo(ctx)
 
 			surface.write_to_png(os.path.join(outpath, voiceUI + ".png"))
+
+
+###
+# Simple Tweening Functions
+#
+# t = Time (current)
+# s = Start value
+# f = Final value
+# d = Duration (total)
+
+def QuadInOut(t, s, f, d):
+	c = f - s
+	t = t / (d / 2)
+	if (t < 1):
+		return c / 2 * t ** 2 + s
+	t = t - 1
+	return -c / 2 * (t * (t - 2) - 1) + s
+
+def CubicInOut(t, s, f, d):
+	c = f - s
+	t = t / (d / 2)
+	if (t < 1):
+		return c / 2 * t ** 3 + s
+	t = t - 2
+	return c / 2 * (t ** 3 + 2) + s
+
 
 if __name__ == '__main__':
 	parser = OptionParser(usage="usage: %prog [options]")

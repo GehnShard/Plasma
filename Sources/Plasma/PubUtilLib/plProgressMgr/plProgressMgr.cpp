@@ -63,7 +63,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 plProgressMgr   *plProgressMgr::fManager = nil;
 
 #define LOADING_RES         "xLoading_Linking.%02d.png"
-#define LOADING_RES_COUNT   18
+#define LOADING_RES_COUNT   180
 
 char* plProgressMgr::fImageRotation[LOADING_RES_COUNT];
 
