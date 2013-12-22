@@ -53,9 +53,7 @@ set(plClient_RESOURCES
     res/plClient.rc
     res/resource.h
     res/banner.bmp
-    res/cnsl1.bin
-    res/Dirt.ICO
-    res/headspin.ico
+    res/gehn.ico
 )
 
 add_executable(plClient WIN32 ${plClient_SOURCES} ${plClient_HEADERS}

@@ -2,10 +2,9 @@
 // Microsoft Visual C++ generated include file.
 // Used by plClient.rc
 //
-#define IDI_ICON_DIRT                   135
+#define IDI_ICON_GEHN                   135
 #define IDD_LOADING                     136
 #define IDD_EXCEPTION                   138
-#define IDR_CNSL1                       139
 #define IDB_BANNER                      151
 #define IDD_URULOGIN_MAIN               153
 #define IDD_URULOGIN_EULA               154

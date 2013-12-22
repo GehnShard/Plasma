@@ -596,7 +596,7 @@ BOOL WinInit(HINSTANCE hInst, int nCmdShow)
     wndClass.cbClsExtra         = 0;
     wndClass.cbWndExtra         = 0;
     wndClass.hInstance          = hInst;
-    wndClass.hIcon              = LoadIcon(hInst, MAKEINTRESOURCE(IDI_ICON_DIRT));
+    wndClass.hIcon              = LoadIcon(hInst, MAKEINTRESOURCE(IDI_ICON_GEHN));
 
     wndClass.hCursor            = LoadCursor(NULL, IDC_ARROW);
     wndClass.hbrBackground      = (struct HBRUSH__*) (GetStockObject(BLACK_BRUSH));
@@ -772,7 +772,7 @@ BOOL CALLBACK UruTOSDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
     case WM_INITDIALOG:
         {
             SetWindowText(hwndDlg, "End User License Agreement");
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)LoadIcon((HINSTANCE)lParam, MAKEINTRESOURCE(IDI_ICON_DIRT)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)LoadIcon((HINSTANCE)lParam, MAKEINTRESOURCE(IDI_ICON_GEHN)));
 
             hsUNIXStream stream;
             if (stream.Open("TOS.txt", "rt"))
@@ -979,7 +979,7 @@ BOOL CALLBACK UruLoginDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM
             pLoginParam = (LoginDialogParam*)lParam;
 
             SetWindowText(hwndDlg, "Login");
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)LoadIcon(gHInst, MAKEINTRESOURCE(IDI_ICON_DIRT)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)LoadIcon(gHInst, MAKEINTRESOURCE(IDI_ICON_GEHN)));
 
             EnableWindow(GetDlgItem(hwndDlg, IDOK), FALSE);
 
