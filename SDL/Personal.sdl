@@ -125,7 +125,7 @@ STATEDESC Personal
 
     # GlobalRewardClothing is a list of names of reward clothing to add to the player's closet, separated by semicolins
     # (do NOT use this for clothing items to be given to a select group of people)
-    VAR STRING32  GlobalRewardClothing[1]           DEFAULTOPTION = VAULT
+    VAR STRING32  GlobalRewardClothing[1]    DEFAULT=Santa    DEFAULTOPTION=VAULT
 
     # Enables the GreatZero GPS coords in the KI (must also have their KI calibrated)
     VAR BOOL  GPSEnabled[1]             DEFAULT=0   DEFAULTOPTION=VAULT
