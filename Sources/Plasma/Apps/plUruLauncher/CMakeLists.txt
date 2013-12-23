@@ -22,7 +22,7 @@ set(plUruLauncher_RESOURCES
     resource.h
 
     banner.bmp
-    Dirt.ICO
+    gehn.ico
 )
 
 add_executable(plUruLauncher WIN32 ${plUruLauncher_SOURCES} ${plUruLauncher_HEADERS}
