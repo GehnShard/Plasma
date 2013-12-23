@@ -50,6 +50,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 #include <string>
 #include "hsTemplates.h"
+#include "plFileSystem.h"
 #include "pnKeyedObject/plKey.h"
 
 #include "pyGlueHelpers.h"
@@ -409,6 +410,9 @@ public:
     virtual void ExitSubWorld();
 
     virtual void PlaySimpleAnimation(const plString& animName);
+
+    virtual bool SaveClothingToFile(plFileName filename);
+    virtual bool LoadClothingFromFile(plFileName filename);
 
     /////////////////////////////////////////////////////////////////////////////
     //

@@ -39,34 +39,22 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/Apps/plUruLauncher/Pch.h
-*   
-***/
 
-#ifdef PLASMA20_SOURCES_PLASMA_APPS_PLURULAUNCHER_PCH_H
-#error "Header $/Plasma20/Sources/Plasma/Apps/plUruLauncher/Pch.h included more than once"
-#endif
-#define PLASMA20_SOURCES_PLASMA_APPS_PLURULAUNCHER_PCH_H
+#ifndef _hsGDirect3D_inc_
+#define _hsGDirect3D_inc_
 
-#include "hsWindows.h"
-#include <process.h>
-#include <ctime>
+class hsGDirect3DTnLEnumerate;
+struct IDirect3D9;
 
-#include <curl/curl.h>
+namespace hsGDirect3D
+{
+    hsGDirect3DTnLEnumerate& EnumerateTnL(bool reenum=false);
+    void ReleaseTnLEnum();
 
-#include "pnUtils/pnUtils.h"
-#include "pnNetBase/pnNetBase.h"
-#include "pnAsyncCore/pnAsyncCore.h"
-#include "plProduct.h"
-#include "pnNetCli/pnNetCli.h"
-#include "plNetGameLib/plNetGameLib.h"
-#include "pnEncryption/plChecksum.h"
+    /** Get a root Direct3D object.
+     *  \remarks You should not hold this pointer.
+     */
+    IDirect3D9* GetDirect3D(bool recreate=false);
+}
 
-#include "plCompression/plZlibStream.h"
-#include "plClientPatcher/UruPlayer.h"
-
-#include "plLauncherInfo.h"
-#include "Intern.h"
-
+#endif // _hsGDirect3D_inc_

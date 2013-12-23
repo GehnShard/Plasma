@@ -198,9 +198,6 @@ void plNetClientMgr::Shutdown()
 
     IRemoveCloneRoom();
 
-    // RATHER BAD DEBUG HACK: Clear the spawn override in armatureMod so there's no memory leak
-    plArmatureMod::SetSpawnPointOverride( nil );
-
     VaultDestroy();
 }
 
@@ -784,7 +781,9 @@ plSynchedObject* plNetClientMgr::GetLocalPlayer(bool forceLoad) const
 
 plSynchedObject* plNetClientMgr::GetNPC(uint32_t i) const
 {
-    return fNPCKeys[i] ? plSynchedObject::ConvertNoRef(fNPCKeys[i]->ObjectIsLoaded()) : nil; 
+    if (i >= fNPCKeys.size())
+        return nullptr;
+    return plSynchedObject::ConvertNoRef(fNPCKeys[i]->ObjectIsLoaded()); 
 }
 
 void plNetClientMgr::AddNPCKey(const plKey& npc)

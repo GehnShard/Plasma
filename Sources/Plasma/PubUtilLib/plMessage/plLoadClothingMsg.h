@@ -39,29 +39,29 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/Apps/plClientPatcher/UruPlayer.h
-*   
-***/
 
-#ifdef PLASMA20_SOURCES_PLASMA_APPS_PLCLIENTPATCHER_URUPLAYER_H
-#error "Header $/Plasma20/Sources/Plasma/Apps/plClientPatcher/UruPlayer.h included more than once"
-#endif
-#define PLASMA20_SOURCES_PLASMA_APPS_PLCLIENTPATCHER_URUPLAYER_H
+#ifndef plLoadClothingMsg_INC
+#define plLoadClothingMsg_INC
 
+#include "plFileSystem.h"
+#include "pnMessage/plMessage.h"
 
-/*****************************************************************************
-*
-*   UruPlayer.cpp
-*
-***/
+/** This message is sent when we want to load our clothing from a file. */
+class plLoadClothingMsg : public plMessage {
+private:
+    plFileName fClothingFile;
 
-void InitAsyncCore ();
-void ShutdownAsyncCore () ;
-void UruPrepProc (void * param);
-void UruStartProc (void * param);
-void PlayerTerminateProc (void * param);
-void PlayerStopProc (void * param);
+public:
+    plLoadClothingMsg() { }
+    plLoadClothingMsg(const plFileName& file) : fClothingFile(file) { }
 
-extern plFileName kPatcherExeFilename;
+    CLASSNAME_REGISTER(plLoadClothingMsg);
+    GETINTERFACE_ANY(plLoadClothingMsg, plMessage);
+
+    void Read(hsStream*, hsResMgr*) { }
+    void Write(hsStream*, hsResMgr*) { }
+
+    plFileName GetClothingFile() const { return fClothingFile; }
+};
+
+#endif // plLoadClothingMsg_INC

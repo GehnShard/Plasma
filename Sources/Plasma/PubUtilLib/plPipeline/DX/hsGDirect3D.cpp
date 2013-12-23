@@ -39,29 +39,44 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/PubUtilLib/plMessage/plPreloaderMsg.h
-*   
-***/
 
-#ifndef PLASMA20_SOURCES_PLASMA_PUBUTILLIB_PLMESSAGE_PLPRELOADERMSG_H
-#define PLASMA20_SOURCES_PLASMA_PUBUTILLIB_PLMESSAGE_PLPRELOADERMSG_H
+#include "hsGDirect3D.h"
+#include "plDXEnumerate.h"
 
-#include "pnMessage/plMessage.h"
+#include <d3d9.h>
+#include <functional>
+#include <memory>
 
-class plPreloaderMsg : public plMessage {
-public:
-    bool    fSuccess;
+static std::unique_ptr<hsGDirect3DTnLEnumerate> s_tnlEnum;
+hsGDirect3DTnLEnumerate& hsGDirect3D::EnumerateTnL(bool reenum)
+{
+    if (reenum || !s_tnlEnum.get())
+        s_tnlEnum.reset(new hsGDirect3DTnLEnumerate());
 
-    plPreloaderMsg () { SetBCastFlag(kBCastByExactType); }
-    
-    CLASSNAME_REGISTER(plPreloaderMsg);
-    GETINTERFACE_ANY(plPreloaderMsg, plMessage);
+    // Be nice to legacy code and return a reference...
+    hsGDirect3DTnLEnumerate* ptr = s_tnlEnum.get();
+    return *ptr;
+}
 
-    void Read (hsStream* stream, hsResMgr* ) { FATAL("plPreloaderMsg::Read"); }
-    void Write (hsStream* stream, hsResMgr* ) { FATAL("plPreloaderMsg::Write"); }
-};
+void hsGDirect3D::ReleaseTnLEnum()
+{
+    s_tnlEnum.release();
+}
 
+static void IDeleteDirect3D(IDirect3D9* d3d)
+{
+    while (d3d->Release()) { }
+}
 
-#endif // PLASMA20_SOURCES_PLASMA_PUBUTILLIB_PLMESSAGE_PLPRELOADERMSG_H
+static std::unique_ptr<IDirect3D9, std::function<void(IDirect3D9*)>> s_direct3d(nullptr, IDeleteDirect3D);
+IDirect3D9* hsGDirect3D::GetDirect3D(bool recreate)
+{
+    if (recreate || !s_direct3d.get()) {
+        IDirect3D9* ptr = Direct3DCreate9(D3D_SDK_VERSION);
+        hsAssert(ptr, "failed to create Direct3D");
+
+        s_direct3d.reset(ptr);
+    }
+    return s_direct3d.get();
+}
+

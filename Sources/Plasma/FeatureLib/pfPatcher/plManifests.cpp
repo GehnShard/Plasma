@@ -33,43 +33,59 @@ the parts of OpenSSL and IJG JPEG Library used as well as that of the covered
 work.
 
 You can contact Cyan Worlds, Inc. by email legal@cyan.com
- or by snail mail at:
-      Cyan Worlds, Inc.
-      14617 N Newport Hwy
-      Mead, WA   99021
+or by snail mail at:
+Cyan Worlds, Inc.
+14617 N Newport Hwy
+Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/Apps/plClientPatcher/Pch.h
-*   
-***/
 
-#ifdef PLASMA20_SOURCES_PLASMA_APPS_PLCLIENTPATCHER_PCH_H
-#error "Header $/Plasma20/Sources/Plasma/Apps/plClientPatcher/Pch.h included more than once"
-#endif
-#define PLASMA20_SOURCES_PLASMA_APPS_PLCLIENTPATCHER_PCH_H
+#include "plManifests.h"
+#include "plFileSystem.h"
 
-#include "hsWindows.h"
-#include <process.h>
-#include <ctime>
-#include "pnUtils/pnUtils.h"
-#include "pnNetBase/pnNetBase.h"
-#include "pnAsyncCore/pnAsyncCore.h"
-#include "plProduct.h"
-#include "pnNetCli/pnNetCli.h"
-#include "plNetGameLib/plNetGameLib.h"
-#include "pnEncryption/plChecksum.h"
-#include "plAgeDescription/plAgeManifest.h"
-#include "plAudioCore/plAudioFileReader.h"
+// Helper that returns the appropriate string per build
+#ifdef PLASMA_EXTERNAL_RELEASE
+#   define MANIFEST(in, ex) ex
+#else
+#   define MANIFEST(in, ex) in
+#endif // PLASMA_EXTERNAL_RELEASE
 
-#define USES_PROTOCOL_CLI2AUTH
-#include "pnNetProtocol/pnNetProtocol.h"
+plFileName plManifest::ClientExecutable()
+{
+    return MANIFEST("plClient.exe", "UruExplorer.exe");
+}
 
-#include "UruPlayer.h"
+plFileName plManifest::PatcherExecutable()
+{
+    return MANIFEST("plUruLauncher.exe", "UruLauncher.exe");
+}
 
-#include "plCompression/plZlibStream.h"
-#include "Intern.h"
-#include "../plUruLauncher/plLauncherInfo.h"
+plString plManifest::ClientManifest()
+{
+    return MANIFEST("ThinInternal", "ThinExternal");
+}
 
+plString plManifest::ClientImageManifest()
+{
+    return MANIFEST("Internal", "External");
+}
+
+plString plManifest::PatcherManifest()
+{
+    return MANIFEST("InternalPatcher", "ExternalPatcher");
+}
+
+std::vector<plString> plManifest::EssentialGameManifests()
+{
+    std::vector<plString> mfs;
+    mfs.push_back("CustomAvatars");
+    mfs.push_back("GlobalAnimations");
+    mfs.push_back("GlobalAvatars");
+    mfs.push_back("GlobalClothing");
+    mfs.push_back("GlobalMarkers");
+    mfs.push_back("GUI");
+    mfs.push_back("StartUp");
+
+    return mfs;
+}
 

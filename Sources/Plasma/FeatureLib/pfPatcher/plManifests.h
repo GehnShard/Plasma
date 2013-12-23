@@ -39,20 +39,34 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/Apps/plClientPatcher/Intern.h
-*   
-***/
 
-#ifdef PLASMA20_SOURCES_PLASMA_APPS_PLCLIENTPATCHER_INTERN_H
-#error "Header $/Plasma20/Sources/Plasma/Apps/plClientPatcher/Intern.h included more than once"
-#endif
-#define PLASMA20_SOURCES_PLASMA_APPS_PLCLIENTPATCHER_INTERN_H
+#ifndef _plManifests_inc_
+#define _plManifests_inc_
 
+#include <vector>
 
-/*****************************************************************************
-*
-*   SelfPatcher.cpp
-*
-***/
+class plFileName;
+class plString;
+
+namespace plManifest
+{
+    /** Get the name of the client executable for this build type.*/
+    plFileName ClientExecutable();
+
+    /** Get the name of the patcher executable for this build type.*/
+    plFileName PatcherExecutable();
+
+    /** Get the name of the baseline client manifest for this build type. */
+    plString ClientManifest();
+
+    /** Get the name of the full game manifest for this build type. */
+    plString ClientImageManifest();
+
+    /** Get the name of the patcher manifest for this build type. */
+    plString PatcherManifest();
+
+    /** Get a vector containing all manifests the game requires to initialize. */
+    std::vector<plString> EssentialGameManifests();
+}
+
+#endif // _plManifests_inc_
