@@ -1064,38 +1064,6 @@ void    pfConsole::Draw( plPipeline *p )
         else if( countDown > -720 )
             countDown--;
 
-        // Resource data is encrypted so testers can't peer in to the EXE, plz don't decrypt
-        static bool rezLoaded = false;
-        static char tmpSrc[ kMaxCharsWide ];
-        if( !rezLoaded )
-        {
-            memset( tmp, 0, sizeof( tmp ) );
-            memset( tmpSrc, 0, sizeof( tmpSrc ) );
-            // Our concession to windows
-#ifdef HS_BUILD_FOR_WIN32
-            #include "../../Apps/plClient/res/resource.h"
-            HRSRC rsrc = FindResource( nil, MAKEINTRESOURCE( IDR_CNSL1 ), "CNSL" );
-            if( rsrc != nil )
-            {
-                HGLOBAL hdl = LoadResource( nil, rsrc );
-                if( hdl != nil )
-                {
-                    uint8_t *ptr = (uint8_t *)LockResource( hdl );
-                    if( ptr != nil )
-                    {
-                        for( i = 0; i < SizeofResource( nil, rsrc ); i++ )
-                            tmpSrc[ i ] = ptr[ i ] + 26;
-                        UnlockResource( hdl );
-                    }
-                }
-            }
-            rezLoaded = true;
-#else
-            // Need to define for other platforms?
-#endif
-        }
-        memcpy( tmp, tmpSrc, sizeof( tmp ) );
-
         if( countDown <= 0 )
         {
             y = 4 + yOff - eOffset;
