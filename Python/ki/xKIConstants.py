@@ -48,10 +48,6 @@ from PlasmaTypes import *
 # Uru modules.
 import xEnum
 
-## Character set constant.
-# @todo Update this when the p2fs really support unicode.
-kCharSet = "cp1252"
-
 ## Number of items to scroll through in content list.
 kContentListScrollSize = 5
 
@@ -201,6 +197,7 @@ class kColors:
     AgenGreenDk = ptColor(0.65, 0.745, 0.6353, 1.0)
                 
     DniYellow   = ptColor(0.851, 0.812, 0.576, 1.0)
+    DniYellowLt = ptColor(1.0, 1.0, 0.6, 1.0)
     DniCyan     = ptColor(0.576, 0.867, 0.851, 1.0)
     DniBlue     = ptColor(0.780, 0.706, 0.870, 1.0)
     DniRed      = ptColor(1.0, 0.216, 0.380, 1.0)
@@ -217,6 +214,7 @@ class kColors:
     
     # Chat colors (messages and headers).
     ChatMessage             = DniWhite
+    ChatMessageMention      = DniYellowLt
     ChatHeaderBroadcast     = DniBlue
     ChatHeaderPrivate       = DniYellow
     ChatHeaderAdmin         = DniCyan
@@ -252,6 +250,8 @@ class kCommands:
                   "/party" : "PartyTime"}
     Text = {"/go" : "Put one foot in front of the other and eventually you will get there.",
             "/fly" : "You close your eyes, you feel light headed and the ground slips away from your feet... Then you open your eyes and WAKE UP! (Ha, you can only dream about flying.)"}
+    Other = {"/saveclothing" : "SaveClothing",
+             "/loadclothing" : "LoadClothing"}
 
 ## Numeric limits for the KI.
 class kLimits:
