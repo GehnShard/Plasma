@@ -61,8 +61,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 enum
 {
     kTitleColor = 0xff848484,
-    kProgressBarColor = 0xff302b3a,
-    kInfoColor = 0xff635e6d,
+    kProgressBarColor = 0xff848484,
+    kInfoColor = 0xccb0b0b0,
 };
 
 
