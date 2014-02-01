@@ -327,11 +327,9 @@ void plCoopCoordinator::IStartGuest()
         const plSceneObject *targetBone = hostAv->FindBone(fSynchBone);
         if(targetBone)
         {
-            plAvSeekMsg *seekMsg = new plAvSeekMsg( nil, nil,targetBone->GetKey(), 0, true, kAlignHandle, "", false, plAvSeekMsg::kSeekFlagNoWarpOnTimeout, GetKey());
-            plAvTaskSeek *seekT = new plAvTaskSeek(seekMsg);
-            plAvTaskMsg *seekM = new plAvTaskMsg(GetKey(), fGuestKey, seekT);
-            seekM->SetBCastFlag(plMessage::kPropagateToModifiers);
-            seekM->Send();
+            plAvSeekMsg *seekMsg = new plAvSeekMsg(GetKey(), fGuestKey, targetBone->GetKey(), 0, true, kAlignHandle, "", false, plAvSeekMsg::kSeekFlagNoWarpOnTimeout, GetKey());
+            seekMsg->SetBCastFlag(plMessage::kPropagateToModifiers);
+            seekMsg->Send();
         }
     }
 }
@@ -398,7 +396,7 @@ void plCoopCoordinator::Read(hsStream *stream, hsResMgr *mgr)
     else
         fGuestAcceptMsg = nil;
 
-    fSynchBone = stream->ReadSafeString_TEMP();
+    fSynchBone = stream->ReadSafeString();
     fAutoStartGuest = stream->ReadBool();
     
     fInitiatorID = fHostBrain->GetInitiatorID();

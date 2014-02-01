@@ -278,12 +278,12 @@ public:
     void SetTurnLeftKeyDown(bool status = true);
     void SetTurnRightKeyDown(bool status = true);
     void SetJumpKeyDown();
-    void DebugDumpMoveKeys(int &x, int &y, int lineHeight, char *strBuf, plDebugText &debugTxt);
-    void GetMoveKeyString(char *buff);
+    void DebugDumpMoveKeys(int &x, int &y, int lineHeight, plDebugText &debugTxt);
+    plString GetMoveKeyString() const;
 
     void SynchIfLocal(double timeNow, int force); // Just physical state
     void SynchInputState(uint32_t rcvID = kInvalidPlayerID);  
-    bool DirtySynchState(const char* SDLStateName, uint32_t synchFlags );
+    bool DirtySynchState(const plString& SDLStateName, uint32_t synchFlags );
     bool DirtyPhysicalSynchState(uint32_t synchFlags);
     plClothingOutfit *GetClothingOutfit() const { return fClothingOutfit; }
     plClothingSDLModifier *GetClothingSDLMod() const { return fClothingSDLMod; }
@@ -310,7 +310,7 @@ public:
     void SetRootName(const plString &name);
     
     int  RefreshDebugDisplay();
-    void DumpToDebugDisplay(int &x, int &y, int lineHeight, char *strBuf, plDebugText &debugTxt);
+    void DumpToDebugDisplay(int &x, int &y, int lineHeight, plDebugText &debugTxt);
     void SetDebugState(bool state) { fDebugOn = (state != 0); }
     bool GetDebugState() { return fDebugOn; }
 
@@ -340,7 +340,7 @@ public:
 
     bool    IsKILowestLevel();
     int     GetKILevel();
-    void    SetLinkInAnim(const char *animName);
+    void    SetLinkInAnim(const plString &animName);
     plKey   GetLinkInAnimKey() const;
 
     enum
@@ -369,11 +369,11 @@ public:
     
     void SetPhysicalDims(float height, float width) { fPhysHeight = height; fPhysWidth = width; }
 
-    void SetBodyAgeName(const char* ageName) {if (ageName) fBodyAgeName = ageName; else fBodyAgeName = "";}
-    void SetBodyFootstepSoundPage(const char* pageName) {if (pageName) fBodyFootstepSoundPage = pageName; else fBodyFootstepSoundPage = "";}
+    void SetBodyAgeName(const plString& ageName) { fBodyAgeName = ageName; }
+    void SetBodyFootstepSoundPage(const plString& pageName) { fBodyFootstepSoundPage = pageName; }
     void SetAnimationPrefix(const plString& prefix) { fAnimationPrefix = prefix; }
 
-    const char* GetUserStr() {return fUserStr.c_str();}
+    plString GetUserStr() const { return fUserStr; }
 
 protected:
     void IInitDefaults();
@@ -443,12 +443,12 @@ protected:
     bool fDontPanicLink;
 
     // strings for animations, age names, footstep sounds, etc
-    std::string fBodyAgeName;
-    std::string fBodyFootstepSoundPage;
+    plString fBodyAgeName;
+    plString fBodyFootstepSoundPage;
     plString fAnimationPrefix;
 
     // user-defined string assigned to this avatar
-    std::string fUserStr;
+    plString fUserStr;
 };
 
 // PLARMATURELOD

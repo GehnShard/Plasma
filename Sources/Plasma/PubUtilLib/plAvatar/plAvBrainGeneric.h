@@ -169,7 +169,7 @@ public:
     /** We're leaving the age. Clean up. */
     virtual bool LeaveAge();
 
-    virtual bool IsRunningTask();
+    virtual bool IsRunningTask() const;
     
     /** Compare the names of the anims in our stages.
         Return true on a match (order matters). */
@@ -252,7 +252,7 @@ public:
     MoveMode GetMoveMode() { return fMoveMode; }
 
     /** Output the brain's status to the avatar debug screen. */
-    virtual void DumpToDebugDisplay(int &x, int &y, int lineHeight, char *strBuf, plDebugText &debugTxt);
+    virtual void DumpToDebugDisplay(int &x, int &y, int lineHeight, plDebugText &debugTxt);
 
     // plasma protocol
     bool MsgReceive(plMessage *msg);

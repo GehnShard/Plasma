@@ -1743,8 +1743,8 @@ void plArmatureMod::Write(hsStream *stream, hsResMgr *mgr)
     stream->WriteLEFloat(fPhysWidth);
 
     stream->WriteSafeString(fAnimationPrefix);
-    stream->WriteSafeString(fBodyAgeName.c_str());
-    stream->WriteSafeString(fBodyFootstepSoundPage.c_str());
+    stream->WriteSafeString(fBodyAgeName);
+    stream->WriteSafeString(fBodyFootstepSoundPage);
 }
 
 void plArmatureMod::Read(hsStream * stream, hsResMgr *mgr)
@@ -1756,7 +1756,7 @@ void plArmatureMod::Read(hsStream * stream, hsResMgr *mgr)
     fMeshKeys.push_back(mgr->ReadKey(stream));
 
     // read the root name string
-    fRootName = stream->ReadSafeString_TEMP();
+    fRootName = stream->ReadSafeString();
 
     // read in the brains
     int nBrains = stream->ReadLE32();
@@ -1780,9 +1780,7 @@ void plArmatureMod::Read(hsStream * stream, hsResMgr *mgr)
 
         // Attach the Footstep emitter scene object
         hsResMgr *mgr = hsgResMgr::ResMgr();
-        const char *age = fBodyAgeName.c_str();
-        const char *page = fBodyFootstepSoundPage.c_str();
-        const plLocation &gLoc = plKeyFinder::Instance().FindLocation(age, page);
+        const plLocation &gLoc = plKeyFinder::Instance().FindLocation(fBodyAgeName, fBodyFootstepSoundPage);
         
         if (gLoc.IsValid())
         {
@@ -1823,23 +1821,17 @@ void plArmatureMod::Read(hsStream * stream, hsResMgr *mgr)
     fPhysHeight = stream->ReadLEFloat();
     fPhysWidth = stream->ReadLEFloat();
 
-    fAnimationPrefix = stream->ReadSafeString_TEMP();
+    fAnimationPrefix = stream->ReadSafeString();
+    fBodyAgeName = stream->ReadSafeString();
+    fBodyFootstepSoundPage = stream->ReadSafeString();
 
-    char *temp = stream->ReadSafeString();
-    fBodyAgeName = temp;
-    delete [] temp;
-
-    temp = stream->ReadSafeString();
-    fBodyFootstepSoundPage = temp;
-    delete [] temp;
-    
     plgDispatch::Dispatch()->RegisterForExactType(plAvatarStealthModeMsg::Index(), GetKey());
 }
 
-bool plArmatureMod::DirtySynchState(const char* SDLStateName, uint32_t synchFlags)
+bool plArmatureMod::DirtySynchState(const plString& SDLStateName, uint32_t synchFlags)
 {
     // skip requests to synch non-avatar state
-    if (SDLStateName && stricmp(SDLStateName, kSDLAvatar))
+    if (SDLStateName.CompareI(kSDLAvatar) != 0)
     {
         return false;
     }
@@ -2561,9 +2553,9 @@ int  plArmatureMod::GetKILevel()
     return VaultGetKILevel();
 }
 
-void plArmatureMod::SetLinkInAnim(const char *animName)
+void plArmatureMod::SetLinkInAnim(const plString &animName)
 {
-    if (animName)
+    if (!animName.IsNull())
     {
         plAGAnim *anim = FindCustomAnim(animName);
         fLinkInAnimKey = (anim ? anim->GetKey() : nil);
@@ -2649,7 +2641,6 @@ void plArmatureLODMod::Write(hsStream *stream, hsResMgr *mgr)
 int plArmatureMod::RefreshDebugDisplay()
 {
     plDebugText     &debugTxt = plDebugText::Instance();
-    char            strBuf[ 2048 ];
     int             lineHeight = debugTxt.GetFontSize() + 4;
     uint32_t          scrnWidth, scrnHeight;
 
@@ -2657,14 +2648,13 @@ int plArmatureMod::RefreshDebugDisplay()
     int y = 10;
     int x = 10;
 
-    DumpToDebugDisplay(x, y, lineHeight, strBuf, debugTxt);
+    DumpToDebugDisplay(x, y, lineHeight, debugTxt);
     return y;
 }
 
-void plArmatureMod::DumpToDebugDisplay(int &x, int &y, int lineHeight, char *strBuf, plDebugText &debugTxt)
+void plArmatureMod::DumpToDebugDisplay(int &x, int &y, int lineHeight, plDebugText &debugTxt)
 {
-    sprintf(strBuf, "Armature <%s>:", fRootName.c_str());
-    debugTxt.DrawString(x, y, strBuf, 255, 128, 128);
+    debugTxt.DrawString(x, y, plString::Format("Armature <%s>:", fRootName.c_str()), 255, 128, 128);
     y += lineHeight;
 
     plSceneObject * SO = GetTarget(0);
@@ -2675,9 +2665,8 @@ void plArmatureMod::DumpToDebugDisplay(int &x, int &y, int lineHeight, char *str
         hsPoint3 worldPos = l2w.GetTranslate();
 
         const char *opaque = IsOpaque() ? "yes" : "no"; 
-        sprintf(strBuf, "position(world): %.2f, %.2f, %.2f Opaque: %3s", 
-                worldPos.fX, worldPos.fY, worldPos.fZ, opaque);
-        debugTxt.DrawString(x, y, strBuf);
+        debugTxt.DrawString(x, y, plString::Format("position(world): %.2f, %.2f, %.2f Opaque: %3s",
+                                    worldPos.fX, worldPos.fY, worldPos.fZ, opaque));
         y += lineHeight;
 
         const char* frozen = "n.a.";
@@ -2688,32 +2677,34 @@ void plArmatureMod::DumpToDebugDisplay(int &x, int &y, int lineHeight, char *str
         plKey world = nil;
         if (fController)
             world = fController->GetSubworld();
-        sprintf(strBuf, "In world: %s  Frozen: %s", world ? world->GetName().c_str() : "nil", frozen);
-        debugTxt.DrawString(x,y, strBuf);
+        debugTxt.DrawString(x, y, plString::Format("In world: %s  Frozen: %s",
+                                    world ? world->GetName().c_str() : "nil", frozen));
         y+= lineHeight;
 
+        plString details;
         if (fController)
         {
             hsPoint3 physPos;
             GetPositionAndRotationSim(&physPos, nil);
             const hsVector3& vel = fController->GetLinearVelocity();
-            sprintf(strBuf, "position(physical): <%.2f, %.2f, %.2f> velocity: <%5.2f, %5.2f, %5.2f>", physPos.fX, physPos.fY, physPos.fZ, vel.fX, vel.fY, vel.fZ);
+            details = plString::Format("position(physical): <%.2f, %.2f, %.2f> velocity: <%5.2f, %5.2f, %5.2f>",
+                                       physPos.fX, physPos.fY, physPos.fZ, vel.fX, vel.fY, vel.fZ);
         }
         else
         {
-            sprintf(strBuf, "position(physical): no controller");
+            details = "position(physical): no controller";
         }
-        debugTxt.DrawString(x, y, strBuf);
+        debugTxt.DrawString(x, y, details);
         y += lineHeight;
     }
 
-    DebugDumpMoveKeys(x, y, lineHeight, strBuf, debugTxt);
+    DebugDumpMoveKeys(x, y, lineHeight, debugTxt);
 
     int i;
     for(i = 0; i < fBrains.size(); i++)
     {
         plArmatureBrain *brain = fBrains[i];
-        brain->DumpToDebugDisplay(x, y, lineHeight, strBuf, debugTxt);
+        brain->DumpToDebugDisplay(x, y, lineHeight, debugTxt);
     }
     
     if (fClothingOutfit)
@@ -2722,30 +2713,30 @@ void plArmatureMod::DumpToDebugDisplay(int &x, int &y, int lineHeight, char *str
 
         debugTxt.DrawString(x, y, "ItemsWorn:");
         y += lineHeight;
-        strBuf[0] = '\0';
+        plStringStream outfit;
         int itemCount = 0; 
         for (i = 0; i < fClothingOutfit->fItems.GetCount(); i++)
         {
             if (itemCount == 0)
-                strcat(strBuf, "    ");
+                outfit << "    ";
 
-            strcat(strBuf, fClothingOutfit->fItems[i]->fName);
+            outfit << fClothingOutfit->fItems[i]->fName;
             itemCount++;
 
             if (itemCount == 4)
             {
-                debugTxt.DrawString(x, y, strBuf);
+                debugTxt.DrawString(x, y, outfit.GetString());
                 itemCount = 0;
-                strBuf[0] = '\0';
+                outfit.Truncate();
                 y += lineHeight;
             }
 
             if (itemCount > 0)
-                strcat(strBuf, ", ");
+                outfit << ", ";
         }
         if (itemCount > 0)
         {
-            debugTxt.DrawString(x, y, strBuf);
+            debugTxt.DrawString(x, y, outfit.GetString());
             y += lineHeight;
         }
     }
@@ -2756,11 +2747,11 @@ void plArmatureMod::DumpToDebugDisplay(int &x, int &y, int lineHeight, char *str
 
         debugTxt.DrawString(x, y, "Relevance Regions:");
         y += lineHeight;
-        sprintf(strBuf, "          In: %s", plRelevanceMgr::Instance()->GetRegionNames(fRegionsImIn).c_str());
-        debugTxt.DrawString(x, y, strBuf);
+        debugTxt.DrawString(x, y, plString::Format("          In: %s",
+                plRelevanceMgr::Instance()->GetRegionNames(fRegionsImIn).c_str()));
         y += lineHeight;
-        sprintf(strBuf, "  Care about: %s", plRelevanceMgr::Instance()->GetRegionNames(fRegionsICareAbout).c_str());
-        debugTxt.DrawString(x, y, strBuf);
+        debugTxt.DrawString(x, y, plString::Format("  Care about: %s",
+                plRelevanceMgr::Instance()->GetRegionNames(fRegionsICareAbout).c_str()));
         y += lineHeight;
     }
 }
@@ -2799,42 +2790,43 @@ void plAvBoneMap::AddBoneMapping(uint32_t boneID, const plSceneObject *SO)
     (fImp->fMap)[boneID] = SO;
 }
 
-void plArmatureMod::DebugDumpMoveKeys(int &x, int &y, int lineHeight, char *strBuf, plDebugText &debugTxt)
+void plArmatureMod::DebugDumpMoveKeys(int &x, int &y, int lineHeight, plDebugText &debugTxt)
 {
-    char buff[256];
-    sprintf(buff, "Mouse Input Map: %s", plAvatarInputInterface::GetInstance()->GetInputMapName());
-    debugTxt.DrawString(x, y, buff);
+    debugTxt.DrawString(x, y, plString::Format("Mouse Input Map: %s",
+            plAvatarInputInterface::GetInstance()->GetInputMapName()));
     y += lineHeight;
-    
-    sprintf(buff, "Turn strength: %.2f (key: %.2f, analog: %.2f)", GetTurnStrength(), GetKeyTurnStrength(), GetAnalogTurnStrength());
-    debugTxt.DrawString(x, y, buff);
+
+    debugTxt.DrawString(x, y, plString::Format("Turn strength: %.2f (key: %.2f, analog: %.2f)",
+            GetTurnStrength(), GetKeyTurnStrength(), GetAnalogTurnStrength()));
     y += lineHeight;
-    
-    GetMoveKeyString(buff);
-    debugTxt.DrawString(x, y, buff);
+
+    debugTxt.DrawString(x, y, GetMoveKeyString());
     y += lineHeight;
 }
 
-void plArmatureMod::GetMoveKeyString(char *buff)
+plString plArmatureMod::GetMoveKeyString() const
 {
-    sprintf(buff, "Move keys: ");
+    plStringStream keys;
+    keys << "Move keys: ";
 
     if(FastKeyDown())
-        strcat(buff, "FAST ");
+        keys << "FAST ";
     if(StrafeKeyDown())
-        strcat(buff, "STRAFE ");
+        keys << "STRAFE ";
     if(ForwardKeyDown())
-        strcat(buff, "FORWARD ");
+        keys << "FORWARD ";
     if(BackwardKeyDown())
-        strcat(buff, "BACKWARD ");
+        keys << "BACKWARD ";
     if(TurnLeftKeyDown())
-        strcat(buff, "TURNLEFT ");
+        keys << "TURNLEFT ";
     if(TurnRightKeyDown())
-        strcat(buff, "TURNRIGHT ");
+        keys << "TURNRIGHT ";
     if(StrafeLeftKeyDown())
-        strcat(buff, "STRAFELEFT ");
+        keys << "STRAFELEFT ";
     if(StrafeRightKeyDown())
-        strcat(buff, "STRAFERIGHT ");
+        keys << "STRAFERIGHT ";
     if(JumpKeyDown())
-        strcat(buff, "JUMP ");
+        keys << "JUMP ";
+
+    return keys.GetString();
 }

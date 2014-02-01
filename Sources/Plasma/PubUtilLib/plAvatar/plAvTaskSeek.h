@@ -96,7 +96,7 @@ public:
     virtual void LeaveAge(plArmatureMod *avatar);
 
     /** Spew "useful" information to the game screen. Used when Avatar.Debug is active. */
-    virtual void DumpDebug(const char *name, int &x, int&y, int lineHeight, char *strBuf, plDebugText &debugTxt);
+    virtual void DumpDebug(const char *name, int &x, int&y, int lineHeight, plDebugText &debugTxt);
 
     void DumpToAvatarLog(plArmatureMod *avatar);
         
@@ -156,6 +156,7 @@ protected:
     plString fAnimName;                     // an (optional) anim to use to line up our target
                                             // so you can say "seek to a place where your hand
                                             // will be here after you play animation foo"
+    plMessage* fFinishMsg;
 
     hsPoint3 fPosition;                     // our current position
     hsQuat fRotation;                       // our current rotation

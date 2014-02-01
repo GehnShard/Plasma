@@ -300,18 +300,14 @@ bool plNetClientMgr::Log(const char* str) const
 //
 // Display OS version info for log
 //
+extern std::vector<plString> DisplaySystemVersion();
+
 void plNetClientMgr::IDumpOSVersionInfo() const
 {
     DebugMsg("*** OS Info");
-    char** versionStrs = DisplaySystemVersion();
-    int i=0;
-    while(versionStrs && versionStrs[i])
-    {
-        DebugMsg(versionStrs[i]);
-        delete [] versionStrs[i];
-        i++;
-    }
-    delete [] versionStrs;
+    std::vector<plString> versionStrs = DisplaySystemVersion();
+    for (auto version = versionStrs.begin(); version != versionStrs.end(); ++version)
+        DebugMsg(version->c_str());
 }
 
 //
@@ -1148,7 +1144,7 @@ bool plNetClientMgr::ObjectInLocalAge(const plSynchedObject* obj) const
 //
 // the next age we are going to
 //
-const char* plNetClientMgr::GetNextAgeFilename() 
+plString plNetClientMgr::GetNextAgeFilename() const
 { 
     // set when we start linking to an age.
     plNetLinkingMgr * lm = plNetLinkingMgr::GetInstance();

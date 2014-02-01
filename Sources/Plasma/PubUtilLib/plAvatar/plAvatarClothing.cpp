@@ -80,9 +80,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plNetClientComm/plNetClientComm.h"
 
 
-plClothingItem::plClothingItem() : fName(nil), fGroup(0), fTileset(0), fType(0), fSortOrder(0),
-                                   fDescription(nil), fCustomText(nil), fThumbnail(nil), 
-                                   fAccessory(nil), fAccessoryName(nil)
+plClothingItem::plClothingItem() : fGroup(0), fTileset(0), fType(0), fSortOrder(0),
+                                   fThumbnail(nil), fAccessory(nil)
 {   
     int i;
     fTextures.Reset();
@@ -99,16 +98,8 @@ plClothingItem::plClothingItem() : fName(nil), fGroup(0), fTileset(0), fType(0),
 
 plClothingItem::~plClothingItem()
 {
-    while (fElementNames.GetCount() > 0)
-        delete [] fElementNames.Pop();
-
     while (fTextures.GetCount() > 0)
         delete [] fTextures.Pop();
-    
-    delete [] fName;
-    delete [] fDescription;
-    delete [] fCustomText;
-    delete [] fAccessoryName;
 }
 
 bool plClothingItem::CanWearWith(plClothingItem *item)
@@ -190,7 +181,7 @@ void plClothingItem::Read(hsStream *s, hsResMgr *mgr)
         for (j = 0; j < layerCount; j++)
         {
             int layer = s->ReadByte();
-            mgr->ReadKeyNotifyMe(s, new plElementRefMsg(GetKey(), plRefMsg::kOnCreate, i, -1, nil, layer), plRefFlags::kActiveRef); // texture
+            mgr->ReadKeyNotifyMe(s, new plElementRefMsg(GetKey(), plRefMsg::kOnCreate, i, -1, plString::Null, layer), plRefFlags::kActiveRef); // texture
         }
     }
 
@@ -274,13 +265,13 @@ void plClothingItem::Write(hsStream *s, hsResMgr *mgr)
 
     // EXPORT ONLY
     plKey accessoryKey = nil;
-    if (fAccessoryName)
+    if (!fAccessoryName.IsEmpty())
     {
-        plString strBuf = plString::Format("CItm_%s", fAccessoryName);
+        plString strBuf = plString::Format("CItm_%s", fAccessoryName.c_str());
         accessoryKey = plKeyFinder::Instance().StupidSearch("GlobalClothing", "", plClothingItem::Index(), strBuf);
         if (accessoryKey == nil)
         {
-            strBuf = plString::Format("Couldn't find accessory \"%s\". It won't show at runtime.", fAccessoryName);
+            strBuf = plString::Format("Couldn't find accessory \"%s\". It won't show at runtime.", fAccessoryName.c_str());
             hsMessageBox(strBuf.c_str(), GetKeyName().c_str(), hsMessageBoxNormal);
         }
     }
@@ -306,10 +297,10 @@ bool plClothingItem::MsgReceive(plMessage* msg)
                 if (fTextures.GetCount() <= eMsg->fWhich)
                     fTextures.ExpandAndZero(eMsg->fWhich + 1);
                 if (fElementNames.GetCount() <= eMsg->fWhich)
-                    fElementNames.ExpandAndZero(eMsg->fWhich + 1);
+                    fElementNames.Expand(eMsg->fWhich + 1);
                 
-                if (fElementNames.Get(eMsg->fWhich) == nil)
-                    fElementNames.Set(eMsg->fWhich, hsStrcpy(eMsg->fElementName));
+                if (fElementNames.Get(eMsg->fWhich).IsEmpty())
+                    fElementNames.Set(eMsg->fWhich, eMsg->fElementName);
                 if (fTextures.Get(eMsg->fWhich) == nil)
                 {
                     plMipmap **layers = new plMipmap*[plClothingElement::kLayerMax];
@@ -378,13 +369,7 @@ bool plClosetItem::IsMatch(plClosetItem *other)
 
 /////////////////////////////////////////////////////////////////////////////
 
-plClothingBase::plClothingBase() : fName(nil), fBaseTexture(nil), fLayoutName(nil) {}
-
-plClothingBase::~plClothingBase()
-{
-    delete [] fName;
-    delete [] fLayoutName;
-}
+plClothingBase::plClothingBase() : fBaseTexture(nil) {}
 
 void plClothingBase::Read(hsStream* s, hsResMgr* mgr)
 {
@@ -640,7 +625,7 @@ void plClothingOutfit::IAddItem(plClothingItem *item)
 
             if (soundEffect)
             {
-                if (!strcmp(item->fName, "03_MLFoot04_01") || !strcmp(item->fName, "03_FLFoot04_01"))
+                if (item->fName == "03_MLFoot04_01" || item->fName == "03_FLFoot04_01")
                     soundEffect->SetFootType(plArmatureEffectFootSound::kFootTypeBare);
                 else
                     soundEffect->SetFootType(plArmatureEffectFootSound::kFootTypeShoe);
@@ -716,10 +701,9 @@ hsColorRGBA plClothingOutfit::GetItemTint(plClothingItem *item, uint8_t layer /*
 bool plClothingOutfit::IMorphItem(plClothingItem *item, uint8_t layer, uint8_t delta, float weight)
 {
     uint32_t index = fItems.Find(item);
-    if (index != fItems.kMissingIndex)
+    if (fAvatar && index != fItems.kMissingIndex)
     {
-        int i;
-        for (i = 0; i < fAvatar->GetNumLOD(); i++)
+        for (uint8_t i = 0; i < fAvatar->GetNumLOD(); i++)
         {
             if (item->fMeshes[i]->fMorphSet == nil)
                 continue;
@@ -1420,7 +1404,7 @@ bool plClothingOutfit::MsgReceive(plMessage* msg)
 // TESTING SDL
 // Send clothing sendState msg to object's plClothingSDLModifier
 //
-bool plClothingOutfit::DirtySynchState(const char* SDLStateName, uint32_t synchFlags)
+bool plClothingOutfit::DirtySynchState(const plString& SDLStateName, uint32_t synchFlags)
 {
     plSynchEnabler ps(true);    // make sure synching is enabled, since this happens during load
     synchFlags |= plSynchedObject::kForceFullSend;  // TEMP
@@ -1435,15 +1419,16 @@ bool plClothingOutfit::DirtySynchState(const char* SDLStateName, uint32_t synchF
 // we'll be good about this, but I wanted to get it working first.
 void plClothingOutfit::IInstanceSharedMeshes(plClothingItem *item)
 {
-    if (fAvatar)
-        fAvatar->ValidateMesh();
+    if (!fAvatar)
+        return;
 
-    bool partialSort = item->fCustomText && strstr(item->fCustomText, "NeedsSort");
-    int i;
-    for (i = 0; i < plClothingItem::kMaxNumLODLevels; i++)
+    fAvatar->ValidateMesh();
+
+    bool partialSort = (item->fCustomText.Find("NeedsSort") >= 0);
+    for (int i = 0; i < plClothingItem::kMaxNumLODLevels; i++)
     {
         const plSceneObject *so = fAvatar->GetClothingSO(i);
-        if (so != nil && item->fMeshes[i] != nil)
+        if (so && item->fMeshes[i])
         {
             plInstanceDrawInterface *idi = const_cast<plInstanceDrawInterface*>(plInstanceDrawInterface::ConvertNoRef(so->GetDrawInterface()));
             if (idi)
@@ -1619,23 +1604,21 @@ plClothingMgr::~plClothingMgr()
         delete fItems.Pop();
 }
 
-plClothingLayout *plClothingMgr::GetLayout(char *name)
+plClothingLayout *plClothingMgr::GetLayout(const plString &name) const
 {
-    int i;
-    for (i = 0; i < fLayouts.GetCount(); i++)
+    for (int i = 0; i < fLayouts.GetCount(); i++)
     {
-        if (!strcmp(fLayouts.Get(i)->fName, name))
+        if (fLayouts.Get(i)->fName == name)
             return fLayouts.Get(i);
     }
     return nil;
 }
 
-plClothingElement *plClothingMgr::FindElementByName(const char *name)
+plClothingElement *plClothingMgr::FindElementByName(const plString &name) const
 {
-    int i;
-    for (i = 0; i < fElements.GetCount(); i++)
+    for (int i = 0; i < fElements.GetCount(); i++)
     {
-        if (!strcmp(fElements.Get(i)->fName, name))
+        if (fElements.Get(i)->fName == name)
             return fElements.Get(i);
     }
     return nil; 
@@ -1750,16 +1733,15 @@ void plClothingMgr::FilterUniqueMeshes(hsTArray<plClothingItem*> &items)
     }
 }
 
-plClothingItem *plClothingMgr::FindItemByName(const char *name)
+plClothingItem *plClothingMgr::FindItemByName(const plString &name) const
 {
-    if (!name)
+    if (name.IsEmpty())
         return nil;
-    
-    int i;
-    for (i = 0; i < fItems.GetCount(); i++)
+
+    for (int i = 0; i < fItems.GetCount(); i++)
     {
         plClothingItem* item = fItems.Get(i);
-        if (!strcmp(item->fName, name))
+        if (item->fName == name)
             return item;
     }
     return nil;
@@ -1902,7 +1884,7 @@ void plClothingMgr::IAddItem(plClothingItem *item)
     {
         for (j = 0; j < fElements.GetCount(); j++)
         {   
-            if (!strcmp(item->fElementNames.Get(i), fElements.Get(j)->fName))
+            if (item->fElementNames.Get(i) == fElements.Get(j)->fName)
             {
                 item->fElements.Set(i, fElements.Get(j));
                 break;
@@ -1928,7 +1910,7 @@ void plClothingMgr::IAddItem(plClothingItem *item)
         hsAssert(false, "Couldn't match all elements of added clothing item.");
 }
 
-void plClothingMgr::ChangeAvatar(const char* name, const plFileName &clothingFile)
+void plClothingMgr::ChangeAvatar(const plString& name, const plFileName &clothingFile)
 {
     plAvatarMgr::GetInstance()->UnLoadLocalPlayer();
     plAvatarMgr::GetInstance()->LoadPlayerFromFile(name, "", clothingFile);
