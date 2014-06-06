@@ -53,5 +53,5 @@ STATEDESC BaronCityOffice
     VAR BOOL    tldnRopeBridgeFromBCOVis[1]     DEFAULT=1   DEFAULTOPTION=VAULT
     VAR BOOL    bcoGZMarkerVis[1]               DEFAULT=1   DEFAULTOPTION=VAULT
     VAR BOOL    bcoGZBeamVis[1]                 DEFAULT=0   DEFAULTOPTION=VAULT
-    VAR BOOL    bcoChristmasVis[1]              DEFAULT=1   DEFAULTOPTION=VAULT
+    VAR BOOL    bcoChristmasVis[1]              DEFAULT=0   DEFAULTOPTION=VAULT
 }

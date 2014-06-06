@@ -359,7 +359,7 @@ class nxusBookMachine(ptModifier):
             'Neighborhood02' : AgeData(ageFilename = 'Neighborhood02', defaultMaxPop = 100, linkVisible = 0),
             'Kveer' : AgeData(ageFilename = 'Kveer', defaultMaxPop = 100, linkVisible = 0),
             'FehnirHouse' : AgeData(ageFilename = 'FehnirHouse', defaultMaxPop = 25, linkVisible = 1),
-            'vothol' : AgeData(ageFilename = 'vothol', defaultMaxPop = 100, linkVisible = 1)
+            'vothol' : AgeData(ageFilename = 'vothol', defaultMaxPop= 50, linkVisible = 1)
             }
 
         self.categoryLinksList = {
