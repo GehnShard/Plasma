@@ -64,7 +64,7 @@ from xKIHelpers import *
 class xKIChat(object):
 
     ## Set up the chat manager's default state.
-    def __init__(self, StartFadeTimer, KillFadeTimer, FadeCompletely):
+    def __init__(self, StartFadeTimer, ResetFadeState, FadeCompletely):
 
         # Set the default properties.
         self.autoShout = False
@@ -91,11 +91,15 @@ class xKIChat(object):
         self.KIDisabled = False
         self.KILevel = kMicroKI
         self.StartFadeTimer = StartFadeTimer
-        self.KillFadeTimer = KillFadeTimer
+        self.ResetFadeState = ResetFadeState
         self.FadeCompletely = FadeCompletely
 
         # Add the commands processor.
         self.commandsProcessor = CommandsProcessor(self)
+
+        # Message History
+        self.MessageHistoryIs = -1 # Current position in message history (up/down key)
+        self.MessageHistoryList = [] # Contains our message history
 
     #######
     # GUI #
@@ -128,8 +132,7 @@ class xKIChat(object):
             mKIdialog = KIMicro.dialog
         else:
             mKIdialog = KIMini.dialog
-        self.KillFadeTimer()
-        self.StartFadeTimer()
+        self.ResetFadeState()
         chatarea = ptGUIControlMultiLineEdit(mKIdialog.getControlFromTag(kGUI.ChatDisplayArea))
         chatarea.moveCursor(direction)
 
@@ -140,6 +143,8 @@ class xKIChat(object):
     ## Make the player enter or exit chat mode.
     # Chat mode means the player's keyboard input is being sent to the chat.
     def ToggleChatMode(self, entering, firstChar=None):
+        # Reset selection in message history
+        self.MessageHistoryIs = -1
 
         if self.KILevel == kMicroKI:
             mKIdialog = KIMicro.dialog
@@ -161,7 +166,7 @@ class xKIChat(object):
             caret.show()
             mKIdialog.setFocus(chatEdit.getKey())
             self.toReplyToLastPrivatePlayerID = self.lastPrivatePlayerID
-            self.KillFadeTimer()
+            self.ResetFadeState()
         else:
             caret.hide()
             chatEdit.hide()
@@ -193,6 +198,11 @@ class xKIChat(object):
         if not message:
             return
         msg = message.lower()
+
+        # Message History input
+        self.MessageHistoryList.insert(0,message)
+        if (len(self.MessageHistoryList) > kMessageHistoryListMax):
+            self.MessageHistoryList.pop()
 
         # Get any selected players.
         userListBox = ptGUIControlListBox(KIMini.dialog.getControlFromTag(kGUI.PlayerList))
@@ -603,9 +613,7 @@ class xKIChat(object):
 
         # Update the fading controls.
         mKIdialog.refreshAllControls()
-        if not self.isChatting:
-            self.KillFadeTimer()
-            self.StartFadeTimer()
+        self.ResetFadeState()
 
     ## Display a status message to the player (or players if net-propagated).
     def DisplayStatusMessage(self, statusMessage, netPropagate=0):
@@ -1300,6 +1308,10 @@ class CommandsProcessor:
         else:
             self.chatMgr.AddChatLine(None, "There is nothing there but lint.", 0)
 
+    ##################
+    # Other Commands #
+    ##################
+
     def PartyTime(self, params):
         """Implements the `/party` command"""
 
@@ -1321,7 +1333,7 @@ class CommandsProcessor:
         # Let's see what we need to do
         if not params:
             # No params = LINK ME!
-            if party and party.chronicleGetValue() != "":
+            if party and party.chronicleGetValue():
                 data = party.chronicleGetValue().split(";", 3)
                 ageInfo = ptAgeInfoStruct()
                 ageInfo.setAgeFilename(data[0])
@@ -1352,7 +1364,7 @@ class CommandsProcessor:
             else:
                 # Got a LIP... Need to set the chronicle
                 ageInfo = PtGetAgeInfo()
-                data = "%s;%s;%s" % (ageInfo.getAgeFilename(), ageInfo.getAgeInstanceGuid(), params[0])
+                data = "%s;%s;%s" % (ageInfo.getAgeFilename(), ageInfo.getAgeInstanceGuid(), params)
                 if not party:
                     party = ptVaultChronicleNode()
                     party.chronicleSetName(kChron.Party)
@@ -1362,10 +1374,6 @@ class CommandsProcessor:
                 else:
                     party.chronicleSetValue(data)
                     party.save()
-
-    ##################
-    # Other Commands #
-    ##################
 
     ## Export the local avatar's clothing to a file
     def SaveClothing(self, file):
