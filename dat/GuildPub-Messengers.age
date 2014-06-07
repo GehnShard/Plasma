@@ -1,7 +1,7 @@
-StartDateTime=0946713600
+StartDateTime=0000000000
 DayLength=24.000000
 MaxCapacity=10
 LingerTime=180
 SequencePrefix=49
 ReleaseVersion=0
-Page=Pub,1
+Page=Pub,0
