@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plLinkToAgeMsg_INC
 #define plLinkToAgeMsg_INC
 
-#include "pnMessage/plMessageWithCallbacks.h"
 #include "pnMessage/plEventCallbackMsg.h"
 #include "plNetCommon/plNetServerSessionInfo.h"
 #include "plNetCommon/plNetCommonHelpers.h"
@@ -150,7 +149,7 @@ public:
     void    SetLeavingAge(bool leaving) { fLeavingAge = leaving; }
     bool    IsLeavingAge() { return fLeavingAge; }
 
-    void    SetLinkKey(plKey &key);
+    void    SetLinkKey(const plKey &key);
     const plKey GetLinkKey() const { return fLinkKey; }
 
     void    SetLinkInAnimKey(plKey &key);

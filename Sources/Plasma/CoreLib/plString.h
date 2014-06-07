@@ -43,12 +43,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plString_Defined
 #define plString_Defined
 
-#include <cstddef>
-#include <cstdlib>
-#include <cstring>
-#include <cstdarg>
-#include <cstdint>
-#include <cctype>
+#include "HeadSpin.h"
 #include <vector>
 
 /** Single Unicode character code unit */
@@ -66,6 +61,8 @@ typedef unsigned int UniChar;
 #    define wcsicmp     _wcsicmp
 #    define wcsnicmp    _wcsnicmp
 #    define strlwr      _strlwr
+#    define strdup      _strdup
+#    define wcsdup      _wcsdup
 #else
 #    define stricmp     strcasecmp
 #    define strnicmp    strncasecmp
@@ -140,7 +137,7 @@ public:
     {
         memset(fShort, 0, sizeof(fShort));
         _Ch *copyData = IHaveACow() ? new _Ch[size + 1] : fShort;
-        memcpy(copyData, data, size);
+        memcpy(copyData, data, size * sizeof(_Ch));
         copyData[size] = 0;
 
         if (IHaveACow())
@@ -407,12 +404,14 @@ public:
     double ToDouble() const;
 
     /** Construct a plString using a printf-like format string. */
+    hsDeprecated("plString::Format is deprecated -- use plFormat instead")
     static plString Format(const char *fmt, ...);
 
     /** Construct a plString using a printf-like format string.
      *  This function should be called inside of vararg functions, such as
      *  plString::Format().
      */
+    hsDeprecated("plString::IFormat is deprecated -- use plFormat instead")
     static plString IFormat(const char *fmt, va_list vptr);
 
     enum CaseSensitivity {

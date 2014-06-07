@@ -215,47 +215,26 @@ void cyAvatar::OneShot(pyKey &seekKey, float duration, bool usePhysics,
 void cyAvatar::RunBehavior(pyKey &behKey, bool netForce, bool netProp)
 {
     // first there is someone to send to and make sure that we an avatar to send this to
-    if ( behKey.getKey() != nil && fRecvr.Count() > 0)
+    if ( behKey.getKey() && fRecvr.Count() > 0)
     {
         // must determine if the behKey is pointing to Single or Multi Shot behavior
-        if ( plOneShotMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()) != nil )
+        if (plOneShotMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()))
         {
             // create a message OneShotMessage
             plOneShotMsg* pMsg = new plOneShotMsg;
-            // check if this needs to be network forced to all clients
-            if (netProp)
-            {
-                pMsg->SetBCastFlag(plMessage::kNetPropagate);
-            }
-            else
-            {
-                pMsg->SetBCastFlag(plMessage::kNetPropagate, false);
-            }
-
-            if (netForce)
-            {
-                // set the network propagate flag to make sure it gets to the other clients
-                pMsg->SetBCastFlag(plMessage::kNetPropagate);
-                pMsg->SetBCastFlag(plMessage::kNetForce);
-            }
-            else
-            {
-                pMsg->SetBCastFlag(plMessage::kNetForce, false);
-            }
-
+            pMsg->SetBCastFlag(plMessage::kNetPropagate, netProp || netForce);
+            pMsg->SetBCastFlag(plMessage::kNetForce, netForce);
             pMsg->SetSender(fSender);
             pMsg->AddReceiver(behKey.getKey());
-            int i;
-            for ( i=0; i<fRecvr.Count(); i++ )
-            {
+            for (int i = 0; i < fRecvr.Count(); i++) {
                 // make sure there is an avatar to set
-                if ( fRecvr[i] != nil )
-                {
-                    pMsg->fPlayerKey = (plKey)fRecvr[i];
-                    plgDispatch::MsgSend( pMsg );   // send off command for each valid avatar we find
-                                                    // ... really, should only be one... though
+                if (fRecvr[i]) {
+                    pMsg->fPlayerKey = fRecvr[i];
+                    pMsg->SendAndKeep(); // gotta keep the message so we can keep sending it
+                                         // there should really only be one avatar, though...
                 }
             }
+            pMsg->UnRef(); // done with our reference
         }
         // else if it is a Multistage guy
         else if ( plMultistageBehMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()) != nil )
@@ -374,10 +353,12 @@ bool cyAvatar::RunCoopAnim(pyKey& targetKey, plString activeAvatarAnim, plString
         // get the participating avatars
         plArmatureMod* activeAv = plAvatarMgr::FindAvatar(fRecvr[0]);
         plArmatureMod* targetAv = plAvatarMgr::FindAvatar(targetKey.getKey());
-        activeAvatarAnim = activeAv->MakeAnimationName(activeAvatarAnim);
-        targetAvatarAnim = targetAv->MakeAnimationName(targetAvatarAnim);
 
         if (activeAv && targetAv) {
+            // build the gender-specific animation name
+            activeAvatarAnim = activeAv->MakeAnimationName(activeAvatarAnim);
+            targetAvatarAnim = targetAv->MakeAnimationName(targetAvatarAnim);
+
             // set seek position and rotation of the avatars
             hsPoint3 avPos, targetPos;
             activeAv->GetPositionAndRotationSim(&avPos, nullptr);
@@ -1291,7 +1272,7 @@ PyObject* cyAvatar::GetTintClothingItemL(const plString& clothing_name, uint8_t 
         }
     }
 
-    plString errmsg = plString::Format("Cannot find clothing item %s to find out what tint it is", clothing_name.c_str());
+    plString errmsg = plFormat("Cannot find clothing item {} to find out what tint it is", clothing_name);
     PyErr_SetString(PyExc_KeyError, errmsg.c_str());
     // returning nil means an error occurred
     return nil;
@@ -1693,7 +1674,7 @@ void cyAvatar::ChangeAvatar(const char* genderName)
     if (rvnPlr) {
         VaultPlayerNode plr(rvnPlr);
         plr.SetAvatarShapeName(wStr);
-        rvnPlr->DecRef();
+        rvnPlr->UnRef();
     }
 #endif
 }
@@ -1714,7 +1695,7 @@ void cyAvatar::ChangePlayerName(const char* playerName)
     if (rvnPlr) {
         VaultPlayerNode plr(rvnPlr);
         plr.SetPlayerName(wStr);
-        rvnPlr->DecRef();
+        rvnPlr->UnRef();
     } 
 }
 
