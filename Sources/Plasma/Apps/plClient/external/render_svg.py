@@ -92,8 +92,8 @@ cursorOffsetList = {
 }
 
 textList = {
-	"xLoading_Linking_Text": ["background", "circles", "textLinking"],
-	"xLoading_Updating_Text": ["background", "circles", "textUpdating"]
+	"xLoading_Linking_Text": ["circles", "textLinking"],
+	"xLoading_Updating_Text": ["circles", "textUpdating"]
 }
 
 voiceList = {
