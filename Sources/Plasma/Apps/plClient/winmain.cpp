@@ -43,39 +43,28 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "HeadSpin.h"
 #include "hsWindows.h"
 
-#include <direct.h>     // windows directory handling fxns (for chdir)
 #include <process.h>
 #include <shellapi.h>   // ShellExecuteA
 #include <algorithm>
 
-//#define DETACH_EXE  // Microsoft trick to force loading of exe to memory 
-#ifdef DETACH_EXE
-    #include <dmdfm.h>      // Windows Load EXE into memory suff
-#endif
-
 #include <curl/curl.h>
 
 #include "hsStream.h"
-
 #include "plClient.h"
 #include "plClientResMgr/plClientResMgr.h"
 #include "pfCrashHandler/plCrashCli.h"
 #include "plNetClient/plNetClientMgr.h"
-#include "plNetClient/plNetLinkingMgr.h"
 #include "plInputCore/plInputDevice.h"
 #include "plInputCore/plInputManager.h"
-#include "plUnifiedTime/plUnifiedTime.h"
 #include "plPipeline.h"
 #include "plResMgr/plResManager.h"
 #include "plResMgr/plLocalization.h"
 #include "plFile/plEncryptedStream.h"
-
+#include "pfPasswordStore/pfPasswordStore.h"
 #include "pnEncryption/plChallengeHash.h"
-
 #include "plStatusLog/plStatusLog.h"
 #include "plProduct.h"
 #include "plNetGameLib/plNetGameLib.h"
-
 #include "plPhysX/plSimulationMgr.h"
 
 #include "res/resource.h"
@@ -94,7 +83,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 // Globals
 //
-bool gHasMouse = false;
 ITaskbarList3* gTaskbarList = nil; // NT 6.1+ taskbar stuff
 
 extern bool gDataServerLocal;
@@ -121,7 +109,6 @@ int gWinBorderDX    = GetSystemMetrics( SM_CXSIZEFRAME );
 int gWinBorderDY    = GetSystemMetrics( SM_CYSIZEFRAME );
 int gWinMenuDY      = GetSystemMetrics( SM_CYCAPTION );
 
-//#include "global.h"
 plClient        *gClient;
 bool            gPendingActivate = false;
 bool            gPendingActivateFlag = false;
@@ -168,7 +155,6 @@ struct LoginDialogParam {
 };
 
 static bool AuthenticateNetClientComm(ENetError* result, HWND parentWnd);
-static void GetCryptKey(uint32_t* cryptKey, unsigned size);
 static void SaveUserPass (LoginDialogParam *pLoginParam, char *password);
 static void LoadUserPass (LoginDialogParam *pLoginParam);
 static void AuthFailedStrings (ENetError authError,
@@ -246,12 +232,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     gClient->GetInputManager()->HandleWin32ControlEvent(message, wParam, lParam, hWnd);
             }
             break;
-
-#if 0
-        case WM_KILLFOCUS:
-            SetForegroundWindow(hWnd);
-            break;
-#endif
 
         case WM_SYSKEYUP:
         case WM_SYSKEYDOWN:
@@ -555,13 +535,6 @@ bool    InitClient( HWND hWnd )
 
     gClient->SetWindowHandle( hWnd );
 
-#ifdef DETACH_EXE
-    hInstance = ((LPCREATESTRUCT) lParam)->hInstance;
-
-    // This Function loads the EXE into Virtual memory...supposedly
-    HRESULT hr = DetachFromMedium(hInstance, DMDFM_ALWAYS | DMDFM_ALLPAGES);
-#endif
-
     if( gClient->InitPipeline() )
         gClient->SetDone(true);
     else
@@ -602,9 +575,6 @@ BOOL WinInit(HINSTANCE hInst, int nCmdShow)
     if (!RegisterClass(&wndClass)) 
         return FALSE;
 
-    /// 8.11.2000 - Test for OpenGL fullscreen, and if so use no border, no caption;
-    /// else, use our normal styles
-
     // Create a window
     HWND hWnd = CreateWindow(
         CLASSNAME, plProduct::LongName().c_str(),
@@ -614,7 +584,6 @@ BOOL WinInit(HINSTANCE hInst, int nCmdShow)
         600 + gWinBorderDY * 2 + gWinMenuDY,
          NULL, NULL, hInst, NULL
     );
-//  gClient->SetWindowHandle((hsWindowHndl)
 
     if( !InitClient( hWnd ) )
         return FALSE;
@@ -681,12 +650,7 @@ static void AuthFailedStrings (ENetError authError,
 
     switch (plLocalization::GetLanguage())
     {
-        case plLocalization::kFrench:
-        case plLocalization::kGerman:
-        case plLocalization::kJapanese:
-            *ppStr1 = "Authentication Failed. Please try again.";
-            break;
-
+        case plLocalization::kEnglish:
         default:
             *ppStr1 = "Authentication Failed. Please try again.";
 
@@ -801,114 +765,90 @@ BOOL CALLBACK UruTOSDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
     return FALSE;
 }
 
-static void SaveUserPass (LoginDialogParam *pLoginParam, char *password)
+static void StoreHash(const plString& username, const plString& password, LoginDialogParam *pLoginParam)
 {
-    uint32_t cryptKey[4];
-    memset(cryptKey, 0, sizeof(cryptKey));
-    GetCryptKey(cryptKey, arrsize(cryptKey));
+    //  Hash username and password before sending over the 'net.
+    //  -- Legacy compatibility: @gametap (and other usernames with domains in them) need
+    //     to be hashed differently.
+    std::vector<plString> match = username.RESearch("[^@]+@([^.]+\\.)*([^.]+)\\.[^.]+");
+    if (match.empty() || match[2].CompareI("gametap") == 0) {
+        //  Plain Usernames...
+        plSHA1Checksum shasum(password.GetSize(), reinterpret_cast<const uint8_t*>(password.c_str()));
+        uint32_t* dest = reinterpret_cast<uint32_t*>(pLoginParam->namePassHash);
+        const uint32_t* from = reinterpret_cast<const uint32_t*>(shasum.GetValue());
 
+        dest[0] = hsToBE32(from[0]);
+        dest[1] = hsToBE32(from[1]);
+        dest[2] = hsToBE32(from[2]);
+        dest[3] = hsToBE32(from[3]);
+        dest[4] = hsToBE32(from[4]);
+    }
+    else {
+        //  Domain-based Usernames...
+        CryptHashPassword(username, password, pLoginParam->namePassHash);
+    }
+}
+
+static void SaveUserPass(LoginDialogParam *pLoginParam, char *password)
+{
     plString theUser = pLoginParam->username;
-    plString thePass = plString(password).Left(kMaxPasswordLength);
+    plString thePass = password;
 
-    // if the password field is the fake string then we've already
-    // loaded the namePassHash from the file
+    HKEY hKey;
+    RegCreateKeyEx(HKEY_CURRENT_USER, plFormat("Software\\Cyan, Inc.\\{}\\{}", plProduct::LongName(), GetServerDisplayName()).c_str(), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, NULL);
+    RegSetValueEx(hKey, "LastAccountName", NULL, REG_SZ, (LPBYTE) pLoginParam->username, kMaxAccountNameLength);
+    RegSetValueEx(hKey, "RememberPassword", NULL, REG_DWORD, (LPBYTE) &(pLoginParam->remember), sizeof(LPBYTE));
+    RegCloseKey(hKey);
+
+    // If the password field is the fake string
+    // then we've already loaded the hash.
     if (thePass.Compare(FAKE_PASS_STRING) != 0)
     {
-        // Regex search for primary email domain
-        std::vector<plString> match = theUser.RESearch("[^@]+@([^.]+\\.)*([^.]+)\\.[^.]+");
+        StoreHash(theUser, thePass, pLoginParam);
 
-        if (match.empty() || match[2].CompareI("gametap") == 0) {
-            plSHA1Checksum shasum(StrLen(password) * sizeof(password[0]), (uint8_t*)password);
-            uint32_t* dest = reinterpret_cast<uint32_t*>(pLoginParam->namePassHash);
-            const uint32_t* from = reinterpret_cast<const uint32_t*>(shasum.GetValue());
-
-            // I blame eap for this ass shit
-            dest[0] = hsToBE32(from[0]);
-            dest[1] = hsToBE32(from[1]);
-            dest[2] = hsToBE32(from[2]);
-            dest[3] = hsToBE32(from[3]);
-            dest[4] = hsToBE32(from[4]);
-        }
+        pfPasswordStore* store = pfPasswordStore::Instance();
+        if (pLoginParam->remember)
+            store->SetPassword(pLoginParam->username, thePass);
         else
-        {
-            CryptHashPassword(theUser, thePass, pLoginParam->namePassHash);
-        }
+            store->SetPassword(pLoginParam->username, plString::Null);
     }
 
     NetCommSetAccountUsernamePassword(theUser.ToWchar(), pLoginParam->namePassHash);
 
     // FIXME: Real OS detection
     NetCommSetAuthTokenAndOS(nil, L"win");
-
-    plFileName loginDat = plFileName::Join(plFileSystem::GetInitPath(), "login.dat");
-#ifndef PLASMA_EXTERNAL_RELEASE
-    // internal builds can use the local init directory
-    plFileName local("init\\login.dat");
-    if (plFileInfo(local).Exists())
-        loginDat = local;
-#endif
-    hsStream* stream = plEncryptedStream::OpenEncryptedFileWrite(loginDat, cryptKey);
-    if (stream)
-    {
-        stream->Write(sizeof(cryptKey), cryptKey);
-        stream->WriteSafeString(pLoginParam->username);
-        stream->WriteBool(pLoginParam->remember);
-        if (pLoginParam->remember)
-            stream->Write(sizeof(pLoginParam->namePassHash), pLoginParam->namePassHash);
-        stream->Close();
-        delete stream;
-    }
 }
 
-
-static void LoadUserPass (LoginDialogParam *pLoginParam)
+static void LoadUserPass(LoginDialogParam *pLoginParam)
 {
-    uint32_t cryptKey[4];
-    ZeroMemory(cryptKey, sizeof(cryptKey));
-    GetCryptKey(cryptKey, arrsize(cryptKey));
+    HKEY hKey;
+    char accountName[kMaxAccountNameLength];
+    memset(accountName, 0, kMaxAccountNameLength);
+    uint32_t rememberAccount = 0;
+    DWORD acctLen = kMaxAccountNameLength, remLen = sizeof(rememberAccount);
+    RegOpenKeyEx(HKEY_CURRENT_USER, plFormat("Software\\Cyan, Inc.\\{}\\{}", plProduct::LongName(), GetServerDisplayName()).c_str(), 0, KEY_QUERY_VALUE, &hKey);
+    RegQueryValueEx(hKey, "LastAccountName", 0, NULL, (LPBYTE) &accountName, &acctLen);
+    RegQueryValueEx(hKey, "RememberPassword", 0, NULL, (LPBYTE) &rememberAccount, &remLen);
+    RegCloseKey(hKey);
 
-    plString temp;
     pLoginParam->remember = false;
     pLoginParam->username[0] = '\0';
 
-    plFileName loginDat = plFileName::Join(plFileSystem::GetInitPath(), "login.dat");
-#ifndef PLASMA_EXTERNAL_RELEASE
-    // internal builds can use the local init directory
-    plFileName local("init\\login.dat");
-    if (plFileInfo(local).Exists())
-        loginDat = local;
-#endif
-    hsStream* stream = plEncryptedStream::OpenEncryptedFile(loginDat, cryptKey);
-    if (stream && !stream->AtEnd())
+    if (acctLen > 0)
+        strncpy(pLoginParam->username, accountName, kMaxAccountNameLength);
+    pLoginParam->remember = (rememberAccount != 0);
+    if (pLoginParam->remember && pLoginParam->username[0] != '\0')
     {
-        uint32_t savedKey[4];
-        stream->Read(sizeof(savedKey), savedKey);
-
-        if (memcmp(cryptKey, savedKey, sizeof(savedKey)) == 0)
-        {
-            temp = stream->ReadSafeString();
-
-            if (!temp.IsEmpty())
-            {
-                StrCopy(pLoginParam->username, temp.c_str(), kMaxAccountNameLength);
-            }
-
-            pLoginParam->remember = stream->ReadBool();
-
-            if (pLoginParam->remember)
-            {
-                stream->Read(sizeof(pLoginParam->namePassHash), pLoginParam->namePassHash);
-                pLoginParam->focus = IDOK;
-            }
-            else
-            {
-                pLoginParam->focus = IDC_URULOGIN_PASSWORD;
-            }
-        }
-
-        stream->Close();
-        delete stream;
+        pfPasswordStore* store = pfPasswordStore::Instance();
+        plString password = store->GetPassword(pLoginParam->username);
+        if (!password.IsNull())
+            StoreHash(pLoginParam->username, password, pLoginParam);
+        pLoginParam->focus = IDOK;
     }
+    else if (pLoginParam->username[0] == '\0')
+        pLoginParam->focus = IDC_URULOGIN_USERNAME;
+    else
+        pLoginParam->focus = IDC_URULOGIN_PASSWORD;
 }
 
 static size_t CurlCallback(void *buffer, size_t size, size_t nmemb, void *param)
@@ -1091,7 +1031,7 @@ BOOL CALLBACK UruLoginDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM
 
                 return TRUE;
             }
-            else if (HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == IDC_URULOGIN_GAMETAPLINK)
+            else if (HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == IDC_URULOGIN_NEWACCTLINK)
             {
                 const char* signupurl = GetServerSignupUrl();
                 ShellExecuteA(NULL, "open", signupurl, NULL, NULL, SW_SHOWNORMAL);
@@ -1133,13 +1073,13 @@ BOOL CALLBACK SplashDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
                 case plLocalization::kGerman:
                     ::SetDlgItemText( hwndDlg, IDC_STARTING_TEXT, "Starte URU, bitte warten ...");
                     break;
-/*              case plLocalization::kSpanish:
+                case plLocalization::kSpanish:
                     ::SetDlgItemText( hwndDlg, IDC_STARTING_TEXT, "Iniciando URU, por favor espera...");
                     break;
                 case plLocalization::kItalian:
                     ::SetDlgItemText( hwndDlg, IDC_STARTING_TEXT, "Avvio di URU, attendere...");
                     break;
-*/              // default is English
+                // default is English
                 case plLocalization::kJapanese:
                     ::SetDlgItemText( hwndDlg, IDC_STARTING_TEXT, "...");
                     break;
@@ -1390,15 +1330,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
         if (!WinInit(hInst, nCmdShow) || gClient->GetDone())
             break;
 
-        // We don't have multiplayer localized assets for Italian or Spanish, so force them to English in that case.
-    /*  if (!plNetClientMgr::GetInstance()->InOfflineMode() &&
-            (plLocalization::GetLanguage() == plLocalization::kItalian || 
-            plLocalization::GetLanguage() == plLocalization::kSpanish))
-        {
-            plLocalization::SetLanguage(plLocalization::kEnglish);
-        }
-    */
-
         // Done with our splash now
         ::DestroyWindow( splashDialog );
 
@@ -1407,8 +1338,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
         // Show the main window
         ShowWindow(gClient->GetWindowHandle(), SW_SHOW);
-
-        gHasMouse = GetSystemMetrics(SM_MOUSEPRESENT);
             
         // Be really REALLY forceful about being in the front
         BringWindowToTop( gClient->GetWindowHandle() );
@@ -1473,39 +1402,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 #endif
 
     // Exit WinMain and terminate the app....
-//    return msg.wParam;
     return PARABLE_NORMAL_EXIT;
-}
-
-static void GetCryptKey(uint32_t* cryptKey, unsigned numElements)
-{
-    char volName[] = "C:\\";
-    int index = 0;
-    DWORD logicalDrives = GetLogicalDrives();
-
-    for (int i = 0; i < 32; ++i)
-    {
-        if (logicalDrives & (1 << i))
-        {
-            volName[0] = ('C' + i);
-
-            DWORD volSerialNum = 0;
-            BOOL result = GetVolumeInformation(
-                volName,        //LPCTSTR lpRootPathName,
-                NULL,           //LPTSTR lpVolumeNameBuffer,
-                0,              //DWORD nVolumeNameSize,
-                &volSerialNum,  //LPDWORD lpVolumeSerialNumber,
-                NULL,           //LPDWORD lpMaximumComponentLength,
-                NULL,           //LPDWORD lpFileSystemFlags,
-                NULL,           //LPTSTR lpFileSystemNameBuffer,
-                0               //DWORD nFileSystemNameSize
-            );
-
-            cryptKey[index] = (cryptKey[index] ^ volSerialNum);
-
-            index = (++index) % numElements;
-        }
-    }
 }
 
 /* Enable themes in Windows XP and later */

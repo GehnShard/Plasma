@@ -67,7 +67,7 @@ PYTHON_INIT_DEFINITION(ptVaultMarkerGameNode, args, keywords)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultMarkerGameNode, getGameName)
 {
-    return PyString_FromString(self->fThis->GetGameName());
+    return PyString_FromPlString(self->fThis->GetGameName());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultMarkerGameNode, setGameName, args)
@@ -114,11 +114,7 @@ PLASMA_DEFAULT_TYPE_WBASE(ptVaultMarkerGameNode, pyVaultNode, "Params: n=0\nPlas
 PyObject *pyVaultMarkerGameNode::New(RelVaultNode* nfsNode)
 {
     ptVaultMarkerGameNode *newObj = (ptVaultMarkerGameNode*)ptVaultMarkerGameNode_type.tp_new(&ptVaultMarkerGameNode_type, NULL, NULL);
-    if (newObj->fThis->fNode)
-        newObj->fThis->fNode->UnRef();
     newObj->fThis->fNode = nfsNode;
-    if (newObj->fThis->fNode)
-        newObj->fThis->fNode->Ref();
     return (PyObject*)newObj;
 }
 

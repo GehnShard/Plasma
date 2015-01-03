@@ -52,7 +52,7 @@ static bool DumpSpecificMsgInfo(plMessage* msg, plString& info);
 
 plDispatchLog::plDispatchLog() :
     fLog(nil),
-    fStartTicks(hsTimer::GetFullTickCount())
+    fStartTicks(hsTimer::GetTicks())
 {
     fLog = plStatusLogMgr::GetInstance().CreateStatusLog(20, "Dispatch.log", plStatusLog::kAlignToTop | plStatusLog::kFilledBackground | plStatusLog::kRawTimeStamp);
     fIncludeTypes.SetSize(plFactory::GetNumClasses());
@@ -130,10 +130,10 @@ void plDispatchLog::DumpMsg(plMessage* msg, int numReceivers, int sendTimeMs, in
         fLog->AddLine("\n");
     }
 
-    float sendTime = hsTimer::FullTicksToMs(hsTimer::GetFullTickCount() - fStartTicks);
+    float sendTime = hsTimer::GetMilliSeconds<float>(hsTimer::GetTicks() - fStartTicks);
 
     char indentStr[50];
-    indent = hsMinimum(indent, sizeof(indentStr)-1);
+    indent = std::min(indent, static_cast<int32_t>(sizeof(indentStr)-1));
     memset(indentStr, ' ', indent);
     indentStr[indent] = '\0';
 

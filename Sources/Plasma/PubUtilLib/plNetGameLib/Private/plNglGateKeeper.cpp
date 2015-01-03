@@ -56,7 +56,7 @@ namespace Ngl { namespace GateKeeper {
 *
 ***/
     
-struct CliGkConn : hsAtomicRefCnt {
+struct CliGkConn : hsRefCnt {
     CliGkConn ();
     ~CliGkConn ();
 
@@ -200,7 +200,7 @@ static std::atomic<long>            s_perf[kNumPerf];
 
 //===========================================================================
 static unsigned GetNonZeroTimeMs () {
-    if (unsigned ms = TimeGetMs())
+    if (unsigned ms = hsTimer::GetMilliSeconds<uint32_t>())
         return ms;
     return 1;
 }
@@ -267,7 +267,7 @@ static bool ConnEncrypt (ENetError error, void * param) {
 
         s_critsect.Enter();
         {
-            SWAP(s_active, conn);
+            std::swap(s_active, conn);
         }
         s_critsect.Leave();
             
@@ -525,7 +525,7 @@ static unsigned CliGkConnPingTimerProc (void * param) {
 
 //============================================================================
 CliGkConn::CliGkConn ()
-    : hsAtomicRefCnt(0), reconnectTimer(nil), reconnectStartMs(0)
+    : hsRefCnt(0), reconnectTimer(nil), reconnectStartMs(0)
     , pingTimer(nil), pingSendTimeMs(0), lastHeardTimeMs(0)
     , sock(nil), cli(nil), seq(0), serverChallenge(0)
     , cancelId(nil), abandoned(false)
@@ -812,7 +812,7 @@ bool PingRequestTrans::Recv (
     const GateKeeper2Cli_PingReply & reply = *(const GateKeeper2Cli_PingReply *)msg;
 
     m_payload.Set(reply.payload, reply.payloadBytes);
-    m_replyAtMs     = TimeGetMs();
+    m_replyAtMs     = hsTimer::GetMilliSeconds<uint32_t>();
     m_result        = kNetSuccess;
     m_state         = kTransStateComplete;
 
@@ -1062,7 +1062,7 @@ void NetCliGateKeeperStartConnect (
     const char*   gateKeeperAddrList[],
     uint32_t      gateKeeperAddrCount
 ) {
-    gateKeeperAddrCount = min(gateKeeperAddrCount, 1);
+    gateKeeperAddrCount = std::min(gateKeeperAddrCount, 1u);
 
     for (unsigned i = 0; i < gateKeeperAddrCount; ++i) {
         // Do we need to lookup the address?
@@ -1075,14 +1075,14 @@ void NetCliGateKeeperStartConnect (
                     &cancelId,
                     AsyncLookupCallback,
                     gateKeeperAddrList[i],
-                    kNetDefaultClientPort,
+                    GetClientPort(),
                     nil
                 );
                 break;
             }
         }
         if (!name[0]) {
-            plNetAddress addr(gateKeeperAddrList[i], kNetDefaultClientPort);
+            plNetAddress addr(gateKeeperAddrList[i], GetClientPort());
             Connect(gateKeeperAddrList[i], addr);
         }
     }

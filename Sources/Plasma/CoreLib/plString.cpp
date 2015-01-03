@@ -88,14 +88,12 @@ void plString::IConvertFromUtf8(const char *utf8, size_t size)
     operator=(plStringBuffer<char>(utf8, size));
 }
 
-plString &plString::operator=(const plStringBuffer<char> &init)
-{
-    fUtf8Buffer = init;
-
 #ifdef _DEBUG
     // Check to make sure the string is actually valid UTF-8
-    const char *sp = fUtf8Buffer.GetData();
-    while (sp < fUtf8Buffer.GetData() + fUtf8Buffer.GetSize()) {
+static void _check_utf8_buffer(const plStringBuffer<char> &buffer)
+{
+    const char *sp = buffer.GetData();
+    while (sp < buffer.GetData() + buffer.GetSize()) {
         unsigned char unichar = *sp++;
         if ((unichar & 0xF8) == 0xF0) {
             // Four bytes
@@ -115,8 +113,22 @@ plString &plString::operator=(const plStringBuffer<char> &init)
             hsAssert(0, "UTF-8 character out of range");
         }
     }
+}
+#else
+#   define _check_utf8_buffer(buffer)  NULL_STMT
 #endif
 
+plString &plString::operator=(const plStringBuffer<char> &init)
+{
+    fUtf8Buffer = init;
+    _check_utf8_buffer(fUtf8Buffer);
+    return *this;
+}
+
+plString &plString::operator=(plStringBuffer<char> &&init)
+{
+    fUtf8Buffer = std::move(init);
+    _check_utf8_buffer(fUtf8Buffer);
     return *this;
 }
 
@@ -156,7 +168,7 @@ void plString::IConvertFromUtf16(const uint16_t *utf16, size_t size)
     while (sp < utf16 + size) {
         if (*sp >= 0xD800 && *sp <= 0xDFFF) {
             // Surrogate pair
-            UniChar unichar = 0x10000;
+            plUniChar unichar = 0x10000;
 
             if (sp + 1 >= utf16 + size) {
                 hsAssert(0, "Incomplete surrogate pair in UTF-16 data");
@@ -197,11 +209,11 @@ void plString::IConvertFromWchar(const wchar_t *wstr, size_t size)
     // We assume that if sizeof(wchar_t) == 2, the data is UTF-16 already
     IConvertFromUtf16((const uint16_t *)wstr, size);
 #else
-    IConvertFromUtf32((const UniChar *)wstr, size);
+    IConvertFromUtf32((const plUniChar *)wstr, size);
 #endif
 }
 
-void plString::IConvertFromUtf32(const UniChar *ustr, size_t size)
+void plString::IConvertFromUtf32(const plUniChar *ustr, size_t size)
 {
     hsAssert(size == STRLEN_AUTO || size < FREAKING_BIG, "Your string is WAAAAAY too big");
 
@@ -214,7 +226,7 @@ void plString::IConvertFromUtf32(const UniChar *ustr, size_t size)
 
     // Calculate the UTF-8 size
     size_t convlen = 0;
-    const UniChar *sp = ustr;
+    const plUniChar *sp = ustr;
     while (sp < ustr + size) {
         if (*sp > 0x10FFFF) {
             hsAssert(0, "UTF-32 character out of range");
@@ -329,7 +341,7 @@ plStringBuffer<uint16_t> plString::ToUtf16() const
     uint16_t *dp = ustr;
     sp = utf8;
     while (sp < utf8 + srcSize) {
-        UniChar unichar;
+        plUniChar unichar;
         if ((*sp & 0xF8) == 0xF0) {
             unichar  = (*sp++ & 0x07) << 18;
             unichar |= (*sp++ & 0x3F) << 12;
@@ -396,7 +408,7 @@ plStringBuffer<char> plString::ToIso8859_1() const
     char *dp = astr;
     sp = utf8;
     while (sp < utf8 + srcSize) {
-        UniChar unichar;
+        plUniChar unichar;
         if ((*sp & 0xF8) == 0xF0) {
             unichar  = (*sp++ & 0x07) << 18;
             unichar |= (*sp++ & 0x3F) << 12;
@@ -443,11 +455,11 @@ plUnicodeBuffer plString::GetUnicodeArray() const
     }
 
     // And perform the actual conversion
-    UniChar *ustr = result.CreateWritableBuffer(convlen);
-    UniChar *dp = ustr;
+    plUniChar *ustr = result.CreateWritableBuffer(convlen);
+    plUniChar *dp = ustr;
     sp = utf8;
     while (sp < utf8 + srcSize) {
-        UniChar unichar;
+        plUniChar unichar;
         if ((*sp & 0xF8) == 0xF0) {
             unichar  = (*sp++ & 0x07) << 18;
             unichar |= (*sp++ & 0x3F) << 12;
@@ -826,7 +838,7 @@ std::vector<plString> plString::Split(const char *split, size_t maxSplits) const
 plString plString::Fill(size_t count, char c)
 {
     plStringBuffer<char> buf;
-    char *data = buf.CreateWritableBuffer(count + 1);
+    char *data = buf.CreateWritableBuffer(count);
     memset(data, c, count);
     data[count] = 0;
     return buf;
@@ -867,28 +879,41 @@ plString operator+(const char *left, const plString &right)
     return cat;
 }
 
+#define EXPAND_BUFFER(addedLength)                      \
+    char *bufp = ICanHasHeap() ? fBuffer : fShort;      \
+                                                        \
+    if (fLength + addedLength > fBufSize) {             \
+        size_t bigSize = fBufSize;                      \
+        do {                                            \
+            bigSize *= 2;                               \
+        } while (fLength + addedLength > bigSize);      \
+                                                        \
+        char *bigger = new char[bigSize];               \
+        memcpy(bigger, GetRawBuffer(), fBufSize);       \
+        if (ICanHasHeap())                              \
+            delete [] fBuffer;                          \
+        fBuffer = bufp = bigger;                        \
+        fBufSize = bigSize;                             \
+    }
+
 plStringStream &plStringStream::append(const char *data, size_t length)
 {
-    char *bufp = ICanHasHeap() ? fBuffer : fShort;
-
-    if (fLength + length > fBufSize) {
-        size_t bigSize = fBufSize;
-        do {
-            bigSize *= 2;
-        } while (fLength + length > bigSize);
-
-        char *bigger = new char[bigSize];
-        memcpy(bigger, GetRawBuffer(), fBufSize);
-        if (ICanHasHeap())
-            delete [] fBuffer;
-        fBuffer = bufp = bigger;
-        fBufSize = bigSize;
-    }
+    EXPAND_BUFFER(length)
 
     memcpy(bufp + fLength, data, length);
     fLength += length;
     return *this;
 }
+
+plStringStream &plStringStream::appendChar(char ch, size_t count)
+{
+    EXPAND_BUFFER(count)
+
+    memset(bufp + fLength, ch, count);
+    fLength += count;
+    return *this;
+}
+
 
 plStringStream &plStringStream::operator<<(const char *text)
 {
@@ -917,7 +942,7 @@ plStringStream &plStringStream::operator<<(double num)
     return operator<<(buffer);
 }
 
-size_t ustrlen(const UniChar *ustr)
+size_t ustrlen(const plUniChar *ustr)
 {
     size_t length = 0;
     for ( ; *ustr++; ++length)

@@ -154,8 +154,8 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVaultImageNode, getTitle)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultImageNode, getTitleW)
 {
-    std::wstring retVal = self->fThis->Image_GetTitleW();
-    return PyUnicode_FromWideChar(retVal.c_str(), retVal.length());
+    plStringBuffer<wchar_t> retVal = self->fThis->Image_GetTitle().ToWchar();
+    return PyUnicode_FromWideChar(retVal.GetData(), retVal.GetSize());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultImageNode, setImage, args)
@@ -219,11 +219,7 @@ PLASMA_DEFAULT_TYPE_WBASE(ptVaultImageNode, pyVaultNode, "Params: n=0\nPlasma va
 PyObject *pyVaultImageNode::New(RelVaultNode* nfsNode)
 {
     ptVaultImageNode *newObj = (ptVaultImageNode*)ptVaultImageNode_type.tp_new(&ptVaultImageNode_type, NULL, NULL);
-    if (newObj->fThis->fNode)
-        newObj->fThis->fNode->UnRef();
     newObj->fThis->fNode = nfsNode;
-    if (newObj->fThis->fNode)
-        newObj->fThis->fNode->Ref();
     return (PyObject*)newObj;
 }
 

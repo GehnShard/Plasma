@@ -78,7 +78,7 @@ PYTHON_METHOD_DEFINITION(ptVaultChronicleNode, chronicleSetName, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultChronicleNode, chronicleGetName)
 {
-    return PyString_FromString(self->fThis->Chronicle_GetName());
+    return PyString_FromPlString(self->fThis->Chronicle_GetName());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultChronicleNode, chronicleSetValue, args)
@@ -95,7 +95,7 @@ PYTHON_METHOD_DEFINITION(ptVaultChronicleNode, chronicleSetValue, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultChronicleNode, chronicleGetValue)
 {
-    return PyString_FromString(self->fThis->Chronicle_GetValue());
+    return PyString_FromPlString(self->fThis->Chronicle_GetValue());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultChronicleNode, chronicleSetType, args)
@@ -129,7 +129,7 @@ PYTHON_METHOD_DEFINITION(ptVaultChronicleNode, setName, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultChronicleNode, getName)
 {
-    return PyString_FromString(self->fThis->Chronicle_GetName());
+    return PyString_FromPlString(self->fThis->Chronicle_GetName());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultChronicleNode, setValue, args)
@@ -146,7 +146,7 @@ PYTHON_METHOD_DEFINITION(ptVaultChronicleNode, setValue, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultChronicleNode, getValue)
 {
-    return PyString_FromString(self->fThis->Chronicle_GetValue());
+    return PyString_FromPlString(self->fThis->Chronicle_GetValue());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultChronicleNode, setEntryType, args)
@@ -190,11 +190,7 @@ PLASMA_DEFAULT_TYPE_WBASE(ptVaultChronicleNode, pyVaultNode, "Params: n=0\nPlasm
 PyObject *pyVaultChronicleNode::New(RelVaultNode* nfsNode)
 {
     ptVaultChronicleNode *newObj = (ptVaultChronicleNode*)ptVaultChronicleNode_type.tp_new(&ptVaultChronicleNode_type, NULL, NULL);
-    if (newObj->fThis->fNode)
-        newObj->fThis->fNode->UnRef();
     newObj->fThis->fNode = nfsNode;
-    if (newObj->fThis->fNode)
-        newObj->fThis->fNode->Ref();
     return (PyObject*)newObj;
 }
 

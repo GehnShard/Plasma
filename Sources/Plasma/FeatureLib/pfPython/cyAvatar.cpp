@@ -67,7 +67,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAvatar/plClothingLayout.h"
 #include "plAvatar/plArmatureMod.h"
 #include "plAvatar/plAvBrainHuman.h"        // needed to call the emote
-#include "plAvatar/plAGAnim.h"          // to get the BodyUsage enum
+#include "plAnimation/plAGAnim.h"          // to get the BodyUsage enum
 #include "plInputCore/plAvatarInputInterface.h"
 #include "plMessage/plSimStateMsg.h"
 
@@ -1665,16 +1665,12 @@ bool cyAvatar::LoadClothingFromFile(plFileName filename)
 void cyAvatar::ChangeAvatar(const char* genderName)
 {
 #ifndef PLASMA_EXTERNAL_RELEASE
-    plClothingMgr::ChangeAvatar((char*)genderName);
-    
-    wchar_t wStr[MAX_PATH];
-    StrToUnicode(wStr, genderName, arrsize(wStr));
-    
-    RelVaultNode * rvnPlr = VaultGetPlayerNodeIncRef();
+    plClothingMgr::ChangeAvatar(genderName);
+
+    hsRef<RelVaultNode> rvnPlr = VaultGetPlayerNode();
     if (rvnPlr) {
         VaultPlayerNode plr(rvnPlr);
-        plr.SetAvatarShapeName(wStr);
-        rvnPlr->UnRef();
+        plr.SetAvatarShapeName(genderName);
     }
 #endif
 }
@@ -1688,14 +1684,10 @@ void cyAvatar::ChangeAvatar(const char* genderName)
 //
 void cyAvatar::ChangePlayerName(const char* playerName)
 {
-    wchar_t wStr[MAX_PATH];
-    StrToUnicode(wStr, playerName, arrsize(wStr));
-    
-    RelVaultNode * rvnPlr = VaultGetPlayerNodeIncRef();
+    hsRef<RelVaultNode> rvnPlr = VaultGetPlayerNode();
     if (rvnPlr) {
         VaultPlayerNode plr(rvnPlr);
-        plr.SetPlayerName(wStr);
-        rvnPlr->UnRef();
+        plr.SetPlayerName(playerName);
     } 
 }
 

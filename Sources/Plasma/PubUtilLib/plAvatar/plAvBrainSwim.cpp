@@ -55,9 +55,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plArmatureMod.h"
 #include "plAvBehaviors.h"
 #include "plAvBrainHuman.h"
-#include "plAGAnim.h"
+#include "plAnimation/plAGAnim.h"
 #include "plAvBrainDrive.h"
-#include "plMatrixChannel.h"
+#include "plAnimation/plMatrixChannel.h"
 #include "plSwimRegion.h"
 #include "plAvatarTasks.h"
 #include "plArmatureEffects.h"
@@ -179,7 +179,7 @@ public:
 
         float oldSpeed = fabs(fSwimBrain->fSwimStrategy->GetTurnStrength());
         float thisInc = elapsed * incPerSec;
-        float newSpeed = min(oldSpeed + thisInc, maxTurnSpeed);
+        float newSpeed = std::min(oldSpeed + thisInc, maxTurnSpeed);
         fSwimBrain->fSwimStrategy->SetTurnStrength(newSpeed * fAvMod->GetKeyTurnStrength() + fAvMod->GetAnalogTurnStrength());
         // the turn is actually applied during PhysicsUpdate
     }

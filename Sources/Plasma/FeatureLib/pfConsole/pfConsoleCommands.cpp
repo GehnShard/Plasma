@@ -72,7 +72,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnModifier/plLogicModBase.h"
 #include "plModifier/plSDLModifier.h"
 #include "plSDL/plSDL.h"
-#include "pfCharacter/plPlayerModifier.h"
 #include "plSurface/plLayerDepth.h"
 #include "plSurface/plLayerOr.h"
 #include "plSurface/plLayerOr.h"
@@ -3935,17 +3934,10 @@ PF_CONSOLE_GROUP( Movie ) // Defines a main command group
 PF_CONSOLE_CMD( Movie,
                     Start,
                    "string filename",
-                   "Start of movie with this filename" )
+                   "Start movie with this filename" )
 {
     char* filename = params[0];
     plMovieMsg* mov = new plMovieMsg(filename, plMovieMsg::kStart);
-
-//#define MF_TEST_MOVIECALLBACKS
-#ifdef MF_TEST_MOVIECALLBACKS
-    plMovieMsg* cb = new plMovieMsg("avi/intro0.bik", plMovieMsg::kStart);
-    mov->AddCallback(cb);
-    mov->SetCmd(mov->GetCmd() | plMovieMsg::kAddCallbacks);
-#endif // MF_TEST_MOVIECALLBACKS
 
     mov->Send();
 
@@ -6921,8 +6913,8 @@ PF_CONSOLE_GROUP(Vault)
 
 PF_CONSOLE_CMD(Vault, Dump, "", "Prints the vault structure of current player and age to the nearest log file")
 {
-    VaultDump(L"Player", NetCommGetPlayer()->playerInt);
-    VaultDump(L"Age", NetCommGetAge()->ageVaultId);
+    VaultDump("Player", NetCommGetPlayer()->playerInt);
+    VaultDump("Age", NetCommGetAge()->ageVaultId);
 }
 
 #endif

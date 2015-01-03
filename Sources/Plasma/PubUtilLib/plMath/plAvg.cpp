@@ -43,6 +43,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "HeadSpin.h"
 #include "plAvg.h"
 #include <cmath>
+#include <algorithm>
 
 template class TimeBasedAvgRing<float>;
 template class TimeBasedAvgRing<double>;
@@ -55,7 +56,7 @@ const float TimeBasedAvgRing<T>::kPercision = 0.001;
 template <class T>
 void TimeBasedAvgRing<T>::AddItem(T value, double time)
 {
-    hsTempMutexLock lock( fLock );
+    std::lock_guard<std::mutex> lock(fLock);
 
     if ( fList.empty() )
     {
@@ -153,7 +154,7 @@ void TimeBasedAvgRing<T>::AddItem(T value, double time)
     }
 
     // update the max avg
-    fMaxAvg = hsMaximum( fMaxAvg, fAvg );
+    fMaxAvg = std::max(fMaxAvg, fAvg);
 
 }
 

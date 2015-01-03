@@ -21,6 +21,9 @@ endif(WIN32 AND NOT CYGWIN)
 if(UNIX)
     add_definitions(-DHS_BUILD_FOR_UNIX)
 endif(UNIX)
+if(APPLE AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    add_definitions(-DHS_BUILD_FOR_OSX)
+endif(APPLE AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 # End HeadSpin Configuration
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -38,6 +41,8 @@ find_package(PNG REQUIRED)
 find_package(Ogg REQUIRED)    #TODO: Not required if we aren't building the client
 find_package(Vorbis REQUIRED) #TODO: Not required if we aren't building the client
 find_package(Speex REQUIRED)  #TODO: Not required if we aren't building the client
+find_package(VPX)
+find_package(Opus)
 find_package(CURL REQUIRED)
 find_package(Freetype)
 
@@ -46,8 +51,11 @@ if(WIN32)
     find_package(DirectX REQUIRED)
 endif(WIN32)
 
-find_package(Bink)            #TODO: Find Bink, but don't require it if plPipeline isn't built...
-                              #      Or better yet, just eliminate bink altogether
+if(VPX_FOUND AND Opus_FOUND)
+    set(MOVIE_AVAILABLE TRUE)
+    add_definitions(-DMOVIE_AVAILABLE)
+endif()
+
 include(PrecompiledHeader)    #Precompiled Header helper macros
 
 # libCurl isn't smart enough to detect this for us, so we have to configure it ourselves
@@ -93,8 +101,9 @@ endif(PLASMA_TARGETS STREQUAL "Ethereal")
 option(PLASMA_BUILD_RESOURCE_DAT "Do we want to build resource.dat?" ON)
 option(PLASMA_BUILD_LAUNCHER "Do we want to build plUruLauncher?" ON)
 option(PLASMA_BUILD_TOOLS "Do we want to build the Plasma tools?" ON)
-
+option(PLASMA_BUILD_TESTS "Do we want to build the unit tests?" OFF)
 option(3dsm_BUILD_PLUGIN "Do we want to build the 3ds Max plugin?" OFF)
+
 if(3dsm_BUILD_PLUGIN)
     find_package(MaxSDK REQUIRED)
     add_definitions(-DBUILDING_MAXPLUGIN)
@@ -125,3 +134,9 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 
 add_subdirectory(Sources/Plasma)
 add_subdirectory(Sources/Tools)
+
+if(PLASMA_BUILD_TESTS)
+    enable_testing()
+    add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
+    add_subdirectory(Sources/Tests EXCLUDE_FROM_ALL)
+endif(PLASMA_BUILD_TESTS)

@@ -49,6 +49,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #pragma hdrstop
 
 #include "pnEncryption/plChallengeHash.h"
+#include "plVault/plVaultConstants.h"
 
 namespace Ngl { namespace Auth {
 /*****************************************************************************
@@ -57,7 +58,7 @@ namespace Ngl { namespace Auth {
 *
 ***/
 
-struct CliAuConn : hsAtomicRefCnt {
+struct CliAuConn : hsRefCnt {
     CliAuConn ();
     ~CliAuConn ();
 
@@ -726,7 +727,7 @@ struct VaultFetchNodeTrans : NetAuthTrans {
     FNetCliAuthVaultNodeFetched m_callback;
     void *                      m_param;
     
-    NetVaultNode *              m_node;
+    hsRef<NetVaultNode>         m_node;
     
     VaultFetchNodeTrans (
         unsigned                    nodeId,
@@ -751,14 +752,13 @@ struct VaultFindNodeTrans : NetAuthTrans {
     FNetCliAuthVaultNodeFind    m_callback;
     void *                      m_param;
     
-    NetVaultNode *              m_node;
+    hsRef<NetVaultNode>         m_node;
     
     VaultFindNodeTrans (
         NetVaultNode *              templateNode,
         FNetCliAuthVaultNodeFind    callback,
         void *                      param
     );
-    ~VaultFindNodeTrans ();
 
     
     bool Send ();
@@ -774,7 +774,7 @@ struct VaultFindNodeTrans : NetAuthTrans {
 //============================================================================
 struct VaultCreateNodeTrans : NetAuthTrans {
 
-    NetVaultNode *                  m_templateNode;
+    hsRef<NetVaultNode>             m_templateNode;
     FNetCliAuthVaultNodeCreated     m_callback;
     void *                          m_param;
     
@@ -1272,7 +1272,7 @@ static ENetError FixupPlayerName (wchar_t * name) {
 
 //===========================================================================
 static unsigned GetNonZeroTimeMs () {
-    if (unsigned ms = TimeGetMs())
+    if (unsigned ms = hsTimer::GetMilliSeconds<uint32_t>())
         return ms;
     return 1;
 }
@@ -1589,7 +1589,7 @@ static unsigned CliAuConnPingTimerProc (void * param) {
 
 //============================================================================
 CliAuConn::CliAuConn ()
-    : hsAtomicRefCnt(0), reconnectTimer(nil), reconnectStartMs(0)
+    : hsRefCnt(0), reconnectTimer(nil), reconnectStartMs(0)
     , pingTimer(nil), pingSendTimeMs(0), lastHeardTimeMs(0)
     , sock(nil), cli(nil), seq(0), serverChallenge(0)
     , cancelId(nil), abandoned(false)
@@ -2523,7 +2523,7 @@ bool PingRequestTrans::Recv (
     const Auth2Cli_PingReply & reply = *(const Auth2Cli_PingReply *)msg;
 
     m_payload.Set(reply.payload, reply.payloadBytes);
-    m_replyAtMs     = TimeGetMs();
+    m_replyAtMs     = hsTimer::GetMilliSeconds<uint32_t>();
     m_result        = kNetSuccess;
     m_state         = kTransStateComplete;
 
@@ -2702,7 +2702,7 @@ bool LoginRequestTrans::Recv (
             m_accountFlags  = reply.accountFlags;
             m_billingType   = reply.billingType;
 
-            unsigned memSize = min(arrsize(s_encryptionKey), arrsize(reply.encryptionKey));
+            unsigned memSize = std::min(arrsize(s_encryptionKey), arrsize(reply.encryptionKey));
             memSize *= sizeof(uint32_t);
             memcpy(s_encryptionKey, reply.encryptionKey, memSize);
         }
@@ -3940,8 +3940,6 @@ void VaultFetchNodeTrans::Post () {
         m_param,
         m_node
     );
-    if (m_node)
-        m_node->UnRef("Recv");
 }
 
 //============================================================================
@@ -3953,8 +3951,7 @@ bool VaultFetchNodeTrans::Recv (
     
     if (IS_NET_SUCCESS(reply.result)) {
         m_node = new NetVaultNode;
-        m_node->Read_LCS(reply.nodeBuffer, reply.nodeBytes, 0);
-        m_node->Ref("Recv");
+        m_node->Read(reply.nodeBuffer, reply.nodeBytes);
     }
 
     m_result = reply.result;
@@ -3980,12 +3977,6 @@ VaultFindNodeTrans::VaultFindNodeTrans (
 ,   m_param(param)
 ,   m_node(templateNode)
 {
-    m_node->Ref();
-}
-
-//============================================================================
-VaultFindNodeTrans::~VaultFindNodeTrans () {
-    m_node->UnRef();
 }
 
 //============================================================================
@@ -3994,9 +3985,7 @@ bool VaultFindNodeTrans::Send () {
         return false;
         
     ARRAY(uint8_t) buffer;
-    m_node->critsect.Enter();
-    m_node->Write_LCS(&buffer, 0);
-    m_node->critsect.Leave();
+    m_node->Write(&buffer);
 
     const uintptr_t msg[] = {
         kCli2Auth_VaultNodeFind,
@@ -4056,7 +4045,6 @@ VaultCreateNodeTrans::VaultCreateNodeTrans (
 ,   m_param(param)
 ,   m_nodeId(0)
 {
-    m_templateNode->Ref();
 }
 
 //============================================================================
@@ -4065,7 +4053,7 @@ bool VaultCreateNodeTrans::Send () {
         return false;
         
     ARRAY(uint8_t) buffer;
-    m_templateNode->Write_LCS(&buffer, 0);
+    m_templateNode->Write(&buffer, 0);
 
     const uintptr_t msg[] = {
         kCli2Auth_VaultNodeCreate,
@@ -4086,7 +4074,6 @@ void VaultCreateNodeTrans::Post () {
         m_param,
         m_nodeId
     );
-    m_templateNode->UnRef();
 }
 
 //============================================================================
@@ -5142,7 +5129,7 @@ void NetCliAuthStartConnect (
 ) {
     // TEMP: Only connect to one auth server until we fill out this module
     // to choose the "best" auth connection.
-    authAddrCount = min(authAddrCount, 1);
+    authAddrCount = std::min(authAddrCount, 1u);
 
     for (unsigned i = 0; i < authAddrCount; ++i) {
         // Do we need to lookup the address?
@@ -5155,14 +5142,14 @@ void NetCliAuthStartConnect (
                     &cancelId,
                     AsyncLookupCallback,
                     authAddrList[i],
-                    kNetDefaultClientPort,
+                    GetClientPort(),
                     nil
                 );
                 break;
             }
         }
         if (!name[0]) {
-            plNetAddress addr(authAddrList[i], kNetDefaultClientPort);
+            plNetAddress addr(authAddrList[i], GetClientPort());
             Connect(authAddrList[i], addr);
         }
     }
@@ -5285,7 +5272,7 @@ void NetCliAuthGetEncryptionKey (
     uint32_t      key[],
     unsigned    size
 ) {
-    unsigned memSize = min(arrsize(s_encryptionKey), size);
+    unsigned memSize = std::min(arrsize(s_encryptionKey), size);
     memSize *= sizeof(uint32_t);
     memcpy(key, s_encryptionKey, memSize);
 }
@@ -5620,43 +5607,34 @@ unsigned NetCliAuthVaultNodeSave (
     FNetCliAuthVaultNodeSaveCallback    callback,
     void *                              param
 ) {
-    ASSERTMSG(!(node->GetDirtyFlags() & NetVaultNode::kNodeType), "Node type may not be changed");
-    
-    // Clear dirty bits of read-only fields before we write the node to the msg buffer
-    node->ClearDirtyFlags(
-        NetVaultNode::kNodeId |
-        NetVaultNode::kNodeType |
-        NetVaultNode::kCreatorAcct |
-        NetVaultNode::kCreatorId |
-        NetVaultNode::kCreateTime
-    );
-    
-    if (!node->GetDirtyFlags())
+    if (!node->IsDirty())
         return 0;
-        
+
     if (!node->GetNodeId())
         return 0;
-        
-    // force sending of the nodeType value, since the auth needs it.
-    // auth will clear the field before sending it on to the vault.
-    node->SetDirtyFlags(NetVaultNode::kNodeType);
 
     // We're definitely saving this node, so assign a revisionId
-    node->revisionId = plUUID::Generate();
+    node->GenerateRevision();
+
+    // Lots of hacks for MOULa :(
+    uint32_t ioFlags = NetVaultNode::kDirtyOnly | NetVaultNode::kClearDirty;
+    if (node->GetNodeType() == plVault::kNodeType_SDL)
+        ioFlags |= NetVaultNode::kDirtyString64_1;
+    ioFlags |= NetVaultNode::kDirtyNodeType;
 
     ARRAY(uint8_t) buffer;
-    unsigned bytes = node->Write_LCS(&buffer, NetVaultNode::kRwDirtyOnly | NetVaultNode::kRwUpdateDirty);
-    
+    node->Write(&buffer, ioFlags);
+
     VaultSaveNodeTrans * trans = new VaultSaveNodeTrans(
         node->GetNodeId(),
-        node->revisionId,
+        node->GetRevision(),
         buffer.Count(),
         buffer.Ptr(),
         callback,
         param
     );
     NetTransSend(trans);
-    return bytes;
+    return buffer.Count();
 }
 
 //============================================================================

@@ -55,7 +55,7 @@ namespace Ngl { namespace Game {
 *
 ***/
 
-struct CliGmConn : hsAtomicRefCnt {
+struct CliGmConn : hsRefCnt {
     LINK(CliGmConn) link;
 
     CCritSect       critsect;
@@ -167,7 +167,7 @@ static std::atomic<long>                s_perf[kNumPerf];
 
 //===========================================================================
 static unsigned GetNonZeroTimeMs () {
-    if (unsigned ms = TimeGetMs())
+    if (unsigned ms = hsTimer::GetMilliSeconds<uint32_t>())
         return ms;
     return 1;
 }
@@ -218,7 +218,7 @@ static bool ConnEncrypt (ENetError error, void * param) {
     if (IS_NET_SUCCESS(error)) {
         s_critsect.Enter();
         {
-            SWAP(s_active, conn);
+            std::swap(s_active, conn);
         }
         s_critsect.Leave();
     }
@@ -415,7 +415,7 @@ static unsigned CliGmConnPingTimerProc (void * param) {
 
 //============================================================================
 CliGmConn::CliGmConn ()
-    : hsAtomicRefCnt(0), sock(nil), cancelId(nil), cli(nil)
+    : hsRefCnt(0), sock(nil), cancelId(nil), cli(nil)
     , seq(0), abandoned(false)
     , pingTimer(nil), pingSendTimeMs(0), lastHeardTimeMs(0)
 {
@@ -801,7 +801,7 @@ void GamePingEnable (bool enable) {
 void NetCliGameStartConnect (
     const uint32_t node
 ) {
-    plNetAddress addr(node, kNetDefaultClientPort);
+    plNetAddress addr(node, GetClientPort());
     Connect(addr);
 }
 

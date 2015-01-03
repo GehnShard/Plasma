@@ -164,8 +164,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVaultFolderNode, getFolderName)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultFolderNode, getFolderNameW)
 {
-    std::wstring name = self->fThis->Folder_GetNameW();
-    return PyUnicode_FromWideChar(name.c_str(), name.length());
+    return PyUnicode_FromStringEx(self->fThis->Folder_GetName());
 }
 
 PYTHON_START_METHODS_TABLE(ptVaultFolderNode)
@@ -191,11 +190,7 @@ PYTHON_EXPOSE_TYPE_DEFINITION(ptVaultFolderNode, pyVaultFolderNode);
 PyObject *pyVaultFolderNode::New(RelVaultNode* nfsNode)
 {
     ptVaultFolderNode *newObj = (ptVaultFolderNode*)ptVaultFolderNode_type.tp_new(&ptVaultFolderNode_type, NULL, NULL);
-    if (newObj->fThis->fNode)
-        newObj->fThis->fNode->UnRef();
     newObj->fThis->fNode = nfsNode;
-    if (newObj->fThis->fNode)
-        newObj->fThis->fNode->Ref();
     return (PyObject*)newObj;
 }
 

@@ -149,7 +149,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVaultNode, getCreateAgeTime)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultNode, getCreateAgeName)
 {
-    return PyString_FromString(self->fThis->GetCreateAgeName());
+    return PyString_FromPlString(self->fThis->GetCreateAgeName());
 }
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultNode, getCreateAgeGuid)
@@ -541,11 +541,7 @@ PYTHON_EXPOSE_TYPE_DEFINITION(ptVaultNode, pyVaultNode);
 PyObject *pyVaultNode::New(RelVaultNode* nfsNode)
 {
     ptVaultNode *newObj = (ptVaultNode*)ptVaultNode_type.tp_new(&ptVaultNode_type, NULL, NULL);
-    if (newObj->fThis->fNode)
-        newObj->fThis->fNode->UnRef();
     newObj->fThis->fNode = nfsNode;
-    if (newObj->fThis->fNode)
-        newObj->fThis->fNode->Ref();
     return (PyObject*)newObj;
 }
 
