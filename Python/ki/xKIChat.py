@@ -193,16 +193,16 @@ class xKIChat(object):
         if PtGetLocalAvatar().avatar.getCurrentMode() == PtBrainModes.kAFK:
             PtAvatarExitAFK()
 
+        # Add the input to the local chat message history.
+        self.MessageHistoryList.insert(0, message)
+        if (len(self.MessageHistoryList) > kMessageHistoryListMax):
+            self.MessageHistoryList.pop()
+
         # Check for special commands.
         message = self.commandsProcessor(message)
         if not message:
             return
         msg = message.lower()
-
-        # Message History input
-        self.MessageHistoryList.insert(0,message)
-        if (len(self.MessageHistoryList) > kMessageHistoryListMax):
-            self.MessageHistoryList.pop()
 
         # Get any selected players.
         userListBox = ptGUIControlListBox(KIMini.dialog.getControlFromTag(kGUI.PlayerList))
@@ -500,7 +500,10 @@ class xKIChat(object):
             elif cFlags.admin:
                 if cFlags.private:
                     headerColor = kColors.ChatHeaderError
-                    pretext = PtGetLocalizedString("KI.Chat.PrivateMsgRecvd")
+                    if cFlags.toSelf:
+                        pretext = PtGetLocalizedString("KI.Chat.PrivateSendTo")
+                    else:
+                        pretext = PtGetLocalizedString("KI.Chat.PrivateMsgRecvd")
                     forceKI = True
 
                     # PM Processing: Save playerID and flash client window
