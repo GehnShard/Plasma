@@ -45,9 +45,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 // Ensure these get set consistently regardless of what module includes it
 #include "hsCompilerSpecific.h"
 
-#if (defined(_DEBUG) || defined(UNIX_DEBUG))
+#if defined(_DEBUG)
 #   define HS_DEBUGGING
-#endif // defined(_DEBUG) || defined(UNIX_DENUG)
+#endif
 
 //======================================
 // Some standard includes
@@ -120,10 +120,10 @@ typedef int32_t   hsError;
 #define hsFailed(r)         ((hsError)(r)<hsOK)
 #define hsSucceeded(r)      ((hsError)(r)>=hsOK)
 
-#if defined(HAVE_CXX14_DEPRECATED_ATTR)
-#   define hsDeprecated(message) [[deprecated(message)]]
-#elif defined(HAVE_GCC_DEPRECATED_ATTR)
+#if defined(HAVE_GCC_DEPRECATED_ATTR)
 #   define hsDeprecated(message) __attribute__((deprecated(message)))
+#elif defined(HAVE_CXX14_DEPRECATED_ATTR)
+#   define hsDeprecated(message) [[deprecated(message)]]
 #elif defined(_MSC_VER)
 #   define hsDeprecated(message) __declspec(deprecated(message))
 #else
@@ -238,7 +238,12 @@ inline double hsSwapEndianDouble(double dvalue)
 *   StrPrintf(buffer, arrsize(buffer), "%u", value);
 *
 ***/
-#define  arrsize(a)     (sizeof(a) / sizeof((a)[0]))
+#ifdef HAVE_CONSTEXPR
+    template <typename _T, size_t _Sz>
+    constexpr size_t arrsize(_T(&)[_Sz]) { return _Sz; }
+#else
+#   define  arrsize(a)  (sizeof(a) / sizeof((a)[0]))
+#endif
 
 
 /****************************************************************************
@@ -369,8 +374,9 @@ hsDebugMessageProc hsSetStatusMessageProc(hsDebugMessageProc newProc);
 void ErrorEnableGui (bool enabled);
 void ErrorAssert (int line, const char* file, const char* fmt, ...);
 
-bool DebugIsDebuggerPresent ();
-void DebugBreakIfDebuggerPresent ();
+bool DebugIsDebuggerPresent();
+void DebugBreakIfDebuggerPresent();
+void DebugBreakAlways();
 void DebugMsg(const char* fmt, ...);
 
 #ifdef HS_DEBUGGING
@@ -378,10 +384,10 @@ void DebugMsg(const char* fmt, ...);
     void    hsDebugMessage(const char* message, long refcon);
     #define hsDebugCode(code)                   code
     #define hsIfDebugMessage(expr, msg, ref)    (void)( ((expr) != 0) || (hsDebugMessage(msg, ref), 0) )
-    #define hsAssert(expr, msg)                 (void)( ((expr) != 0) || (ErrorAssert(__LINE__, __FILE__, msg), 0) )
+    #define hsAssert(expr, ...)                 (void)( ((expr) != 0) || (ErrorAssert(__LINE__, __FILE__, __VA_ARGS__), 0) )
     #define ASSERT(expr)                        (void)( ((expr) != 0) || (ErrorAssert(__LINE__, __FILE__, #expr), 0) )
-    #define ASSERTMSG(expr, msg)                (void)( ((expr) != 0) || (ErrorAssert(__LINE__, __FILE__, msg), 0) )
-    #define FATAL(msg)                          ErrorAssert(__LINE__, __FILE__, msg)
+    #define ASSERTMSG(expr, ...)                (void)( ((expr) != 0) || (ErrorAssert(__LINE__, __FILE__, __VA_ARGS__), 0) )
+    #define FATAL(...)                          ErrorAssert(__LINE__, __FILE__, __VA_ARGS__)
     #define DEBUG_MSG                           DebugMsg
     #define DEBUG_BREAK_IF_DEBUGGER_PRESENT     DebugBreakIfDebuggerPresent
     
@@ -390,10 +396,10 @@ void DebugMsg(const char* fmt, ...);
     #define hsDebugMessage(message, refcon)     NULL_STMT
     #define hsDebugCode(code)                   /* empty */
     #define hsIfDebugMessage(expr, msg, ref)    NULL_STMT
-    #define hsAssert(expr, msg)                 NULL_STMT
+    #define hsAssert(expr, ...)                 NULL_STMT
     #define ASSERT(expr)                        NULL_STMT
-    #define ASSERTMSG(expr, msg)                NULL_STMT
-    #define FATAL(msg)                          NULL_STMT
+    #define ASSERTMSG(expr, ...)                NULL_STMT
+    #define FATAL(...)                          NULL_STMT
     #define DEBUG_MSG                           (void)
     #define DEBUG_MSGV                          NULL_STMT
     #define DEBUG_BREAK_IF_DEBUGGER_PRESENT     NULL_STMT

@@ -281,6 +281,10 @@ public:
     template <size_t _Sz>
     plString(const char (&literal)[_Sz]) { IConvertFromUtf8(literal, _Sz - 1); }
 
+    // Don't call the string literal constructor for stack arrays
+    template <size_t _Sz>
+    plString(char (&literal)[_Sz]) { IConvertFromUtf8(literal, STRLEN_AUTO); }
+
     /** Copy constructor. */
     plString(const plString &copy) : fUtf8Buffer(copy.fUtf8Buffer) { }
 
@@ -305,6 +309,10 @@ public:
     /** Assignment operator.  Same as plString(const char (&)[_Sz]). */
     template <size_t _Sz>
     plString &operator=(const char (&literal)[_Sz]) { IConvertFromUtf8(literal, _Sz - 1); return *this; }
+
+    // Don't call the string literal operator= for stack arrays
+    template <size_t _Sz>
+    plString &operator=(char (&literal)[_Sz]) { IConvertFromUtf8(literal, STRLEN_AUTO); return *this; }
 
     /** Assignment operator.  Same as plString(const plString &). */
     plString &operator=(const plString &copy) { fUtf8Buffer = copy.fUtf8Buffer; return *this; }
@@ -446,15 +454,10 @@ public:
     /** Convert the string to a double precision floating point value. */
     double ToDouble() const;
 
-    /** Construct a plString using a printf-like format string. */
-    hsDeprecated("plString::Format is deprecated -- use plFormat instead")
-    static plString Format(const char *fmt, ...);
-
     /** Construct a plString using a printf-like format string.
-     *  This function should be called inside of vararg functions, such as
-     *  plString::Format().
+     *  This function should be called inside of other vararg functions,
+     *  but those should be eventually replaced with plFormat-based variants.
      */
-    hsDeprecated("plString::IFormat is deprecated -- use plFormat instead")
     static plString IFormat(const char *fmt, va_list vptr);
 
     enum CaseSensitivity {
@@ -752,6 +755,12 @@ public:
 
     /** Append a base-10 formatted unsigned integer to the stream. */
     plStringStream &operator<<(unsigned int num);
+
+    /** Append a base-10 formatted signed 64-bit integer to the stream. */
+    plStringStream &operator<<(int64_t num);
+
+    /** Append a base-10 formatted unsigned 64-bit integer to the stream. */
+    plStringStream &operator<<(uint64_t num);
 
     /** Append a base-10 formatted float to the stream. */
     plStringStream &operator<<(float num) { return operator<<(static_cast<double>(num)); }

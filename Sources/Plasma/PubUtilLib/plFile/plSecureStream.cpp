@@ -48,6 +48,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsSTLStream.h"
 
 #if !HS_BUILD_FOR_WIN32
+#include <errno.h>
 #define INVALID_HANDLE_VALUE 0
 #endif
 
@@ -110,8 +111,8 @@ plSecureStream::~plSecureStream()
 
 void plSecureStream::IEncipher(uint32_t* const v, uint32_t n)
 {
-    register unsigned long y=v[0], z=v[n-1], e, delta=0x9E3779B9;
-    register unsigned long q = 6 + 52/n, p, sum = 0;
+    unsigned long y=v[0], z=v[n-1], e, delta=0x9E3779B9;
+    unsigned long q = 6 + 52/n, p, sum = 0;
 
     while (q-- > 0)
     {
@@ -131,8 +132,8 @@ void plSecureStream::IEncipher(uint32_t* const v, uint32_t n)
 
 void plSecureStream::IDecipher(uint32_t* const v, uint32_t n)
 {
-    register unsigned long y=v[0], z=v[n-1], e, delta=0x9E3779B9;
-    register unsigned long q = 6 + 52/n, p, sum = q * delta;
+    unsigned long y=v[0], z=v[n-1], e, delta=0x9E3779B9;
+    unsigned long q = 6 + 52/n, p, sum = q * delta;
 
     while (sum > 0)
     {
@@ -325,7 +326,11 @@ uint32_t plSecureStream::IRead(uint32_t bytes, void* buffer)
         }
         else
         {
+#if HS_BUILD_FOR_WIN32
             hsDebugMessage("Error on Windows read", GetLastError());
+#else
+            hsDebugMessage("Error on POSIX read", errno);
+#endif
         }
     }
     return numItems;
