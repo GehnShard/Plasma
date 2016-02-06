@@ -39,29 +39,42 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#ifndef PLSIMULATIONMSG_H
-#define PLSIMULATIONMSG_H
+#ifndef CoreLib_Thread
+#define CoreLib_Thread
 
-#include "pnMessage/plMessage.h"
+#include "hsThread.h"
 
-// PLSIMULATIONMSG
-// Virtual base class for all messages which are specific to the simulation interface
-// (and the simulation pool objects)
-// Most messages which are intended to go through the Simulation interface to the pool
-// objects (without being explictly relayed by the Simulation interface) should subclass
-// from this
-class plSimulationMsg : public plMessage
+#ifdef USE_VLD
+#include <vld.h>
+#endif
+
+void hsThread::Start()
 {
-public:
-    // pass-through constructors
-    plSimulationMsg() : plMessage() {};
-    plSimulationMsg(const plKey &sender, const plKey &receiver, const double *time) : plMessage(sender, receiver, time) {};
+    if (!fThread.joinable()) {
+        fThread = std::thread([this]() {
+#ifdef USE_VLD
+            // Needs to be enabled for each thread except the WinMain
+            VLDEnable();
+#endif
+            Run();
+            OnQuit();
+        });
+    } else
+        hsDebugMessage("Calling hsThread::Start() more than once", 0);
+}
 
-    CLASSNAME_REGISTER(plSimulationMsg);
-    GETINTERFACE_ANY(plSimulationMsg, plMessage);
+void hsThread::Stop()
+{
+    fQuit = true;
+    if (fThread.joinable())
+        fThread.join();
+}
 
-    void Read(hsStream *stream, hsResMgr *mgr) HS_OVERRIDE;
-    void Write(hsStream *stream, hsResMgr *mgr) HS_OVERRIDE;
-};
+void hsThread::StartDetached()
+{
+    Start();
+    if (fThread.joinable())
+        fThread.detach();
+}
 
-#endif // PLSIMULATIONMSG_H
+#endif // CoreLib_Thread

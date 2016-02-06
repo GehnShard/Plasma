@@ -39,29 +39,72 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#ifndef PLSIMULATIONMSG_H
-#define PLSIMULATIONMSG_H
 
-#include "pnMessage/plMessage.h"
+#include "HeadSpin.h"
+#include "hsThread.h"
+#include "hsWindows.h"
 
-// PLSIMULATIONMSG
-// Virtual base class for all messages which are specific to the simulation interface
-// (and the simulation pool objects)
-// Most messages which are intended to go through the Simulation interface to the pool
-// objects (without being explictly relayed by the Simulation interface) should subclass
-// from this
-class plSimulationMsg : public plMessage
+class plClientLoader : private hsThread
 {
+    class plClient* fClient;
+    HWND fWindow;
+
+    virtual void OnQuit() HS_OVERRIDE
+    {
+        SetQuit(true);
+    }
+
+    /** Does the heavy lifting of client init */
+    virtual void Run() HS_OVERRIDE;
+
 public:
-    // pass-through constructors
-    plSimulationMsg() : plMessage() {};
-    plSimulationMsg(const plKey &sender, const plKey &receiver, const double *time) : plMessage(sender, receiver, time) {};
+    plClientLoader() : fClient(nullptr) { }
 
-    CLASSNAME_REGISTER(plSimulationMsg);
-    GETINTERFACE_ANY(plSimulationMsg, plMessage);
+    /**
+     * Initializes the client asyncrhonouslynn including: loading the localization, 
+     * registry, dispatcher, etc.
+     */
+    void Init()
+    {
+        hsAssert(fClient == nullptr, "trying to init the client more than once?");
+        hsThread::Start();
+    }
 
-    void Read(hsStream *stream, hsResMgr *mgr) HS_OVERRIDE;
-    void Write(hsStream *stream, hsResMgr *mgr) HS_OVERRIDE;
+    /**
+     * Returns whether or not the client init is done
+     */
+    bool IsInited() const { return hsThread::GetQuit(); }
+
+    /**
+     * Sets the client HWND
+     */
+    void SetClientWindow(HWND hWnd) { fWindow = hWnd; }
+
+    /**
+     * Initial shutdown request received from Windows (or something)... start tear down
+     */
+    void ShutdownStart();
+
+    /**
+     * Window mess cleaned up, time to commit hara-kiri
+     */
+    void ShutdownEnd();
+
+    /**
+     * Launches the client window and starts the game.
+     * This will block if the client is not initialized.
+     */
+    void Start();
+
+    /**
+     * Waits for the client to finish initing
+     */
+    void Wait() { hsThread::Stop(); }
+
+    /** Returns the current plClient instance */
+    plClient* operator ->() const { return fClient; }
+
+    /** Returns whether or not the client is non-null */
+    operator bool() const { return fClient != nullptr; }
 };
 
-#endif // PLSIMULATIONMSG_H
