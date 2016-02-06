@@ -1,0 +1,7 @@
+STATEDESC GuildPub-Messengers
+{
+    VERSION 1
+    
+    VAR BOOL    BarDoorStat[1]      DEFAULT=0
+    VAR BOOL    islmGZBeamVis[1]    DEFAULT=0 DEFAULTOPTION=VAULT
+}
