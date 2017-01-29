@@ -198,11 +198,11 @@ void plCreatableListHelper::AddDouble( uint16_t id, double value )
     AddItem( id, V, true );
 }
 
-plString plCreatableListHelper::GetString( uint16_t id )
+ST::string plCreatableListHelper::GetString( uint16_t id )
 {
     plCreatableGenericValue * V = plCreatableGenericValue::ConvertNoRef( GetItem( id ) );
-    if ( !V ) return plString::Null;
-    return (plString)V->Value();
+    if ( !V ) return ST::null;
+    return (ST::string)V->Value();
 }
 
 int32_t plCreatableListHelper::GetInt( uint16_t id )
@@ -248,7 +248,7 @@ void plCreatableListHelper::Read( hsStream* s, hsResMgr* mgr )
         hsAssert( ans!=0, "plCreatableListHelper: Failed to uncompress buffer." );
         hsAssert( tmp==bufSz, "compression size mismatch" );
         fFlags&=~kCompressed;
-        hsLogEntry( plNetApp::StaticDebugMsg( "plCreatableListHelper: uncompressed from %lu to %lu", zBufSz, bufSz ) );
+        hsLogEntry( plNetApp::StaticDebugMsg( "plCreatableListHelper: uncompressed from {} to {}", zBufSz, bufSz ) );
     }
     else
     {
@@ -317,7 +317,7 @@ void plCreatableListHelper::Write( hsStream* s, hsResMgr* mgr )
                 zBuf.resize( zBufSz );
                 buf = zBuf;
                 fFlags |= kCompressed;
-                hsLogEntry( plNetApp::StaticDebugMsg( "plCreatableListHelper: compressed from %lu to %lu", bufSz, zBufSz ) );
+                hsLogEntry( plNetApp::StaticDebugMsg( "plCreatableListHelper: compressed from {} to {}", bufSz, zBufSz ) );
             }
         }
 

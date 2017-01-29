@@ -66,7 +66,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plStatusLog/plStatusLog.h"
 
 #include "plMessage/plTimerCallbackMsg.h"
-#include "pnTimer/plTimerCallbackManager.h"
+#include "plTimerCallbackManager.h"
 
 #include "plMessage/plSimStateMsg.h"
 //#include "plHavok1\plHKPhysical.h"
@@ -250,11 +250,9 @@ void plResponderModifier::ISetResponderStateFromNotify(plNotifyMsg* msg)
 void plResponderModifier::Trigger(plNotifyMsg *msg)
 {
 #if 0
-    char str[256];
-    sprintf(str, "RM: Responder %s is triggering, num cmds=%d, enabled=%d, curCmd=%d, t=%f\n", 
-        GetKeyName(), fStates[fCurState].fCmds.GetCount(), 
-        ((int)fEnabled), ((int)fCurCommand), hsTimer::GetSysSeconds());
-    plNetClientApp::GetInstance()->DebugMsg(str);
+    plNetClientApp::GetInstance()->DebugMsg("RM: Responder {} is triggering, num cmds={}, enabled={}, curCmd={}, t={f}\n",
+        GetKeyName(), fStates[fCurState].fCmds.GetCount(),
+        fEnabled, fCurCommand, hsTimer::GetSysSeconds());
 #endif
 
     // If we're not in the middle of sending, reset and start sending commands
@@ -755,7 +753,7 @@ void plResponderModifier::IDebugPlayMsg(plAnimCmdMsg* msg)
 
 #ifdef STATUS_LOG
 static plStatusLog *gLog = nil;
-static std::vector<std::string> gNoLogStrings;
+static std::vector<ST::string> gNoLogStrings;
 #endif // STATUS_LOG
 
 void plResponderModifier::NoLogString(const char* str)
@@ -774,12 +772,11 @@ void plResponderModifier::ILog(uint32_t color, const char* format, ...)
     if (!format || *format == '\0')
         return;
 
-    const char* keyName = GetKeyName().c_str();
+    ST::string keyName = GetKeyName();
 
     // Make sure this key isn't in our list of keys to deny
-    for (int i = 0; i < gNoLogStrings.size(); i++)
-    {
-        if (strncmp(gNoLogStrings[i].c_str(), keyName, gNoLogStrings[i].length()) == 0)
+    for (const auto& it : gNoLogStrings) {
+        if (keyName.starts_with(it))
             return;
     }
 
@@ -792,16 +789,11 @@ void plResponderModifier::ILog(uint32_t color, const char* format, ...)
     va_end(args);
 
     // Strip the redundant part off the key name
-    char logLine[512];
-    const char* modPos = strstr("_ResponderModifier", keyName);
-    if (modPos)
-        strncpy(logLine, keyName, modPos - keyName);
-    else
-        strcpy(logLine, keyName);
+    ST_ssize_t modPos = keyName.find("_ResponderModifier");
+    if (modPos != -1)
+        keyName = keyName.left(modPos);
 
-    strcat(logLine, ": ");
-    strcat(logLine, buf);
-
-    gLog->AddLine(logLine, color);
+    ST::string logLine = ST::format("{}: {}", keyName, buf);
+    gLog->AddLine(logLine.c_str(), color);
 #endif // STATUS_LOG
 }

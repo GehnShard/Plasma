@@ -102,9 +102,9 @@ plSDLMgr* plSDLMgr::GetInstance()
 // search latest and legacy descriptors for one that matches.
 // if version is -1, search for latest descriptor with matching name
 //
-plStateDescriptor* plSDLMgr::FindDescriptor(const plString& name, int version, const plSDL::DescriptorList * dl) const
+plStateDescriptor* plSDLMgr::FindDescriptor(const ST::string& name, int version, const plSDL::DescriptorList * dl) const
 {
-    if (name.IsNull())
+    if (name.is_empty())
         return nil;
 
     if ( !dl )
@@ -117,7 +117,7 @@ plStateDescriptor* plSDLMgr::FindDescriptor(const plString& name, int version, c
     int highestFound = -1;
     for(it=(*dl).begin(); it!= (*dl).end(); it++)
     {
-        if (!(*it)->GetName().CompareI(name) )
+        if (!(*it)->GetName().compare_i(name) )
         {
             if ( (*it)->GetVersion()==version )
             {
@@ -156,7 +156,7 @@ int plSDLMgr::Write(hsStream* s, const plSDL::DescriptorList* dl)
     int bytes=s->GetPosition()-pos;
     if (fNetApp)
     {
-        hsLogEntry(fNetApp->DebugMsg("Writing %d SDL descriptors, %d bytes", num, bytes));
+        hsLogEntry(fNetApp->DebugMsg("Writing {} SDL descriptors, {} bytes", num, bytes));
     }
     return bytes;
 }
@@ -195,11 +195,11 @@ int plSDLMgr::Read(hsStream* s, plSDL::DescriptorList* dl)
     {
         if (fNetApp)
         {
-            hsLogEntry(fNetApp->DebugMsg("Something bad happened while reading SDLMgr data: %s", e.what()));
+            hsLogEntry(fNetApp->DebugMsg("Something bad happened while reading SDLMgr data: {}", e.what()));
         }
         else
         {
-            DebugMsg("Something bad happened while reading SDLMgr data: %s", e.what());
+            DebugMsg("Something bad happened while reading SDLMgr data: {}", e.what());
         }
         return 0;
     }
@@ -215,7 +215,7 @@ int plSDLMgr::Read(hsStream* s, plSDL::DescriptorList* dl)
     int bytes=s->GetPosition()-pos;
     if (fNetApp)
     {
-        hsLogEntry(fNetApp->DebugMsg("Reading %d SDL descriptors, %d bytes", num, bytes));
+        hsLogEntry(fNetApp->DebugMsg("Reading {} SDL descriptors, {} bytes", num, bytes));
     }
     return bytes;
 }

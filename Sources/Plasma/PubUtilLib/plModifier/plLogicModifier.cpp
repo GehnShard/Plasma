@@ -42,7 +42,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "HeadSpin.h"
 #include "plLogicModifier.h"
 #include "plgDispatch.h"
-#include "pnTimer/plTimerCallbackManager.h"
+#include "plTimerCallbackManager.h"
 #include "pnModifier/plConditionalObject.h"
 #include "plPhysical/plDetectorModifier.h"
 #include "plMessage/plCondRefMsg.h"
@@ -277,5 +277,14 @@ void plLogicModifier::VolumeIgnoreExtraEnters(bool ignore /* = true */)
         plVolumeSensorConditionalObject* condition = plVolumeSensorConditionalObject::ConvertNoRef(fConditionList[curCondition]);
         if (condition)
             condition->IgnoreExtraEnters(ignore);
+    }
+}
+
+void plLogicModifier::VolumeNoArbitration(bool noArbitration)
+{
+    for (size_t i = 0; i < fConditionList.Count(); ++i) {
+        plVolumeSensorConditionalObject* condition = plVolumeSensorConditionalObject::ConvertNoRef(fConditionList[i]);
+        if (condition)
+            condition->NoServerArbitration(noArbitration);
     }
 }

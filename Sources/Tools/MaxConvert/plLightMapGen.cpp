@@ -362,33 +362,8 @@ bool plLightMapGen::ICompressLightMaps()
                 DumpMipmap(orig, orig->GetKeyName());
 #endif // MIPMAP_LOG
 
-                plMipmap *compressed = 
-                    hsCodecManager::Instance().CreateCompressedMipmap(plMipmap::kDirectXCompression, orig);
-
-                if( compressed )
-                {
-                    const plLocation &textureLoc = plPluginResManager::ResMgr()->GetCommonPage(orig->GetKey()->GetUoid().GetLocation(),
-                                                                                    plAgeDescription::kTextures );
-                    plString name = plFormat("{}_DX", orig->GetKey()->GetName());
-
-                    plKey compKey = hsgResMgr::ResMgr()->FindKey(plUoid(textureLoc, plMipmap::Index(), name));
-                    if( compKey )
-                        plBitmapCreator::Instance().DeleteExportedBitmap(compKey);
-
-                    hsgResMgr::ResMgr()->NewKey( name, compressed, textureLoc );
-
-                    int j;
-                    for( j = 0; j < fCreatedLayers.GetCount(); j++ )
-                    {
-                        if( orig == fCreatedLayers[j]->GetTexture() )
-                        {
-                            fCreatedLayers[j]->GetKey()->Release(orig->GetKey());
-                            hsgResMgr::ResMgr()->AddViaNotify(compressed->GetKey(), new plLayRefMsg(fCreatedLayers[j]->GetKey(), plRefMsg::kOnReplace, 0, plLayRefMsg::kTexture), plRefFlags::kActiveRef);
-                        }
-                    }
-
-                    plBitmapCreator::Instance().DeleteExportedBitmap(orig->GetKey());
-                }
+                // Use lossless compression on LightMaps.  We don't want ugly, muddy edges.
+                orig->fCompressionType = plMipmap::kPNGCompression;
             }
         }
     }
@@ -1255,7 +1230,7 @@ plLayerInterface* plLightMapGen::IMakeLightMapLayer(plMaxNode* node, plGeometryS
             return mat->GetPiggyBack(i);
     }
 
-    plString newMatName = plFormat("{}_{}_LIGHTMAPGEN", mat->GetKey()->GetName(), node->GetName());
+    ST::string newMatName = ST::format("{}_{}_LIGHTMAPGEN", mat->GetKey()->GetName(), node->GetName());
     plLocation nodeLoc = node->GetLocation();
 
     plKey matKey = hsgResMgr::ResMgr()->FindKey(plUoid(nodeLoc, hsGMaterial::Index(), newMatName));
@@ -1293,7 +1268,7 @@ plLayerInterface* plLightMapGen::IMakeLightMapLayer(plMaxNode* node, plGeometryS
     // Make sure layer (and mip) name are unique across pages by putting the page name in
     const plPageInfo* pageInfo = plKeyFinder::Instance().GetLocationInfo(node->GetLocation());
 
-    plString layName = plFormat("{}_{}_LIGHTMAPGEN", pageInfo->GetPage(), node->GetName());
+    ST::string layName = ST::format("{}_{}_LIGHTMAPGEN", pageInfo->GetPage(), node->GetName());
     
     plKey layKey = node->FindPageKey(plLayer::Index(), layName);
 
@@ -1310,7 +1285,7 @@ plLayerInterface* plLightMapGen::IMakeLightMapLayer(plMaxNode* node, plGeometryS
         }
         else
         {
-            plString mipmapName = plFormat("{}_mip", layName);
+            ST::string mipmapName = ST::format("{}_mip", layName);
 
             // Deleted the NOTE here because it was incorrect in every meaningful sense of the word. - mf
 
@@ -1320,7 +1295,7 @@ plLayerInterface* plLightMapGen::IMakeLightMapLayer(plMaxNode* node, plGeometryS
 
             if( !mipKey && !fRecalcLightMaps )
             {
-                plString compressedName = plFormat("{}_DX", mipmapName);
+                ST::string compressedName = ST::format("{}_DX", mipmapName);
 
                 plKey compKey = hsgResMgr::ResMgr()->FindKey(plUoid(textureLoc, plMipmap::Index(), compressedName));
 

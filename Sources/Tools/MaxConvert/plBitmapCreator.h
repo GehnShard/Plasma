@@ -74,7 +74,7 @@ public:
     const char  *faceNames[ 6 ];
     uint32_t  maxDimension;
     uint8_t   clampFlags;
-    bool    useJPEG;
+    bool    usePNG;
 
     plBitmapData()
     {
@@ -88,7 +88,7 @@ public:
         faceNames[ 0 ] = faceNames[ 1 ] = faceNames[ 2 ] = faceNames[ 3 ] = faceNames[ 4 ] = faceNames[ 5 ] = nil;
         maxDimension = 0;
         clampFlags = 0;
-        useJPEG = false;
+        usePNG = false;
     }
 };
 
@@ -100,7 +100,7 @@ class plBitmapCreator
         static plBitmapCreator  &Instance();
 
         plBitmap    *CreateTexture( plBitmapData *bd, const plLocation &loc, int clipID = -1 );
-        plMipmap    *CreateBlankMipmap( uint32_t width, uint32_t height, unsigned config, uint8_t numLevels, const plString &keyName, const plLocation &keyLocation );
+        plMipmap    *CreateBlankMipmap( uint32_t width, uint32_t height, unsigned config, uint8_t numLevels, const ST::string &keyName, const plLocation &keyLocation );
 
         void    Init( bool save, plErrorMsg *msg );
         void    DeInit( void );

@@ -71,11 +71,11 @@ struct pfPatcherWorker : public hsThread
     {
         enum { kFile, kManifest, kSecurePreloader, kAuthFile, kPythonList, kSdlList };
 
-        plString fName;
+        ST::string fName;
         uint8_t fType;
         class pfPatcherStream* fStream;
 
-        Request(const plString& name, uint8_t type, class pfPatcherStream* s=nullptr) :
+        Request(const ST::string& name, uint8_t type, class pfPatcherStream* s=nullptr) :
             fName(name), fType(type), fStream(s)
         { }
     };
@@ -127,7 +127,7 @@ struct pfPatcherWorker : public hsThread
 
     void OnQuit() HS_OVERRIDE;
 
-    void EndPatch(ENetError result, const plString& msg=plString::Null);
+    void EndPatch(ENetError result, const ST::string& msg=ST::null);
     bool IssueRequest();
     void Run() HS_OVERRIDE;
     void ProcessFile();
@@ -145,7 +145,7 @@ class pfPatcherStream : public plZlibStream
     uint64_t fBytesWritten;
     float fDLStartTime;
 
-    plString IMakeStatusMsg() const
+    ST::string IMakeStatusMsg() const
     {
         float secs = hsTimer::GetSysSeconds() - fDLStartTime;
         float bytesPerSec = fBytesWritten / secs;
@@ -164,30 +164,40 @@ class pfPatcherStream : public plZlibStream
 
 public:
     pfPatcherStream(pfPatcherWorker* parent, const plFileName& filename, uint64_t size)
-        : fParent(parent), fFilename(filename), fFlags(0), fBytesWritten(0), fDLStartTime(0.f)
+        : fParent(parent), fFilename(filename), fFlags(0), fBytesWritten(0), fDLStartTime(0.f), plZlibStream()
     {
         fParent->fTotalBytes += size;
         fOutput = new hsRAMStream;
     }
 
-    pfPatcherStream(pfPatcherWorker* parent, const plFileName& filename, const NetCliFileManifestEntry& entry)
-        : fParent(parent), fFlags(entry.flags), fBytesWritten(0)
+    pfPatcherStream(pfPatcherWorker* parent, const plFileName& reqName, const plFileName& cliName, const NetCliFileManifestEntry& entry)
+        : fParent(parent), fFilename(cliName.Normalize()), fFlags(entry.flags), fBytesWritten(0), plZlibStream()
     {
         // ugh. eap removed the compressed flag in his fail manifests
-        if (filename.GetFileExt().CompareI("gz") == 0) {
+        if (reqName.GetFileExt().compare_i("gz") == 0) {
             fFlags |= pfPatcherWorker::kFlagZipped;
             parent->fTotalBytes += entry.zipSize;
         } else
             parent->fTotalBytes += entry.fileSize;
     }
 
-    virtual bool Open(const plFileName& filename, const char* mode)
+    void Begin()
     {
-        fFilename = filename.Normalize();
-        return plZlibStream::Open(fFilename, mode);
+        fDLStartTime = hsTimer::GetSysSeconds();
+        if (!fOutput)
+            Open(fFilename, "wb");
     }
 
-    virtual uint32_t Write(uint32_t count, const void* buf)
+    bool Open(const plFileName& filename, const char* mode) HS_OVERRIDE
+    {
+        hsAssert(filename == fFilename, "trying to save to a different file, eh?");
+        bool retVal = plZlibStream::Open(filename, mode);
+        if (!retVal)
+            PatcherLogRed("\tPhailed to open %s: '%s'", filename.AsString().c_str(), strerror(errno));
+        return retVal;
+    }
+
+    uint32_t Write(uint32_t count, const void* buf) HS_OVERRIDE
     {
         // tick whatever progress bar we have
         IUpdateProgress(count);
@@ -199,16 +209,14 @@ public:
             return fOutput->Write(count, buf);
     }
 
-    virtual bool AtEnd() { return fOutput->AtEnd(); }
-    virtual uint32_t GetEOF() { return fOutput->GetEOF(); }
-    virtual uint32_t GetPosition() const { return fOutput->GetPosition(); }
-    virtual uint32_t GetSizeLeft() const { return fOutput->GetSizeLeft(); }
-    virtual uint32_t Read(uint32_t count, void* buf) { return fOutput->Read(count, buf); }
-    virtual void Rewind() { fOutput->Rewind(); }
-    virtual void SetPosition(uint32_t pos) { fOutput->SetPosition(pos); }
-    virtual void Skip(uint32_t deltaByteCount) { fOutput->Skip(deltaByteCount); }
+    bool AtEnd() HS_OVERRIDE { return fOutput->AtEnd(); }
+    uint32_t GetEOF() HS_OVERRIDE { return fOutput->GetEOF(); }
+    uint32_t GetPosition() const HS_OVERRIDE { return fOutput->GetPosition(); }
+    uint32_t Read(uint32_t count, void* buf) HS_OVERRIDE { return fOutput->Read(count, buf); }
+    void Rewind() HS_OVERRIDE { fOutput->Rewind(); }
+    void SetPosition(uint32_t pos) HS_OVERRIDE { fOutput->SetPosition(pos); }
+    void Skip(uint32_t deltaByteCount) HS_OVERRIDE { fOutput->Skip(deltaByteCount); }
 
-    void Begin() { fDLStartTime = hsTimer::GetSysSeconds(); }
     plFileName GetFileName() const { return fFilename; }
     bool IsRedistUpdate() const { return hsCheckBits(fFlags, pfPatcherWorker::kRedistUpdate); }
     bool IsSelfPatch() const { return hsCheckBits(fFlags, pfPatcherWorker::kSelfPatch); }
@@ -248,14 +256,13 @@ static void IGotAuthFileList(ENetError result, void* param, const NetCliAuthFile
             for (unsigned i = 0; i < infoCount; ++i) {
                 PatcherLogYellow("\tEnqueuing Legacy File '%S'", infoArr[i].filename);
 
-                plFileName fn = plString::FromWchar(infoArr[i].filename);
+                plFileName fn = ST::string::from_wchar(infoArr[i].filename);
                 plFileSystem::CreateDir(fn.StripFileName());
 
                 // We purposefully do NOT Open this stream! This uses a special auth-file constructor that
                 // utilizes a backing hsRAMStream. This will be fed to plStreamSource later...
                 pfPatcherStream* s = new pfPatcherStream(patcher, fn, infoArr[i].filesize);
-                pfPatcherWorker::Request req = pfPatcherWorker::Request(fn.AsString(), pfPatcherWorker::Request::kAuthFile, s);
-                patcher->fRequests.push_back(req);
+                patcher->fRequests.emplace_back(fn.AsString(), pfPatcherWorker::Request::kAuthFile, s);
             }
         }
         patcher->IssueRequest();
@@ -289,8 +296,8 @@ static void IPreloaderManifestDownloadCB(ENetError result, void* param, const wc
         // so, we need to ask the AuthSrv about our game code
         {
             std::lock_guard<std::mutex> lock(patcher->fRequestMut);
-            patcher->fRequests.push_back(pfPatcherWorker::Request(plString::Null, pfPatcherWorker::Request::kPythonList));
-            patcher->fRequests.push_back(pfPatcherWorker::Request(plString::Null, pfPatcherWorker::Request::kSdlList));
+            patcher->fRequests.emplace_back(ST::null, pfPatcherWorker::Request::kPythonList);
+            patcher->fRequests.emplace_back(ST::null, pfPatcherWorker::Request::kSdlList);
         }
 
         // continue pumping requests
@@ -306,7 +313,7 @@ static void IFileManifestDownloadCB(ENetError result, void* param, const wchar_t
         IHandleManifestDownload(patcher, group, manifest, entryCount);
     else {
         PatcherLogRed("\tDownload Failed: Manifest '%S'", group);
-        patcher->EndPatch(result, plString::FromWchar(group));
+        patcher->EndPatch(result, ST::string::from_wchar(group));
     }
 }
 
@@ -364,7 +371,7 @@ void pfPatcherWorker::OnQuit()
     delete fParent;
 }
 
-void pfPatcherWorker::EndPatch(ENetError result, const plString& msg)
+void pfPatcherWorker::EndPatch(ENetError result, const ST::string& msg)
 {
     // Guard against multiple calls
     if (fStarted) {
@@ -405,12 +412,12 @@ bool pfPatcherWorker::IssueRequest()
             NetCliFileDownloadRequest(req.fName, req.fStream, IFileThingDownloadCB, this);
             break;
         case Request::kManifest:
-            NetCliFileManifestRequest(IFileManifestDownloadCB, this, req.fName.ToWchar());
+            NetCliFileManifestRequest(IFileManifestDownloadCB, this, req.fName.to_wchar());
             break;
         case Request::kSecurePreloader:
             // so, yeah, this is usually the "SecurePreloader" manifest on the file server...
             // except on legacy servers, this may not exist, so we need to fall back without nuking everything!
-            NetCliFileManifestRequest(IPreloaderManifestDownloadCB, this, req.fName.ToWchar());
+            NetCliFileManifestRequest(IPreloaderManifestDownloadCB, this, req.fName.to_wchar());
             break;
         case Request::kAuthFile:
             // ffffffuuuuuu
@@ -473,15 +480,15 @@ void pfPatcherWorker::ProcessFile()
         NetCliFileManifestEntry& entry = fQueuedFiles.front();
 
         // eap sucks
-        plFileName clName = plString::FromWchar(entry.clientName);
-        plString dlName = plString::FromWchar(entry.downloadName);
+        plFileName clName = ST::string::from_wchar(entry.clientName);
+        ST::string dlName = ST::string::from_wchar(entry.downloadName);
 
         // Check to see if ours matches
         plFileInfo mine(clName);
         if (mine.FileSize() == entry.fileSize) {
             plMD5Checksum cliMD5(clName);
             plMD5Checksum srvMD5;
-            srvMD5.SetFromHexString(plString::FromWchar(entry.md5, 32).c_str());
+            srvMD5.SetFromHexString(ST::string::from_wchar(entry.md5, 32).c_str());
 
             if (cliMD5 == srvMD5) {
                 WhitelistFile(clName, false);
@@ -500,7 +507,7 @@ void pfPatcherWorker::ProcessFile()
         }
 
         // If you got here, they're different and we want it.
-        PatcherLogYellow("\tEnqueuing '%S'", entry.clientName);
+        PatcherLogYellow("\tEnqueuing '%S'", entry.downloadName);
         plFileSystem::CreateDir(plFileName(clName).StripFileName());
 
         // If someone registered for SelfPatch notifications, then we should probably
@@ -512,12 +519,10 @@ void pfPatcherWorker::ProcessFile()
             }
         }
 
-        pfPatcherStream* s = new pfPatcherStream(this, dlName, entry);
-        s->Open(clName, "wb");
-
+        pfPatcherStream* s = new pfPatcherStream(this, dlName, clName, entry);
         {
             std::lock_guard<std::mutex> lock(fRequestMut);
-            fRequests.push_back(Request(dlName, Request::kFile, s));
+            fRequests.emplace_back(dlName, Request::kFile, s);
         }
         fQueuedFiles.pop_front();
 
@@ -534,8 +539,8 @@ void pfPatcherWorker::WhitelistFile(const plFileName& file, bool justDownloaded,
 
     // we want to whitelist our game code, so here we go...
     if (fGameCodeDiscovered) {
-        plString ext = file.GetFileExt();
-        if (ext.CompareI("pak") == 0 || ext.CompareI("sdl") == 0) {
+        ST::string ext = file.GetFileExt();
+        if (ext.compare_i("pak") == 0 || ext.compare_i("sdl") == 0) {
             if (!stream) {
                 stream = new hsUNIXStream;
                 stream->Open(file, "rb");
@@ -618,21 +623,21 @@ void pfPatcher::OnSelfPatch(FileDownloadFunc cb)
 void pfPatcher::RequestGameCode()
 {
     std::lock_guard<std::mutex> lock(fWorker->fRequestMut);
-    fWorker->fRequests.push_back(pfPatcherWorker::Request("SecurePreloader", pfPatcherWorker::Request::kSecurePreloader));
+    fWorker->fRequests.emplace_back("SecurePreloader", pfPatcherWorker::Request::kSecurePreloader);
 }
 
-void pfPatcher::RequestManifest(const plString& mfs)
+void pfPatcher::RequestManifest(const ST::string& mfs)
 {
     std::lock_guard<std::mutex> lock(fWorker->fRequestMut);
-    fWorker->fRequests.push_back(pfPatcherWorker::Request(mfs, pfPatcherWorker::Request::kManifest));
+    fWorker->fRequests.emplace_back(mfs, pfPatcherWorker::Request::kManifest);
 }
 
-void pfPatcher::RequestManifest(const std::vector<plString>& mfs)
+void pfPatcher::RequestManifest(const std::vector<ST::string>& mfs)
 {
     std::lock_guard<std::mutex> lock(fWorker->fRequestMut);
     std::for_each(mfs.begin(), mfs.end(),
-        [&] (const plString& name) {
-            fWorker->fRequests.push_back(pfPatcherWorker::Request(name, pfPatcherWorker::Request::kManifest));
+        [&] (const ST::string& name) {
+            fWorker->fRequests.emplace_back(name, pfPatcherWorker::Request::kManifest);
         }
     );
 }

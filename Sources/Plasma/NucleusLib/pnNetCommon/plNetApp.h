@@ -106,24 +106,54 @@ public:
     void SetFlagsBit(int b, bool on=true) { fFlagsVec.SetBit(b, on); }
     bool GetFlagsBit(int b) const { return fFlagsVec.IsBitSet(b) ? true : false; }
 
-    static bool StaticErrorMsg(const plString& msg);
-    static bool StaticWarningMsg(const plString& msg);
-    static bool StaticAppMsg(const plString& msg);
-    static bool StaticDebugMsg(const plString& msg);
+    static bool StaticErrorMsg(const ST::string& msg);
+    static bool StaticWarningMsg(const ST::string& msg);
+    static bool StaticAppMsg(const ST::string& msg);
+    static bool StaticDebugMsg(const ST::string& msg);
 
+    static bool StaticErrorMsg(const char* msg)
+    {
+        return StaticErrorMsg(ST::string(msg));
+    }
 
-    // Deprecated
-    hsDeprecated("StaticErrorMsg with format is deprecated -- use plFormat instead")
-    static bool StaticErrorMsg(const char* fmt, ...);
+    static bool StaticWarningMsg(const char* msg)
+    {
+        return StaticWarningMsg(ST::string(msg));
+    }
 
-    hsDeprecated("StaticWarningMsg with format is deprecated -- use plFormat instead")
-    static bool StaticWarningMsg(const char* fmt, ...);
+    static bool StaticAppMsg(const char* msg)
+    {
+        return StaticAppMsg(ST::string(msg));
+    }
 
-    hsDeprecated("StaticAppMsg with format is deprecated -- use plFormat instead")
-    static bool StaticAppMsg(const char* fmt, ...);
+    static bool StaticDebugMsg(const char* msg)
+    {
+        return StaticDebugMsg(ST::string(msg));
+    }
 
-    hsDeprecated("StaticDebugMsg with format is deprecated -- use plFormat instead")
-    static bool StaticDebugMsg(const char* fmt, ...);
+    template <typename... _Args>
+    static bool StaticErrorMsg(const char* fmt, _Args... args)
+    {
+        return StaticErrorMsg(ST::format(fmt, args...));
+    }
+
+    template <typename... _Args>
+    static bool StaticWarningMsg(const char* fmt, _Args... args)
+    {
+        return StaticWarningMsg(ST::format(fmt, args...));
+    }
+
+    template <typename... _Args>
+    static bool StaticAppMsg(const char* fmt, _Args... args)
+    {
+        return StaticAppMsg(ST::format(fmt, args...));
+    }
+
+    template <typename... _Args>
+    static bool StaticDebugMsg(const char* fmt, _Args... args)
+    {
+        return StaticDebugMsg(ST::format(fmt, args...));
+    }
 };
 
 //
@@ -188,7 +218,7 @@ public:
     // functions that all net client apps should implement
     virtual int SendMsg(plNetMessage* msg) = 0;
     virtual uint32_t GetPlayerID() const = 0;
-    virtual plString GetPlayerName( const plKey avKey=nil ) const = 0;
+    virtual ST::string GetPlayerName( const plKey avKey=nil ) const = 0;
 
     // commonly used net client app functions
     virtual float GetCurrentAgeTimeOfDayPercent() const { hsAssert(false, "stub"); return 0.; }
@@ -202,8 +232,8 @@ public:
     virtual int IsLocallyOwned(const plUoid&) const { hsAssert(false, "stub"); return 0; }  
     virtual plNetGroupId GetEffectiveNetGroup(const plSynchedObject* obj) const { hsAssert(false, "stub"); return plNetGroup::kNetGroupUnknown; }
     virtual int Update(double secs) { return hsOK;}
-    virtual const char* GetServerLogTimeAsString(plString& ts) const { hsAssert(false, "stub"); return nil; }
-    virtual plUoid GetAgeSDLObjectUoid(const plString& ageName) const { hsAssert(false, "stub"); return plUoid(); }
+    virtual const char* GetServerLogTimeAsString(ST::string& ts) const { hsAssert(false, "stub"); return nil; }
+    virtual plUoid GetAgeSDLObjectUoid(const ST::string& ageName) const { hsAssert(false, "stub"); return plUoid(); }
     virtual void StayAlive(double secs) {}
     virtual void QueueDisableNet( bool showDlg, const char msg[] ) {}
 

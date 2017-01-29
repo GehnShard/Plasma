@@ -62,12 +62,12 @@ void plStateDescriptor::IDeInit()
     fVarsList.clear();
 }
 
-plVarDescriptor* plStateDescriptor::FindVar(const plString& name, int* idx) const
+plVarDescriptor* plStateDescriptor::FindVar(const ST::string& name, int* idx) const
 {
     VarsList::const_iterator it;
     for(it=fVarsList.begin(); it != fVarsList.end(); it++)
     {
-        if (!(*it)->GetName().CompareI(name))
+        if (!(*it)->GetName().compare_i(name))
         {
             if (idx)
                 *idx = it-fVarsList.begin();
@@ -88,7 +88,7 @@ bool plStateDescriptor::Read(hsStream* s)
     s->ReadLE(&rwVersion);
     if (rwVersion != kVersion)
     {
-        plNetApp::StaticWarningMsg("StateDescriptor Read/Write version mismatch, mine %d, read %d", kVersion, rwVersion);
+        plNetApp::StaticWarningMsg("StateDescriptor Read/Write version mismatch, mine {}, read {}", kVersion, rwVersion);
         return false;
     }
 

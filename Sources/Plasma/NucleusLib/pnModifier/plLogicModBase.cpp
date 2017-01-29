@@ -44,6 +44,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plgDispatch.h"
 #include "hsResMgr.h"
 #include "hsTimer.h"
+#include "plTimerCallbackManager.h"
 #include "pnSceneObject/plSceneObject.h"
 #include "pnNetCommon/plGenericVar.h"
 #include "pnNetCommon/plNetApp.h"
@@ -52,6 +53,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnMessage/plNotifyMsg.h"
 #include "pnMessage/plEnableMsg.h"
 #include "pnMessage/plServerReplyMsg.h"
+
+uint32_t plLogicModBase::sArbitrationDelayMs = 0;
 
 void plLogicModBase::ConsoleTrigger(plKey playerKey)
 {
@@ -128,7 +131,7 @@ void plLogicModBase::IUpdateSharedState(bool triggered) const
     ts.ObjectInfo()->SetFromKey(GetKey());
     ts.SetLockRequest(lock);        // if triggering, lock state, else unlock state
     plNetClientApp::GetInstance()->SendMsg(&ts);
-    plNetClientApp::GetInstance()->DebugMsg("\tLM: Attempting to set logic mod shared lock to %s, t=%f\n", 
+    plNetClientApp::GetInstance()->DebugMsg("\tLM: Attempting to set logic mod shared lock to {}, t={f}\n",
         triggered ? "Triggered" : "UnTriggered", hsTimer::GetSysSeconds());
 }
 
@@ -136,32 +139,13 @@ bool plLogicModBase::MsgReceive(plMessage* msg)
 {
     // read messages:
     plServerReplyMsg* pSMsg = plServerReplyMsg::ConvertNoRef(msg);
-    if (pSMsg)
-    {
-        hsAssert(pSMsg->GetType() != plServerReplyMsg::kUnInit, "uninit server reply msg");
-
-#if 1
-        plNetClientApp::GetInstance()->DebugMsg("LM: LogicModifier %s recvd trigger request reply:%s, wasRequesting=%d, t=%f\n",
-            GetKeyName().c_str(),
-            pSMsg->GetType() == plServerReplyMsg::kDeny ? "denied" : "confirmed", 
-            HasFlag(kRequestingTrigger), hsTimer::GetSysSeconds());
-#endif
-
-        if (pSMsg->GetType() == plServerReplyMsg::kDeny)
-        {
-            if (HasFlag(kRequestingTrigger))
-            {
-                plNetClientApp::GetInstance()->DebugMsg("\tLM: Denied, clearing requestingTrigger");
-                ClearFlag(kRequestingTrigger);
-            }
-            else
-                plNetClientApp::GetInstance()->DebugMsg("\tLM: Denied, but not requesting?");
-        }
-        else
-        {
-            bool netRequest=false;    // we're triggering as a result of a local activation
-            PreTrigger(netRequest);
-            IUpdateSharedState(false /* untriggering */);
+    if (pSMsg) {
+        if (sArbitrationDelayMs == 0 || pSMsg->GetWasDelayed()) {
+            IHandleArbitration(pSMsg);
+        } else {
+            pSMsg->SetWasDelayed(true);
+            pSMsg->Ref(); // timer callback manager steals this reference
+            plgTimerCallbackMgr::NewTimer(static_cast<float>(sArbitrationDelayMs) / 1000, pSMsg);
         }
         return true;
     }
@@ -185,13 +169,35 @@ bool plLogicModBase::MsgReceive(plMessage* msg)
     return plSingleModifier::MsgReceive(msg);
 }
 
+void plLogicModBase::IHandleArbitration(plServerReplyMsg* pSMsg)
+{
+    hsAssert(pSMsg->GetType() != plServerReplyMsg::kUnInit, "uninit server reply msg");
+    plNetClientApp::GetInstance()->DebugMsg("LM: LogicModifier {} recvd trigger request reply:{}, wasRequesting={}, t={f}\n",
+                                            GetKeyName(),
+                                            pSMsg->GetType() == plServerReplyMsg::kDeny ? "denied" : "confirmed",
+                                            HasFlag(kRequestingTrigger), hsTimer::GetSysSeconds());
+
+    if (pSMsg->GetType() == plServerReplyMsg::kDeny) {
+        if (HasFlag(kRequestingTrigger)) {
+            plNetClientApp::GetInstance()->DebugMsg("\tLM: Denied, clearing requestingTrigger");
+            ClearFlag(kRequestingTrigger);
+        } else {
+            plNetClientApp::GetInstance()->DebugMsg("\tLM: Denied, but not requesting?");
+        }
+    } else {
+        bool netRequest=false;    // we're triggering as a result of a local activation
+        PreTrigger(netRequest);
+        IUpdateSharedState(false /* untriggering */);
+    }
+}
+
 void plLogicModBase::RequestTrigger(bool netRequest)
 {
     if (HasFlag(kTriggered))
     {
 #if 1
-        plNetClientApp::GetInstance()->DebugMsg("LM: %s ignoring RequestTrigger(), already triggered, t=%f\n",
-            GetKeyName().c_str(), hsTimer::GetSysSeconds());
+        plNetClientApp::GetInstance()->DebugMsg("LM: {} ignoring RequestTrigger(), already triggered, t={f}\n",
+            GetKeyName(), hsTimer::GetSysSeconds());
 #endif
         return;
     }
@@ -199,8 +205,8 @@ void plLogicModBase::RequestTrigger(bool netRequest)
     if (HasFlag(kRequestingTrigger))
     {
 #if 1
-        plNetClientApp::GetInstance()->DebugMsg("LM: %s ignoring RequestTrigger(), already requesting trigger, t=%f\n",
-            GetKeyName().c_str(), hsTimer::GetSysSeconds());
+        plNetClientApp::GetInstance()->DebugMsg("LM: {} ignoring RequestTrigger(), already requesting trigger, t={f}\n",
+            GetKeyName(), hsTimer::GetSysSeconds());
 #endif
 
         return;
@@ -215,8 +221,8 @@ void plLogicModBase::RequestTrigger(bool netRequest)
         SetFlag(kRequestingTrigger);
 
 #if 1
-        plNetClientApp::GetInstance()->DebugMsg("LM: %s Setting RequestingTriggert=%f\n",
-            GetKeyName().c_str(), hsTimer::GetSysSeconds());
+        plNetClientApp::GetInstance()->DebugMsg("LM: {} Setting RequestingTriggert={f}\n",
+            GetKeyName(), hsTimer::GetSysSeconds());
 #endif
 
     }
@@ -250,8 +256,8 @@ void plLogicModBase::PreTrigger(bool netRequest)
 void plLogicModBase::Trigger(bool netRequest)
 {
 #if 1
-    plNetClientApp::GetInstance()->DebugMsg("LogicModifier %s is triggering, activatorType=%d\n",
-        GetKeyName().c_str(), HasFlag(kTypeActivator));
+    plNetClientApp::GetInstance()->DebugMsg("LogicModifier {} is triggering, activatorType={}\n",
+        GetKeyName(), HasFlag(kTypeActivator));
 #endif
 
     ClearFlag(kRequestingTrigger);
@@ -273,10 +279,8 @@ void plLogicModBase::UnTrigger()
         return;
 
 #ifdef HS_DEBUGGING
-    char str[256];
-    sprintf(str, "LogicModifier %s is Un-triggering, activatorType=%d\n", 
-        GetKeyName().c_str(), HasFlag(kTypeActivator));
-    plNetClientApp::GetInstance()->DebugMsg(str);
+    plNetClientApp::GetInstance()->DebugMsg("LogicModifier {} is Un-triggering, activatorType={}\n",
+        GetKeyName(), HasFlag(kTypeActivator));
 #endif
     fNotify->SetSender(this->GetKey());
     fNotify->SetState(0.0f);

@@ -69,17 +69,17 @@ bool ReportRoomToServer(const plKey &key)
     plLocation keyLoc=key->GetUoid().GetLocation();
     bool skip=(keyLoc.IsReserved() || keyLoc.IsVirtual() ||
                 // HACK ALERT - replace with new uoid type flags
-                (!key->GetName().IsNull() &&
-                    (!key->GetName().CompareN("global", 6, plString::kCaseInsensitive) ||
-                    key->GetName().Find("_Male") >= 0 ||
-                    key->GetName().Find("_Female") >= 0
+                (!key->GetName().is_empty() &&
+                    (!key->GetName().compare_ni("global", 6) ||
+                    key->GetName().contains("_Male") ||
+                    key->GetName().contains("_Female")
                     )
                 )
             );  
     
     if (skip)
-        hsLogEntry(plNetApp::StaticDebugMsg("Not reporting room %s to server, reserved=%d, virtual=%d", 
-            key->GetName().c_str(), keyLoc.IsReserved(), keyLoc.IsVirtual()));
+        hsLogEntry(plNetApp::StaticDebugMsg("Not reporting room {} to server, reserved={}, virtual={}",
+            key->GetName(), keyLoc.IsReserved(), keyLoc.IsVirtual()));
     
     return !skip;
 }
@@ -110,7 +110,7 @@ void plAgeLoader::FinishedPagingInRoom(plKey* rmKey, int numRms)
             continue;
 
         pagingMsg->AddRoom(key);        
-        hsLogEntry(nc->DebugMsg("\tSending PageIn/RequestState msg, room=%s\n", key->GetName().c_str()));
+        hsLogEntry(nc->DebugMsg("\tSending PageIn/RequestState msg, room={}\n", key->GetName()));
     }
     if( pagingMsg->GetNumRooms() > 0 )  // all rooms were reserved
     {
@@ -148,7 +148,7 @@ void plAgeLoader::FinishedPagingOutRoom(plKey* rmKey, int numRms)
         if( found != fPendingPageOuts.end() )
         {
             fPendingPageOuts.erase( found );
-            nc->DebugMsg("Finished paging out room %s", rmKey[i]->GetName().c_str());
+            nc->DebugMsg("Finished paging out room {}", rmKey[i]->GetName());
         }
     }
 
@@ -179,7 +179,7 @@ void plAgeLoader::StartPagingOutRoom(plKey* rmKey, int numRms)
             continue;
     
         pagingMsg.AddRoom(rmKey[i]);
-        nc->DebugMsg("\tSending PageOut msg, room=%s", rmKey[i]->GetName().c_str());
+        nc->DebugMsg("\tSending PageOut msg, room={}", rmKey[i]->GetName());
     }
 
     if (!pagingMsg.GetNumRooms())   // all rooms were reserved
@@ -205,7 +205,7 @@ void plAgeLoader::IgnorePagingOutRoom(plKey* rmKey, int numRms)
         if( found != fPendingPageOuts.end() )
         {
             fPendingPageOuts.erase( found );
-            nc->DebugMsg("Ignoring paged out room %s", rmKey[i]->GetName().c_str());
+            nc->DebugMsg("Ignoring paged out room {}", rmKey[i]->GetName());
         }
     }
 
@@ -259,11 +259,11 @@ bool plAgeLoader::RemovePendingPageInRoomKey(plKey pKey)
 class plExcludePage
 {
     public:
-        plString fPageName;
-        plString fAgeName;
+        ST::string fPageName;
+        ST::string fAgeName;
 
         plExcludePage() { }
-        plExcludePage(const plString& p, const plString& a)
+        plExcludePage(const ST::string& p, const ST::string& a)
             : fPageName(p), fAgeName(a)
         { }
 };
@@ -275,26 +275,26 @@ void    plAgeLoader::ClearPageExcludeList( void )
     sExcludeList.Reset();
 }
 
-void    plAgeLoader::AddExcludedPage( const plString& pageName, const plString& ageName )
+void    plAgeLoader::AddExcludedPage( const ST::string& pageName, const ST::string& ageName )
 {
     sExcludeList.Append( plExcludePage( pageName, ageName ) );
 }
 
-bool    plAgeLoader::IsPageExcluded( const plAgePage *page, const plString& ageName )
+bool    plAgeLoader::IsPageExcluded( const plAgePage *page, const ST::string& ageName )
 {
     // check page flags
     if (page->GetFlags() & plAgePage::kPreventAutoLoad)
         return true;
 
     // check exclude list
-    plString pageName = page->GetName();
+    ST::string pageName = page->GetName();
     int     i;
     for( i = 0; i < sExcludeList.GetCount(); i++ )
     {
-        if( pageName.CompareI( sExcludeList[ i ].fPageName ) == 0 )
+        if( pageName.compare_i( sExcludeList[ i ].fPageName ) == 0 )
         {
-            if( ageName.IsEmpty() || sExcludeList[ i ].fAgeName.IsEmpty() ||
-                ageName.CompareI(sExcludeList[ i ].fAgeName) == 0 )
+            if( ageName.is_empty() || sExcludeList[ i ].fAgeName.is_empty() ||
+                ageName.compare_i(sExcludeList[ i ].fAgeName) == 0 )
             {
                 return true;
             }

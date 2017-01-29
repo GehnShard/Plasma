@@ -187,6 +187,9 @@ public:
 
     virtual float GetMass() {return fMass;}
 protected:
+    class NxConvexMesh* IReadHull(hsStream* s);
+    class NxTriangleMesh* IReadTriMesh(hsStream* s);
+
     void IGetPositionSim(hsPoint3& pos) const;
     void IGetRotationSim(hsQuat& rot) const;
     void ISetPositionSim(const hsPoint3& pos);
@@ -210,7 +213,7 @@ protected:
     /////////////////////////////////////////////////////////////
 
     /** Remember that we need to do a synch soon. */
-    bool DirtySynchState(const plString& SDLStateName, uint32_t synchFlags);
+    bool DirtySynchState(const ST::string& SDLStateName, uint32_t synchFlags);
 
     double GetLastSyncTime() { return fLastSyncTime; }
 

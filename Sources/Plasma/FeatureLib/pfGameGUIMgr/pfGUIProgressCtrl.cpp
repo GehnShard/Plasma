@@ -62,7 +62,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "pnSceneObject/plSceneObject.h"
 #include "pnSceneObject/plCoordinateInterface.h"
-#include "pnTimer/plTimerCallbackManager.h"
+#include "plTimerCallbackManager.h"
 
 #include "plgDispatch.h"
 #include "hsResMgr.h"
@@ -135,7 +135,7 @@ void    pfGUIProgressCtrl::UpdateBounds( hsMatrix44 *invXformMatrix, bool force 
 
 //// SetAnimationKeys ////////////////////////////////////////////////////////
 
-void    pfGUIProgressCtrl::SetAnimationKeys( hsTArray<plKey> &keys, const plString &name )
+void    pfGUIProgressCtrl::SetAnimationKeys( hsTArray<plKey> &keys, const ST::string &name )
 {
     fAnimationKeys = keys;
     fAnimName = name;

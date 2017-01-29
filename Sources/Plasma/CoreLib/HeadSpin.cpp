@@ -49,19 +49,16 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #pragma hdrstop
 
-#if defined(HS_DEBUGGING) && defined(HS_BUILD_FOR_UNIX)
+#if defined(HS_BUILD_FOR_UNIX)
 #   include <cstring>
 #   include <sys/stat.h>
 #   include <fcntl.h>
 #   include <unistd.h>
-#endif
-
-#if defined(HS_BUILD_FOR_UNIX)
 #   include <signal.h>
 #endif
 
 #include "hsTemplates.h"
-#include "plFormat.h"
+#include <string_theory/format>
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -488,13 +485,13 @@ char    *hsWStringToString( const wchar_t *str )
 // Microsoft SAMPLE CODE
 // returns array of allocated version info strings or nil
 //
-std::vector<plString> DisplaySystemVersion()
+std::vector<ST::string> DisplaySystemVersion()
 {
 #if HS_BUILD_FOR_WIN32
 #ifndef VER_SUITE_PERSONAL
 #define VER_SUITE_PERSONAL 0x200
 #endif
-    std::vector<plString> versionStrs;
+    std::vector<ST::string> versionStrs;
     OSVERSIONINFOEX osvi;
     BOOL bOsVersionInfoEx;
 
@@ -511,7 +508,7 @@ std::vector<plString> DisplaySystemVersion()
 
         osvi.dwOSVersionInfoSize = sizeof (OSVERSIONINFO);
         if (! GetVersionEx ( (OSVERSIONINFO *) &osvi) )
-            return std::vector<plString>();
+            return std::vector<ST::string>();
     }
 
     switch (osvi.dwPlatformId)
@@ -587,7 +584,7 @@ std::vector<plString> DisplaySystemVersion()
 
         if ( osvi.dwMajorVersion <= 4 )
         {
-            versionStrs.push_back(plFormat("version {}.{} {} (Build {})\n",
+            versionStrs.push_back(ST::format("version {}.{} {} (Build {})\n",
                 osvi.dwMajorVersion,
                 osvi.dwMinorVersion,
                 osvi.szCSDVersion,
@@ -595,7 +592,7 @@ std::vector<plString> DisplaySystemVersion()
         }
         else
         {
-            versionStrs.push_back(plFormat("{} (Build {})\n",
+            versionStrs.push_back(ST::format("{} (Build {})\n",
                 osvi.szCSDVersion,
                 osvi.dwBuildNumber & 0xFFFF));
         }
@@ -631,6 +628,6 @@ std::vector<plString> DisplaySystemVersion()
 
     return versionStrs;
 #else
-    return std::vector<plString>();
+    return std::vector<ST::string>();
 #endif
 }

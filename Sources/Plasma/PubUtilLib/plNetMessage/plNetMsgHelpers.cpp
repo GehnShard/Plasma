@@ -281,7 +281,7 @@ bool plNetMsgStreamHelper::Compress(int offset)
         SetStreamBuf(buf);
         int32_t diff = uncompressedSize-bufLen;
 #if 0
-        plNetApp::StaticDebugMsg( "\tCompressed stream: %lu->%lu bytes, (%s %d bytes, %.1f%%)",
+        plNetApp::StaticDebugMsg( "\tCompressed stream: {}->{} bytes, ({} {} bytes, {.1f}%)",
             uncompressedSize, bufLen, (diff>=0)?"shrunk":"GREW?!?", diff, (diff/(float)uncompressedSize)*100 );
 #endif
         return true;
@@ -310,7 +310,7 @@ bool plNetMsgStreamHelper::Uncompress(int offset)
         SetStreamBuf(buf);
         int32_t diff = bufLen-origLen;
 #if 0
-        plNetApp::StaticDebugMsg( "\tUncompressed stream: %lu->%lu bytes, (%s %d bytes, %.1f%%)",
+        plNetApp::StaticDebugMsg( "\tUncompressed stream: {}->{} bytes, ({} {} bytes, {.1f}%)",
             origLen, bufLen, (diff>=0)?"grew":"SHRUNK?!?", diff, (diff/(float)bufLen)*100 );
 #endif
         return true;
@@ -364,7 +364,7 @@ int plNetMsgObjectHelper::Peek(hsStream* stream, const uint32_t peekOptions)
 
 bool plNetMsgObjectHelper::SetFromKey(const plKey &key)
 {
-    if (!key || key->GetName().IsNull())
+    if (!key || key->GetName().is_empty())
         return false;
     
     fUoid = key->GetUoid();
