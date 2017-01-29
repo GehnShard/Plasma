@@ -6220,6 +6220,11 @@ its draw, physics, avatar, particle objects"""
         """Tells the volume sensor attached to this object to ignore extra enters (default), or not (hack for garrison)."""
         pass
 
+    def volumeSensorNoArbitration(self, noArbitration):
+        """Tells the volume sensor attached to this object whether or not to negotiate exclusive locks with the server."""
+        pass
+
+
 class ptSimpleStateVariable:
     """Basic SDL state data record class"""
     def __init__(self):
@@ -8311,6 +8316,10 @@ class ptVaultMarkerGameNode(ptVaultNode):
         """Returns the node ID of the owner of this node"""
         pass
 
+    def getReward(self):
+        """Returns a string representing the reward for completing this game"""
+        pass
+
     def getType(self):
         """Returns the type of ptVaultNode this is.
 See PlasmaVaultTypes.py"""
@@ -8370,6 +8379,10 @@ See PlasmaVaultTypes.py"""
 
     def setOwnerNodeID(self,id):
         """Set node ID of the owner of this node"""
+        pass
+
+    def setReward(self,reward):
+        """Sets the reward for completing this marker game"""
         pass
 
     def setType(self,type):
