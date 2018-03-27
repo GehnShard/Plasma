@@ -48,6 +48,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 REGISTER_CREATABLE(plPXPhysical);
 
+#include "plPXSubWorld.h"
+REGISTER_CREATABLE(plPXSubWorld);
+
 //#include "plHKSimulationSynchMsg.h"
 //REGISTER_CREATABLE(plHKSimulationSynchMsg);
 

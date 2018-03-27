@@ -39,42 +39,37 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#ifndef plApplyStoredAvatarSettingsMsg_h
-#define plApplyStoredAvatarSettingsMsg_h
 
-#include "../pnMessage/plMessage.h"
-#include "../plNetCommon/plNetAvatarVault.h"
-#include "hsResMgr.h"
+#ifndef plPXSubWorld_h_inc
+#define plPXSubWorld_h_inc
 
+#include "pnSceneObject/plObjInterface.h"
+#include "hsGeometry3.h"
 
-class plApplyStoredAvatarSettingsMsg : public plMessage
+#define X_GRAVITY 0.f
+#define Y_GRAVITY 0.f
+#define Z_GRAVITY -32.174049f
+
+class plPXSubWorld : public plObjInterface
 {
+    hsVector3 fGravity;
+
 public:
-    CLASSNAME_REGISTER( plApplyStoredAvatarSettingsMsg );
-    GETINTERFACE_ANY( plApplyStoredAvatarSettingsMsg, plMessage );
+    plPXSubWorld() : fGravity(X_GRAVITY, Y_GRAVITY, Z_GRAVITY) { }
+    plPXSubWorld(const hsVector3& gravity) : fGravity(gravity) { }
 
-    void SetSettings(const plStoredAvatarSettings & settings) { fSettings=settings;}
-    const plStoredAvatarSettings & GetSettings() const { return fSettings;}
-    const plKey * GetAvatarKey() const { return fAvatarKey;}
-    void SetAvatarKey(plKey * key) { fAvatarKey=key;}
+    CLASSNAME_REGISTER(plPXSubWorld);
+    GETINTERFACE_ANY(plPXSubWorld, plObjInterface);
 
-    void Read(hsStream * stream, hsResMgr * mgr)
-    {
-        plMessage::IMsgRead(stream, mgr);
-        fSettings.Read(stream);
-        fAvatarKey = mgr->ReadKey(stream);
-    }
+    void Read(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void Write(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
 
-    void Write(hsStream * stream, hsResMgr * mgr)
-    {
-        plMessage::IMsgWrite(stream, mgr);
-        fSettings.Write(stream);
-        mgr->WriteKey(stream,fAvatarKey);
-    }
-private:
-    plStoredAvatarSettings  fSettings;
-    plKey *                 fAvatarKey;
+    int32_t GetNumProperties() const HS_OVERRIDE { return 0; }
+    void SetTransform(const hsMatrix44& l2w, const hsMatrix44& w2l) HS_OVERRIDE;
+
+    const hsVector3& GetGravity() const { return fGravity; }
+    hsVector3& GetGravity() { return fGravity; }
+    void SetGravity(const hsVector3& gravity) { fGravity = gravity; }
 };
 
-
-#endif //plApplyStoredAvatarSettingsMsg_h
+#endif // plPXSubWorld_h_inc

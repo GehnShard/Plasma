@@ -50,6 +50,7 @@ set_package_properties(string_theory PROPERTIES
     TYPE REQUIRED
 )
 include_directories(${STRING_THEORY_INCLUDE_DIRS})
+add_definitions(-DST_NO_2_0_DEPRECATION)
 
 find_package(OpenSSL REQUIRED)
 set_package_properties(OpenSSL PROPERTIES
@@ -174,6 +175,14 @@ if(WIN32)
         TYPE REQUIRED
     )
 endif(WIN32)
+
+if(UNIX AND NOT APPLE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LIBSECRET libsecret-1)
+    if(LIBSECRET_FOUND)
+        set(HAVE_LIBSECRET TRUE)
+    endif(LIBSECRET_FOUND)
+endif(UNIX AND NOT APPLE)
 
 if(VPX_FOUND AND Opus_FOUND)
     set(MOVIE_AVAILABLE TRUE)
