@@ -50,6 +50,7 @@ set_package_properties(string_theory PROPERTIES
     TYPE REQUIRED
 )
 include_directories(${STRING_THEORY_INCLUDE_DIRS})
+add_definitions(-DST_NO_2_0_DEPRECATION)
 
 find_package(OpenSSL REQUIRED)
 set_package_properties(OpenSSL PROPERTIES
@@ -167,13 +168,15 @@ if(WIN32)
         DESCRIPTION "Library for hardware-accelerated physics simulation for gaming"
         TYPE REQUIRED
     )
-
-    find_package(DirectX REQUIRED)
-    set_package_properties(DirectX PROPERTIES
-        DESCRIPTION "Framework for hardware-accelerated 3D graphics on Microsoft platforms"
-        TYPE REQUIRED
-    )
 endif(WIN32)
+
+if(UNIX AND NOT APPLE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LIBSECRET libsecret-1)
+    if(LIBSECRET_FOUND)
+        set(HAVE_LIBSECRET TRUE)
+    endif(LIBSECRET_FOUND)
+endif(UNIX AND NOT APPLE)
 
 if(VPX_FOUND AND Opus_FOUND)
     set(MOVIE_AVAILABLE TRUE)
@@ -222,6 +225,31 @@ endif(PLASMA_TARGETS STREQUAL "NoAvMsgs")
 if(PLASMA_TARGETS STREQUAL "Ethereal")
     add_definitions(-DSTREAM_LOGGER)
 endif(PLASMA_TARGETS STREQUAL "Ethereal")
+
+
+if(WIN32)
+    set(PLASMA_PIPELINE "DirectX"
+                        CACHE STRING "Which graphics backend to use")
+else(WIN32)
+    set(PLASMA_PIPELINE "OpenGL"
+                        CACHE STRING "Which graphics backend to use")
+endif(WIN32)
+set_property(CACHE PLASMA_PIPELINE PROPERTY STRINGS "DirectX" "OpenGL")
+
+if(PLASMA_PIPELINE STREQUAL "DirectX")
+    find_package(DirectX REQUIRED)
+    set_package_properties(DirectX PROPERTIES
+        DESCRIPTION "Framework for hardware-accelerated 3D graphics on Microsoft platforms"
+        TYPE REQUIRED
+    )
+
+    add_definitions(-DPLASMA_PIPELINE_DX)
+endif(PLASMA_PIPELINE STREQUAL "DirectX")
+
+if(PLASMA_PIPELINE STREQUAL "OpenGL")
+    find_package(OpenGL REQUIRED)
+    add_definitions(-DPLASMA_PIPELINE_GL)
+endif(PLASMA_PIPELINE STREQUAL "OpenGL")
 
 #Allow us to disable certain parts of the build
 option(PLASMA_BUILD_RESOURCE_DAT "Do we want to build resource.dat?" ON)

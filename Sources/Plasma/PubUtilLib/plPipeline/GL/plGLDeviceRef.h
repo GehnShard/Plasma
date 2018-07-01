@@ -39,3 +39,35 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+#ifndef _plGLDeviceRef_inc_
+#define _plGLDeviceRef_inc_
+
+#include "HeadSpin.h"
+#include "hsGDeviceRef.h"
+
+#include <GL/gl.h>
+
+class plGLDeviceRef : public hsGDeviceRef
+{
+protected:
+    GLint fRef;
+
+    plGLDeviceRef*  fNext;
+    plGLDeviceRef** fBack;
+
+public:
+    void            Unlink();
+    void            Link(plGLDeviceRef **back);
+    plGLDeviceRef*  GetNext() { return fNext; }
+    bool            IsLinked() { return fBack != nullptr; }
+
+    virtual void    Release() = 0;
+
+    plGLDeviceRef();
+
+    virtual ~plGLDeviceRef();
+};
+
+
+#endif // _plGLDeviceRef_inc_
+

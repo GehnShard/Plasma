@@ -39,3 +39,22 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+
+#include "plPXSubWorld.h"
+
+void plPXSubWorld::Read(hsStream* s, hsResMgr* mgr)
+{
+    plObjInterface::Read(s, mgr);
+    fGravity.Read(s);
+}
+
+void plPXSubWorld::Write(hsStream* s, hsResMgr* mgr)
+{
+    plObjInterface::Write(s, mgr);
+    fGravity.Write(s);
+}
+
+void plPXSubWorld::SetTransform(const hsMatrix44& l2w, const hsMatrix44& w2l)
+{
+    // All this magick is handled elsewhere... Not asserting due to call spam.
+}

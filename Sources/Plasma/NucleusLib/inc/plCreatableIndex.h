@@ -367,6 +367,7 @@ CLASS_INDEX_LIST_START
     CLASS_INDEX(plDynamicCamMap),
     CLASS_INDEX(plRidingAnimatedPhysicalDetector),
     CLASS_INDEX(plVolumeSensorConditionalObjectNoArbitration),
+    CLASS_INDEX(plPXSubWorld),
 //---------------------------------------------------------
 // Keyed objects above this line, unkeyed (such as messages) below..
 //---------------------------------------------------------
@@ -952,6 +953,8 @@ CLASS_INDEX_LIST_START
     CLASS_INDEX(pfGameScoreTransferMsg),
     CLASS_INDEX(pfGameScoreUpdateMsg),
     CLASS_INDEX(plLoadClothingMsg),
+    CLASS_INDEX(pl3DPipeline),
+    CLASS_INDEX(plGLPipeline),
 CLASS_INDEX_LIST_END
 
 #endif // plCreatableIndex_inc

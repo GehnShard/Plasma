@@ -39,7 +39,53 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+#include "plPipeline/hsWinRef.h"
+
+#include "plGLPipeline.h"
+#include "plGLDeviceRef.h"
+
+#include "plProfile.h"
+#include "plStatusLog/plStatusLog.h"
+
+plProfile_CreateMemCounter("Vertices", "Memory", MemVertex);
+plProfile_CreateMemCounter("Indices", "Memory", MemIndex);
+plProfile_CreateMemCounter("Textures", "Memory", MemTexture);
 
 
-// Future home of plResMgr
+/*****************************************************************************
+ ** Generic plGLDeviceRef Functions                                         **
+ *****************************************************************************/
+plGLDeviceRef::plGLDeviceRef()
+{
+    fNext = nullptr;
+    fBack = nullptr;
+}
 
+plGLDeviceRef::~plGLDeviceRef()
+{
+    if (fNext != nullptr || fBack != nullptr)
+        Unlink();
+}
+
+void plGLDeviceRef::Unlink()
+{
+    hsAssert(fBack, "plGLDeviceRef not in list");
+
+    if (fNext)
+        fNext->fBack = fBack;
+    *fBack = fNext;
+
+    fBack = nullptr;
+    fNext = nullptr;
+}
+
+void plGLDeviceRef::Link(plGLDeviceRef** back)
+{
+    hsAssert(fNext == nullptr && fBack == nullptr, "Trying to link a plGLDeviceRef that's already linked");
+
+    fNext = *back;
+    if (*back)
+        (*back)->fBack = &fNext;
+    fBack = back;
+    *back = this;
+}

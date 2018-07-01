@@ -39,3 +39,41 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+#ifndef _plGLDevice_h_
+#define _plGLDevice_h_
+
+#include "hsMatrix44.h"
+
+class plGLPipeline;
+class plRenderTarget;
+
+class plGLDevice
+{
+protected:
+    plGLPipeline*       fPipeline;
+
+public:
+    /**
+     * Set rendering to the specified render target.
+     *
+     * Null rendertarget is the primary. Invalidates the state as required by
+     * experience, not documentation.
+     */
+    void SetRenderTarget(plRenderTarget* target);
+
+    /** Translate our viewport into a D3D viewport. */
+    void SetViewport();
+
+
+    void SetProjectionMatrix(const hsMatrix44& src);
+    void SetWorldToCameraMatrix(const hsMatrix44& src);
+    void SetLocalToWorldMatrix(const hsMatrix44& src);
+
+    struct VertexBufferRef;
+    struct IndexBufferRef;
+
+    const char* GetErrorString();
+};
+
+#endif
+

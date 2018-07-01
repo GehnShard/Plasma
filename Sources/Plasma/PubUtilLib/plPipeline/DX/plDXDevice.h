@@ -39,29 +39,64 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#ifndef plTempKey_inc
-#define plTempKey_inc
+#ifndef _plDXDevice_h_
+#define _plDXDevice_h_
 
-#include "plKeyImp.h"   
+#include "HeadSpin.h"
+#include "hsMatrix44.h"
+#include "plDXBufferRefs.h"
 
-class hsKeyedObject;
+#include "hsWindows.h"
+#include <d3d9.h>
 
-    //------------------------------------
-    // plTempKey is a handle to a keyedObject, which is not registered
-    // The key may be handed to others to send messages.
-    // when done with a plTempKey call ReleaseTemporary (from Base class plKey)
-    //------------------------------------
+class plDXPipeline;
+class plRenderTarget;
+struct IDirect3DDevice9;
+struct IDirect3DSurface9;
 
-class plTempKey : public plKeyImp
+class plDXDevice
 {
+public:
+    typedef plDXVertexBufferRef VertexBufferRef;
+    typedef plDXIndexBufferRef  IndexBufferRef;
 
 public:
-        plTempKey(hsKeyedObject *pO,const char *nm=nil);
-        plTempKey(plUoid u) { fUoid=u; }    // used server side
-        ~plTempKey();       // USE plKey->ReleaseTemporary to delete this...
+    plDXPipeline*       fPipeline;
+    hsWindowHndl        fHWnd;
 
-        virtual void        VerifyLoaded() const;
+    IDirect3DDevice9*   fD3DDevice;
+    IDirect3DSurface9*  fD3DMainSurface;
+    IDirect3DSurface9*  fD3DDepthSurface;
+    IDirect3DSurface9*  fD3DBackBuff;
+
+    IDirect3DSurface9*  fCurrD3DMainSurface;
+    IDirect3DSurface9*  fCurrD3DDepthSurface;
+
+    D3DCULL             fCurrCullMode;
+
+
+public:
+    plDXDevice();
+
+    bool InitDevice();
+
+    /**
+     * Set rendering to the specified render target.
+     *
+     * Null rendertarget is the primary. Invalidates the state as required by
+     * experience, not documentation.
+     */
+    void SetRenderTarget(plRenderTarget* target);
+
+    /** Translate our viewport into a D3D viewport. */
+    void SetViewport();
+
+
+    void SetProjectionMatrix(const hsMatrix44& src);
+    void SetWorldToCameraMatrix(const hsMatrix44& src);
+    void SetLocalToWorldMatrix(const hsMatrix44& src);
+
+    const char* GetErrorString() const;
 };
 
-
-#endif 
+#endif

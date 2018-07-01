@@ -39,42 +39,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#ifndef plApplyStoredAvatarSettingsMsg_h
-#define plApplyStoredAvatarSettingsMsg_h
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+//  plGLPipeline Class Functions                                             //
+//  plPipeline derivative for OpenGL ES                                      //
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
 
-#include "../pnMessage/plMessage.h"
-#include "../plNetCommon/plNetAvatarVault.h"
-#include "hsResMgr.h"
+#include "HeadSpin.h"
+#include "hsWindows.h"
+#include "plPipeline/hsWinRef.h"
 
+#include "plGLPipeline.h"
+#include "plPipeline/plPipelineCreate.h"
 
-class plApplyStoredAvatarSettingsMsg : public plMessage
-{
-public:
-    CLASSNAME_REGISTER( plApplyStoredAvatarSettingsMsg );
-    GETINTERFACE_ANY( plApplyStoredAvatarSettingsMsg, plMessage );
-
-    void SetSettings(const plStoredAvatarSettings & settings) { fSettings=settings;}
-    const plStoredAvatarSettings & GetSettings() const { return fSettings;}
-    const plKey * GetAvatarKey() const { return fAvatarKey;}
-    void SetAvatarKey(plKey * key) { fAvatarKey=key;}
-
-    void Read(hsStream * stream, hsResMgr * mgr)
-    {
-        plMessage::IMsgRead(stream, mgr);
-        fSettings.Read(stream);
-        fAvatarKey = mgr->ReadKey(stream);
-    }
-
-    void Write(hsStream * stream, hsResMgr * mgr)
-    {
-        plMessage::IMsgWrite(stream, mgr);
-        fSettings.Write(stream);
-        mgr->WriteKey(stream,fAvatarKey);
-    }
-private:
-    plStoredAvatarSettings  fSettings;
-    plKey *                 fAvatarKey;
-};
-
-
-#endif //plApplyStoredAvatarSettingsMsg_h
+#ifdef HS_SIMD_INCLUDE
+#  include HS_SIMD_INCLUDE
+#endif

@@ -44,6 +44,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsStream.h"
 #include "hsExceptions.h"
 
+#include "plProduct.h"
+#include <ctime>
+
 #include "plPNG.h"
 #include "plGImage/plMipmap.h"
 
@@ -189,7 +192,7 @@ plMipmap* plPNG::ReadFromFile(const plFileName& fileName)
     return ret;
 }
 
-bool plPNG::IWrite(plMipmap* source, hsStream* outStream)
+bool plPNG::IWrite(plMipmap* source, hsStream* outStream, const std::multimap<ST::string, ST::string>& textFields)
 {
     bool result = true;
 
@@ -226,11 +229,56 @@ bool plPNG::IWrite(plMipmap* source, hsStream* outStream)
             row_ptrs[i] = (png_bytep)srcp + (i * stride);
         }
 
+        // Write image data
         png_write_image(png_ptr, row_ptrs);
+
+        // Prepare Textual Metadata
+        char time_string[50]; // RFC-1123: "Day, DD-Mon-YYYY hh:mm:ss";
+        time_t rawtime = time(nullptr);
+        strftime(time_string, sizeof(time_string), "%a, %d-%b-%Y %T", gmtime(&rawtime));
+
+        std::vector<std::pair<ST::char_buffer, ST::char_buffer>> all_fields;
+        auto addField = [&](const ST::string& key, const ST::string& value) {
+            auto keyData = key.left(PNG_KEYWORD_MAX_LENGTH).trim().to_latin_1();
+#ifdef PNG_WRITE_iTXT_SUPPORTED
+            auto valueData = value.to_utf8();
+#else
+            auto valueData = value.to_latin_1();
+#endif
+            all_fields.emplace_back(std::move(keyData), std::move(valueData));
+        };
+        // Add our standard fields, then combine with the custom fields
+        all_fields.reserve(textFields.size() + 2);
+        addField("Software", plProduct::ProductString());
+        addField("Creation Time", time_string);
+        for (auto field : textFields)
+            addField(field.first, field.second);
+
+        png_text* text = new png_text[all_fields.size()];
+        size_t num_txtfields = 0;
+        for (auto it = all_fields.begin(); it != all_fields.end(); it++, num_txtfields++) {
+            // The PNG specification requires Latin-1 in the 'key' field
+            text[num_txtfields].key = (png_charp)it->first.data();
+            text[num_txtfields].text = (png_charp)it->second.data();
+#ifdef PNG_WRITE_iTXT_SUPPORTED
+            text[num_txtfields].lang = "en-us";  //  Language used in 'text' and 'lang_key'.
+            text[num_txtfields].lang_key = "";   //  Translation of 'key' into 'lang', if needed.
+            text[num_txtfields].compression = PNG_ITXT_COMPRESSION_NONE;
+#else
+            text[num_txtfields].compression = PNG_TEXT_COMPRESSION_NONE;
+#endif
+        }
+
+        // Write Textual Metadata
+        png_set_text(png_ptr, info_ptr, text, num_txtfields);
+
+        // Finish Up
         png_write_end(png_ptr, info_ptr);
+
         //  Clean up allocated structs
         png_destroy_write_struct(&png_ptr, &info_ptr);
         delete [] row_ptrs;
+        delete [] text;
     } catch (...) {
         result = false;
     }
@@ -238,7 +286,7 @@ bool plPNG::IWrite(plMipmap* source, hsStream* outStream)
     return result;
 }
 
-bool plPNG::WriteToFile(const plFileName& fileName, plMipmap* sourceData)
+bool plPNG::WriteToFile(const plFileName& fileName, plMipmap* sourceData, const std::multimap<ST::string, ST::string>& textFields)
 {
     hsUNIXStream out;
 
@@ -246,7 +294,7 @@ bool plPNG::WriteToFile(const plFileName& fileName, plMipmap* sourceData)
         return false;
     }
 
-    bool ret = IWrite(sourceData, &out);
+    bool ret = IWrite(sourceData, &out, textFields);
     out.Close();
     return ret;
 }
