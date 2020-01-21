@@ -81,17 +81,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 ///////////////////////////////////////////////////////////////////////////
 
-static void CDECL LogDumpProc (
-    void *              ,
-    const wchar_t       *fmt,
-    ...
-) {
-    va_list args;
-    va_start(args, fmt);
-    LogMsgV(kLogDebug, fmt, args);
-    va_end(args);
-}
-
 pyVaultNode::pyVaultNodeOperationCallback::pyVaultNodeOperationCallback(PyObject * cbObject)
 : fCbObject( cbObject )
 , fPyNodeRef(nil)
@@ -119,7 +108,8 @@ void pyVaultNode::pyVaultNodeOperationCallback::VaultOperationStarted( uint32_t 
             {
                 if ( PyCallable_Check(func)>0 )
                 {
-                    PyObject* retVal = PyObject_CallMethod(fCbObject, "vaultOperationStarted", "l", context);
+                    PyObject* retVal = PyObject_CallMethod(fCbObject,
+                                            _pycs("vaultOperationStarted"), _pycs("l"), context);
                     Py_XDECREF(retVal);
                 }
             }
@@ -145,7 +135,9 @@ void pyVaultNode::pyVaultNodeOperationCallback::VaultOperationComplete( uint32_t
                     PyObject* t = PyTuple_New(2);
                     PyTuple_SetItem(t, 0, pyNode);
                     PyTuple_SetItem(t, 1, fPyNodeRef);
-                    PyObject* retVal = PyObject_CallMethod(fCbObject, "vaultOperationComplete", "lOi", context, t, resultCode);
+                    PyObject* retVal = PyObject_CallMethod(fCbObject,
+                                            _pycs("vaultOperationComplete"), _pycs("lOi"),
+                                            context, t, resultCode);
                     Py_XDECREF(retVal);
                     Py_DECREF(t);
                 }
@@ -482,7 +474,7 @@ void pyVaultNode::RemoveAllNodes( void )
     if (!fNode)
         return;
         
-    ARRAY(unsigned) nodeIds;
+    TArray<unsigned> nodeIds;
     fNode->GetChildNodeIds(&nodeIds, 1);
     for (unsigned i = 0; i < nodeIds.Count(); ++i)
         VaultRemoveChildNode(fNode->GetNodeId(), nodeIds[i], nil, nil);
@@ -580,7 +572,7 @@ int pyVaultNode::GetChildNodeCount()
     if (!fNode)
         return 0;
         
-    ARRAY(unsigned) nodeIds;
+    TArray<unsigned> nodeIds;
     fNode->GetChildNodeIds(&nodeIds, 1);
     
     return nodeIds.Count();
@@ -629,21 +621,6 @@ PyObject* pyVaultNode::FindNode( pyVaultNode * templateNode )
     
     if (result)
         return result;
-
-    PYTHON_RETURN_NONE;
-}
-
-PyObject * pyVaultNode::GetChildNode (unsigned nodeId) {
-
-    if (!fNode)
-        PYTHON_RETURN_NONE;
-        
-    hsRef<RelVaultNode> templateNode = new RelVaultNode;
-    templateNode->SetNodeId(nodeId);
-    hsRef<RelVaultNode> rvn = fNode->GetChildNode(templateNode, 1);
-    
-    if (rvn)
-        return pyVaultNode::New(rvn);
 
     PYTHON_RETURN_NONE;
 }

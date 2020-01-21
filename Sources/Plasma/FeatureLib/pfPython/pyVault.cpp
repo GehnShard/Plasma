@@ -534,7 +534,7 @@ void pyVault::InvitePlayerToAge( const pyAgeLinkStruct & link, uint32_t playerID
     VaultTextNoteNode visitAcc(templateNode);
     visitAcc.SetNoteType(plVault::kNoteType_Visit);
     visitAcc.SetVisitInfo(*link.GetAgeLink()->GetAgeInfo());
-    VaultCreateNode(templateNode, (FVaultCreateNodeCallback)_InvitePlayerToAge, nil, (void*)playerID);
+    VaultCreateNode(templateNode, (FVaultCreateNodeCallback)_InvitePlayerToAge, nil, (void*)(uintptr_t)playerID);
 }
 
 //============================================================================
@@ -562,7 +562,7 @@ void pyVault::UnInvitePlayerToAge( const char * str, uint32_t playerID )
     VaultTextNoteNode visitAcc(templateNode);
     visitAcc.SetNoteType(plVault::kNoteType_UnVisit);
     visitAcc.SetVisitInfo(info);
-    VaultCreateNode(templateNode, (FVaultCreateNodeCallback)_UninvitePlayerToAge, nil, (void*)playerID);
+    VaultCreateNode(templateNode, (FVaultCreateNodeCallback)_UninvitePlayerToAge, nil, (void*)(uintptr_t)playerID);
 }
 
 //============================================================================
@@ -590,8 +590,7 @@ void pyVault::CreateNeighborhood()
     ST::string title;
     ST::string desc;
 
-    unsigned nameLen = nc->GetPlayerName().size();
-    if (nc->GetPlayerName().char_at(nameLen - 1) == 's' || nc->GetPlayerName().char_at(nameLen - 1) == 'S')
+    if (nc->GetPlayerName().back() == 's' || nc->GetPlayerName().back() == 'S')
     {
         title = ST::format("{}'", nc->GetPlayerName());
         desc = ST::format("{}' {}", nc->GetPlayerName(), link.GetAgeInfo()->GetAgeInstanceName());
@@ -640,7 +639,7 @@ PyObject* pyVault::FindNode( pyVaultNode* templateNode ) const
         return pyVaultNode::New(rvn);
     
     // See if a matching node exists on the server
-    ARRAY(unsigned) nodeIds;
+    TArray<unsigned> nodeIds;
     VaultFindNodesAndWait(templateNode->GetNode(), &nodeIds);
     
     if (nodeIds.Count()) {

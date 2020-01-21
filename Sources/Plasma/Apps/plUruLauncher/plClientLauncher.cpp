@@ -62,13 +62,15 @@ PF_CONSOLE_LINK_FILE(Core)
 #include <algorithm>
 #include <curl/curl.h>
 #include <deque>
+#include <thread>
+#include <chrono>
 
 plClientLauncher::ErrorFunc s_errorProc = nullptr; // don't even ask, cause I'm not happy about this.
 
 const int kNetTransTimeout = 5 * 60 * 1000;        // 5m
 const int kShardStatusUpdateTime = 5;              // 5s
 const int kAsyncCoreShutdownTime = 2 * 1000;       // 2s
-const int kNetCoreUpdateSleepTime = 10;            // 10ms
+const std::chrono::milliseconds kNetCoreUpdateSleepTime(10);    // 10ms
 
 // ===================================================
 
@@ -107,6 +109,8 @@ void plShardStatus::Run()
     curl_easy_setopt(curl.get(), CURLOPT_ERRORBUFFER, fCurlError);
     curl_easy_setopt(curl.get(), CURLOPT_USERAGENT, "UruClient/1.0");
     curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1);
+    curl_easy_setopt(curl.get(), CURLOPT_MAXREDIRS, 5);
     curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, this);
     curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, ICurlCallback);
 
@@ -119,7 +123,7 @@ void plShardStatus::Run()
         if (GetQuit())
             break;
 
-        if (!url.is_empty() && curl_easy_perform(curl.get()))
+        if (!url.empty() && curl_easy_perform(curl.get()))
             fShardFunc(fCurlError);
         fLastUpdate = hsTimer::GetSysSeconds();
     } while (!GetQuit());
@@ -201,7 +205,8 @@ plClientLauncher::plClientLauncher() :
     fPatcherFactory(nullptr),
     fClientExecutable(plManifest::ClientExecutable()),
     fStatusThread(new plShardStatus()),
-    fInstallerThread(new plRedistUpdater())
+    fInstallerThread(new plRedistUpdater()),
+    fNetCoreState(kNetCoreInactive)
 {
     pfPatcher::GetLog()->AddLine(plProduct::ProductString().c_str());
 }
@@ -256,8 +261,20 @@ bool plClientLauncher::IApproveDownload(const plFileName& file)
 {
     // So, for a repair, what we want to do is quite simple.
     // That is: download everything that is NOT in the root directory.
-    plFileName path = file.StripFileName();
-    return !path.AsString().is_empty();
+    if (hsCheckBits(fFlags, kGameDataOnly)) {
+        plFileName path = file.StripFileName();
+        return path.IsValid();
+    }
+
+    // If we have successfully self-patched, don't accept any manifest
+    // entries matching the patcher, in case the patcher appears in the
+    // client manifests...
+    if (hsCheckBits(fFlags, kHaveSelfPatched)) {
+        return file.AsString().compare_i(plManifest::PatcherExecutable().AsString()) != 0;
+    }
+
+    // Passes a sniff test!
+    return true;
 }
 
 void plClientLauncher::LaunchClient() const
@@ -279,12 +296,9 @@ void plClientLauncher::PatchClient()
 
     pfPatcher* patcher = fPatcherFactory();
     patcher->OnCompletion(std::bind(&plClientLauncher::IOnPatchComplete, this, std::placeholders::_1, std::placeholders::_2));
+    patcher->OnFileDownloadDesired(std::bind(&plClientLauncher::IApproveDownload, this, std::placeholders::_1));
     patcher->OnSelfPatch([&](const plFileName& file) { fClientExecutable = file; });
     patcher->OnRedistUpdate([&](const plFileName& file) { fInstallerThread->fRedistQueue.push_back(file); });
-
-    // If this is a repair, we need to approve the downloads...
-    if (hsCheckBits(fFlags, kGameDataOnly))
-        patcher->OnFileDownloadDesired(std::bind(&plClientLauncher::IApproveDownload, this, std::placeholders::_1));
 
     // Let's get 'er done.
     if (hsCheckBits(fFlags, kHaveSelfPatched)) {
@@ -369,26 +383,33 @@ void plClientLauncher::InitializeNetCore()
 
     NetCliGateKeeperStartConnect(addrs, num);
     NetCliGateKeeperFileSrvIpAddressRequest(IGotFileServIPs, this, true);
+
+    // Windows is getting a little unreliable about reporting its own state, so we keep
+    // track of whether or not we are active now.
+    fNetCoreState = kNetCoreActive;
 }
 
 // ===================================================
 
-void plClientLauncher::PumpNetCore() const
+bool plClientLauncher::PumpNetCore() const
 {
     // this ain't net core, but it needs to be pumped :(
     hsTimer::IncSysSeconds();
 
-    // pump eap
-    NetClientUpdate();
+    if (fNetCoreState == kNetCoreActive) {
+        // pump eap
+        NetClientUpdate();
 
-    // pump shard status
-    fStatusThread->Update();
+        // pump shard status
+        fStatusThread->Update();
+    }
 
     // don't nom all the CPU... kthx
-    hsSleep::Sleep(kNetCoreUpdateSleepTime);
+    std::this_thread::sleep_for(kNetCoreUpdateSleepTime);
+    return fNetCoreState != kNetCoreShutdown;
 }
 
-void plClientLauncher::ShutdownNetCore() const
+void plClientLauncher::ShutdownNetCore()
 {
     // shutdown shard status
     fStatusThread->Shutdown();
@@ -404,6 +425,9 @@ void plClientLauncher::ShutdownNetCore() const
 
     // shutdown eap (part deux)
     AsyncCoreDestroy(kAsyncCoreShutdownTime);
+
+    // Denote shutdown
+    fNetCoreState = kNetCoreShutdown;
 }
 
 // ===================================================

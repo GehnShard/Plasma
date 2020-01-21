@@ -39,37 +39,64 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+#ifndef _plDXDevice_h_
+#define _plDXDevice_h_
 
-//////////////////////////////////////////////////////////////////////////////
-//                                                                          //
-//  CCR Console Commands and Groups                                         //
-//  These console commands are meant for use by customer care reps.         //
-//  Eventually the functionality defined here will be accessed through a GUI//
-//                                                                          //
-//////////////////////////////////////////////////////////////////////////////
+#include "HeadSpin.h"
+#include "hsMatrix44.h"
+#include "plDXBufferRefs.h"
 
-//
-// Only calls to the CCRMgr interface are allowed here
-// See me if you need to include any other files...
-//
-#include "pfConsoleCore/pfConsoleCmd.h"
-#include "pfConsole.h"
-#include "pfCCR/plCCRMgr.h"
-#include "plNetClient/plNetClientMgr.h"
+#include "hsWindows.h"
+#include <d3d9.h>
 
-//// DO NOT REMOVE!!!!
-//// This is here so Microsoft VC won't decide to "optimize" this file out
-PF_CONSOLE_FILE_DUMMY(CCR)
-//// DO NOT REMOVE!!!!
+class plDXPipeline;
+class plRenderTarget;
+struct IDirect3DDevice9;
+struct IDirect3DSurface9;
 
-void PrintStringF(void pfun(const char *),const char * fmt, ...);
+class plDXDevice
+{
+public:
+    typedef plDXVertexBufferRef VertexBufferRef;
+    typedef plDXIndexBufferRef  IndexBufferRef;
+
+public:
+    plDXPipeline*       fPipeline;
+    hsWindowHndl        fHWnd;
+
+    IDirect3DDevice9*   fD3DDevice;
+    IDirect3DSurface9*  fD3DMainSurface;
+    IDirect3DSurface9*  fD3DDepthSurface;
+    IDirect3DSurface9*  fD3DBackBuff;
+
+    IDirect3DSurface9*  fCurrD3DMainSurface;
+    IDirect3DSurface9*  fCurrD3DDepthSurface;
+
+    D3DCULL             fCurrCullMode;
 
 
-/////////////////////////////////////////////////////////////////
-//
-// Please see pfConsoleCommands.cpp for detailed instructions on
-// how to add console commands.
-//
-/////////////////////////////////////////////////////////////////
+public:
+    plDXDevice();
 
-#define PF_SANITY_CHECK( cond, msg ) { if( !( cond ) ) { PrintString( msg ); return; } }
+    bool InitDevice();
+
+    /**
+     * Set rendering to the specified render target.
+     *
+     * Null rendertarget is the primary. Invalidates the state as required by
+     * experience, not documentation.
+     */
+    void SetRenderTarget(plRenderTarget* target);
+
+    /** Translate our viewport into a D3D viewport. */
+    void SetViewport();
+
+
+    void SetProjectionMatrix(const hsMatrix44& src);
+    void SetWorldToCameraMatrix(const hsMatrix44& src);
+    void SetLocalToWorldMatrix(const hsMatrix44& src);
+
+    const char* GetErrorString() const;
+};
+
+#endif

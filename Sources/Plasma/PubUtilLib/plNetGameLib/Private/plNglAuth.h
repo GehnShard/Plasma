@@ -78,6 +78,11 @@ void NetCliAuthSetConnectCallback (
 
 
 //============================================================================
+// Server Capabilities
+//============================================================================
+bool NetCliAuthCheckCap(uint32_t cap);
+
+//============================================================================
 // Disconnect
 //============================================================================
 void NetCliAuthDisconnect ();
@@ -125,6 +130,8 @@ struct NetCliAuthPlayerInfo {
     ST::string  avatarShape;
     unsigned    playerFlags;
     unsigned    explorer;
+
+    NetCliAuthPlayerInfo() : playerInt(), playerFlags(), explorer() { }
 };
 
 typedef void (*FNetCliAuthLoginRequestCallback)(
@@ -257,7 +264,7 @@ struct NetAgeInfo;
 typedef void (*FNetCliAuthGetPublicAgeListCallback)(
     ENetError                   result,
     void *                      param,
-    const ARRAY(NetAgeInfo) &   ages
+    const TArray<NetAgeInfo> &  ages
 );
 void NetCliAuthGetPublicAgeList (
     const ST::string&                   ageName,

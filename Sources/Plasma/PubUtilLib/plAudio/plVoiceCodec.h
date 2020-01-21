@@ -39,45 +39,48 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-/*****************************************************************************
-*
-*   $/Plasma20/Sources/Plasma/CoreLib/hsCritSect.h
-*   
-*
-*   By Eric Anderson (10/23/2005)
-*   Copyright 2005 Cyan Worlds, Inc.
-*
-***/
 
-#ifndef PLASMA20_SOURCES_PLASMA_CORELIB_HSCRITSECT_H
-#define PLASMA20_SOURCES_PLASMA_CORELIB_HSCRITSECT_H
+#ifndef _plVoiceCodec_h_inc
+#define _plVoiceCodec_h_inc
 
-/****************************************************************************
-*
-*   Critical section
-*
-***/
+#include "HeadSpin.h"
 
+struct SpeexBits;
 
-#ifdef HS_BUILD_FOR_WIN32
-#   include "hsWindows.h"
-    typedef CRITICAL_SECTION CritSectHandle;
-#elif HS_BUILD_FOR_UNIX
-#   include <pthread.h>
-    typedef pthread_mutex_t CritSectHandle;
-#else
-# error "CCritSect: Not implemented on this platform"
-#endif
-
-class CCritSect {
-protected:
-    CritSectHandle  m_handle;
+class plVoiceCodec
+{
 public:
-    CCritSect ();
-    ~CCritSect ();
-    void Enter ();
-    void Leave ();
+    virtual int GetSampleRate() const = 0;
+    virtual int GetFrameSize() const = 0;
 };
 
+class plVoiceDecoder : public plVoiceCodec
+{
+public:
+    virtual bool Decode(const void* data, int size, int numFrames, int& numOutputBytes, short* out) = 0;
 
-#endif // PLASMA20_SOURCES_PLASMA_CORELIB_HSCRITSECT_H
+public:
+    static plVoiceDecoder* CreateOpus();
+    static plVoiceDecoder* GetSpeex();
+};
+
+class plVoiceEncoder : public plVoiceCodec
+{
+public:
+    virtual bool Encode(const short* data, int numFrames, int& packedLength, void* out, int outsz) = 0;
+
+    virtual uint8_t GetVoiceFlag() const = 0;
+    virtual void VBR(bool on) = 0;
+    virtual void SetABR(uint32_t abr) = 0;
+    virtual void SetQuality(uint32_t quality) = 0;
+    virtual bool IsUsingVBR() const = 0;
+    virtual int GetQuality() const = 0;
+    virtual void SetComplexity(uint8_t c) = 0;
+    virtual bool SetSampleRate(uint32_t rate) = 0;
+
+public:
+    static plVoiceEncoder* GetOpus();
+    static plVoiceEncoder* GetSpeex();
+};
+
+#endif

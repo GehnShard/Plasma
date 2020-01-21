@@ -265,7 +265,7 @@ void plClothingItem::Write(hsStream *s, hsResMgr *mgr)
 
     // EXPORT ONLY
     plKey accessoryKey = nil;
-    if (!fAccessoryName.is_empty())
+    if (!fAccessoryName.empty())
     {
         ST::string strBuf = ST::format("CItm_{}", fAccessoryName);
         accessoryKey = plKeyFinder::Instance().StupidSearch("GlobalClothing", "", plClothingItem::Index(), strBuf);
@@ -299,7 +299,7 @@ bool plClothingItem::MsgReceive(plMessage* msg)
                 if (fElementNames.GetCount() <= eMsg->fWhich)
                     fElementNames.Expand(eMsg->fWhich + 1);
                 
-                if (fElementNames.Get(eMsg->fWhich).is_empty())
+                if (fElementNames.Get(eMsg->fWhich).empty())
                     fElementNames.Set(eMsg->fWhich, eMsg->fElementName);
                 if (fTextures.Get(eMsg->fWhich) == nil)
                 {
@@ -859,7 +859,7 @@ void plClothingOutfit::WriteToVault()
     if (!rvn)
         return;
 
-    ARRAY(plStateDataRecord*) SDRs;
+    TArray<plStateDataRecord*> SDRs;
     
     plStateDataRecord clothingSDR(kSDLClothing);
     fAvatar->GetClothingSDLMod()->PutCurrentStateIn(&clothingSDR);
@@ -874,7 +874,7 @@ void plClothingOutfit::WriteToVault()
     WriteToVault(SDRs);
 }
 
-void plClothingOutfit::WriteToVault(const ARRAY(plStateDataRecord*) & SDRs)
+void plClothingOutfit::WriteToVault(const TArray<plStateDataRecord*> & SDRs)
 {
     // We'll hit this case when the server asks us to save state for NPCs.
     if (fAvatar->GetTarget(0) != plNetClientApp::GetInstance()->GetLocalPlayer())
@@ -884,7 +884,7 @@ void plClothingOutfit::WriteToVault(const ARRAY(plStateDataRecord*) & SDRs)
     if (!rvn)
         return;
         
-    ARRAY(plStateDataRecord*)   morphs;
+    TArray<plStateDataRecord*>   morphs;
 
     // Gather morph SDRs    
     hsTArray<const plMorphSequence*> morphsSDRs;
@@ -910,12 +910,12 @@ void plClothingOutfit::WriteToVault(const ARRAY(plStateDataRecord*) & SDRs)
     // Get all existing clothing SDRs
     rvn->GetChildNodes(plVault::kNodeType_SDL, 1, &nodes);    // REF: Find
 
-    const ARRAY(plStateDataRecord*) * arrs[] = {
+    const TArray<plStateDataRecord*> * arrs[] = {
         &SDRs,
         &morphs,
     };
     for (unsigned arrIdx = 0; arrIdx < arrsize(arrs); ++arrIdx) {
-        const ARRAY(plStateDataRecord*) * arr = arrs[arrIdx];
+        const TArray<plStateDataRecord*> * arr = arrs[arrIdx];
         
         // Write all SDL to to the outfit folder, reusing existing nodes and creating new ones as necessary
         for (unsigned i = 0; i < arr->Count(); ++i) {
@@ -1708,7 +1708,7 @@ void plClothingMgr::FilterUniqueMeshes(hsTArray<plClothingItem*> &items)
 
 plClothingItem *plClothingMgr::FindItemByName(const ST::string &name) const
 {
-    if (name.is_empty())
+    if (name.empty())
         return nil;
 
     for (int i = 0; i < fItems.GetCount(); i++)

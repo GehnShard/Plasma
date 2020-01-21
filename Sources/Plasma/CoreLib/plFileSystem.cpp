@@ -137,14 +137,14 @@ plFileName plFileName::StripFileExt() const
 plFileName plFileName::Normalize(char slash) const
 {
     ST::char_buffer norm;
-    char *norm_p = norm.create_writable_buffer(fName.size());
+    norm.allocate(fName.size());
+    char *norm_p = norm.data();
     for (const char *p = fName.c_str(); *p; ++p) {
         if (*p == '/' || *p == '\\')
             *norm_p++ = slash;
         else
             *norm_p++ = *p;
     }
-    *norm_p = 0;
     return ST::string(norm, ST::assume_valid);
 }
 
@@ -185,8 +185,8 @@ plFileName plFileName::Join(const plFileName &base, const plFileName &path)
     if (!path.IsValid())
         return base;
 
-    char last = base.fName.char_at(base.GetSize() - 1);
-    char first = path.fName.char_at(0);
+    char last = base.fName.back();
+    char first = path.fName.front();
     if (last != '/' && last != '\\') {
         if (first != '/' && first != '\\')
             return ST::format("{}" PATH_SEPARATOR_STR "{}", base, path);
@@ -335,7 +335,7 @@ bool plFileSystem::Copy(const plFileName &from, const plFileName &to)
 bool plFileSystem::CreateDir(const plFileName &dir, bool checkParents)
 {
     plFileName fdir = dir;
-    if (fdir.GetFileName().is_empty()) {
+    if (fdir.GetFileName().empty()) {
         hsDebugMessage("WARNING: CreateDir called with useless trailing slash", 0);
         fdir = fdir.StripFileName();
     }
@@ -433,7 +433,7 @@ std::vector<plFileName> plFileSystem::ListSubdirs(const plFileName &path)
 
     struct dirent *de;
     while (de = readdir(dir)) {
-        if (plFileInfo(de->d_name).IsDirectory()) {
+        if (plFileInfo(plFileName::Join(path, de->d_name)).IsDirectory()) {
             plFileName name = de->d_name;
             if (name != "." && name != "..")
                 contents.push_back(plFileName::Join(path, name));
@@ -535,7 +535,7 @@ plFileName plFileSystem::GetCurrentAppPath()
     if (appPath.IsValid())
         return appPath;
 
-    hsAssert(0, "Your OS doesn't make life easy, does it?");
+    FATAL("Your OS doesn't make life easy, does it?");
 #endif
 }
 

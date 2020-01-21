@@ -356,6 +356,7 @@ void    plDrawableSpans::Optimize( void )
     fOptimized = true;
 }
 
+#ifdef VERT_LOG
 static plStatusLog* IStartLog(const char* name, int numSpans)
 {
     static char buff[256];
@@ -449,6 +450,7 @@ static void ILogSpan(plStatusLog* statusLog, plGeometrySpan* geo, plVertexSpan* 
         }
     }
 }
+#endif
 
 //// IPackSourceSpans ////////////////////////////////////////////////////////
 //  Takes the array of source spans and converts them to our internal icicle
@@ -755,7 +757,7 @@ short   plDrawableSpans::ICompareSpans( plGeometrySpan *span1, plGeometrySpan *s
         else if( t1 == nil && t2 == nil )
             break;  // Textures equal up to here--keep going with rest of tests
         
-        if( !t1->GetKeyName().is_empty() && !t2->GetKeyName().is_empty() )
+        if( !t1->GetKeyName().empty() && !t2->GetKeyName().empty() )
         {
             j = t1->GetKeyName().compare( t2->GetKeyName(), ST::case_insensitive );
             if( j != 0 )
@@ -764,7 +766,7 @@ short   plDrawableSpans::ICompareSpans( plGeometrySpan *span1, plGeometrySpan *s
     }
 
     // Finally, by material itself.
-    if( !span1->fMaterial->GetKeyName().is_empty() && !span2->fMaterial->GetKeyName().is_empty() )
+    if( !span1->fMaterial->GetKeyName().empty() && !span2->fMaterial->GetKeyName().empty() )
     {
         j = span1->fMaterial->GetKeyName().compare( span2->fMaterial->GetKeyName(), ST::case_insensitive );
         if( j != 0 )

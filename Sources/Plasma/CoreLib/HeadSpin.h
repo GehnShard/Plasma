@@ -43,7 +43,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define HeadSpinHDefined
 
 // Ensure these get set consistently regardless of what module includes it
-#include "hsCompilerSpecific.h"
+#include "hsConfig.h"
 
 #if defined(_DEBUG)
 #   define HS_DEBUGGING
@@ -120,6 +120,13 @@ typedef int32_t   hsError;
 #define hsFailed(r)         ((hsError)(r)<hsOK)
 #define hsSucceeded(r)      ((hsError)(r)>=hsOK)
 
+// Indirection required for joining preprocessor macros together
+#define _hsMacroJoin_(lhs, rhs) lhs ## rhs
+#define hsMacroJoin(lhs, rhs)   _hsMacroJoin_(lhs, rhs)
+
+// Declare a file-unique identifier without caring what its full name is
+#define hsUniqueIdentifier(prefix) hsMacroJoin(prefix, __LINE__)
+
 #if defined(HAVE_GCC_DEPRECATED_ATTR)
 #   define hsDeprecated(message) __attribute__((deprecated(message)))
 #elif defined(HAVE_CXX14_DEPRECATED_ATTR)
@@ -149,6 +156,15 @@ typedef int32_t   hsError;
 //======================================
 // Endian swap funcitions
 //======================================
+#ifdef _MSC_VER
+    #define hsSwapEndian16(val) _byteswap_ushort(val)
+    #define hsSwapEndian32(val) _byteswap_ulong(val)
+    #define hsSwapEndian64(val) _byteswap_uint64(val)
+#elif defined(__llvm__) || (defined(__GNUC__) && ((__GNUC__ * 100) + __GNUC_MINOR__) >= 408)
+    #define hsSwapEndian16(val) __builtin_bswap16(val)
+    #define hsSwapEndian32(val) __builtin_bswap32(val)
+    #define hsSwapEndian64(val) __builtin_bswap64(val)
+#else
 inline uint16_t hsSwapEndian16(uint16_t value)
 {
     return (value >> 8) | (value << 8);
@@ -171,6 +187,8 @@ inline uint64_t hsSwapEndian64(uint64_t value)
             ((value & 0x00ff000000000000) >> 40) |
             ((value)                      >> 56);
 }
+#endif
+
 inline float hsSwapEndianFloat(float fvalue)
 {
     union {
@@ -391,8 +409,10 @@ inline float hsRadiansToDegrees(float rad) { return float(rad * (180 / M_PI)); }
 
 #ifdef _MSC_VER
 #   define ALIGN(n) __declspec(align(n))
+#   define NORETURN __declspec(noreturn)
 #else
-#   define ALIGN(n) __atribute__(aligned(n))
+#   define ALIGN(n) __attribute__((aligned(n)))
+#   define NORETURN __attribute__((noreturn))
 #endif
 
 /************************ Debug/Error Macros **************************/
@@ -406,7 +426,7 @@ extern hsDebugMessageProc gHSStatusProc;
 hsDebugMessageProc hsSetStatusMessageProc(hsDebugMessageProc newProc);
 
 void ErrorEnableGui (bool enabled);
-void ErrorAssert (int line, const char* file, const char* fmt, ...);
+NORETURN void ErrorAssert (int line, const char* file, const char* fmt, ...);
 
 bool DebugIsDebuggerPresent();
 void DebugBreakIfDebuggerPresent();

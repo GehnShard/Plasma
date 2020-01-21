@@ -126,7 +126,7 @@ public:
     static int getOutputAndReset(std::string* output = nil);
 
     // Writes 'text' to the Python log
-    static void WriteToLog(const char* text);
+    static void WriteToLog(const ST::string& text);
 
     // Writes 'text' to stderr specified in the python interface
     static void WriteToStdErr(const char* text);
@@ -141,20 +141,20 @@ public:
 
     // checks to see if a specific function is defined in this module
     // get an item (probably a function) from the Plasma module
-    static PyObject* GetPlasmaItem(char* item);
+    static PyObject* GetPlasmaItem(const char* item);
 
     // Determine if the module name is unique
     static bool IsModuleNameUnique(const ST::string& module);
     // get an item (probably a function) from a specific module
-    static PyObject* GetModuleItem(char* item, PyObject* module);
+    static PyObject* GetModuleItem(const char* item, PyObject* module);
 
     // check a specific module for the define funcitons
     static void CheckModuleForFunctions(PyObject* module, char** funcNames, PyObject** funcTable);
 
     //  checks to see if a specific function is defined in this instance of a class
-    //  and will fill out the funcTable with object instances of where the funciton is
+    //  and will fill out the funcTable with pointers to the function objects
     //
-    static void CheckInstanceForFunctions(PyObject* instance, char** funcNames, PyObject** funcTable);
+    static void CheckInstanceForFunctions(PyObject* instance, const char** funcNames, PyObject** funcTable);
 
     //  run a python string in a specific module name
     //  PARAMETERS : command       - string of commands to execute in the...

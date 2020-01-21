@@ -147,7 +147,7 @@ class pfPatcherStream : public plZlibStream
 
     ST::string IMakeStatusMsg() const
     {
-        float secs = hsTimer::GetSysSeconds() - fDLStartTime;
+        float secs = hsTimer::GetSeconds<float>() - fDLStartTime;
         float bytesPerSec = fBytesWritten / secs;
         return plFileSystem::ConvertFileSize(bytesPerSec) + "/s";
     }
@@ -164,14 +164,14 @@ class pfPatcherStream : public plZlibStream
 
 public:
     pfPatcherStream(pfPatcherWorker* parent, const plFileName& filename, uint64_t size)
-        : fParent(parent), fFilename(filename), fFlags(0), fBytesWritten(0), fDLStartTime(0.f), plZlibStream()
+        : fParent(parent), fFilename(filename), fFlags(), fBytesWritten(), fDLStartTime(), plZlibStream()
     {
         fParent->fTotalBytes += size;
         fOutput = new hsRAMStream;
     }
 
     pfPatcherStream(pfPatcherWorker* parent, const plFileName& reqName, const plFileName& cliName, const NetCliFileManifestEntry& entry)
-        : fParent(parent), fFilename(cliName.Normalize()), fFlags(entry.flags), fBytesWritten(0), plZlibStream()
+        : fParent(parent), fFilename(cliName.Normalize()), fFlags(entry.flags), fBytesWritten(), fDLStartTime(), plZlibStream()
     {
         // ugh. eap removed the compressed flag in his fail manifests
         if (reqName.GetFileExt().compare_i("gz") == 0) {
@@ -183,7 +183,7 @@ public:
 
     void Begin()
     {
-        fDLStartTime = hsTimer::GetSysSeconds();
+        fDLStartTime = hsTimer::GetSeconds<float>();
         if (!fOutput)
             Open(fFilename, "wb");
     }
@@ -252,7 +252,7 @@ static void IGotAuthFileList(ENetError result, void* param, const NetCliAuthFile
         // so everything goes directly into the Requests deque because AuthSrv lists
         // don't have any hashes attached. WHY did eap think this was a good idea?!?!
         {
-            std::lock_guard<std::mutex> lock(patcher->fRequestMut);
+            hsLockGuard(patcher->fRequestMut);
             for (unsigned i = 0; i < infoCount; ++i) {
                 PatcherLogYellow("\tEnqueuing Legacy File '%S'", infoArr[i].filename);
 
@@ -276,7 +276,7 @@ static void IHandleManifestDownload(pfPatcherWorker* patcher, const wchar_t grou
 {
     PatcherLogGreen("\tDownloaded Manifest '%S'", group);
     {
-        std::lock_guard<std::mutex> lock(patcher->fFileMut);
+        hsLockGuard(patcher->fFileMut);
         for (unsigned i = 0; i < entryCount; ++i)
             patcher->fQueuedFiles.push_back(manifest[i]);
         patcher->fFileSignal.Signal();
@@ -295,7 +295,7 @@ static void IPreloaderManifestDownloadCB(ENetError result, void* param, const wc
 
         // so, we need to ask the AuthSrv about our game code
         {
-            std::lock_guard<std::mutex> lock(patcher->fRequestMut);
+            hsLockGuard(patcher->fRequestMut);
             patcher->fRequests.emplace_back(ST::null, pfPatcherWorker::Request::kPythonList);
             patcher->fRequests.emplace_back(ST::null, pfPatcherWorker::Request::kSdlList);
         }
@@ -349,7 +349,7 @@ pfPatcherWorker::pfPatcherWorker() :
 pfPatcherWorker::~pfPatcherWorker()
 {
     {
-        std::lock_guard<std::mutex> lock(fRequestMut);
+        hsLockGuard(fRequestMut);
         std::for_each(fRequests.begin(), fRequests.end(),
             [] (const Request& req) {
                 if (req.fStream) req.fStream->Close();
@@ -360,7 +360,7 @@ pfPatcherWorker::~pfPatcherWorker()
     }
 
     {
-        std::lock_guard<std::mutex> lock(fFileMut);
+        hsLockGuard(fFileMut);
         fQueuedFiles.clear();
     }
 }
@@ -394,7 +394,7 @@ void pfPatcherWorker::EndPatch(ENetError result, const ST::string& msg)
 
 bool pfPatcherWorker::IssueRequest()
 {
-    std::lock_guard<std::mutex> lock(fRequestMut);
+    hsLockGuard(fRequestMut);
     if (fRequests.empty()) {
         fRequestActive = false;
         fFileSignal.Signal(); // make sure the patch thread doesn't deadlock!
@@ -459,7 +459,7 @@ void pfPatcherWorker::Run()
     do {
         fFileSignal.Wait();
 
-        std::lock_guard<std::mutex> fileLock(fFileMut);
+        hsLockGuard(fFileMut);
         if (!fQueuedFiles.empty()) {
             ProcessFile();
             continue;
@@ -521,7 +521,7 @@ void pfPatcherWorker::ProcessFile()
 
         pfPatcherStream* s = new pfPatcherStream(this, dlName, clName, entry);
         {
-            std::lock_guard<std::mutex> lock(fRequestMut);
+            hsLockGuard(fRequestMut);
             fRequests.emplace_back(dlName, Request::kFile, s);
         }
         fQueuedFiles.pop_front();
@@ -622,19 +622,19 @@ void pfPatcher::OnSelfPatch(FileDownloadFunc cb)
 
 void pfPatcher::RequestGameCode()
 {
-    std::lock_guard<std::mutex> lock(fWorker->fRequestMut);
+    hsLockGuard(fWorker->fRequestMut);
     fWorker->fRequests.emplace_back("SecurePreloader", pfPatcherWorker::Request::kSecurePreloader);
 }
 
 void pfPatcher::RequestManifest(const ST::string& mfs)
 {
-    std::lock_guard<std::mutex> lock(fWorker->fRequestMut);
+    hsLockGuard(fWorker->fRequestMut);
     fWorker->fRequests.emplace_back(mfs, pfPatcherWorker::Request::kManifest);
 }
 
 void pfPatcher::RequestManifest(const std::vector<ST::string>& mfs)
 {
-    std::lock_guard<std::mutex> lock(fWorker->fRequestMut);
+    hsLockGuard(fWorker->fRequestMut);
     std::for_each(mfs.begin(), mfs.end(),
         [&] (const ST::string& name) {
             fWorker->fRequests.emplace_back(name, pfPatcherWorker::Request::kManifest);

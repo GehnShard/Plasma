@@ -205,7 +205,7 @@ PyObject* cyMisc::FindSceneObject(const ST::string& name, const char* ageName)
     // assume that we won't find the sceneobject (key is equal to nil)
     plKey key=nil;
 
-    if ( !name.is_empty() )
+    if ( !name.empty() )
     {
         const char* theAge = ageName;
         if ( ageName[0] == 0 )
@@ -227,7 +227,7 @@ PyObject* cyMisc::FindSceneObjects(const ST::string& name)
     // assume that we won't find the sceneobject (key is equal to nil)
     std::vector<plKey> keys;
 
-    if ( !name.is_empty() )
+    if ( !name.empty() )
         plKeyFinder::Instance().ReallyStupidSubstringSearch(name, plSceneObject::Index(), keys);
 
     PyObject* result = PyList_New(keys.size());
@@ -242,7 +242,7 @@ PyObject* cyMisc::FindSceneObjects(const ST::string& name)
 PyObject* cyMisc::FindActivator(const ST::string& name)
 {
     plKey key = nil;
-    if (!name.is_empty())
+    if (!name.empty())
     {
         std::vector<plKey> keylist;
         plKeyFinder::Instance().ReallyStupidActivatorSearch(name, keylist);
@@ -1012,8 +1012,7 @@ PyObject* cyMisc::GetNPC(int npcID)
     if ( so )
         return pySceneObject::New(so->GetKey());
 
-    char* errmsg = "NPC not found";
-    PyErr_SetString(PyExc_NameError, errmsg);
+    PyErr_SetString(PyExc_NameError, "NPC not found");
     PYTHON_RETURN_ERROR;
 }
 
@@ -1291,7 +1290,7 @@ void cyMisc::SendKIRegisterImagerMsg(const char* imagerName, pyKey& sender)
 //  RETURNS    : nothing
 //
 
-void cyMisc::YesNoDialog(pyKey& sender, const char* thestring)
+void cyMisc::YesNoDialog(pyKey& sender, const ST::string& thestring)
 {
     // create the mesage to send
     pfKIMsg *msg = new pfKIMsg( pfKIMsg::kYesNoDialog );
@@ -1300,13 +1299,6 @@ void cyMisc::YesNoDialog(pyKey& sender, const char* thestring)
     msg->SetString(thestring);
     // send it off
     plgDispatch::MsgSend( msg );
-}
-
-void cyMisc::YesNoDialog(pyKey& sender, std::wstring thestring)
-{
-    char *temp = hsWStringToString(thestring.c_str());
-    YesNoDialog(sender,temp);
-    delete [] temp;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2369,7 +2361,8 @@ public:
                             PyTuple_SetItem(t, 1, PyLong_FromUnsignedLong(nPlayers));
                             PyList_SetItem(pyEL, i, t); // steals the ref
                         }
-                        PyObject* retVal = PyObject_CallMethod(fPyObject, "gotPublicAgeList", "O", pyEL);
+                        PyObject* retVal = PyObject_CallMethod(fPyObject,
+                                                _pycs("gotPublicAgeList"), _pycs("O"), pyEL);
                         Py_XDECREF(retVal);
                     }
                 }
@@ -2387,7 +2380,8 @@ public:
                     if ( ageInfo )
                     {
                         PyObject* ageInfoObj = pyAgeInfoStruct::New(ageInfo);
-                        PyObject* retVal = PyObject_CallMethod(fPyObject, "publicAgeCreated", "O", ageInfoObj);
+                        PyObject* retVal = PyObject_CallMethod(fPyObject,
+                                                _pycs("publicAgeCreated"), _pycs("O"), ageInfoObj);
                         Py_XDECREF(retVal);
                         Py_DECREF(ageInfoObj);
                     }
@@ -2405,7 +2399,9 @@ public:
 
                     if ( guid )
                     {
-                        PyObject* retVal = PyObject_CallMethod(fPyObject, "publicAgeRemoved", "s", guid->AsString().c_str());
+                        PyObject* retVal = PyObject_CallMethod(fPyObject,
+                                                _pycs("publicAgeRemoved"), _pycs("s"),
+                                                guid->AsString().c_str());
                         Py_XDECREF(retVal);
                     }
                 }
@@ -2511,7 +2507,7 @@ void cyMisc::RebuildCameraStack(const ST::string& name, const char* ageName)
     if (name.compare("empty") == 0)
         return;
 
-    if ( !name.is_empty() )
+    if ( !name.empty() )
     {
         key=plKeyFinder::Instance().StupidSearch("", "", plSceneObject::Index(), name, false);
     }
@@ -2739,7 +2735,7 @@ void cyMisc::FakeLinkToObject(pyKey& avatar, pyKey& object)
 void cyMisc::FakeLinkToObjectNamed(const ST::string& name)
 {
     plKey key = nil;
-    if ( !name.is_empty() )
+    if ( !name.empty() )
     {
         key = plKeyFinder::Instance().StupidSearch("", "", plSceneObject::Index(), name, false);
     }
@@ -2752,7 +2748,7 @@ void cyMisc::FakeLinkToObjectNamed(const ST::string& name)
     plgDispatch::MsgSend(msg);
 }
 
-PyObject* cyMisc::LoadAvatarModel(const char* modelName, pyKey& spawnPoint, const char* userStr)
+PyObject* cyMisc::LoadAvatarModel(const char* modelName, pyKey& spawnPoint, const ST::string& userStr)
 {
     plKey SpawnedKey = plAvatarMgr::GetInstance()->LoadAvatar(modelName, "", false, spawnPoint.getKey(), nil, userStr);
     return pyKey::New(SpawnedKey);
@@ -2838,12 +2834,9 @@ void cyMisc::SetGraphicsOptions(int Width, int Height, int ColorDepth, bool Wind
     //plClient::GetInstance()->ResetDisplayDevice(Width, Height, ColorDepth, Windowed, NumAASamples, MaxAnisotropicSamples);
 }
 
-bool cyMisc::DumpLogs(const std::wstring & folder)
+bool cyMisc::DumpLogs(const ST::string& folder)
 {
-    char* temp = hsWStringToString(folder.c_str());
-    bool retVal = plStatusLogMgr::GetInstance().DumpLogs(temp);
-    delete [] temp;
-    return retVal;
+    return plStatusLogMgr::GetInstance().DumpLogs(folder);
 }
 
 bool cyMisc::FileExists(const plFileName & filename)

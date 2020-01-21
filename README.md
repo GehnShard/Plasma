@@ -1,7 +1,9 @@
 Plasma
 ======
 
-A CMake-based fork of the GPLv3-licensed **CyanWorlds.com Engine** (Headspin/Plasma), with a focus on bug-fixes, cross-platform compatibility, and enhanced features.
+A CMake-based fork of the GPLv3-licensed **CyanWorlds.com Engine**
+(Headspin/Plasma), with a focus on bug-fixes, cross-platform compatibility, and
+enhanced features.
 
 For more information on Myst Online, see http://mystonline.com/developers/
 
@@ -11,8 +13,11 @@ For a project roadmap, see https://github.com/H-uru/Plasma/wiki/Roadmap
 Related Projects
 ----------------
 
-- [moul-scripts](https://github.com/H-uru/moul-scripts) - An updated repository of game scripts containing bug-fixes and compatible with modern python interpreters for use with Plasma.
-- [dirtsand](https://github.com/H-uru/dirtsand) - An open-source Plasma-compatible server project.
+- [moul-scripts](https://github.com/H-uru/moul-scripts) - An updated repository
+  of game scripts containing bug-fixes and compatible with modern python
+  interpreters for use with Plasma.
+- [dirtsand](https://github.com/H-uru/dirtsand) - An open-source
+  Plasma-compatible server project.
 
 
 Library Dependencies
@@ -20,8 +25,8 @@ Library Dependencies
 
 Plasma currently requires the following third-party libraries:
 
-- nVidia PhysX 2.6.4 - http://www.nvidia.com/object/physx_archives.html#SDK
-- Microsoft DirectX SDK - http://www.microsoft.com/downloads/en/details.aspx?familyid=3021d52b-514e-41d3-ad02-438a3ba730ba
+- nVidia PhysX 2.6.4 - https://web.archive.org/web/20170501130625/http://developer.download.nvidia.com/PhysX/2.6.4/PhysX_2.6.4_SDK_Core.exe
+- Microsoft DirectX SDK - https://www.microsoft.com/en-us/download/details.aspx?id=6812
 - Python 2.7 - http://www.python.org/download/releases/2.7/
 - libOgg and libVorbis - http://www.xiph.org/downloads/
 - OpenSSL - http://www.slproweb.com/products/Win32OpenSSL.html
@@ -29,7 +34,6 @@ Plasma currently requires the following third-party libraries:
 - eXpat - http://expat.sourceforge.net/
 - libJPEG - http://libjpeg-turbo.virtualgl.org/
 - libPNG - http://www.libpng.org/
-- speex - http://www.speex.org/downloads/
 - zlib - http://zlib.net/
 - libcurl - http://curl.haxx.se/
 - string_theory - http://github.com/zrax/string_theory/
@@ -37,23 +41,27 @@ Plasma currently requires the following third-party libraries:
 The following libraries are optional:
 
 - (for building resource.dat) PyGTK - http://www.pygtk.org/downloads.html
-- (for building resource.dat) PIL - http://www.pythonware.com/products/pil/
+- (for building resource.dat) Pillow - https://python-pillow.org/
 - (for plFontConverter) Freetype - http://freetype.org/
 - (for the GUI tools) Qt5 - http://www.qt.io/download-open-source/
 - (for video) VPX - http://www.webmproject.org/
-- (for video) Opus - http://www.opus-codec.org/
+- (for video and voice chat) Opus - http://www.opus-codec.org/
+- (for legacy voice chat) speex - http://www.speex.org/downloads/
 
-Reducing the use of proprietary libraries is a focus of development and should be expected to change.
+Reducing the use of proprietary libraries is a focus of development and should
+be expected to change.
 
 PhysX and DirectX SDK will need to be acquired through the above links.
-All other required libraries are available as precompiled binaries and associated files in the [development libraries bundle](http://guildofwriters.org/tools/devlibs.zip) or can be built using their individual build instructions.
+All other required libraries are available as precompiled binaries and
+associated files in the [development libraries bundle](https://github.com/H-uru/PlasmaPrefix/releases/download/20200114/devlibs.zip)
+or can be built using their individual build instructions.
 
 
 Compiling Instructions
 ----------------------
 
 Currently, compilation only targets Windows systems and requires Visual Studio
-2013 (including Visual Studio 2013 Express for Windows Desktop).
+2015 (including Visual Studio 2015 Community).
 
 **Quick-start instructions:**
 
@@ -72,10 +80,10 @@ Currently, compilation only targets Windows systems and requires Visual Studio
 3. Set the *Where to build the binaries* option to a subfolder of the
    aforementioned location called *build*.
 4. Check the **Grouped** and **Advanced** options.
-5. Press **Configure**. Select *Visual Studio 12* as the generator.
+5. Press **Configure**. Select *Visual Studio 14* as the generator.
 6. Set the *CMAKE_INSTALL_PREFIX* option under CMAKE to the *cwe-prefix* folder
    that you extracted from the [development libraries
-   bundle](http://guildofwriters.org/tools/devlibs.zip).
+   bundle](https://github.com/H-uru/PlasmaPrefix/releases/download/20200114/devlibs.zip).
 7. Press **Configure** again.
 8. Press **Generate**. You will now have a Visual Studio solution file (.sln)
    in the folder that you specified to build the binaries in.
@@ -86,18 +94,35 @@ Currently, compilation only targets Windows systems and requires Visual Studio
 Running Instructions
 --------------------
 
-To run the Internal Client for testing with MOULa content, you will need the a fully-patched installation of MOULa provided by Cyan Worlds. In addition, you will need to download or clone the files available on the [moul-scripts repository](https://github.com/H-uru/moul-scripts).
+To run the Internal Client for testing with MOULa content, you will need the a
+fully-patched installation of MOULa provided by Cyan Worlds. In addition, you
+will need to download or clone the files available on the
+[moul-scripts repository](https://github.com/H-uru/moul-scripts).
 
-1. Copy the **files from your existing MOULa installation** to a new folder, or install fresh if you do not already have it installed. This folder will be referred to as *MOUL-OS* for the remainder of these instructions.
-2. Copy the **Python and SDL** folders from moul-scripts into the *MOUL-OS* folder, as well as the **files in dat** into the existing dat folder.
-3. Copy the example_server.ini file from the root of the Plasma repository into your *MOUL-OS* folder, and rename it as **server.ini**. If you are running your own dirtsand server or are connecting to one run by someone else, use the server.ini generated from that.
-4. Copy the **DLLs** from the development libraries bundle, as well as the DLLs PhysXLoader.dll, NxExtensions.dll, NxCooking.dll, and NxCharacter.dll from your PhysX SDK installation into the *MOUL-OS* folder.
-5. Copy the **resource.dat** file from `<build_dir>\bin` to the *MOUL-OS* folder, or from http://www.guildofwriters.org/tools/resource.dat if you did not build your own.
+1. Copy the **files from your existing MOULa installation** to a new folder, or
+   install fresh if you do not already have it installed. This folder will be
+   referred to as *MOUL-OS* for the remainder of these instructions.
+2. Copy the **Python and SDL** folders from moul-scripts into the *MOUL-OS*
+   folder, as well as the **files in dat** into the existing dat folder.
+3. Copy the example_server.ini file from the root of the Plasma repository into
+   your *MOUL-OS* folder, and rename it as **server.ini**. If you are running
+   your own dirtsand server or are connecting to one run by someone else, use
+   the server.ini generated from that.
+4. Copy the **DLLs** from the development libraries bundle, as well as the DLLs
+   PhysXLoader.dll, NxExtensions.dll, NxCooking.dll, and NxCharacter.dll from
+   your PhysX SDK installation into the *MOUL-OS* folder.
+5. Copy the **resource.dat** file from `<build_dir>\bin` to the *MOUL-OS* folder,
+   or from http://www.guildofwriters.org/tools/resource.dat if you did not build
+   your own.
 6. Create a **shortcut** in the *MOUL-OS* folder to the compiled plClient.exe.
-7. Edit the shortcut's **properties**, and after the final quotation mark in the *Target* field, add `/LocalData`. Also, change the *Start in* field to the path of your *MOUL-OS* folder.
+7. Edit the shortcut's **properties**, and after the final quotation mark in the
+   *Target* field, add `/LocalData`. Also, change the *Start in* field to the
+   path of your *MOUL-OS* folder.
 8. Double-click the shortcut to **connect** to your server and test!
 
-Alternatively, if you wish to be able to debug using a single content folder from inside Visual Studio, you will need to do the following for each Configuration (Debug, Release, etc.) you have:
+Alternatively, if you wish to be able to debug using a single content folder
+from inside Visual Studio, you will need to do the following for each
+Configuration (Debug, Release, etc.) you have:
 
 1. Open the Plasma Solution in Visual Studio.
 2. Right-click on the plClient project in the Solution Explorer.
@@ -110,7 +135,8 @@ Additional Information
 ----------------------
 
 - Myst Online is available to play for free at http://mystonline.com/play/
-- For more information on this fork and more in-depth building instructions, see the [Guild of Writers wiki](http://guildofwriters.org/wiki/Development:CyanWorlds.com_Engine).
+- For more information on this fork and more in-depth building instructions,
+  see the [Guild of Writers wiki](http://guildofwriters.org/wiki/Development:CyanWorlds.com_Engine).
 - This code was forked from the initial release repository at [OpenUru.org](http://openuru.org/).
 
 About Non-Free Libraries

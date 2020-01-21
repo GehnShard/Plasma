@@ -51,6 +51,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "HeadSpin.h"
 #include "hsBiExpander.h"
 
+#include <string_theory/format>
+
 
 //// pfConsoleCmdGroup Class Definition //////////////////////////////////////
 
@@ -153,14 +155,14 @@ class pfConsoleCmdParam
         operator int() const { return IToInt(); }
         operator float() const { return IToFloat(); }
         operator bool() const { return IToBool(); }
-        operator const CharPtr() const { return IToString(); }
+        operator CharPtr() const { return IToString(); }
         operator char() const { return IToChar(); }
 
         uint8_t   GetType( void ) { return fType; }
 
         void    SetInt( int i )         { fValue.i = i; fType = kInt; }
         void    SetFloat( float f )     { fValue.f = f; fType = kFloat; }
-        void    SetBool( bool b )   { fValue.b = b; fType = kBool; }
+        void    SetBool( bool b )       { fValue.b = b; fType = kBool; }
         void    SetString( CharPtr s )  { fValue.s = s; fType = kString; }
         void    SetChar( char c )       { fValue.c = c; fType = kChar; }
         void    SetAny( CharPtr s )     { fValue.s = s; fType = kAny; }
@@ -281,5 +283,11 @@ public:
 
 #define PF_CONSOLE_FILE_DUMMY( name ) \
     void _console_##name##_file_dummy() { }
+
+template <typename... Args>
+void pfConsolePrintF(void pfun(const char *), const char *fmt, Args &&...args)
+{
+    pfun(ST::format(fmt, std::forward<Args>(args)...).c_str());
+}
 
 #endif //_pfConsoleCmd_h

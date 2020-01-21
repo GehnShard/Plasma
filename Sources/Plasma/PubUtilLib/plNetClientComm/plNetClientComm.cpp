@@ -393,7 +393,7 @@ static void INetCliAuthLoginRequestCallback (
     s_player = nil;
     s_players.clear();
     
-    bool wantsStartUpAge = (s_startupAge.ageDatasetName.is_empty() ||
+    bool wantsStartUpAge = (s_startupAge.ageDatasetName.empty() ||
                             s_startupAge.ageDatasetName.compare_i("StartUp") == 0);
 
     s_loginComplete = true;
@@ -526,7 +526,7 @@ static void INetCliAuthChangePasswordCallback (
 static void INetCliAuthGetPublicAgeListCallback (
     ENetError                   result,
     void *                      param,
-    const ARRAY(NetAgeInfo) &   ages
+    const TArray<NetAgeInfo> &  ages
 ) {
     NetCommParam * cp = (NetCommParam *) param;
     
@@ -538,20 +538,6 @@ static void INetCliAuthGetPublicAgeListCallback (
     msg->Send();
     
     delete cp;
-}
-
-//============================================================================
-static void INetAuthFileListRequestCallback (
-    ENetError                   result,
-    void *                      param,
-    const NetCliAuthFileInfo    infoArr[],
-    unsigned                    infoCount
-) {
-    plNetCommFileListMsg * msg = new plNetCommFileListMsg;
-    msg->result = result;
-    msg->param  = param;
-    msg->fileInfoArr.Set(infoArr, infoCount);
-    msg->Send();
 }
 
 //============================================================================
@@ -743,7 +729,6 @@ void NetCommStartup () {
     NetClientSetErrorHandler(IPreInitNetErrorCallback);
 
     // Set startup age info
-    memset(&s_startupAge, 0, sizeof(s_startupAge));
     s_startupAge.ageDatasetName = s_iniStartupAgeName;
 
     s_startupAge.ageInstId = s_iniStartupAgeInstId;
@@ -814,7 +799,7 @@ void NetCommConnect () {
     bool connectedToKeeper = false;
 
     // if a console override was specified for a authserv, connect directly to the authserver rather than going through the gatekeeper
-    if((count = GetAuthSrvHostnames(addrs)) && !addrs[0].is_empty())
+    if((count = GetAuthSrvHostnames(addrs)) && !addrs[0].empty())
     {
         NetCliAuthStartConnect(addrs, count);
     }
@@ -841,7 +826,7 @@ void NetCommConnect () {
     if (!gDataServerLocal) {
 
         // if a console override was specified for a filesrv, connect directly to the fileserver rather than going through the gatekeeper
-        if((count = GetFileSrvHostnames(addrs)) && !addrs[0].is_empty())
+        if((count = GetFileSrvHostnames(addrs)) && !addrs[0].empty())
         {
             NetCliFileStartConnect(addrs, count);
         }
@@ -1142,7 +1127,7 @@ void NetCommDeletePlayer (  // --> plNetCommDeletePlayerMsg
     NetCliAuthPlayerDeleteRequest(
         playerInt,
         INetCliAuthDeletePlayerCallback,
-        (void*)playerInt
+        (void*)(uintptr_t)playerInt
     );
 }
 
@@ -1244,7 +1229,7 @@ void NetCommUpgradeVisitorToExplorer (
     NetCliAuthUpgradeVisitorRequest(
         playerInt,
         INetCliAuthUpgradeVisitorRequestCallback,
-        (void*)playerInt
+        (void*)(uintptr_t)playerInt
     );
 }
 

@@ -584,9 +584,8 @@ BOOL CALLBACK UruTOSDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
             {
                 uint32_t dataLen = stream.GetSizeLeft();
                 ST::char_buffer eula;
-                char* eulaData = eula.create_writable_buffer(dataLen);
-                memset(eulaData, 0, dataLen + 1);
-                stream.Read(dataLen, eulaData);
+                eula.allocate(dataLen);
+                stream.Read(dataLen, eula.data());
 
                 SetDlgItemTextW(hwndDlg, IDC_URULOGIN_EULATEXT,
                                 ST::string(eula, ST::substitute_invalid).to_wchar().data());
@@ -690,7 +689,7 @@ static void LoadUserPass(LoginDialogParam *pLoginParam)
     {
         pfPasswordStore* store = pfPasswordStore::Instance();
         ST::string password = store->GetPassword(pLoginParam->username);
-        if (!password.is_empty())
+        if (!password.empty())
             StoreHash(pLoginParam->username, password, pLoginParam);
         pLoginParam->focus = IDOK;
     }
@@ -732,6 +731,8 @@ BOOL CALLBACK UruLoginDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM
                 // For reporting errors
                 char curlError[CURL_ERROR_SIZE];
                 curl_easy_setopt(hCurl, CURLOPT_ERRORBUFFER, curlError);
+                curl_easy_setopt(hCurl, CURLOPT_FOLLOWLOCATION, 1);
+                curl_easy_setopt(hCurl, CURLOPT_MAXREDIRS, 5);
 
                 while (s_loginDlgRunning) {
                     curl_easy_setopt(hCurl, CURLOPT_URL, statusUrl.c_str());
@@ -739,7 +740,7 @@ BOOL CALLBACK UruLoginDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM
                     curl_easy_setopt(hCurl, CURLOPT_WRITEFUNCTION, &CurlCallback);
                     curl_easy_setopt(hCurl, CURLOPT_WRITEDATA, hwndDlg);
 
-                    if (!statusUrl.is_empty() && curl_easy_perform(hCurl) != 0) {
+                    if (!statusUrl.empty() && curl_easy_perform(hCurl) != 0) {
                         // only perform request if there's actually a URL set
                         PostMessage(hwndDlg, WM_USER_SETSTATUSMSG, 0,
                                     reinterpret_cast<LPARAM>(curlError));

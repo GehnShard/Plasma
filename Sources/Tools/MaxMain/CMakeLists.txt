@@ -102,9 +102,15 @@ target_link_libraries(MaxMain ${OPENAL_LIBRARY})
 target_link_libraries(MaxMain ${OPENSSL_LIBRARIES})
 target_link_libraries(MaxMain ${PHYSX_LIBRARIES})
 target_link_libraries(MaxMain ${PYTHON_LIBRARIES})
-target_link_libraries(MaxMain ${Speex_LIBRARY})
 target_link_libraries(MaxMain ${Vorbis_LIBRARIES})
 target_link_libraries(MaxMain ${STRING_THEORY_LIBRARIES})
+
+if(PLASMA_USE_OPUS)
+    target_link_libraries(MaxMain ${Opus_LIBRARIES})
+endif()
+if(PLASMA_USE_SPEEX)
+    target_link_libraries(MaxMain ${Speex_LIBRARY})
+endif()
 
 # Carbon copy from plClient
 # TODO: Maybe see if some of these can be removed?
@@ -189,6 +195,7 @@ target_link_libraries(MaxMain pnUUID)
 
 if (WIN32)
     target_link_libraries(MaxMain comctl32)
+    target_link_libraries(MaxMain crypt32)
     target_link_libraries(MaxMain rpcrt4)
     target_link_libraries(MaxMain shlwapi)
     target_link_libraries(MaxMain strmiids)

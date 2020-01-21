@@ -44,6 +44,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 #include <string>
+#include <alc.h>
 
 #include "hsTemplates.h"
 #include "hsGeometry3.h"
@@ -58,10 +59,6 @@ class plSoftSoundNode;
 class plgAudioSys;
 class plStatusLog;
 class plEAXListenerMod;
-
-typedef struct ALCdevice_struct ALCdevice;
-typedef struct ALCcontext_struct ALCcontext;
-
 
 class DeviceDescriptor
 {
@@ -116,15 +113,26 @@ public:
     bool        SupportsEAX(const char *deviceName);
 
     void        SetFadeLength(float lengthSec);
-    
+
+    /**
+     * \brief Begin capturing audio samples.
+     * This opens the selected capture device and begins sampling audio at the requested rate.
+     */
+    bool BeginCapture();
+    bool CaptureSamples(uint32_t samples, int16_t* data) const;
+    uint32_t GetCaptureSampleCount() const;
+    bool SetCaptureSampleRate(uint32_t sampleRate);
+    bool EndCapture();
+
 protected:
 
     friend class plgAudioSys;
 
-    ALCdevice *     fDevice;
-    ALCcontext *    fContext;
-    ALCdevice *     fCaptureDevice;
-    
+    ALCdevice*     fDevice;
+    ALCcontext*    fContext;
+    ALCdevice*     fCaptureDevice;
+    uint32_t       fCaptureFrequency;
+
     plSoftSoundNode     *fSoftRegionSounds;
     plSoftSoundNode     *fActiveSofts;
     plStatusLog         *fDebugActiveSoundDisplay;
@@ -244,7 +252,6 @@ public:
     static const char *GetDeviceName() { return fDeviceName.c_str(); }
     static int GetNumAudioDevices();
     static const char *GetAudioDeviceName(int index);
-    static ALCdevice *GetCaptureDevice();
     static bool SupportsEAX(const char *deviceName);
     static void RegisterSoftSound( const plKey soundKey );
     static void UnregisterSoftSound( const plKey soundKey );

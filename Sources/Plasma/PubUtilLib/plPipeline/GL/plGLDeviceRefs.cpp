@@ -39,56 +39,53 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+#include "plPipeline/hsWinRef.h"
 
-#include "HeadSpin.h"
-#pragma hdrstop
+#include "plGLPipeline.h"
+#include "plGLDeviceRef.h"
 
-#include "hsCritSect.h"
+#include "plProfile.h"
+#include "plStatusLog/plStatusLog.h"
+
+plProfile_CreateMemCounter("Vertices", "Memory", MemVertex);
+plProfile_CreateMemCounter("Indices", "Memory", MemIndex);
+plProfile_CreateMemCounter("Textures", "Memory", MemTexture);
 
 
-/****************************************************************************
-*
-*   Critical section implementation
-*
-***/
-
-#ifdef HS_BUILD_FOR_WIN32
-//===========================================================================
-CCritSect::CCritSect () {
-    InitializeCriticalSection(&m_handle);
+/*****************************************************************************
+ ** Generic plGLDeviceRef Functions                                         **
+ *****************************************************************************/
+plGLDeviceRef::plGLDeviceRef()
+{
+    fNext = nullptr;
+    fBack = nullptr;
 }
 
-//===========================================================================
-CCritSect::~CCritSect () {
-    DeleteCriticalSection(&m_handle);
+plGLDeviceRef::~plGLDeviceRef()
+{
+    if (fNext != nullptr || fBack != nullptr)
+        Unlink();
 }
 
-//===========================================================================
-void CCritSect::Enter () {
-    EnterCriticalSection(&m_handle);
+void plGLDeviceRef::Unlink()
+{
+    hsAssert(fBack, "plGLDeviceRef not in list");
+
+    if (fNext)
+        fNext->fBack = fBack;
+    *fBack = fNext;
+
+    fBack = nullptr;
+    fNext = nullptr;
 }
 
-//===========================================================================
-void CCritSect::Leave () {
-    LeaveCriticalSection(&m_handle);
-}
-#elif HS_BUILD_FOR_UNIX
-//===========================================================================
-CCritSect::CCritSect () {
-    m_handle = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
-}
+void plGLDeviceRef::Link(plGLDeviceRef** back)
+{
+    hsAssert(fNext == nullptr && fBack == nullptr, "Trying to link a plGLDeviceRef that's already linked");
 
-//===========================================================================
-CCritSect::~CCritSect () {
+    fNext = *back;
+    if (*back)
+        (*back)->fBack = &fNext;
+    fBack = back;
+    *back = this;
 }
-
-//===========================================================================
-void CCritSect::Enter () {
-    pthread_mutex_lock(&m_handle);
-}
-
-//===========================================================================
-void CCritSect::Leave () {
-    pthread_mutex_unlock(&m_handle);
-}
-#endif

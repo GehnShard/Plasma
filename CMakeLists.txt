@@ -1,5 +1,10 @@
+cmake_minimum_required(VERSION 3.5.1)
 project(Plasma)
-cmake_minimum_required(VERSION 2.8.11.2)
+
+# Require C++14 (Note: VC++ 2013 will ignore this)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(FeatureSummary)
 
@@ -16,9 +21,6 @@ set(PRODUCT_SHORT_NAME  "UruLive"   CACHE STRING "Product Short Name")
 set(PRODUCT_LONG_NAME   "Uru Live"  CACHE STRING "Product Long Name")
 set(PRODUCT_UUID        "ea489821-6c35-4bd0-9dae-bb17c585e680"
                                     CACHE STRING "Product UUID")
-
-# Configure compile-time compiler-specific flags
-include(cmake/CompilerChecks.cmake)
 
 # HeadSpin Configuration
 if(WIN32 AND NOT CYGWIN)
@@ -43,14 +45,13 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Plasma_BINARY_DIR}/bin)
 
 # Find all 3rd-party libraries that are required
-find_package(string_theory REQUIRED)
+find_package(string_theory 2.0 REQUIRED)
 set_package_properties(string_theory PROPERTIES
     URL "http://github.com/zrax/string_theory"
     DESCRIPTION "Flexible C++11 string library and type-safe formatter"
     TYPE REQUIRED
 )
 include_directories(${STRING_THEORY_INCLUDE_DIRS})
-add_definitions(-DST_NO_2_0_DEPRECATION)
 
 find_package(OpenSSL REQUIRED)
 set_package_properties(OpenSSL PROPERTIES
@@ -120,13 +121,12 @@ set_package_properties(Vorbis PROPERTIES
     PURPOSE "Required for audio support in the client"
 )
 
-#TODO: Not required if we aren't building the client
-find_package(Speex REQUIRED)
+find_package(Speex)
 set_package_properties(Speex PROPERTIES
     URL "http://www.speex.org/"
     DESCRIPTION "Free and open audio codec specifically designed for speech"
-    TYPE REQUIRED
-    PURPOSE "Required for in-game voice chat in the client"
+    TYPE OPTIONAL
+    PURPOSE "Required for legacy in-game voice chat in the client"
 )
 
 find_package(VPX)
@@ -142,7 +142,7 @@ set_package_properties(Opus PROPERTIES
     URL "https://www.opus-codec.org/"
     DESCRIPTION "Versatile free and open audio codec"
     TYPE OPTIONAL
-    PURPOSE "Required for in-game video playback support"
+    PURPOSE "Required for in-game video playback and voice chat support"
 )
 
 find_package(CURL REQUIRED)
@@ -160,18 +160,20 @@ set_package_properties(Freetype PROPERTIES
     PURPOSE "Required in order to build the plFontConverter tool"
 )
 
+find_package(BZip2)
+set_package_properties(BZip2 PROPERTIES
+    URL "https://www.sourceware.org/bzip2/"
+    DESCRIPTION "Data compression library"
+    TYPE OPTIONAL
+    PURPOSE "Required only if FreeType is built statically against bzip2"
+)
+
 if(WIN32)
     #TODO: Not required if we aren't building the client
     find_package(PhysX REQUIRED)
     set_package_properties(PhysX PROPERTIES
         URL "https://developer.nvidia.com/physx-sdk"
         DESCRIPTION "Library for hardware-accelerated physics simulation for gaming"
-        TYPE REQUIRED
-    )
-
-    find_package(DirectX REQUIRED)
-    set_package_properties(DirectX PROPERTIES
-        DESCRIPTION "Framework for hardware-accelerated 3D graphics on Microsoft platforms"
         TYPE REQUIRED
     )
 endif(WIN32)
@@ -183,11 +185,6 @@ if(UNIX AND NOT APPLE)
         set(HAVE_LIBSECRET TRUE)
     endif(LIBSECRET_FOUND)
 endif(UNIX AND NOT APPLE)
-
-if(VPX_FOUND AND Opus_FOUND)
-    set(MOVIE_AVAILABLE TRUE)
-    add_definitions(-DMOVIE_AVAILABLE)
-endif()
 
 include(PrecompiledHeader)    #Precompiled Header helper macros
 
@@ -232,6 +229,31 @@ if(PLASMA_TARGETS STREQUAL "Ethereal")
     add_definitions(-DSTREAM_LOGGER)
 endif(PLASMA_TARGETS STREQUAL "Ethereal")
 
+
+if(WIN32)
+    set(PLASMA_PIPELINE "DirectX"
+                        CACHE STRING "Which graphics backend to use")
+else(WIN32)
+    set(PLASMA_PIPELINE "OpenGL"
+                        CACHE STRING "Which graphics backend to use")
+endif(WIN32)
+set_property(CACHE PLASMA_PIPELINE PROPERTY STRINGS "DirectX" "OpenGL")
+
+if(PLASMA_PIPELINE STREQUAL "DirectX")
+    find_package(DirectX REQUIRED)
+    set_package_properties(DirectX PROPERTIES
+        DESCRIPTION "Framework for hardware-accelerated 3D graphics on Microsoft platforms"
+        TYPE REQUIRED
+    )
+
+    add_definitions(-DPLASMA_PIPELINE_DX)
+endif(PLASMA_PIPELINE STREQUAL "DirectX")
+
+if(PLASMA_PIPELINE STREQUAL "OpenGL")
+    find_package(OpenGL REQUIRED)
+    add_definitions(-DPLASMA_PIPELINE_GL)
+endif(PLASMA_PIPELINE STREQUAL "OpenGL")
+
 #Allow us to disable certain parts of the build
 option(PLASMA_BUILD_RESOURCE_DAT "Do we want to build resource.dat?" ON)
 option(PLASMA_BUILD_LAUNCHER "Do we want to build plUruLauncher?" ON)
@@ -270,6 +292,13 @@ if(WIN32)
         include_directories(${VLD_INCLUDE_DIR})
     endif()
 endif()
+
+# Configure compile-time compiler-specific flags and other config files
+include(cmake/CompilerChecks.cmake)
+include(cmake/Config.cmake)
+
+configure_file("${PROJECT_SOURCE_DIR}/cmake/hsConfig.h.cmake" "${PROJECT_BINARY_DIR}/hsConfig.h")
+include_directories(${PROJECT_BINARY_DIR})
 
 if(PLASMA_BUILD_TOOLS)
     # Custom dummy target for compiling all tools
