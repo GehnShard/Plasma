@@ -257,7 +257,13 @@ else:
         "BahroCaveUpper":     ( 'xLinkPanelBahroCaveUpper' ),
         "BahroCaveLower":     ( 'xLinkPanelBahroCaveLower' ),
         "islmGreatTree":        ( 'xLinkPanelCityGreatTree' ),
-        "Trebivdil":           ( 0, 1.0, 1.0, NoDRCStamp, BookStart1 + DRCStampHolder + NoShare + LinkStart + 'LinkPanelTrebivdil' + LinkEnd ),
+# Begin Fan Ages
+        "Trebivdil":          ( 0, 1.0, 1.0, NoDRCStamp, BookStart1 + DRCStampHolder + NoShare + LinkStart + 'xlinkpaneltrebivdil' + LinkEnd ),
+        "FehnirHouse":          ( 0, 1.0, 1.0, NoDRCStamp, BookStart1 + DRCStampHolder + NoShare + LinkStart + 'xlinkpanelfehnirhouse' + LinkEnd ),
+        "GoMePubNew":           ( 0, 1.0, 1.0, NoDRCStamp, BookStart1 + DRCStampHolder + NoShare + LinkStart + 'xlinkpanelgomepubnew' + LinkEnd ),
+        "VeeTsah":              ( 0, 1.0, 1.0, NoDRCStamp, BookStart1 + DRCStampHolder + NoShare + LinkStart + 'xlinkpanelsheten' + LinkEnd ),
+        "Vothol":               ( 0, 1.0, 1.0, NoDRCStamp, BookStart1 + DRCStampHolder + NoShare + LinkStart + 'xlinkpanelvothol' + LinkEnd ),
+        "ChisoPreniv":          ( 0, 1.0, 1.0, NoDRCStamp, BookStart1 + DRCStampHolder + NoShare + LinkStart + 'xlinkpanelchisopreniv' + LinkEnd ),
 }
 
 # cross-references the book name with the age and spawn point it links to
@@ -324,7 +330,13 @@ xLinkDestinations = {\
     "islmGreatTree":      	  ( "city", "LinkInPointGreatTree" ),
     "BahroCaveUpper":           ( "PelletBahroCave", "LinkInPointDefault" ),
     "BahroCaveLower":           ( "PelletBahroCave", "LinkInPointLower" ),
-    "Trebivdil":               ( "trebivdil", "LinkInPointDefault" ),
+# Begin Fan Ages
+    "Trevibdil":              ( "Trebivdil", "LinkInPointDefault" ),
+    "FehnirHouse":            ( "FehnirHouse", "LinkInPointDefault" ),
+    "GoMePubNew":             ( "GoMePubNew", "LinkInPointDefault" ),
+    "VeeTsah":                ( "VeeTsah", "LinkInPointDefault" ),
+    "Vothol":                 ( "Vothol", "LinkInPointDefault" ),
+    "ChisoPreniv":            ( "ChisoPreniv", "LinkInPointDefault" ),
 }
 
 #
