@@ -215,6 +215,9 @@ kAgeSdlVariables = {
 'guildPub' : ('MaxGuildPubPop', None),
 'Neighborhood02' : ('MaxKirelPop', 'nxusShowKirel'),
 'Kveer' : ('MaxKveerPublicPop', None),
+'FehnirHouse': ('MaxFehnirPop', 'nxusShowFehnir'),
+'vothol': ('MaxVotholPop', 'nxusShowVothol'),
+'ChisoPreniv': ('MaxChisoPop', 'nxusShowChiso'),
 }
 
 kGuildPubs = ["Cartographers", "Greeters", "Maintainers", "Messengers", "Writers"]
@@ -225,7 +228,8 @@ kHardcodedInstances = {"GuildPub-Cartographers" : "35624301-841e-4a07-8db6-b735c
                       "GuildPub-Maintainers" : "e8306311-56d3-4954-a32d-3da01712e9b5",
                       "GuildPub-Messengers" : "9420324e-11f8-41f9-b30b-c896171a8712",
                       "GuildPub-Writers" : "5cf4f457-d546-47dc-80eb-a07cdfefa95d",
-                      "Kveer" : "68e219e0-ee25-4df0-b855-0435584e29e2"}
+                      "Kveer" : "68e219e0-ee25-4df0-b855-0435584e29e2",
+                      "ChisoPreniv": "0b4f5ad9-d93d-52e3-83e4-9364c2149ae4"}
 
 #id for ages descriptions
 kPublicAgesDescription = {
@@ -240,6 +244,7 @@ kPublicAgesDescription = {
      'GuildPub-Writers' : ("Nexus.Messages.GuildPubFull", "Nexus.Messages.GuildPubPopulation"),
      'FehnirHouse' : ("Nexus.Messages.CityFull", "Nexus.Messages.CityPopulation"),
      'vothol' : ("Nexus.Messages.CityFull", "Nexus.Messages.CityPopulation"),
+     'ChisoPreniv' : ("Nexus.Messages.CityFull", "Nexus.Messages.CityPopulation"),
 }
 
 # hood sorting vars
@@ -359,7 +364,8 @@ class nxusBookMachine(ptModifier):
             'Neighborhood02' : AgeData(ageFilename = 'Neighborhood02', defaultMaxPop = 100, linkVisible = 0),
             'Kveer' : AgeData(ageFilename = 'Kveer', defaultMaxPop = 100, linkVisible = 0),
             'FehnirHouse' : AgeData(ageFilename = 'FehnirHouse', defaultMaxPop = 25, linkVisible = 1),
-            'vothol' : AgeData(ageFilename = 'vothol', defaultMaxPop= 50, linkVisible = 1)
+            'vothol' : AgeData(ageFilename = 'vothol', defaultMaxPop = 50, linkVisible = 1),
+            'ChisoPreniv' : AgeData(ageFilename = 'ChisoPreniv', defaultMaxPop = 100, linkVisible = 1)
             }
 
         self.categoryLinksList = {
