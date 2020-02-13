@@ -92,8 +92,8 @@ cursorOffsetList = {
 }
 
 textList = {
-	"xLoading_Linking_Text": ["background", "circles", "textLinking"],
-	"xLoading_Updating_Text": ["background", "circles", "textUpdating"]
+	"xLoading_Linking_Text": ["circles", "textLinking"],
+	"xLoading_Updating_Text": ["circles", "textUpdating"]
 }
 
 voiceList = {
@@ -197,7 +197,7 @@ def render_loading_logo(inpath, outpath):
 			svg.render_cairo(ctx)
 			ctx.restore()
 
-			surface.write_to_png(os.path.join(outpath, "xLoading_Linking.{0:02}.png".format(frame)))
+			surface.write_to_png(os.path.join(outpath, "xLoading_Linking.{0:03}.png".format(frame)))
 
 def render_loading_text(inpath, outpath):
 	resSize = {"width":192, "height":41}
