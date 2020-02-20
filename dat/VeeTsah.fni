@@ -1,0 +1,2 @@
+Graphics.Renderer.SetClearColor 0.0 0.0 0.0
+Graphics.Renderer.SetYon 100000

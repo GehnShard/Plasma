@@ -1,0 +1,7 @@
+STATEDESC VeeTsah
+{
+    VERSION 1
+
+    VAR BOOL        ChisoBookVis[1]             DEFAULT=0   DEFAULTOPTION=VAULT
+
+}
