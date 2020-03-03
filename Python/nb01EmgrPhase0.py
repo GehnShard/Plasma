@@ -185,9 +185,6 @@ class nb01EmgrPhase0(ptResponder):
                 if self.Pedestals[position]:
                     self.IManageLinkPedestal(position)
 
-            # Hard-coded hack: turn off GZ glass just in case...
-            self._UpdateVaultSDL("nb01StainedGlassGZ", 0)
-
         # Age State Randomization
         # This used to be in the Nexus, but that would never affect server-generated hoods
         if self.sceneobject.isLocallyOwned():
