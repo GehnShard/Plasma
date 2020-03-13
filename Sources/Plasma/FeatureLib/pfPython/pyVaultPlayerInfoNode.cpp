@@ -74,7 +74,7 @@ void pyVaultPlayerInfoNode::Player_SetPlayerID( uint32_t plyrid )
     playerInfo.SetPlayerId(plyrid);
 }
 
-uint32_t pyVaultPlayerInfoNode::Player_GetPlayerID( void )
+uint32_t pyVaultPlayerInfoNode::Player_GetPlayerID()
 {
     if (!fNode)
         return 0;
@@ -128,7 +128,7 @@ void pyVaultPlayerInfoNode::Player_SetAgeGuid( const char * guidtext)
     playerInfo.SetAgeInstUuid(ageInstId);
 }
 
-plUUID pyVaultPlayerInfoNode::Player_GetAgeGuid(void) const
+plUUID pyVaultPlayerInfoNode::Player_GetAgeGuid() const
 {
     if (fNode) {
         VaultPlayerInfoNode playerInfo(fNode);
@@ -147,7 +147,7 @@ void pyVaultPlayerInfoNode::Player_SetOnline( bool b )
     playerInfo.SetOnline(b);
 }
 
-bool pyVaultPlayerInfoNode::Player_IsOnline( void )
+bool pyVaultPlayerInfoNode::Player_IsOnline()
 {
     if (!fNode)
         return false;
@@ -156,7 +156,7 @@ bool pyVaultPlayerInfoNode::Player_IsOnline( void )
     return playerInfo.GetOnline();
 }
 
-int pyVaultPlayerInfoNode::Player_GetCCRLevel( void )
+int pyVaultPlayerInfoNode::Player_GetCCRLevel()
 {
     if (!fNode)
         return 0;

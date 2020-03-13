@@ -128,7 +128,7 @@ void pyVaultTextNoteNode::Note_SetType( int32_t type )
     textNote.SetNoteType(type);
 }
 
-int32_t pyVaultTextNoteNode::Note_GetType( void )
+int32_t pyVaultTextNoteNode::Note_GetType()
 {
     if (!fNode)
         return 0;
@@ -146,7 +146,7 @@ void pyVaultTextNoteNode::Note_SetSubType( int32_t type )
     textNote.SetNoteSubType(type);
 }
 
-int32_t pyVaultTextNoteNode::Note_GetSubType( void )
+int32_t pyVaultTextNoteNode::Note_GetSubType()
 {
     if (!fNode)
         return 0;

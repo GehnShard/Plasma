@@ -69,7 +69,7 @@ void pyVaultFolderNode::Folder_SetType( int type )
     folder.SetFolderType(type);
 }
 
-int pyVaultFolderNode::Folder_GetType( void )
+int pyVaultFolderNode::Folder_GetType()
 {
     if (!fNode)
         return 0;

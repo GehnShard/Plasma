@@ -97,7 +97,7 @@ class plStatusLog : public plLog
 
         plStatusLog **fDisplayPointer;      // Inside pfConsole
         
-        void    IUnlink( void );
+        void    IUnlink();
         void    ILink( plStatusLog **back );
 
         bool    IAddLine( const char *line, int32_t count, uint32_t color );
@@ -105,9 +105,9 @@ class plStatusLog : public plLog
         void    IParseFileName(plFileName &fileNoExt, ST::string &ext) const;
         static plStatusLog* IFindLog(const plFileName& filename);
 
-        void    IInit( void );
-        void    IFini( void );
-        bool    IReOpen( void );
+        void    IInit();
+        void    IFini();
+        bool    IReOpen();
 
         plStatusLog( uint8_t numDisplayLines, const plFileName &filename, uint32_t flags );
 
@@ -160,18 +160,19 @@ class plStatusLog : public plLog
 
         ~plStatusLog();
 
-        bool AddLine(const char* line, uint32_t color = kWhite);
-        bool AddLine(uint32_t color, const ST::string& line) { return AddLine(line.c_str(), color); }
+        bool AddLine(uint32_t color, const char* line);
+        bool AddLine(const char* line) { return AddLine(kWhite, line); }
+        bool AddLine(uint32_t color, const ST::string& line) { return AddLine(color, line.c_str()); }
         bool AddLine(const ST::string& line) HS_OVERRIDE { return AddLine(line.c_str()); }
 
         template<typename... _Args>
-        bool AddLine(const char* format, _Args&&... args)
+        bool AddLineF(const char* format, _Args&&... args)
         {
             return AddLine(ST::format(format, std::forward<_Args>(args)...));
         }
 
         template<typename... _Args>
-        bool AddLine(uint32_t color, const char* format, _Args&&... args)
+        bool AddLineF(uint32_t color, const char* format, _Args&&... args)
         {
             return AddLine(color, ST::format(format, std::forward<_Args>(args)...));
         }
@@ -184,6 +185,14 @@ class plStatusLog : public plLog
             return log->AddLine(line);
         }
 
+        static bool AddLineS(const plFileName& filename, uint32_t color, const char* line)
+        {
+            plStatusLog* log = IFindLog(filename);
+            if (!log)
+                return false;
+            return log->AddLine(color, line);
+        }
+
         static bool AddLineS(const plFileName& filename, const ST::string& line)
         {
             plStatusLog* log = IFindLog(filename);
@@ -192,25 +201,33 @@ class plStatusLog : public plLog
             return log->AddLine(line);
         }
 
-        template<typename... _Args>
-        static bool AddLineS(const plFileName& filename, const char* format, _Args&&... args)
+        static bool AddLineS(const plFileName& filename, uint32_t color, const ST::string& line)
         {
             plStatusLog* log = IFindLog(filename);
             if (!log)
                 return false;
-            return log->AddLine(format, std::forward<_Args>(args)...);
+            return log->AddLine(color, line);
         }
 
         template<typename... _Args>
-        static bool AddLineS(const plFileName& filename, uint32_t color, const char* format, _Args&&... args)
+        static bool AddLineSF(const plFileName& filename, const char* format, _Args&&... args)
         {
             plStatusLog* log = IFindLog(filename);
             if (!log)
                 return false;
-            return log->AddLine(color, format, std::forward<_Args>(args)...);
+            return log->AddLineF(format, std::forward<_Args>(args)...);
         }
 
-        void    Clear( void );
+        template<typename... _Args>
+        static bool AddLineSF(const plFileName& filename, uint32_t color, const char* format, _Args&&... args)
+        {
+            plStatusLog* log = IFindLog(filename);
+            if (!log)
+                return false;
+            return log->AddLineF(color, format, std::forward<_Args>(args)...);
+        }
+
+        void    Clear();
 
         // Clear and open a new file.
         void    Bounce( uint32_t flags=0 );
@@ -252,14 +269,14 @@ class plStatusLogMgr
 
         ~plStatusLogMgr();
 
-        static plStatusLogMgr   &GetInstance( void );
+        static plStatusLogMgr   &GetInstance();
 
-        void        Draw( void );
+        void        Draw();
 
         plStatusLog *CreateStatusLog( uint8_t numDisplayLines, const plFileName &filename, uint32_t flags = plStatusLog::kFilledBackground );
         void        ToggleStatusLog( plStatusLog *logToDisplay );
-        void        NextStatusLog( void );
-        void        PrevStatusLog( void );
+        void        NextStatusLog();
+        void        PrevStatusLog();
         void        SetCurrStatusLog( const plFileName &logName );
         plStatusLog *FindLog( const plFileName &filename, bool createIfNotFound = true );
 

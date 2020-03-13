@@ -124,7 +124,7 @@ PyObject * pyVaultAgeInfoNode::GetCanVisitFolder() const
     PYTHON_RETURN_NONE;
 }
 
-PyObject* pyVaultAgeInfoNode::GetChildAgesFolder( void )
+PyObject* pyVaultAgeInfoNode::GetChildAgesFolder()
 {
     if (!fNode)
         PYTHON_RETURN_NONE;
