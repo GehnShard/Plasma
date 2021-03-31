@@ -87,12 +87,12 @@ class xDialogToggle(ptModifier):
         
         version = 1
         self.version = version
-        print "__init__xDialogToggle v.", version
+        PtDebugPrint("__init__xDialogToggle v.", version)
     
     def IGetAgeFilename(self):
         "returns the .age file name of the age"
         ageInfo = PtGetAgeInfo()
-        if type(ageInfo) != type(None):
+        if ageInfo is not None:
             return ageInfo.getAgeFilename()
         else:
             return "GUI" # use default GUI age if we can't find the age name for some reason
@@ -113,7 +113,7 @@ class xDialogToggle(ptModifier):
 
     def OnGUINotify(self,id,control,event):
         "Notifications from the vignette"
-        #print "GUI Notify id=%d, event=%d control=" % (id,event),control
+        #PtDebugPrint("GUI Notify id=%d, event=%d control=" % (id,event),control)
         if event == kAction:
             if control.getTagID() == kExit: #off
                 self.IQuitDialog()
@@ -137,20 +137,20 @@ class xDialogToggle(ptModifier):
         PtLoadDialog(Vignette.value,self.key,self.IGetAgeFilename())
         if ( PtIsDialogLoaded(Vignette.value) ):
             PtShowDialog(Vignette.value)
-            print "dialog: %s goes up" % Vignette.value
+            PtDebugPrint("dialog: %s goes up" % Vignette.value)
         # get control key events
-        PtGetControlEvents(true,self.key)
+        PtGetControlEvents(True,self.key)
 
     def IQuitDialog(self):
         "Disengage and exit"
         global LocalAvatar
         # exit every thing
-        if type(Vignette.value) != type(None) and Vignette.value != "":
+        if Vignette.value:
             PtHideDialog(Vignette.value)
-            print "Dialog: %s goes down" % Vignette.value
+            PtDebugPrint("Dialog: %s goes down" % Vignette.value)
         else:
-            print "WTH!!!"
+            PtDebugPrint("WTH!!!")
         #disable the Control key events
-        PtGetControlEvents(false,self.key)
+        PtGetControlEvents(False,self.key)
         # re-enable the dialog for someone else to use
         Activate.enable()

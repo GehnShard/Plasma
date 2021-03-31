@@ -73,12 +73,12 @@ class xPsnlVaultSDL:
             
             return (retval,)
         #except:
-        #    print "ERROR:xPsnlVaultSDL.__getitem__:\tError getting sdl & var"
+        #    PtDebugPrint("ERROR:xPsnlVaultSDL.__getitem__:\tError getting sdl & var")
         #    return None
 
     def __setitem__(self, sub, val):
 
-        if type(val) == type( () ):
+        if isinstance(val, tuple):
             val = val[0]
         else:
             raise ValueError("Value must be tuple type")
@@ -98,7 +98,7 @@ class xPsnlVaultSDL:
                 self.vault.updatePsnlAgeSDL(sdl)
 
         #except:
-        #    print "ERROR:xPsnlVaultSDL.__setitem__:\tError getting sdl & var"
+        #    PtDebugPrint("ERROR:xPsnlVaultSDL.__setitem__:\tError getting sdl & var")
 
     def IGetVar(self, var):
         vartype = var.getType()
@@ -125,40 +125,40 @@ class xPsnlVaultSDL:
 
     def ISetVar(self, var, val):
         vartype = var.getType()
-        #print "Attempting to set item %s to %s" % (sub, str(val))
+        #PtDebugPrint("Attempting to set item %s to %s" % (sub, str(val)))
 
         if vartype == PtSDLVarType.kInt:
-            if type(val) in (types.IntType, types.LongType):
-                #print "Set int"
+            if isintance(val, (int, long)):
+                #PtDebugPrint("Set int")
                 var.setInt(val)
 
         elif vartype == PtSDLVarType.kFloat:
-            if type(val) in (types.IntType, types.LongType, types.FloatType):
-                #print "Set float"
+            if isinstance(val, (int, long, float)):
+                #PtDebugPrint("Set float")
                 var.setFloat(val)
 
         elif vartype == PtSDLVarType.kDouble:
-            if type(val) in (types.IntType, types.LongType, types.FloatType):
-                #print "Set double"
+            if isinstance(val, (int, long, float)):
+                #PtDebugPrint("Set double")
                 var.setDouble(val)
 
         elif vartype == PtSDLVarType.kBool:
-            #print "Set bool"
+            #PtDebugPrint("Set bool")
             if val:
                 var.setBool(1)
             else:
                 var.setBool(0)
 
         elif vartype == PtSDLVarType.kString32:
-            #print "Set string"
-            if type(val) == type(""):
+            #PtDebugPrint("Set string")
+            if isinstance(val, str):
                 var.setString(val)
             else:
                 var.setString(str(val))
 
         else:
-            if type(val) in (types.IntType, types.LongType):
-                #print "Set int"
+            if isinstance(val, (int, long)):
+                #PtDebugPrint("Set int")
                 var.setInt(val)
 
     def BatchGet(self, vars):
@@ -175,7 +175,7 @@ class xPsnlVaultSDL:
 
             return retval
         #except:
-        #    print "ERROR:xPsnlVaultSDL.BatchGet:  problem doing a batch get"
+        #    PtDebugPrint("ERROR:xPsnlVaultSDL.BatchGet:  problem doing a batch get")
 
     def BatchSet(self, vars):
         if 1:#try:
@@ -195,4 +195,4 @@ class xPsnlVaultSDL:
                 self.vault.updatePsnlAgeSDL(sdl)
 
         #except:
-        #    print "ERROR:xPsnlVaultSDL.BatchSet:  problem doing a batch set"
+        #    PtDebugPrint("ERROR:xPsnlVaultSDL.BatchSet:  problem doing a batch set")

@@ -98,8 +98,8 @@ class tldnHatchLadderBottom(ptModifier):
                 hatchOpen = ageSDL[kStringAgeSDLHatchOpen][0]
                 hatchLocked = ageSDL[kStringAgeSDLHatchLocked][0]
             except:
-                hatchOpen = false
-                hatchLocked = true
+                hatchOpen = False
+                hatchLocked = True
                 PtDebugPrint("tldnHatchLadderBottom.OnServerInitComplete():\tERROR: age sdl read failed, defaulting:")
             PtDebugPrint("tldnHatchLadderBottom.OnServerInitComplete():\t%s=%d, %s=%d" % (kStringAgeSDLHatchOpen,hatchOpen,kStringAgeSDLHatchLocked,hatchLocked) )
                     
@@ -119,7 +119,7 @@ class tldnHatchLadderBottom(ptModifier):
     def OnNotify(self,state,id,events):
         global LocalAvatar
         
-        # print "tldnHatchLadderBottom:OnNotify  state=%f id=%d events=" % (state,id),events
+        # PtDebugPrint("tldnHatchLadderBottom:OnNotify  state=%f id=%d events=" % (state,id),events)
         if state:
             if id == ActStart.id and PtWasLocallyNotified(self.key):
                 LocalAvatar = PtFindAvatar(events)
@@ -129,20 +129,20 @@ class tldnHatchLadderBottom(ptModifier):
         for event in events:
             # multistage callback from stage 2 send when advancing
             if event[0] == kMultiStageEvent:
-                if type(LocalAvatar) == type(None):
+                if LocalAvatar is None:
                     return
                 if PtFindAvatar(events) == LocalAvatar:
                     if event[2] == kAdvanceNextStage:
                         stageNum = event[1]
-                        print "Got stage advance callback from stage %d" % stageNum
+                        PtDebugPrint("Got stage advance callback from stage %d" % stageNum)
                         if stageNum == 1:
-                            print "In stage 2, negotiating hatch."
+                            PtDebugPrint("In stage 2, negotiating hatch.")
                             self.INegotiateHatch();
                         elif stageNum == 2:
                             # after the "it's locked" anim, return to the climb...
                             Climber.gotoStage(LocalAvatar, 1,0,0)
                         elif stageNum == 2 or stageNum == 3 or stageNum == 5:
-                            print "Got through hatch: finishing & removing brain."
+                            PtDebugPrint("Got through hatch: finishing & removing brain.")
                             Climber.gotoStage(LocalAvatar, -1)
     
     def INegotiateHatch(self):
@@ -150,7 +150,7 @@ class tldnHatchLadderBottom(ptModifier):
         global hatchOpen
         global hatchLocked
         
-        print "Negotiating hatch"
+        PtDebugPrint("Negotiating hatch")
         if hatchOpen:
             self.IHatchOpen()
         else:
@@ -162,14 +162,14 @@ class tldnHatchLadderBottom(ptModifier):
     def IHatchLocked(self):
         "Hatch is locked; show the frustrated animation and return to previous stage"
         global LocalAvatar
-        print "Hatch is locked; Sending gotoStage(2)"
+        PtDebugPrint("Hatch is locked; Sending gotoStage(2)")
         respHatchOps.run(self.key,state='lockedbelow')
         Climber.gotoStage(LocalAvatar,2,0,1)
 
     def IHatchUnlocked(self):
         "Hatch is unlocked; open it and pass through."
         global LocalAvatar
-        print "Hatch is unlocked; Sending gotoStage(3)"
+        PtDebugPrint("Hatch is unlocked; Sending gotoStage(3)")
         respHatchOps.run(self.key,state='openbelow')
         Climber.gotoStage(LocalAvatar,3,0,0)
         hatchOpen = 1
@@ -180,5 +180,5 @@ class tldnHatchLadderBottom(ptModifier):
     def IHatchOpen(self):
         "Hatch is open; just climb through."
         global LocalAvatar
-        print "Hatch is open; Sending gotoStage(4)"
+        PtDebugPrint("Hatch is open; Sending gotoStage(4)")
         Climber.gotoStage(LocalAvatar,4,0,0)

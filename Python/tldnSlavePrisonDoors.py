@@ -160,7 +160,7 @@ class tldnSlavePrisonDoors(ptResponder):
                     if boolCurrentValue:
                         activatorToResp[actid].run(self.key, state="State 1",fastforward=1)
                     # if its false then there is no need to animate the plate up (should already be in the that state)
-            for PadSDL in respToPadSDL.keys():
+            for PadSDL in respToPadSDL.viewkeys():
                 ageSDL.setNotify(self.key,PadSDL,0.0)
             ageSDL.setNotify(self.key,"tldnSlaveCaveSecretDoorOpen",0.0)
             # evaluate plates to paddles and set doors accordingly
@@ -171,7 +171,7 @@ class tldnSlavePrisonDoors(ptResponder):
         PtDebugPrint("tldSlavePrisonDoors.OnSDLNotify:",level=kDebugDumpLevel)
         # is it a var we care about?
         foundSDL = 0
-        for PadSDL in respToPadSDL.keys():
+        for PadSDL in respToPadSDL.viewkeys():
             if VARname == PadSDL:
                 foundSDL = 1
                 break
@@ -185,7 +185,7 @@ class tldnSlavePrisonDoors(ptResponder):
         # make sure its one of the activators we know about
         if id in activatorToResp:
             for event in events:
-                print "event = ", event
+                PtDebugPrint("event = ", event)
             # evaluate plates to paddles and set doors accordingly
             self.IEvalPlateAndPaddles(activator=id)
             ageSDL = PtGetAgeSDL()
@@ -218,7 +218,7 @@ class tldnSlavePrisonDoors(ptResponder):
         ageSDL = PtGetAgeSDL()
         # assume plates and paddles match
         theyMatch = 1
-        for PadSDL,resp in respToPadSDL.items():
+        for PadSDL,resp in respToPadSDL.viewitems():
             try:
                 paddle = ageSDL[PadSDL][0]
             except LookupError:
@@ -244,7 +244,7 @@ class tldnSlavePrisonDoors(ptResponder):
                     break
             else:
                 # otherwise look at the responder states
-                if type(resp.value) == type([]) and len(resp.value) > 0:
+                if resp.value:
                     plate = resp.value[0].getSceneObject().getResponderState()
                     # plate == 0 is up (no weight) and plate == 1 is pressed down (has weight)
     
@@ -281,7 +281,7 @@ class tldnSlavePrisonDoors(ptResponder):
                 respOuterDoor.run(self.key,state="down",fastforward=fastforward)
         
             ageSDL["tldnSlaveCaveSecretDoorOpen"] = (1,)
-            print "tldnSlavePrisonDoors: The exp1 secret panel should now be open."
+            PtDebugPrint("tldnSlavePrisonDoors: The exp1 secret panel should now be open.")
         
         else:
             # raise the outer doors and shut the inner doors
@@ -294,7 +294,7 @@ class tldnSlavePrisonDoors(ptResponder):
                 respOuterDoor.run(self.key,state="up",fastforward=fastforward)
 
             ageSDL["tldnSlaveCaveSecretDoorOpen"] = (0,)
-            print "tldnSlavePrisonDoors: The exp1 secret panel should now be closed."
+            PtDebugPrint("tldnSlavePrisonDoors: The exp1 secret panel should now be closed.")
 
 
     def OnBackdoorMsg(self, target, param):

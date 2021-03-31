@@ -71,7 +71,7 @@ class xEventTrigger(ptResponder):
         AgeStartedIn = PtGetAgeName()
     
     def OnServerInitComplete(self):
-        if type(EventName.value) == type("") and EventName.value != "":
+        if EventName.value:
             ageSDL = PtGetAgeSDL()
             ageSDL.setNotify(self.key,EventName.value,0.0)
         
@@ -80,22 +80,22 @@ class xEventTrigger(ptResponder):
             ageSDL = PtGetAgeSDL()
             PtDebugPrint("xEventTrigger: SDLNotify - name = %s, SDLname = %s" % (VARname,SDLname))
             if VARname == EventName.value:
-                print "xEventTrigger: value is %f" % ageSDL[EventName.value]
+                PtDebugPrint("xEventTrigger: value is %f" % ageSDL[EventName.value])
                 if ageSDL[EventName.value][0]:
                     #~ PtDebugPrint("Event %s is true!" % (VARname))
                     # are we paging things in?
-                    if type(PageNames.value) == type("") and PageNames.value != "":
+                    if PageNames.value:
                         names = string.split(PageNames.value,",")
                         for name in names:
                             PtPageInNode(name)
-                    if type(Responder.value) != type(None):
+                    if Responder.value is not None:
                         Responder.run(self.key,state="true")
                 else:
                     #~ PtDebugPrint("Event %s is false!" % (VARname))
                     # are we paging things in?
-                    if type(PageNames.value) == type("") and PageNames.value != "":
+                    if PageNames.value:
                         names = string.split(PageNames.value,",")
                         for name in names:
                             PtPageOutNode(name)
-                    if RunFalse.value and type(Responder.value) != type(None):
+                    if RunFalse.value and Responder.value is not None:
                         Responder.run(self.key,state="false")

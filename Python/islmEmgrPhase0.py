@@ -68,7 +68,7 @@ AgeStartedIn = None
 
 #This identifies the maximum valid value for INT Variables
 #The range is always from 00 to the value specified here
-islmDRCStageStateMaxINT = 02
+islmDRCStageStateMaxINT = 2
 
 
 def OutOfRange(VARname, NewSDLValue, myMaxINT):
@@ -108,7 +108,7 @@ class islmEmgrPhase0(ptResponder):
         
         version = 2
         self.version = version
-        print "__init__islmEmgrPhase0 v.", version
+        PtDebugPrint("__init__islmEmgrPhase0 v.", version)
 
     def OnFirstUpdate(self):
         global AgeStartedIn
@@ -119,11 +119,11 @@ class islmEmgrPhase0(ptResponder):
             ageSDL = PtGetAgeSDL()
             
             for variable in BooleanVARs:
-                print "tying together", variable
+                PtDebugPrint("tying together", variable)
                 ageSDL.setNotify(self.key,variable,0.0)
                 self.IManageBOOLs(variable, "")
                 
-            for variable in StateVARs.keys():
+            for variable in StateVARs.viewkeys():
                 PtDebugPrint("setting notify on %s" % variable)
                 ageSDL.setNotify(self.key,variable,0.0)
                 StateVARs[variable](variable,ageSDL[variable][0])
@@ -137,10 +137,10 @@ class islmEmgrPhase0(ptResponder):
             PtDebugPrint("islmEmgrPhase0.SDLNotify - name = %s, SDLname = %s" % (VARname,SDLname))
             
             if VARname in BooleanVARs:
-                print "islmEmgrPhase0.OnSDLNotify : %s is a BOOLEAN Variable" % (VARname)
+                PtDebugPrint("islmEmgrPhase0.OnSDLNotify : %s is a BOOLEAN Variable" % (VARname))
                 self.IManageBOOLs(VARname,SDLname)
                 
-            elif VARname in StateVARs.keys():
+            elif VARname in StateVARs.viewkeys():
                 PtDebugPrint("islmEmgrPhas0.OnSDLNotify : %s is a STATE variable" % (VARname))
                 
                 NewSDLValue = ageSDL[VARname][0]
@@ -159,7 +159,7 @@ class islmEmgrPhase0(ptResponder):
                 PtDebugPrint("islmEmgrPhase0.OnSDLNotify:\tPaging in room ", VARname)
                 PtPageInNode(VARname)
             elif ageSDL[VARname][0] == 0:  #are we paging things out?
-                print "variable = ", VARname
+                PtDebugPrint("variable = ", VARname)
                 PtDebugPrint("islmEmgrPhase0.OnSDLNotify:\tPaging out room ", VARname)
                 PtPageOutNode(VARname)
             else:

@@ -105,7 +105,7 @@ class mystFireplace(ptModifier):
         self.id = 5335
 
         self.version = 3
-        print "__init__MystFireplace v.", self.version
+        PtDebugPrint("__init__MystFireplace v.", self.version)
 
     def OnServerInitComplete(self):
         ageSDL = PtGetAgeSDL()
@@ -133,18 +133,18 @@ class mystFireplace(ptModifier):
         #actPanelButtons.disable()
         respFPDoor.run(self.key, state = "close", fastforward = 1)
 
-        #for key,value in actPanelButtons.byObject.items():
-            #print key
+        #for key,value in actPanelButtons.byObject.viewitems():
+            #PtDebugPrint(key)
             #p = value.getParentKey()
             #if p:
-                #print "\t", p.getName()
+                #PtDebugPrint("\t", p.getName())
             #actPanelButtons.enable(objectName=key)
 
             
     def OnNotify(self,state,id,events):
         global IgnorePanelClick
         
-        print "onnotify: id -", id
+        PtDebugPrint("onnotify: id -", id)
 
         if id == actButton.id and state:
             #actPanelButtons.disable()
@@ -171,7 +171,7 @@ class mystFireplace(ptModifier):
                 id = IgnorePanelClick[0]
                 del IgnorePanelClick[0]
                 
-                for rkey,rvalue in actPanelButtons.byObject.items():
+                for rkey,rvalue in actPanelButtons.byObject.viewitems():
                     parent = rvalue.getParentKey()
                     if parent:
                         pname = parent.getName()
@@ -267,7 +267,7 @@ class mystFireplace(ptModifier):
                     return
                 else:
                     IgnorePanelClick.append(id)
-                    for rkey,rvalue in actPanelButtons.byObject.items():
+                    for rkey,rvalue in actPanelButtons.byObject.viewitems():
                         parent = rvalue.getParentKey()
                         if parent:
                             pname = parent.getName()
@@ -282,14 +282,14 @@ class mystFireplace(ptModifier):
                     bstate = "press"
                     CheckedButtons.append(id)
 
-                print panelName, bstate
+                PtDebugPrint(panelName, bstate)
 
-                for rkey,rvalue in respMorphButtons.byObject.items():
+                for rkey,rvalue in respMorphButtons.byObject.viewitems():
                     parent = rvalue.getParentKey()
                     if parent:
                         pname = parent.getName()
                         #pnum = 8*(int(pname[-2:]) - 1) + (ord(pname[-3]) - ord("A"))
-                        #print id, pnum
+                        #PtDebugPrint(id, pnum)
                         #if panelName == parent.getName():
                         if id == pname[-3:]:
                             respMorphButtons.run(self.key,objectName=rkey, state = bstate)
@@ -378,8 +378,8 @@ class mystFireplace(ptModifier):
         CheckedButtons.sort()
         solution.sort()
 
-        print "CheckedButtons:", CheckedButtons
-        print "solution      :", solution
+        PtDebugPrint("CheckedButtons:", CheckedButtons)
+        PtDebugPrint("solution      :", solution)
 
         return CheckedButtons == solution
 
@@ -388,12 +388,12 @@ class mystFireplace(ptModifier):
         global IgnorePanelClick
 
         #respResetPanel.run(self.key, fastforward=1)
-        #for rkey,rvalue in respResetPanel.byObject.items():
+        #for rkey,rvalue in respResetPanel.byObject.viewitems():
         #    respResetPanel.run(self.key,objectName=rkey, fastforward=0)
 
         for but in CheckedButtons:
             id = but[-3:]
-            for rkey,rvalue in respMorphButtons.byObject.items():
+            for rkey,rvalue in respMorphButtons.byObject.viewitems():
                 parent = rvalue.getParentKey()
                 if parent:
                     pname = parent.getName()

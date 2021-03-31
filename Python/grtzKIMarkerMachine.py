@@ -120,7 +120,7 @@ def ResetMarkerGame():
 
     # First, reset the KI Marker Level
     entry = vault.findChronicleEntry(kChronicleKIMarkerLevel)
-    if type(entry) != type(None):
+    if entry is not None:
         entry.chronicleSetValue("0")
         entry.save()
 
@@ -130,7 +130,7 @@ def ResetMarkerGame():
     # Now reset the chronicle display settings
     resetString = "0 off:off 0:0"
     entry = vault.findChronicleEntry(kChronicleGZGames)
-    if type(entry) != type(None):
+    if entry is not None:
         entry.chronicleSetValue(resetString)
 
     #Who knows what state we were in so we'll reset the CGZs as well!!!
@@ -149,7 +149,7 @@ def UpdateGZMarkers(markerStatus):
 
     vault = ptVault()
     entry = vault.findChronicleEntry(kChronicleGZMarkersAquired)
-    if type(entry) != type(None):
+    if entry is not None:
         markers = entry.chronicleGetValue()
         resetValue = markerStatus * len(markers)
         entry.chronicleSetValue(resetValue)
@@ -202,7 +202,7 @@ class grtzKIMarkerMachine(ptModifier):
                 markerKILevel = PtDetermineKIMarkerLevel()
 
                 if markerKILevel > kKIMarkerFirstLevel:
-                    print "Making Sure Nexus Link Exists."
+                    PtDebugPrint("Making Sure Nexus Link Exists.")
                     self.IUpdateNexusLink()
 
                 #Don't try and get the game if we've got a normal KI marker level (i.e. finished with first two marker games)
@@ -227,7 +227,7 @@ class grtzKIMarkerMachine(ptModifier):
                     #Since we're turning on for the first time, we'll enable each marker
                     vault = ptVault()
                     entry = vault.findChronicleEntry(kChronicleGZMarkersAquired)
-                    if type(entry) == type(None):
+                    if entry is None:
                         # if there is none, then just add another entry - start off as active
                         markers = kGZMarkerAvailable * kNumGZMarkers
                         vault.addChronicleEntry(kChronicleGZMarkersAquired,kChronicleGZMarkersAquiredType,markers)
@@ -277,7 +277,7 @@ class grtzKIMarkerMachine(ptModifier):
         # is there a chronicle for the GZ games?
         entry = vault.findChronicleEntry(kChronicleGZGames)
         error = 0
-        if type(entry) != type(None):
+        if entry is not None:
             markerGameString = entry.chronicleGetValue()
             args = markerGameString.split()
             
@@ -339,7 +339,7 @@ class grtzKIMarkerMachine(ptModifier):
         # is there a chronicle for the GZ games?
         entry = vault.findChronicleEntry(kChronicleGZGames)
         upstring = "%d %s:%s %d:%d" % (gGZPlaying,gMarkerGottenColor,gMarkerToGetColor,gMarkerGottenNumber,gMarkerToGetNumber)
-        if type(entry) != type(None):
+        if entry is not None:
             entry.chronicleSetValue(upstring)
             entry.save()
         else:
@@ -409,7 +409,7 @@ class grtzKIMarkerMachine(ptModifier):
                 vault = ptVault()
                 # is there a chronicle for the GZ games?
                 entry = vault.findChronicleEntry(kChronicleGZGames)
-                if type(entry) != type(None):
+                if entry is not None:
                     entry.chronicleSetValue("0")
                     entry.save()
                 # they've made it to the next level
@@ -465,16 +465,16 @@ class grtzKIMarkerMachine(ptModifier):
                 for SpawnPoint in GZSpawnPoints:
                     title = SpawnPoint.getTitle().lower()
                     name = SpawnPoint.getName().lower()
-                    #print "Title: %s\nName: %s" % (title,name)
+                    #PtDebugPrint("Title: %s\nName: %s" % (title,name))
                     if title == "great zero" and name == "bigroomlinkinpoint":
-                        print "grtzKIMarkerMachine: Nexus link already exists."
+                        PtDebugPrint("grtzKIMarkerMachine: Nexus link already exists.")
                         return
                 #self.IDoCityLinksChron("BigRoomLinkInPoint")   # this will be used if we want to add this to the city book
                 outerRoomSP = ptSpawnPointInfo("Great Zero","BigRoomLinkInPoint")
-                #print "NewSpawnPointInfo\nName: %s\nTitle: %s" % (outerRoomSP.getName(), outerRoomSP.getTitle())
+                #PtDebugPrint("NewSpawnPointInfo\nName: %s\nTitle: %s" % (outerRoomSP.getName(), outerRoomSP.getTitle()))
                 link.addSpawnPoint(outerRoomSP)
                 link.save()
-                print "grtzKIMarkerMachine: Nexus link added."
+                PtDebugPrint("grtzKIMarkerMachine: Nexus link added.")
                 PtSendKIMessage(kKILocalChatStatusMsg,PtGetLocalizedString("KI.Messages.NexusLinkAdded"))
                 PtDebugPrint("grtzKIMarkerMachine - setting new spawn point for GZ",level=kDebugDumpLevel)
                 return
@@ -502,27 +502,27 @@ class grtzKIMarkerMachine(ptModifier):
         CityLinks = []
         vault = ptVault()
         entryCityLinks = vault.findChronicleEntry("CityBookLinks")
-        if type(entryCityLinks) != type(None):
+        if entryCityLinks is not None:
             valCityLinks = entryCityLinks.chronicleGetValue()
-            print "valCityLinks = ",valCityLinks
+            PtDebugPrint("valCityLinks = ",valCityLinks)
             CityLinks = valCityLinks.split(",")
-            print "CityLinks = ",CityLinks
+            PtDebugPrint("CityLinks = ",CityLinks)
             if agePanel not in CityLinks:
                 NewLinks = valCityLinks + "," + agePanel
                 entryCityLinks.chronicleSetValue(NewLinks)
                 entryCityLinks.save()
-                print "grtzKIMarkerMachine.IDoCityLinksChron():  setting citylinks chron entry to include: ",agePanel
+                PtDebugPrint("grtzKIMarkerMachine.IDoCityLinksChron():  setting citylinks chron entry to include: ",agePanel)
                 valCityLinks = entryCityLinks.chronicleGetValue()
                 CityLinks = valCityLinks.split(",")
-                print "grtzKIMarkerMachine.IDoCityLinksChron():  citylinks now = ",CityLinks
+                PtDebugPrint("grtzKIMarkerMachine.IDoCityLinksChron():  citylinks now = ",CityLinks)
             else:
-                print "grtzKIMarkerMachine.IDoCityLinksChron():  do nothing, citylinks chron already contains: ",agePanel
+                PtDebugPrint("grtzKIMarkerMachine.IDoCityLinksChron():  do nothing, citylinks chron already contains: ",agePanel)
         else:
             vault.addChronicleEntry("CityBookLinks",0,agePanel)
-            print "grtzKIMarkerMachine.IDoCityLinksChron():  creating citylinks chron entry and adding: ",agePanel
+            PtDebugPrint("grtzKIMarkerMachine.IDoCityLinksChron():  creating citylinks chron entry and adding: ",agePanel)
         
         psnlSDL = xPsnlVaultSDL()
         GotBook = psnlSDL["psnlGotCityBook"][0]
         if not GotBook:
             psnlSDL["psnlGotCityBook"] = (1,)
-            print "grtzKIMarkerMachine.IDoCityLinksChron():  setting SDL for city book to 1"
+            PtDebugPrint("grtzKIMarkerMachine.IDoCityLinksChron():  setting SDL for city book to 1")

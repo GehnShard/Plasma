@@ -86,18 +86,18 @@ class Cleft(ptResponder):
 
         vault = ptVault()
         entryCleft = vault.findChronicleEntry("CleftSolved")
-        if type(entryCleft) != type(None):
+        if entryCleft is not None:
             entryCleftValue = entryCleft.chronicleGetValue()
             if entryCleftValue != "yes":
                 loadZandi = 1
                 loadBook = 1
-        elif type(entryCleft) == type(None):
+        elif entryCleft is None:
             loadZandi = 1
             loadBook = 1
 
         vault = ptVault()
         entryTomahna = vault.findChronicleEntry("TomahnaLoad")
-        if type(entryTomahna) != type(None):
+        if entryTomahna is not None:
             entryTomahnaValue = entryTomahna.chronicleGetValue()
             if entryTomahnaValue == "yes":
                 loadTomahna = 1
@@ -122,11 +122,11 @@ class Cleft(ptResponder):
             pages += ["ZandiJC04aFace","ZandiJC04bFace","ZandiJC05aFace","ZandiJC05bFace","ZandiJC06aFace","ZandiJC06bFace"]
             pages += ["ZandiJC07aFace","ZandiJC07bFace"]
         else:
-            print "Zandi seems to have stepped away from the Airstream. Hmmm..."
+            PtDebugPrint("Zandi seems to have stepped away from the Airstream. Hmmm...")
         if loadBook:
             pages += ["clftYeeshaBookVis","FemaleGetPersonalBook","MaleGetPersonalBook"]
         else:
-            print "Zandi seems to have stepped away from the Airstream. Hmmm..."
+            PtDebugPrint("Zandi seems to have stepped away from the Airstream. Hmmm...")
 
         # Put in all the common pages
         pages += ["BookRoom","clftAtrusNote"]
@@ -151,7 +151,7 @@ class Cleft(ptResponder):
         #~ # test for first time to play the intro movie
         #~ vault = ptVault()
         #~ entry = vault.findChronicleEntry(kIntroPlayedChronicle)
-        #~ if type(entry) != type(None):
+        #~ if entry is not None:
             #~ # already played intro sometime in the past... just let 'em play
             #~ PtSendKIMessage(kEnableKIandBB,0)
         #~ else:
@@ -216,12 +216,12 @@ class Cleft(ptResponder):
         
         if spName == "LinkInPointFissureDrop":
             fissureDrop = 1
-            #avatar.physics.suppress(false)
+            #avatar.physics.suppress(False)
             avatar = 0
             try:
                 avatar = PtGetLocalAvatar()
             except:
-                print"failed to get local avatar"
+                PtDebugPrint("failed to get local avatar")
                 return
             avatar.avatar.registerForBehaviorNotify(self.key)
             cam = ptCamera()
@@ -258,7 +258,7 @@ class Cleft(ptResponder):
         global fissureDrop
 
         if (id == respFissureDropMain.id):
-            print "FISSUREDROP.OnNotify:  respFissureDropMain.id callback"
+            PtDebugPrint("FISSUREDROP.OnNotify:  respFissureDropMain.id callback")
             if fissureDrop:
                 cam = ptCamera()
                 cam.enableFirstPersonOverride()
@@ -274,7 +274,7 @@ class Cleft(ptResponder):
    
         #PtDebugPrint("Cleft.OnBehaviorNotify(): %d" % (type))
         if type == PtBehaviorTypes.kBehaviorTypeLinkIn and not state:
-            print "FISSUREDROP.OnBehaviorNotify: fissureDrop = %d" % (fissureDrop)
+            PtDebugPrint("FISSUREDROP.OnBehaviorNotify: fissureDrop = %d" % (fissureDrop))
             if fissureDrop:
                 PtDebugPrint("Cleft.OnBehaviorNotify(): will run respFissureDropMain now.")
                 respFissureDropMain.run(self.key,avatar=PtGetLocalAvatar())

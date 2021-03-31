@@ -84,14 +84,14 @@ ForceThirdPerson = ptAttribBoolean(11, "Force 3rd person", default = 0)
 
 
 # globals
-OfferedBookMode = false
+OfferedBookMode = False
 BookOfferer = None
 stringAgeRequested = None
 PageID_List  = []
 SpawnPointName_Dict = {}
 SpawnPointTitle_Dict = {}
 
-OffereeWalking = false
+OffereeWalking = False
 ClosedBookToShare = 0
 
 BookNumber = 0 # which book it is on the shelf. The Neighborhood book currently is 0. The Teledahn Book is currently 2.
@@ -149,7 +149,7 @@ class xLinkingBookGUIPopup(ptModifier):
         if id==shareRegion.id:
             if PtWasLocallyNotified(self.key):
                 for event in events:
-                    if (event[0]==kCollisionEvent and event[1] == false): # false being an exit
+                    if (event[0]==kCollisionEvent and not event[1]): # False being an exit
                         PtDebugPrint("xLinkingBookGUIPopup: exited book offer region",level=kDebugDumpLevel)
                         PtClearOfferBookMode()
                         self.HideBook()
@@ -164,13 +164,13 @@ class xLinkingBookGUIPopup(ptModifier):
                 PtDebugPrint("xLinkingBookGUIPopup: event[2]=",event[2],level=kDebugDumpLevel)
                 
                 if event[0] == kMultiStageEvent and event[2] == kEnterStage and OffereeWalking: # Smart seek completed. Exit multistage, and show GUI.
-                    OffereeWalking = false
+                    OffereeWalking = False
                     PtDebugPrint("xLinkingBookGUIPopup: accepted link, notifying offerer of such",level=kDebugDumpLevel)
-                    OfferedBookMode = false
+                    OfferedBookMode = False
                     avID = PtGetClientIDFromAvatarKey(BookOfferer.getKey())
                     PtNotifyOffererLinkCompleted(avID) 
                     BookOfferer = None
-                    PtToggleAvatarClickability(true)
+                    PtToggleAvatarClickability(True)
                     return
 
         # is it the bookshelf in the personal age?    
@@ -197,25 +197,25 @@ class xLinkingBookGUIPopup(ptModifier):
                         idRequestor = event[3]
                         PtDebugPrint("xLinkingBookGUI.OnNotify():\tpsnlBookshelf user id %d selected book %s from the shelf" % (idRequestor, stringAgeRequested),level=kDebugDumpLevel)
                         self.IShowBookTreasure()
-                        OfferedBookMode = false
+                        OfferedBookMode = False
                         BookOfferer = None
 
         # is it a clickable book on a pedestal?
         elif id == actClickableBook.id:
             if PtWasLocallyNotified(self.key) and state:
                 actClickableBook.disable()
-                PtToggleAvatarClickability(false)
-                if type(SeekBehavior.value) != type(None): #remember, smart seek before GUI is optional. 
+                PtToggleAvatarClickability(False)
+                if SeekBehavior.value is not None: #remember, smart seek before GUI is optional. 
                     PtDebugPrint("xLinkingBookGUIPopup: Smart seek used",level=kDebugDumpLevel)
                     reportingAvatar = PtFindAvatar(events)
                     SeekBehavior.run(reportingAvatar)
                     return
                 self.IShowBookNoTreasure()
-                OfferedBookMode = false
+                OfferedBookMode = False
                 BookOfferer = None
                 return
             elif not PtWasLocallyNotified(self.key) and state:
-                if type(SeekBehavior.value) != type(None): #remember, smart seek before GUI is optional. 
+                if SeekBehavior.value is not None: #remember, smart seek before GUI is optional. 
                     PtDebugPrint("xLinkingBookGUIPopup: Smart seek used",level=kDebugDumpLevel)
                     reportingAvatar = PtFindAvatar(events)
                     SeekBehavior.run(reportingAvatar)
@@ -236,7 +236,7 @@ class xLinkingBookGUIPopup(ptModifier):
                     if reportingClient == localClient:
                         PtDebugPrint("xLinkingBookGUIPopup: attempting to draw link panel gui",level=kDebugDumpLevel)
                         self.IShowBookNoTreasure()
-                        OfferedBookMode = false
+                        OfferedBookMode = False
                         BookOfferer = None
 
         elif id == respLinkResponder.id:
@@ -264,7 +264,7 @@ class xLinkingBookGUIPopup(ptModifier):
                     if (event[2] == -999): # if the offerer is recinding the book offer, hide the panel, or...
                         if (OffereeWalking): # too late, they already accepted
                             return
-                        OfferedBookMode = false
+                        OfferedBookMode = False
                         BookOfferer = None
                         self.HideBook()
                         return
@@ -273,13 +273,13 @@ class xLinkingBookGUIPopup(ptModifier):
                         PtDebugPrint("xLinkingBookGUIPopup: offered book by %s" % (BookOfferer.getName()),level=kDebugDumpLevel)
                         avID = PtGetClientIDFromAvatarKey(BookOfferer.getKey())
                         if ptVault().getIgnoreListFolder().playerlistHasPlayer(avID):
-                            OfferedBookMode = false
+                            OfferedBookMode = False
                             PtNotifyOffererLinkRejected(avID) 
                             BookOfferer = None
                             return
                         else:
-                            OfferedBookMode = true
-                    PtToggleAvatarClickability(false)
+                            OfferedBookMode = True
+                    PtToggleAvatarClickability(False)
                     self.IShowBookNoTreasure()
                     return
 
@@ -293,7 +293,7 @@ class xLinkingBookGUIPopup(ptModifier):
                             PtSetOfferBookMode(self.key, self.IGetAgeFilename(), self.IGetAgeInstanceName())
                             PtSetShareSpawnPoint(self.IGetAgeSpawnPoint())
                             if self.IGetAgeFilename() == "PelletBahroCave":
-                                print "using Adam's plasma-magical 'PtSetShareAgeInstanceGuid' with pelletcaveguid = ",pelletCaveGUID
+                                PtDebugPrint("using Adam's plasma-magical 'PtSetShareAgeInstanceGuid' with pelletcaveguid = ",pelletCaveGUID)
                                 PtSetShareAgeInstanceGuid(pelletCaveGUID)
                             ClosedBookToShare = 1
                             self.HideBook()
@@ -312,7 +312,7 @@ class xLinkingBookGUIPopup(ptModifier):
                                 avatar=PtGetLocalAvatar()
                                 avatar.avatar.setReplyKey(self.key)
                                 shareBookSeek.run(avatar)
-                                OffereeWalking = true
+                                OffereeWalking = True
                                 avID = PtGetClientIDFromAvatarKey(BookOfferer.getKey())
                                 PtNotifyOffererLinkAccepted(avID)
                                 ClosedBookToShare = 1
@@ -329,7 +329,7 @@ class xLinkingBookGUIPopup(ptModifier):
                                         note.send()
                                     else:
                                         agePanel = TargetAge.value
-                                        #print "agePanel = ",agePanel
+                                        #PtDebugPrint("agePanel = ",agePanel)
                                         if agePanel in xLinkingBookDefs.CityBookLinks:
                                             self.IDoCityLinksChron(agePanel)
                                         respLinkResponder.run(self.key,avatar=PtGetLocalAvatar(),netPropagate=0)
@@ -346,7 +346,7 @@ class xLinkingBookGUIPopup(ptModifier):
                                     if linkTitle == "Tomahna" or linkTitle == "Cleft":
                                         vault = ptVault()
                                         entry = vault.findChronicleEntry("TomahnaLoad")
-                                        if type(entry) != type(None):
+                                        if entry is not None:
                                             if linkTitle == "Tomahna":
                                                 entry.chronicleSetValue("yes")
                                             else:
@@ -371,12 +371,12 @@ class xLinkingBookGUIPopup(ptModifier):
                         PtDebugPrint("xLinkingBookGUIPopup:Book: NotifyHide",level=kDebugDumpLevel)
                         PtSendKIMessage(kEnableKIandBB,0)
                         if not ClosedBookToShare:
-                            PtToggleAvatarClickability(true)
+                            PtToggleAvatarClickability(True)
                             if (OfferedBookMode and BookOfferer):
                                 avID = PtGetClientIDFromAvatarKey(BookOfferer.getKey())
                                 PtNotifyOffererLinkRejected(avID)
                                 PtDebugPrint("xLinkingBookGUIPopup: rejected link, notifying offerer as such",level=kDebugDumpLevel)
-                                OfferedBookMode = false
+                                OfferedBookMode = False
                                 BookOfferer = None
 
                         if ForceThirdPerson.value:
@@ -440,7 +440,7 @@ class xLinkingBookGUIPopup(ptModifier):
             elif agePanel == "TomahnaFromCleft":
                 vault = ptVault()
                 entry = vault.findChronicleEntry("TomahnaLoad")
-                if type(entry) != type(None):
+                if entry is not None:
                     entry.chronicleSetValue("yes")
                     entry.save()
                     PtDebugPrint("Chronicle entry TomahnaLoad already added, setting to yes")
@@ -456,10 +456,10 @@ class xLinkingBookGUIPopup(ptModifier):
             # age panel names are misleading, this is really for the Pellet Cave
             elif agePanel == "BahroCaveUpper":
                 pelletCaveGUID = str(self.OnClickToLinkToPelletCaveFromErcana())
-                print "pelletCaveGUID = ",pelletCaveGUID
+                PtDebugPrint("pelletCaveGUID = ",pelletCaveGUID)
             elif agePanel == "BahroCaveLower":
                 pelletCaveGUID = str(self.OnClickToLinkToPelletCaveFromAhnonay())
-                print "pelletCaveGUID = ",pelletCaveGUID
+                PtDebugPrint("pelletCaveGUID = ",pelletCaveGUID)
             try:
                 params = xLinkingBookDefs.xAgeLinkingBooks[agePanel]
                 if len(params) == 6:
@@ -499,7 +499,7 @@ class xLinkingBookGUIPopup(ptModifier):
 
 
     def IShowBookTreasure(self):
-        print "Show the linking book with all its treasure pages"
+        PtDebugPrint("Show the linking book with all its treasure pages")
         global gLinkingBook
         global CurrentPage
         global SpawnPointTitle_Dict
@@ -519,12 +519,12 @@ class xLinkingBookGUIPopup(ptModifier):
                 showOpen = 1  # start the book at the page where they left off
 
         # did we find an agePanel to link with?
-        print "agePanel = ",agePanel
+        PtDebugPrint("agePanel = ",agePanel)
         if agePanel:
             if agePanel == "Cleft":
                 vault = ptVault()
                 entry = vault.findChronicleEntry("TomahnaLoad")
-                if type(entry) != type(None):
+                if entry is not None:
                     agePanel = "CleftWithTomahna"
 
             # build the SpawnPointName/Title lists
@@ -535,14 +535,14 @@ class xLinkingBookGUIPopup(ptModifier):
                 SpawnPointName_Dict = {xLinkingBookDefs.kFirstLinkPanelID: 'DisabledDesert'}
 
             elif (agePanel == "CleftWithTomahna") and ptVault().amOwnerOfCurrentAge():
-                print "setting up cleft and tomahna spawn points"
+                PtDebugPrint("setting up cleft and tomahna spawn points")
                 SpawnPointTitle_Dict = {xLinkingBookDefs.kFirstLinkPanelID: 'Tomahna', xLinkingBookDefs.kFirstLinkPanelID + 1: 'Cleft'}
                 SpawnPointName_Dict = {xLinkingBookDefs.kFirstLinkPanelID: 'SpawnPointTomahna01', xLinkingBookDefs.kFirstLinkPanelID + 1: 'LinkInPointDefault'}
 
             elif agePanel == "city":
                 self.BuildCityBook()
                 agePanel = SpawnPointTitle_Dict[xLinkingBookDefs.kFirstLinkPanelID]
-                print "agePanel2 = ",agePanel
+                PtDebugPrint("agePanel2 = ",agePanel)
             elif agePanel == "Neighborhood":
                 agevault = ptAgeVault()
                 nblink = self.GetOwnedAgeLink(agevault, "Neighborhood")
@@ -552,11 +552,11 @@ class xLinkingBookGUIPopup(ptModifier):
                 else:
                     self.BuildTreasureLinks(agePanel)
             else:
-                print "setting up spawn points"
+                PtDebugPrint("setting up spawn points")
                 self.BuildTreasureLinks(agePanel)
 
-            print SpawnPointTitle_Dict
-            print SpawnPointName_Dict
+            PtDebugPrint(SpawnPointTitle_Dict)
+            PtDebugPrint(SpawnPointName_Dict)
             
             # start with the first page
             
@@ -577,10 +577,10 @@ class xLinkingBookGUIPopup(ptModifier):
                         sharable, width, height, stampdef, gui = (0, 1.0, 1.0, xLinkingBookDefs.NoDRCStamp, "BkBook")
                         bookdef = xLinkingBookDefs.BookStart1 + xLinkingBookDefs.DRCStampHolder + xLinkingBookDefs.NoShare + xLinkingBookDefs.LinkStart + params + xLinkingBookDefs.LinkEnd
 
-                if 'NotPossible' in SpawnPointTitle_Dict.values():
+                if 'NotPossible' in SpawnPointTitle_Dict.viewvalues():
                    bookdef = xLinkingBookDefs.BookStart1 + xLinkingBookDefs.DRCStampHolder + xLinkingBookDefs.NoShare + xLinkingBookDefs.LinkStart + 'xLinkPanelBlackVoid' + xLinkingBookDefs.LinkEndNoLink
                    sharable = 0
-                if 'DisabledDesert' in SpawnPointTitle_Dict.values():
+                if 'DisabledDesert' in SpawnPointTitle_Dict.viewvalues():
                    bookdef = xLinkingBookDefs.BookStart1 + xLinkingBookDefs.DRCStampHolder + xLinkingBookDefs.NoShare + xLinkingBookDefs.LinkStart + 'xLinkPanelCleftDesertDisabled' + xLinkingBookDefs.LinkEndNoLink
                    sharable = 0
                 
@@ -591,7 +591,7 @@ class xLinkingBookGUIPopup(ptModifier):
                 return
 
             # bookmark link
-            if fromBookshelf and xLinkingBookDefs.kBookMarkID in SpawnPointTitle_Dict.keys():
+            if fromBookshelf and xLinkingBookDefs.kBookMarkID in SpawnPointTitle_Dict.viewkeys():
                 if SpawnPointTitle_Dict[xLinkingBookDefs.kBookMarkID] == 'JCSavePoint':
                     bookmark = xLinkingBookDefs.JCBookMark
                 elif SpawnPointTitle_Dict[xLinkingBookDefs.kBookMarkID] == 'SCSavePoint':
@@ -615,7 +615,7 @@ class xLinkingBookGUIPopup(ptModifier):
             # build the rest of the pages into the book
             #linkID = xLinkingBookDefs.kFirstLinkPanelID + 1
             if agePanel != "CleftWithTomahna":
-                for linkID in SpawnPointTitle_Dict.keys():
+                for linkID in SpawnPointTitle_Dict.viewkeys():
                     if linkID == xLinkingBookDefs.kFirstLinkPanelID or linkID == xLinkingBookDefs.kBookMarkID:
                         continue
                     try:
@@ -629,7 +629,7 @@ class xLinkingBookGUIPopup(ptModifier):
                         PtDebugPrint("xLinkingBookGUIPopup: could not find treasure book page %s's linking panel" % (SpawnPointTitle_Dict[linkID]),level=kErrorLevel)
                     
             if allPagesDef != "":
-                print allPagesDef
+                PtDebugPrint(allPagesDef)
                 PtSendKIMessage(kDisableKIandBB,0)
                 gLinkingBook = ptBook(allPagesDef,self.key)
                 gLinkingBook.setSize( width, height )
@@ -657,7 +657,7 @@ class xLinkingBookGUIPopup(ptModifier):
         for content in contents:
             link = content.getChild()
             link = link.upcastToAgeLinkNode()
-            if type(link) != type(None):
+            if link is not None:
                 info = link.getAgeInfo()
             if not info: continue
             ageName = info.getAgeFilename()
@@ -668,7 +668,7 @@ class xLinkingBookGUIPopup(ptModifier):
 
     def IGetHoodInfoNode(self):
         link = self.IGetHoodLinkNode()
-        if type(link) == type(None):
+        if link is None:
             return None
         info = link.getAgeInfo()
         return info
@@ -711,11 +711,11 @@ class xLinkingBookGUIPopup(ptModifier):
             tmpLink = NodeRef.getChild().upcastToAgeLinkNode()
             if tmpLink:
                 linkAge = tmpLink.getAgeInfo().getAgeFilename()
-                print "BuildCityBook():  linkAge = ",linkAge
+                PtDebugPrint("BuildCityBook():  linkAge = ",linkAge)
                 sps = tmpLink.getSpawnPoints()
                 for sp in sps:
-                    print "before, sp title = ",sp.getTitle()
-                    print "before, sp name = ",sp.getName()
+                    PtDebugPrint("before, sp title = ",sp.getTitle())
+                    PtDebugPrint("before, sp name = ",sp.getName())
 
 #                if linkAge == "city" or linkAge == "Descent":
 #                    spawnPoints.extend(tmpLink.getSpawnPoints())
@@ -734,18 +734,18 @@ class xLinkingBookGUIPopup(ptModifier):
 
         x = xLinkingBookDefs.kFirstLinkPanelID
         for sp in spawnPoints:
-            print "after, sp title = ",sp.getTitle()
-            print "after, sp name = ",sp.getName()
+            PtDebugPrint("after, sp title = ",sp.getTitle())
+            PtDebugPrint("after, sp name = ",sp.getName())
             if sp.getTitle() in xLinkingBookDefs.CityBookLinks:
                 SpawnPointTitle_Dict[x] = sp.getTitle()
                 if sp.getName() == "p":
-                    print "shouldn't be a 'p' as the spawnpoint name"
+                    PtDebugPrint("shouldn't be a 'p' as the spawnpoint name")
                     SpawnPointName_Dict[x] = "LinkInPointDefault"
                 else:
                     SpawnPointName_Dict[x] = sp.getName()
                 x += 1
 
-        if CurrentPage > len(SpawnPointName_Dict.keys()):
+        if CurrentPage > len(SpawnPointName_Dict.viewkeys()):
             CurrentPage = 1
 
 
@@ -753,39 +753,39 @@ class xLinkingBookGUIPopup(ptModifier):
         CityLinks = []
         vault = ptVault()
         entryCityLinks = vault.findChronicleEntry("CityBookLinks")
-        if type(entryCityLinks) != type(None):
+        if entryCityLinks is not None:
             valCityLinks = entryCityLinks.chronicleGetValue()
-            print "valCityLinks = ",valCityLinks
+            PtDebugPrint("valCityLinks = ",valCityLinks)
             CityLinks = valCityLinks.split(",")
-            print "CityLinks = ",CityLinks
+            PtDebugPrint("CityLinks = ",CityLinks)
             if agePanel not in CityLinks:
                 NewLinks = valCityLinks + "," + agePanel
                 entryCityLinks.chronicleSetValue(NewLinks)
                 entryCityLinks.save()
-                print "xLinkingBookGUIPopup.IDoCityLinksChron():  setting citylinks chron entry to include: ",agePanel
+                PtDebugPrint("xLinkingBookGUIPopup.IDoCityLinksChron():  setting citylinks chron entry to include: ",agePanel)
                 valCityLinks = entryCityLinks.chronicleGetValue()
                 CityLinks = valCityLinks.split(",")
-                print "xLinkingBookGUIPopup.IDoCityLinksChron():  citylinks now = ",CityLinks
+                PtDebugPrint("xLinkingBookGUIPopup.IDoCityLinksChron():  citylinks now = ",CityLinks)
             else:
-                print "xLinkingBookGUIPopup.IDoCityLinksChron():  do nothing, citylinks chron already contains: ",agePanel
+                PtDebugPrint("xLinkingBookGUIPopup.IDoCityLinksChron():  do nothing, citylinks chron already contains: ",agePanel)
         else:
             vault.addChronicleEntry("CityBookLinks",0,agePanel)
-            print "xLinkingBookGUIPopup.IDoCityLinksChron():  creating citylinks chron entry and adding: ",agePanel
+            PtDebugPrint("xLinkingBookGUIPopup.IDoCityLinksChron():  creating citylinks chron entry and adding: ",agePanel)
         
         psnlSDL = xPsnlVaultSDL()
         GotBook = psnlSDL["psnlGotCityBook"][0]
         if not GotBook:
             psnlSDL["psnlGotCityBook"] = (1,)
-            print "xLinkingBookGUIPopup.IDoCityLinksChron():  setting SDL for city book to 1"
+            PtDebugPrint("xLinkingBookGUIPopup.IDoCityLinksChron():  setting SDL for city book to 1")
 
 
     def IGetCityLinksChron(self):
         CityLinks = []
         vault = ptVault()
         entryCityLinks = vault.findChronicleEntry("CityBookLinks")
-        if type(entryCityLinks) != type(None):
+        if entryCityLinks is not None:
             valCityLinks = entryCityLinks.chronicleGetValue()
-            print "xLinkingBookGUIPopup.IGetCityLinksChron(): valCityLinks = ",valCityLinks
+            PtDebugPrint("xLinkingBookGUIPopup.IGetCityLinksChron(): valCityLinks = ",valCityLinks)
             CityLinks = valCityLinks.split(",")
         return CityLinks	
 
@@ -829,7 +829,7 @@ class xLinkingBookGUIPopup(ptModifier):
         return 0
 
     def BuildTreasureLinks(self,ageRequested):
-        print "BuildTreasureLinks"
+        PtDebugPrint("BuildTreasureLinks")
         global SpawnPointName_Dict
         global SpawnPointTitle_Dict
         global CurrentPage
@@ -842,7 +842,7 @@ class xLinkingBookGUIPopup(ptModifier):
             tmpLink = NodeRef.getChild().upcastToAgeLinkNode()
             if tmpLink:
                 # make sure Micah doesn't try to break it by not waiting for the AgeInfo to be downloaded
-                if type(tmpLink.getAgeInfo()) != type(None):
+                if tmpLink.getAgeInfo() is not None:
                     if ageRequested == tmpLink.getAgeInfo().getAgeFilename():
                         spawnPoints = tmpLink.getSpawnPoints()
                         break
@@ -872,12 +872,12 @@ class xLinkingBookGUIPopup(ptModifier):
         SpawnPointTitle_Dict = {}
         PtDebugPrint ("xLinkingBookGUI.BuildTreasureLinks():The %s book has the following %s pages: " % (ageRequested, len(spawnPoints)))
         # assume that we didn't find the original link
-        HasFoundOriginalBook = false
+        HasFoundOriginalBook = False
         # Step 2: Determine what other links they have to this age.
         for spawnPoint in spawnPoints:
             #toss this is it's the "default" link. We've already processed that in step #1 above
             if spawnPoint.getTitle() == "Default": 
-                HasFoundOriginalBook = true
+                HasFoundOriginalBook = True
                 PtDebugPrint("\tPage #1: You've found the original book. The first panel shows %s" % (ageRequested),level=kDebugDumpLevel)
                 # goes in the front of the list
                 SpawnPointName_Dict[xLinkingBookDefs.kFirstLinkPanelID] = "LinkInPointDefault"
@@ -896,7 +896,7 @@ class xLinkingBookGUIPopup(ptModifier):
                 SpawnPointName_Dict[page] = spawnPoint.getName()
                 SpawnPointTitle_Dict[page] = spawnPoint.getTitle()
         # if we didn't find the default (original) then put the NotPossible link
-        print "HasFoundOriginalBook = ",HasFoundOriginalBook
+        PtDebugPrint("HasFoundOriginalBook = ",HasFoundOriginalBook)
         if not HasFoundOriginalBook:
             if ageRequested == "Neighborhood":
                 PtDebugPrint("\tPage #1: You didn't find the original book, but you're looking at the neighborhood. The first panel shows %s" % (ageRequested))
@@ -908,7 +908,7 @@ class xLinkingBookGUIPopup(ptModifier):
                 SpawnPointName_Dict[xLinkingBookDefs.kFirstLinkPanelID] = "NotPossible"
                 SpawnPointTitle_Dict[xLinkingBookDefs.kFirstLinkPanelID] = "NotPossible"
 
-        if CurrentPage > len(SpawnPointName_Dict.keys()):
+        if CurrentPage > len(SpawnPointName_Dict.viewkeys()):
             CurrentPage = 1
 
     def HideBook(self, islinking = 0):
@@ -920,7 +920,7 @@ class xLinkingBookGUIPopup(ptModifier):
         else:
             NoReenableBook = 0
         
-        PtToggleAvatarClickability(true) # enable me as clickable
+        PtToggleAvatarClickability(True) # enable me as clickable
         if gLinkingBook:
             gLinkingBook.hide()
         
@@ -964,7 +964,7 @@ class xLinkingBookGUIPopup(ptModifier):
         global gLinkingBook
         global kGrsnTeamBook
         if id == kGrsnTeamBook:
-            print "\nxLinkingBookGUIPopup.OnTimer:Got timer callback. Removing popup for a grsn team book."
+            PtDebugPrint("\nxLinkingBookGUIPopup.OnTimer:Got timer callback. Removing popup for a grsn team book.")
             gLinkingBook.hide()
 
         elif id == kFirstPersonEnable:
@@ -974,7 +974,7 @@ class xLinkingBookGUIPopup(ptModifier):
 
     def GetOwnedAgeLink(self, vault, age):
         PAL = vault.getAgesIOwnFolder()
-        if type(PAL) != type(None):
+        if PAL is not None:
             contents = PAL.getChildNodeRefList()
             for content in contents:
                 link = content.getChild().upcastToAgeLinkNode()
@@ -982,7 +982,7 @@ class xLinkingBookGUIPopup(ptModifier):
                 if not info:
                     continue
                 ageName = info.getAgeFilename()
-                #print "found %s, looking for %s" % (ageName, age)
+                #PtDebugPrint("found %s, looking for %s" % (ageName, age))
                 if ageName == age:
                     return link
 
@@ -1003,7 +1003,7 @@ class xLinkingBookGUIPopup(ptModifier):
 
 
     def CheckAndRegisterAge(self, ageFileName, ageInstanceName):
-        print "CheckAndRegisterAge for: ",ageFileName,"; ",ageInstanceName
+        PtDebugPrint("CheckAndRegisterAge for: ",ageFileName,"; ",ageInstanceName)
         vault = ptVault()
         ageStruct = ptAgeInfoStruct()
         ageStruct.setAgeFilename(ageFileName)
@@ -1033,11 +1033,11 @@ class xLinkingBookGUIPopup(ptModifier):
             link.setAgeInfo(info)
 
             ptVault().registerOwnedAge(link)
-            print "Registered age - ", ageFileName
+            PtDebugPrint("Registered age - ", ageFileName)
 
 
     def FindOrCreateGUIDChron(self, ageFileName):
-        print "FindOrCreateGUIDChron for: ",ageFileName
+        PtDebugPrint("FindOrCreateGUIDChron for: ",ageFileName)
         GUIDChronFound = 0
         ageDataFolder = None
         
@@ -1059,7 +1059,7 @@ class xLinkingBookGUIPopup(ptModifier):
                         chron = ageDataChild.upcastToChronicleNode()
                         if chron and chron.getName() == "PelletCaveGUID":
                             GUIDChronFound = 1
-                            print "found pellet cave GUID: ", chron.getValue()
+                            PtDebugPrint("found pellet cave GUID: ", chron.getValue())
                             return
                     #return
 
@@ -1070,27 +1070,27 @@ class xLinkingBookGUIPopup(ptModifier):
         if ageLinkNode:
             ageInfoNode = ageLinkNode.getAgeInfo()
             pelletCaveGUID = ageInfoNode.getAgeInstanceGuid()
-            print "found pelletCaveGUID age chron, = ",pelletCaveGUID
+            PtDebugPrint("found pelletCaveGUID age chron, = ",pelletCaveGUID)
         
         if not ageDataFolder:
-            print "no ageDataFolder..."
+            PtDebugPrint("no ageDataFolder...")
             ageStruct = ptAgeInfoStruct()
             ageStruct.setAgeFilename(ageFileName)
             ageLinkNode = vault.getOwnedAgeLink(ageStruct)
             if ageLinkNode:
-                print "got ageLinkNode, created AgeData folder"
+                PtDebugPrint("got ageLinkNode, created AgeData folder")
                 ageInfoNode = ageLinkNode.getAgeInfo()
                 ageDataFolder = ptVaultFolderNode(0)
                 ageDataFolder.folderSetName("AgeData")
                 ageInfoNode.addNode(ageDataFolder)
 
         if not GUIDChronFound:
-            print "creating PelletCave GUID chron"
+            PtDebugPrint("creating PelletCave GUID chron")
             newNode = ptVaultChronicleNode(0)
             newNode.chronicleSetName("PelletCaveGUID")
             newNode.chronicleSetValue(pelletCaveGUID)
             ageDataFolder.addNode(newNode)
-            print "created pelletCaveGUID age chron, = ",pelletCaveGUID
+            PtDebugPrint("created pelletCaveGUID age chron, = ",pelletCaveGUID)
 
 
     def OnClickToLinkToPelletCaveFromErcana(self):
@@ -1107,7 +1107,7 @@ class xLinkingBookGUIPopup(ptModifier):
                     ageDataChild = ageDataChildRef.getChild()
                     chron = ageDataChild.upcastToChronicleNode()
                     if chron and chron.getName() == "PelletCaveGUID":
-                        print "Found pellet cave guid - ", chron.getValue()
+                        PtDebugPrint("Found pellet cave guid - ", chron.getValue())
                         return chron.getValue()
                     return ""
 
@@ -1129,7 +1129,7 @@ class xLinkingBookGUIPopup(ptModifier):
                         ageDataChild = ageDataChildRef.getChild()
                         chron = ageDataChild.upcastToChronicleNode()
                         if chron and chron.getName() == "PelletCaveGUID":
-                            print "Found pellet cave guid - ", chron.getValue()
+                            PtDebugPrint("Found pellet cave guid - ", chron.getValue())
                             return chron.getValue()
                     return ""
 
@@ -1143,7 +1143,7 @@ class xLinkingBookGUIPopup(ptModifier):
         caveLink.setAgeInfo(caveInfo)
         caveInfo = caveLink.getAgeInfo()
         caveInstance = caveInfo
-        if type(caveInstance) == type(None):
+        if caveInstance is None:
             PtDebugPrint("pellet cave instance is none, aborting link")
             return;
         info = ptAgeInfoStruct()
@@ -1157,7 +1157,7 @@ class xLinkingBookGUIPopup(ptModifier):
         als.setAgeInfo(info)
         als.setSpawnPoint(spawnPoint)
         als.setLinkingRules(PtLinkingRules.kBasicLink)
-        print "-- linking to pellet cave --"
+        PtDebugPrint("-- linking to pellet cave --")
         linkMgr = ptNetLinkingMgr()
         linkMgr.linkToAge(als)
 

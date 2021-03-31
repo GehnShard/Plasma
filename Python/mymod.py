@@ -118,10 +118,10 @@ class mymod(ptModifier):
                 door.run(self.key,state='open')
                 theobject = object.value
                 self.svMyNumber += 1
-                openb.value = false
+                openb.value = False
             else:
                 door.run(self.key,state='close')
-                openb.value = true
+                openb.value = True
             # get the avatar to create a myHelper class
             # find avatar
             for event in events:
@@ -154,7 +154,7 @@ class mymod(ptModifier):
 
     def Save(self,savefile):
         "Save variables that we need to be persistent"
-        print "Save variables"
+        PtDebugPrint("Save variables")
         cPickle.dump(self.svMyNumber,savefile)
         cPickle.dump(openb.value,savefile)
         # this will recursively go through all the elements of the list and pickle each item
@@ -163,7 +163,7 @@ class mymod(ptModifier):
 
     def Load(self, loadfile):
         "Load the persistent variables"
-        print "Load variables"
+        PtDebugPrint("Load variables")
         self.svMyNumber = cPickle.load(loadfile)
         openb.value = cPickle.load(loadfile)
         # this will recreate a list of myHelper objects
@@ -171,9 +171,9 @@ class mymod(ptModifier):
 
     def OnPageLoad(self,what,who):
         if what==kLoaded:
-            print "%s is finished loading" % (who)
+            PtDebugPrint("%s is finished loading" % (who))
         elif what == kUnloaded:
-            print "%s is finished unloading" % (who)
+            PtDebugPrint("%s is finished unloading" % (who))
 
 #====================================
 # Helper class

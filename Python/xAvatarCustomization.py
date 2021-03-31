@@ -437,23 +437,23 @@ def DateInRange(date,range):
     #dateStr = "%d/%d/%d" % (dateMonth,dateDay,dateYear)
     #rangeStr = "%d-%d/%d-%d/%d-%d" % (rangeMonthMin,rangeMonthMax,rangeDayMin,rangeDayMax,rangeYearMin,rangeYearMax)
     #PtDebugPrint("DateInRange(): Checking to see if the date " + dateStr + " is in the date range " + rangeStr)
-    inRange = true
+    inRange = True
     if not (rangeYearMin == 0 or rangeYearMax == 0): # year of 0 means any year
         if (dateYear < rangeYearMin) or (dateYear > rangeYearMax):
-            inRange = false
+            inRange = False
     if not (rangeMonthMin == 0 or rangeMonthMax == 0): # month of 0 means any month
         if (dateMonth < rangeMonthMin) or (dateMonth > rangeMonthMax):
-            inRange = false
+            inRange = False
     if not (rangeDayMin == 0 or rangeDayMax == 0): # year of 0 means any year
         if (dateDay < rangeDayMin) or (dateDay > rangeDayMax):
-            inRange = false
+            inRange = False
     return inRange
 
 def CanShowSeasonal(clothingItem):
     "returns true if the item can be shown, this checks seasonal only"
     if clothingItem.seasonal:
         if ItemInWardrobe(clothingItem):
-            return true # it's in our closet, so we can show this
+            return True # it's in our closet, so we can show this
         showTime = clothingItem.seasonTime
         if PtIsInternalRelease():
             curTime = time.localtime(time.time()) # use the client's clock if we're an internal build
@@ -462,9 +462,9 @@ def CanShowSeasonal(clothingItem):
         #PtDebugPrint("CanShowSeasonal(): Checking if we can show " + clothingItem.name)
         for timeRange in showTime: # there may be multiple times listed
             if DateInRange(curTime,timeRange):
-                return true
-        return false
-    return true # as far as we know, the item can be shown
+                return True
+        return False
+    return True # as far as we know, the item can be shown
 
 def CanShowClothingItem(clothingItem):
     "returns true if this item is elegable for showing"
@@ -474,7 +474,7 @@ def CanShowClothingItem(clothingItem):
         if (clothingItem.nonStandardItem and ItemInWardrobe(clothingItem)) or not clothingItem.nonStandardItem:
             if (PtIsSinglePlayerMode() and clothingItem.singlePlayer) or not PtIsSinglePlayerMode():
                 if CanShowSeasonal(clothingItem):
-                    return true
+                    return True
                 else:
                     PtDebugPrint("CanShowClothingItem(): Hiding item "+clothingItem.name+" because it is seasonal")
             else:
@@ -483,7 +483,7 @@ def CanShowClothingItem(clothingItem):
             PtDebugPrint("CanShowClothingItem(): Hiding item "+clothingItem.name+" because it is optional and isn't in your closet")
     else:
         PtDebugPrint("CanShowClothingItem(): Hiding item "+clothingItem.name+" because it is an internal-only option")
-    return false
+    return False
 
 def ItemInWardrobe(clothingItem):
     avatar = PtGetLocalAvatar()
@@ -699,7 +699,7 @@ class xAvatarCustomization(ptModifier):
                             listboxDict[tagID + kAccessoryLBOffset].UpdateListbox()
                             listbox = ptGUIControlListBox(AvCustGUI.dialog.getControlFromTag(tagID+kAccessoryLBOffset))
                             self.OnGUINotify(AvCustGUI.id, listbox, kValueChanged) # fake a mouse down
-                    elif type(clothing_group) != type(None):
+                    elif clothing_group is not None:
                         # found list box
                         itemselect = control.getSelection()
                         if itemselect == -1:
@@ -712,7 +712,7 @@ class xAvatarCustomization(ptModifier):
                             # get the current worn item to see what color it was
                             lastitem = FindWornItem(clothing_group.clothingType)
                             avatar = PtGetLocalAvatar()
-                            if type(lastitem) != type(None):
+                            if lastitem is not None:
                                 # just get the color straight from the item
                                 lastcolor1 = avatar.avatar.getTintClothingItem(lastitem.name,1)
                                 lastcolor2 = avatar.avatar.getTintClothingItem(lastitem.name,2)
@@ -722,7 +722,7 @@ class xAvatarCustomization(ptModifier):
                             # if we need to grab a second object (like a second shoe), then get and wear it
                             if clothing_group.numberItems > 1:
                                 matchingItem = avatar.avatar.getMatchingClothingItem(newitem.name)
-                                if type(matchingItem) == type([]):
+                                if isinstance(matchingItem, list):
                                     avatar.avatar.wearClothingItem(matchingItem[0],0)
                                     avatar.avatar.tintClothingItem(matchingItem[0],lastcolor1,0)
                                     avatar.avatar.tintClothingItemLayer(matchingItem[0],lastcolor2,2,0)
@@ -758,7 +758,7 @@ class xAvatarCustomization(ptModifier):
                         if tagID-kAccessoryLBOffset == kUpperBodyOptionsLB or tagID-kAccessoryLBOffset == kLwrBodyOptionsLB:
                             # this "accessory" listbox is actually a textures listbox, treat as clothing
                             clothing_group = TheCloset[tagID-kAccessoryLBOffset]
-                            if type(clothing_group) != type(None):
+                            if clothing_group is not None:
                                 itemselect = control.getSelection()
                                 # if there is only one texture, it isn't shown, so fake it into selecting the first item
                                 if len(listboxDict[tagID].clothingList) == 1:
@@ -773,7 +773,7 @@ class xAvatarCustomization(ptModifier):
                                     avatar = PtGetLocalAvatar()
                                     # get the current worn item to see what color it was
                                     lastitem = FindWornItem(clothing_group.clothingType)
-                                    if type(lastitem) != type(None):
+                                    if lastitem is not None:
                                         # just get the color straight from the item
                                         lastcolor1 = avatar.avatar.getTintClothingItem(lastitem.name,1)
                                         lastcolor2 = avatar.avatar.getTintClothingItem(lastitem.name,2)
@@ -803,7 +803,7 @@ class xAvatarCustomization(ptModifier):
                                         self.IShowColorPicker(kColor2ClickMap)
                                         colorbar2.setStringW(newitem.colorlabel2)
                                         self.IDrawPickerThingy(kColor2ClickMap,lastcolor2)
-                        elif type(clothing_group) != type(None):
+                        elif clothing_group is not None:
                             itemselect = control.getSelection()
                             if itemselect == -1:
                                 avatar = PtGetLocalAvatar()
@@ -823,7 +823,7 @@ class xAvatarCustomization(ptModifier):
                                     if newitem.coloredAsHair:
                                         # find the hair color and color this item
                                         haircolor = self.IGetHairColor()
-                                        if type(haircolor) != type(None):
+                                        if haircolor is not None:
                                             avatar.avatar.wearClothingItem(newitem.name,0)
                                             avatar.avatar.tintClothingItem(newitem.name,haircolor)
                                         else:
@@ -861,7 +861,7 @@ class xAvatarCustomization(ptModifier):
                             # enable the zoom button
                             zoomBtn.show()
                             # zoom in on face automatically
-                            zoomBtn.setChecked(true)
+                            zoomBtn.setChecked(True)
                             ZoomCamera.sceneobject.pushCutsceneCamera(1,PtGetLocalAvatar().getKey())
                             panelRG.hide()
                             self.SetupCamera()
@@ -893,7 +893,7 @@ class xAvatarCustomization(ptModifier):
                             self.ILinkToCloset()
 
                             #Disable other logic... no more going to the cleft from the AVC
-                            #~if type(entry) != type(None):
+                            #~if entry is not None:
                                 # player has solved the cleft
                                 # just go back to your personal age
                             #~        self.ILinkToCloset()
@@ -932,7 +932,7 @@ class xAvatarCustomization(ptModifier):
                             linkmgr.linkToAge(ageLink)
                             
                             #Disable other logic... no more going to cleft from the AVC!
-                            #~if type(entry) != type(None):
+                            #~if entry is not None:
                                 # player has solved the cleft
                                 # just go back to your personal age
                             #~    linkmgr = ptNetLinkingMgr()
@@ -1013,7 +1013,7 @@ class xAvatarCustomization(ptModifier):
                             else:
                                 PtChangeAvatar("Female")
                     elif btnID == kAvatarCameraID:
-                        print "ACA: Taking a picture!"
+                        PtDebugPrint("ACA: Taking a picture!")
                         picCam = ptCamera()
                         picCam.setAspectRatio(1)
                         AvCustGUI.dialog.hide()
@@ -1049,10 +1049,10 @@ class xAvatarCustomization(ptModifier):
         avatar = PtGetLocalAvatar()
         currentgender = avatar.avatar.getAvatarClothingGroup()
         if currentgender == 1:
-            print "Female Screenshot"
+            PtDebugPrint("Female Screenshot")
             TestMap.textmap.drawImageClipped(0, 0, image, 55, 250, 512, 512, 0)
         else:
-            print "Male Screenshot"
+            PtDebugPrint("Male Screenshot")
             TestMap.textmap.drawImageClipped(0, 0, image, 55, 80, 512, 512, 0)
         TestMap.textmap.flush()
         PtAtTimeCallback(self.key, 0, 999)
@@ -1082,7 +1082,7 @@ class xAvatarCustomization(ptModifier):
             avatar.avatar.tintClothingItemLayer(item.name,color2,2)
             # add the matching item, if it exists
             matchingItem = avatar.avatar.getMatchingClothingItem(item.name)
-            if type(matchingItem) == type([]):
+            if isinstance(matchingItem, list):
                 avatar.avatar.wearClothingItem(matchingItem[0],0)
                 avatar.avatar.tintClothingItem(matchingItem[0],color1,0)
                 avatar.avatar.tintClothingItemLayer(matchingItem[0],color2,2,0)
@@ -1160,7 +1160,7 @@ class xAvatarCustomization(ptModifier):
                 avatar.avatar.tintClothingItemLayer(item,clr2,2)
                 # add the matching item, if it exists
                 matchingItem = avatar.avatar.getMatchingClothingItem(item)
-                if type(matchingItem) == type([]):
+                if isinstance(matchingItem, list):
                     avatar.avatar.wearClothingItem(matchingItem[0],0)
                     avatar.avatar.tintClothingItem(matchingItem[0],clr1,0)
                     avatar.avatar.tintClothingItemLayer(matchingItem[0],clr2,2,0)
@@ -1215,12 +1215,12 @@ class xAvatarCustomization(ptModifier):
         entry = vault.findChronicleEntry(kAvaCustaIsDone)
 
         InAvatarCloset = 0      # assume never been here before, until proven otherwise
-        if type(entry) != type(None):
+        if entry is not None:
             InAvatarCloset = 1
         PtDebugPrint("AvaCusta: InAvatarCloset is %d" % (InAvatarCloset))
 
         entry = vault.findChronicleEntry("GiveYeeshaReward")
-        if type(entry) != type(None):
+        if entry is not None:
             # we need to give the yeesha clothing (probably an imported char)
             avatar = PtGetLocalAvatar()
             currentgender = avatar.avatar.getAvatarClothingGroup()
@@ -1230,12 +1230,12 @@ class xAvatarCustomization(ptModifier):
                 clothingName = "02_MTorso09_01"
             clothingList = avatar.avatar.getWardrobeClothingList()
             if clothingName not in clothingList:
-                print "adding Yeesha reward clothing %s to wardrobe" % (clothingName)
+                PtDebugPrint("adding Yeesha reward clothing %s to wardrobe" % (clothingName))
                 avatar.avatar.addWardrobeClothingItem(clothingName,ptColor().white(),ptColor().black())
             else:
-                print "player already has Yeesha reward clothing, doing nothing"
+                PtDebugPrint("player already has Yeesha reward clothing, doing nothing")
             folder = vault.getChronicleFolder()
-            if type(folder) != type(None):
+            if folder is not None:
                 folder.removeNode(entry)
 
     def IInitAvaCusta(self):
@@ -1290,10 +1290,10 @@ class xAvatarCustomization(ptModifier):
             newImage = TestMap.textmap.getImage()
             basePath = PtGetUserPath() + U"\\Avatars\\"
             if not PtCreateDir(basePath):
-                print U"xAvatarCustomization::OnTimer(): Unable to create \"" + basePath + "\" directory. Avatar pic is NOT saved."
+                PtDebugPrint(U"xAvatarCustomization::OnTimer(): Unable to create \"" + basePath + "\" directory. Avatar pic is NOT saved.")
                 return
             filename = basePath + unicode(PtGetLocalPlayer().getPlayerID()) + U".jpg"
-            print U"xAvatarCustomization::OnTimer(): Saving avatar pic to \"" + filename + U"\""
+            PtDebugPrint(U"xAvatarCustomization::OnTimer(): Saving avatar pic to \"" + filename + U"\"")
             newImage.saveAsJPEG(filename, 90)
 
     def IUpdateAllControls(self):
@@ -1340,7 +1340,7 @@ class xAvatarCustomization(ptModifier):
         # get (or re-get) the closet
         TheCloset = ClothingCloset()
         # start from the top and go down Hair thru Feet (and Accessories)
-        for listboxID in TheCloset.keys():
+        for listboxID in TheCloset.viewkeys():
             # do the primary clothing listbox
             group = TheCloset[listboxID]
             # add the listbox class if we don't have it already
@@ -1372,7 +1372,7 @@ class xAvatarCustomization(ptModifier):
         "Gets whats being worn and sets the dialogs to show what we are wearing"
         # assumes that WornList is already filled out
         global listboxDict
-        for id in TheCloset.keys():
+        for id in TheCloset.viewkeys():
             # tell the listboxes to update themselves
             listboxDict[id].SetWhatWearing()
             listboxDict[id].UpdateScrollArrows()
@@ -1406,7 +1406,7 @@ class xAvatarCustomization(ptModifier):
             # find the item that is worn that is in this clothing type
             wornItem = FindWornItem(clothing_type)
             # did we find the item that is being worn in this clothing group?
-            if type(wornItem) != type(None):
+            if wornItem is not None:
                 # if the saturation is zero then don't allow tiniting
                 if controlID == kColor1ClickMap or controlID == kColor2ClickMap:
                     #Make sure that we're not zoomed in (changing eye color)
@@ -1428,7 +1428,7 @@ class xAvatarCustomization(ptModifier):
                     clothing_group = TheCloset[CLxref[clothing_panel][1]]
                     if clothing_group.numberItems > 1:
                         matchingItem = avatar.avatar.getMatchingClothingItem(wornItem.name)
-                        if type(matchingItem) == type([]):
+                        if isinstance(matchingItem, list):
                             avatar.avatar.tintClothingItemLayer(matchingItem[0],colorit,layer,0)
                     avatar.avatar.tintClothingItemLayer(wornItem.name,colorit,layer)
                     # if we are messing with the face, color the accessory too! (only on layer 2 color)
@@ -1571,7 +1571,7 @@ class xAvatarCustomization(ptModifier):
             clothing_type = CLxref[clothing_panel][0]
             # find the clothing type in what is being worn
             wornitem = FindWornItem(clothing_type)
-            if type(wornitem) != type(None):
+            if wornitem is not None:
                 descbox = ptGUIControlTextBox(AvCustGUI.dialog.getControlFromTag(kClothingDesc))
                 descbox.setStringW(wornitem.description)
                 colorbar1 = ptGUIControlTextBox(AvCustGUI.dialog.getControlFromTag(kColorbarName1))
@@ -2144,7 +2144,7 @@ class ClothingCloset:
             accCI = ClothingItem(accitem,0,0.0,1,0,0) # default is inCloset
             if CanShowClothingItem(accCI):
                 group = self.findGroup(accCI.groupwith)
-                if type(group) != type(None):
+                if group is not None:
                     # if this is not donotwear, then append at end
                     if not accCI.donotwear:
                         group.accessories.append(accCI)
@@ -2164,17 +2164,17 @@ class ClothingCloset:
         return len(self.clothingGroups)
 
     def keys(self):
-        return self.clothingGroups.keys()
+        return self.clothingGroups.viewkeys()
 
     def findGroup(self,clothing_type):
-        for group in self.clothingGroups.values():
+        for group in self.clothingGroups.viewvalues():
             if group.clothingType == clothing_type:
                 return group
         return None
 
     def findClothingItem(self,finditem):
         "find the clothing item in the closet, return group and index"
-        for group in self.clothingGroups.values():
+        for group in self.clothingGroups.viewvalues():
             # search through the normal clothing
             for idx in range(len(group)):
                 if group[idx].name == finditem.name:
@@ -2187,7 +2187,7 @@ class ClothingCloset:
     
     def getItemByName(self,itemName):
         "return the clothing item with the desired name"
-        for group in self.clothingGroups.values():
+        for group in self.clothingGroups.viewvalues():
             # search through the normal clothing
             for idx in range(len(group)):
                 if group[idx].name == itemName:
@@ -2356,7 +2356,7 @@ class ScrollingListBox:
                         pass # we probably went to far, so just don't add the non-existant item
         # displayItems now has the correct 8 (or 4) items to show
         for item in displayItems:
-            if type(item.thumbnail) != type(0):
+            if not isinstance(item.thumbnail, int):
                 listbox.addImageInBox(item.thumbnail,kCLBImageX,kCLBImageY,kCLBImageWidth,kCLBImageHeight,1)
             else:
                 listbox.addStringInBox(item.name,kCLBMinWidth,kCLBMinHeight)

@@ -129,9 +129,7 @@ class tldnVaporScope(ptModifier):
 
     def Load(self):
         global boolScopeOperated
-        solo = true
-        if len(PtGetPlayerList()):
-            solo = false
+        solo = not PtGetPlayerList()
         boolOperated = self.SDL["boolOperated"][0]
         if boolOperated:
             if solo:
@@ -166,7 +164,7 @@ class tldnVaporScope(ptModifier):
             
     def __del__(self):
         "unload the dialog that we loaded"
-        if type(Vignette.value) != type(None) and Vignette.value != "":
+        if Vignette.value:
             PtUnloadDialog(Vignette.value)
 
     def OnNotify(self,state,id,events):
@@ -227,7 +225,7 @@ class tldnVaporScope(ptModifier):
                 zoomSlider.setValue(zsliderValue)
                 PtDebugPrint("tldnVaporScope:ShowDialog:  current FOVh at %f - setting slider to %f" % (gInitialFOV,zsliderValue))
         elif event == kValueChanged:
-            if type(control) != type(None):
+            if control is not None:
                 knobID = control.getTagID()
                 if knobID == kZoomSlider:
                     newFOV = (control.getValue() * kDegreesPerSlider) + kMaxFOV
@@ -235,7 +233,7 @@ class tldnVaporScope(ptModifier):
                     curCam.setFOV(newFOV,0.5)
                     PtDebugPrint("tldnVaporScope:ValueChange:  slider=%f and setting FOV to %f" % (control.getValue(),newFOV))
         elif event == kAction:
-            if type(control) != type(None):
+            if control is not None:
                 btnID = control.getTagID()
                 if btnID == kLeftScopeBtn:
                     if isinstance(control,ptGUIControlButton) and control.isButtonDown():
@@ -289,7 +287,7 @@ class tldnVaporScope(ptModifier):
                         PtRequestLOSScreen(self.key,42,0.5,0.5,10000,PtLOSObjectType.kShootable,PtLOSReportType.kReportHitOrMiss)
                         gThrottleShooting = 1
                         try:
-                            if type(Vignette.value) != type(None) and Vignette.value != "":
+                            if Vignette.value:
                                 scopeDlg = PtGetDialogFromString(Vignette.value)
                                 if scopeDlg:
                                     try:
@@ -374,7 +372,7 @@ class tldnVaporScope(ptModifier):
         virtCam = ptCamera()
         virtCam.save(Camera.sceneobject.getKey())
         # show the cockpit
-        if type(Vignette.value) != type(None) and Vignette.value != "":
+        if Vignette.value:
             PtLoadDialog(Vignette.value,self.key, "Teledahn")
             if ( PtIsDialogLoaded(Vignette.value) ):
                 PtShowDialog(Vignette.value)
@@ -416,7 +414,7 @@ class tldnVaporScope(ptModifier):
             # we can not let firing happen... again
             gThrottleShooting = 0
             try:
-                if type(Vignette.value) != type(None) and Vignette.value != "":
+                if Vignette.value:
                     scopeDlg = PtGetDialogFromString(Vignette.value)
                     if scopeDlg:
                         try:

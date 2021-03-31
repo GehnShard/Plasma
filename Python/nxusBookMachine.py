@@ -329,7 +329,7 @@ class nxusBookMachine(ptModifier):
         self.id = 5017
         version = 5
         self.version = version
-        print "__init__nxusBookMachine v.", version
+        PtDebugPrint("__init__nxusBookMachine v.", version)
         random.seed()
 
         self.guiState = kGUIDeactivated
@@ -456,10 +456,10 @@ class nxusBookMachine(ptModifier):
         if entry is not None:
             entryValue = entry.chronicleGetValue()
             if entryValue == "yes":
-                print "nxusBookMachine.OnServerInitComplete(): chron says you have the link to public Kveer, woo hoo"
+                PtDebugPrint("nxusBookMachine.OnServerInitComplete(): chron says you have the link to public Kveer, woo hoo")
                 self.publicAges['Kveer'].linkVisible = True
         else:
-            print "nxusBookMachine.OnServerInitComplete(): chron says no link to public Kveer yet, so sorry"
+            PtDebugPrint("nxusBookMachine.OnServerInitComplete(): chron says no link to public Kveer yet, so sorry")
 
 
     def __del__(self):
@@ -704,11 +704,11 @@ class nxusBookMachine(ptModifier):
 
     def IOnActKISlot(self, state, events): #click on KI Slot
         kiLevel = PtDetermineKILevel()
-        print "nxusBookMachine.OnNotify:\tplayer ki level is %d" % kiLevel
+        PtDebugPrint("nxusBookMachine.OnNotify:\tplayer ki level is %d" % kiLevel)
         if kiLevel < kNormalKI:
             respKISlot.run(self.key, events = events) #Insert KI
         elif state:
-            for ageFilename in self.publicAges.keys():
+            for ageFilename in self.publicAges.viewkeys():
                 # Crummy server software (eg Cyan) might discard requests for hardcoded public ages,
                 # leaving us dead in the water. BUT we would like to get information about that
                 # age from the vault, if possible. Therefore, we ask anyway but don't rely on it.
@@ -1108,12 +1108,12 @@ class nxusBookMachine(ptModifier):
         ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDEngText)).setString("")
         ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDFreText)).setString("")
         ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDGerText)).setString("")
-        for id in kLanguageControls.keys():
+        for id in kLanguageControls.viewkeys():
             ptGUIControlButton(NexusGUI.dialog.getControlFromTag(id)).hide()
 
     def IToggleSortControls(self, enabled):
         active = kSortControlId.get(self.publicHoodSort)
-        for id in kSortControlId.values():
+        for id in kSortControlId.viewvalues():
             control = ptGUIControlButton(NexusGUI.dialog.getControlFromTag(id))
             if enabled and id == active:
                 control.show()
@@ -1577,7 +1577,7 @@ class nxusBookMachine(ptModifier):
 
     #TODO: Not revised. I'm not sure about this stuff... Is it needed?
     def DoErcanaAndAhnonayStuff(self, panel):
-        print "nxusBookMachine.DoErcanaAndAhnonayStuff(): this age panel = ", panel
+        PtDebugPrint("nxusBookMachine.DoErcanaAndAhnonayStuff(): this age panel = ", panel)
         if panel == "Ercana":
             ageFileName = "Ercana"
             ageInstanceName = "Er'cana"
@@ -1588,7 +1588,7 @@ class nxusBookMachine(ptModifier):
 
 
     def FindOrCreateGUIDChron(self, ageFileName):
-        print "FindOrCreateGUIDChron for: ", ageFileName
+        PtDebugPrint("FindOrCreateGUIDChron for: ", ageFileName)
         GUIDChronFound = 0
         ageDataFolder = None
 
@@ -1610,7 +1610,7 @@ class nxusBookMachine(ptModifier):
                         chron = ageDataChild.upcastToChronicleNode()
                         if chron and chron.getName() == "PelletCaveGUID":
                             GUIDChronFound = 1
-                            print "found pellet cave GUID: ", chron.getValue()
+                            PtDebugPrint("found pellet cave GUID: ", chron.getValue())
                             return
 
         pelletCaveGUID = ""
@@ -1620,24 +1620,24 @@ class nxusBookMachine(ptModifier):
         if ageLinkNode:
             ageInfoNode = ageLinkNode.getAgeInfo()
             pelletCaveGUID = ageInfoNode.getAgeInstanceGuid()
-            print "found pelletCaveGUID age chron, = ", pelletCaveGUID
+            PtDebugPrint("found pelletCaveGUID age chron, = ", pelletCaveGUID)
 
         if not ageDataFolder:
-            print "no ageDataFolder..."
+            PtDebugPrint("no ageDataFolder...")
             ageStruct = ptAgeInfoStruct()
             ageStruct.setAgeFilename(ageFileName)
             ageLinkNode = vault.getOwnedAgeLink(ageStruct)
             if ageLinkNode:
-                print "got ageLinkNode, created AgeData folder"
+                PtDebugPrint("got ageLinkNode, created AgeData folder")
                 ageInfoNode = ageLinkNode.getAgeInfo()
                 ageDataFolder = ptVaultFolderNode(0)
                 ageDataFolder.folderSetName("AgeData")
                 ageInfoNode.addNode(ageDataFolder)
 
         if not GUIDChronFound:
-            print "creating PelletCave GUID chron"
+            PtDebugPrint("creating PelletCave GUID chron")
             newNode = ptVaultChronicleNode(0)
             newNode.chronicleSetName("PelletCaveGUID")
             newNode.chronicleSetValue(pelletCaveGUID)
             ageDataFolder.addNode(newNode)
-            print "created pelletCaveGUID age chron, = ", pelletCaveGUID
+            PtDebugPrint("created pelletCaveGUID age chron, = ", pelletCaveGUID)

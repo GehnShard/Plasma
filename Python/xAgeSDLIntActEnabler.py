@@ -63,10 +63,10 @@ class xAgeSDLIntActEnabler(ptResponder):
         version = 1
         self.version = version
         self.enabledStateList = []
-        print "__init__xAgeSDLIntActEnabler v.", version
+        PtDebugPrint("__init__xAgeSDLIntActEnabler v.", version)
     
     def OnFirstUpdate(self):
-        if not (type(stringSDLVarName.value) == type("") and stringSDLVarName.value != ""):
+        if not stringSDLVarName.value:
             PtDebugPrint("ERROR: xAgeSDLIntActEnabler.OnFirstUpdate():\tERROR: missing SDL var name in max file")
             pass
     

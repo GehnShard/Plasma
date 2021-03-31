@@ -94,7 +94,7 @@ class clftGetPersonalBook(ptResponder):
         pass
         #~ vault = ptVault()
         #~ entry = vault.findChronicleEntry("JourneyClothProgress")
-        #~ if type(entry) != type(None):
+        #~ if entry is not None:
             #~ FoundJCs = entry.chronicleGetValue()
             #~ if "Z" in FoundJCs:
                 #~ PtPageOutNode("clftYeeshaBookVis")
@@ -180,10 +180,10 @@ class clftGetPersonalBook(ptResponder):
                         cam.disableFirstPersonOverride()
                         cam.undoFirstPerson()
                         if currentgender == 1:
-                            #~ print "Playing female book animation"
+                            #~ PtDebugPrint("Playing female book animation")
                             BookAnimFemale.animation.play()
                         elif currentgender == 0:
-                            #~ print "Playing male book animation"
+                            #~ PtDebugPrint("Playing male book animation")
                             BookAnimMale.animation.play()
                         else:
                             PtDebugPrint("clftGetPersonalBook: unreadable gender or special character.",level=kErrorLevel)
@@ -193,7 +193,7 @@ class clftGetPersonalBook(ptResponder):
         global LocalAvatar
         # start the alert of the personal book blinking
         PtSendKIMessage(kStartBookAlert,0)
-        #~ print "trying to get book."
+        #~ PtDebugPrint("trying to get book.")
         MultiBeh.run(LocalAvatar)
         self.SolveCleft()
         PtAtTimeCallback(self.key, 8, kLinkRespID) 
@@ -222,7 +222,7 @@ class clftGetPersonalBook(ptResponder):
                 # just continue processing
             except:
                 PtDebugPrint("xLiveTrailer - no intro movie!!!",level=kDebugDumpLevel)
-                print "Quitting demo now..."
+                PtDebugPrint("Quitting demo now...")
                 PtConsole("App.Quit")
             PtDebugPrint("xLiveTrailer - start showing movie",level=kDebugDumpLevel)
             PtShowDialog("IntroBahroBgGUI")
@@ -245,10 +245,10 @@ class clftGetPersonalBook(ptResponder):
             gDemoMovie.playPaused()
         elif id == kTrailerFadeInID:
             PtDebugPrint("xLiveTrailer - roll the movie",level=kDebugDumpLevel)
-            if type(gDemoMovie) != type(None):
+            if gDemoMovie is not None:
                 gDemoMovie.resume()
         elif id == kTrailerDoneID:
-            print "Quitting demo now..."
+            PtDebugPrint("Quitting demo now...")
             PtConsole("App.Quit")
 
     def OnMovieEvent(self,movieName,reason):

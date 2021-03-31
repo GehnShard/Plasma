@@ -202,16 +202,14 @@ class ercaOvenScope(ptModifier):
         byteAmount = ageSDL[amountSDL][0]
         byteTemp = ageSDL[tempSDL][0]
 
-        if type(Vignette.value) != type(None) and Vignette.value != "":
+        if Vignette.value:
             PtLoadDialog(Vignette.value,self.key)
 
 
     def Load(self):
         global boolScopeOperated
 
-        solo = true
-        if len(PtGetPlayerList()):
-            solo = false
+        solo = not PtGetPlayerList()
 
         boolOperated = self.SDL["boolOperated"][0]
         if boolOperated:
@@ -434,8 +432,8 @@ class ercaOvenScope(ptModifier):
                 PtDebugPrint("ercaOvenScope:OnGUINotify:  SDL %s is %d" % (amountSDL,byteAmount))
                 PtDebugPrint("ercaOvenScope:OnGUINotify:  SDL %s is %d" % (tempSDL,byteTemp))
                 if IsBaking != 0:
-                    print "OnGUINotfiy.ShowHide: will now set timerWheel to: ",byteTime
-                    print "OInGUINotfiy.ShowHide: will now set tempWheel to: ",byteTemp
+                    PtDebugPrint("OnGUINotfiy.ShowHide: will now set timerWheel to: ",byteTime)
+                    PtDebugPrint("OInGUINotfiy.ShowHide: will now set tempWheel to: ",byteTemp)
                     if setTempWheel:
                         tempWheel.setValue(byteTemp)
                     self.IDoTimerWheel()
@@ -452,7 +450,7 @@ class ercaOvenScope(ptModifier):
                     bakeBtn.enable()
 
         elif event == kValueChanged:
-            if type(control) != type(None):
+            if control is not None:
                 knobID = control.getTagID()
                 if knobID == kTimeSlider:
                     newVal = int(round(timeSlider.getValue()))
@@ -468,7 +466,7 @@ class ercaOvenScope(ptModifier):
                         ageSDL[tempSDL] = (newVal,)
         
         elif event == kAction:
-            if type(control) != type(None):
+            if control is not None:
                 btnID = control.getTagID()
                 if btnID == kBakeBtn:
                     if isinstance(control,ptGUIControlButton) and control.isButtonDown():
@@ -561,7 +559,7 @@ class ercaOvenScope(ptModifier):
             WasPowered = 0
             virtCam.save(CameraBad.sceneobject.getKey())
             # show the cockpit
-            if type(VignetteBad.value) != type(None) and VignetteBad.value != "":
+            if VignetteBad.value:
                 PtLoadDialog(VignetteBad.value,self.key)
                 if ( PtIsDialogLoaded(VignetteBad.value) ):
                     PtShowDialog(VignetteBad.value)
@@ -585,7 +583,7 @@ class ercaOvenScope(ptModifier):
         # exit every thing
         
         if WasPowered:
-            if type(Vignette.value) != type(None) and Vignette.value != "":
+            if Vignette.value:
                 PtHideDialog(Vignette.value)
             virtCam = ptCamera()
             virtCam.restore(Camera.sceneobject.getKey())
@@ -593,7 +591,7 @@ class ercaOvenScope(ptModifier):
             RespSfxTimerWheel.run(self.key,state="off")
             tempWheel.setValue(0)
         else:
-            if type(VignetteBad.value) != type(None) and VignetteBad.value != "":
+            if VignetteBad.value:
                 PtHideDialog(VignetteBad.value)
             virtCam = ptCamera()
             virtCam.restore(CameraBad.sceneobject.getKey())
@@ -628,7 +626,7 @@ class ercaOvenScope(ptModifier):
 
 
     def IDoTimerWheel(self):
-        print "in IDoTimerWheel."
+        PtDebugPrint("in IDoTimerWheel.")
         global byteTime
         global IsBaking
         global timerWheel
@@ -639,7 +637,7 @@ class ercaOvenScope(ptModifier):
         
         if not IsBaking:
             return
-        print "ercaOvenScope:IDoTimerWheel: IsBaking is true"
+        PtDebugPrint("ercaOvenScope:IDoTimerWheel: IsBaking is true")
         StartTime = (IsBaking - (byteTime * kTimeScale))
         FinishTime = IsBaking
         CurTime = PtGetDniTime()
@@ -649,12 +647,12 @@ class ercaOvenScope(ptModifier):
         PostHeat = (StartTime + 2)
         
         if CurTime < FinishTime:
-            #print "PreHeat = ",PreHeat
-            #print "CurTime = ",CurTime
+            #PtDebugPrint("PreHeat = ",PreHeat)
+            #PtDebugPrint("CurTime = ",CurTime)
             if PreHeat < CurTime:
-                #print "PostHeat = ",PostHeat
+                #PtDebugPrint("PostHeat = ",PostHeat)
                 if PostHeat < CurTime:
-                    print "setTempWheel =",setTempWheel
+                    PtDebugPrint("setTempWheel =",setTempWheel)
                     if not setTempWheel:
                         tempWheel.setValue(byteTemp)
                         setTempWheel = 1
@@ -662,10 +660,10 @@ class ercaOvenScope(ptModifier):
                     if not setTempWheel:
                         tempPercent = byteTemp * .01
                         tempWheel.animateToPercent(tempPercent)
-                        print "animating Temp Wheel, byteTemp = ",byteTemp
-                        print "animating Temp Wheel, tempPercent = ",tempPercent
+                        PtDebugPrint("animating Temp Wheel, byteTemp = ",byteTemp)
+                        PtDebugPrint("animating Temp Wheel, tempPercent = ",tempPercent)
                         setTempWheel = 1
-            #print "StartTime = ",StartTime
+            #PtDebugPrint("StartTime = ",StartTime)
             if StartTime < CurTime:
                 PtDebugPrint("ercaOvenScope:IDoTimerWheel:  Now updating timer wheel of scope# %d to %d seconds remaining" % (ScopeNum.value,TimeRemaining))
                 TimeRemaining = (TimeRemaining * 1.0)

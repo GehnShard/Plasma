@@ -113,12 +113,12 @@ class tldnPwrTwrPeriscope(ptResponder):
         self.id = 5003
         version = 4
         self.version = version
-        print "tldnPwrTwrPerscope v.",version,".3"
+        PtDebugPrint("tldnPwrTwrPerscope v.",version,".3")
 
     def OnFirstUpdate(self):
         global AgeStartedIn
         AgeStartedIn = PtGetAgeName()
-        if type(Vignette.value) != type(None) and Vignette.value != "":
+        if Vignette.value:
             PtLoadDialog(Vignette.value,self.key, "Teledahn")
         # non-age SDL vars
         self.SDL.setDefault("scopeSpdLeft",(0,))
@@ -136,9 +136,7 @@ class tldnPwrTwrPeriscope(ptResponder):
 
 
     def Load(self):
-        solo = true
-        if len(PtGetPlayerList()):
-            solo = false
+        solo = not PtGetPlayerList()
         boolOperated = self.SDL["boolOperated"][0]
         if boolOperated:
             if solo:
@@ -173,11 +171,11 @@ class tldnPwrTwrPeriscope(ptResponder):
             # get initial SDL state
             
             # tower raised?
-            boolTwrRaised = false
+            boolTwrRaised = False
             try:
                 pumpCount = ageSDL[kStringAgeSDLPumpCount][0]
                 if pumpCount == 3:
-                    boolTwrRaised = true
+                    boolTwrRaised = True
                 PtDebugPrint("tldnPwrTwrPeriscope.OnServerInitComplete():\tageSDL[%s] = %d, TwrRaised = %d" % (kStringAgeSDLPumpCount,pumpCount,boolTwrRaised) )
             except:
                 PtDebugPrint("tldnPwrTwrPeriscope.OnServerInitComplete():\tERROR: age sdl read failed, defaulting tower lowered")
@@ -187,7 +185,7 @@ class tldnPwrTwrPeriscope(ptResponder):
                 actSun.disable()
                
             # tower aligned?
-            boolPwrMain = false
+            boolPwrMain = False
             try:
                 boolPwrMain = ageSDL[kStringAgeSDLMainPowerOn][0]
                 PtDebugPrint("tldnPwrTwrPeriscope.OnServerInitComplete():\tPwrMain=%d" % (boolPwrMain))
@@ -196,14 +194,14 @@ class tldnPwrTwrPeriscope(ptResponder):
             
             # initialize tower whatnots based on SDL state
             if not boolPwrMain:
-                respPowerOff.run(self.key,fastforward=true)            
+                respPowerOff.run(self.key,fastforward=True)            
             # if PwrOn but tower not raised, correct
             if boolPwrMain and not boolTwrRaised:
                 PtDebugPrint("tldnPwrTwrPeriscope.OnServerInitComplete():\tturning off main power because tower not raised")
                 ageSDL.setTagString(kStringAgeSDLMainPowerOn,"ignore")
                 ageSDL[kStringAgeSDLMainPowerOn] = (0,)
                 boolPwrMain = 0
-                respPowerOff.run(self.key,fastforward=true)
+                respPowerOff.run(self.key,fastforward=True)
                 animScopeLeft.value.stop()
                 animScopeUp.value.stop()
                 scopeSpdUp = 0
@@ -261,10 +259,10 @@ class tldnPwrTwrPeriscope(ptResponder):
                 pumpCount = ageSDL[kStringAgeSDLPumpCount][0]  # tower goes up on 3
                 if pumpCount == 3 and not boolTwrRaised:
                     # tower state changed to raised
-                    boolTwrRaised = true
+                    boolTwrRaised = True
                 elif pumpCount != 3 and boolTwrRaised:
                     # tower state changed to lowered
-                    boolTwrRaised = false
+                    boolTwrRaised = False
                 else:
                     # tower raised/lowered state didn't change
                     return
@@ -380,8 +378,8 @@ class tldnPwrTwrPeriscope(ptResponder):
         # Toggle Main Power via Sun #
         #############################
         if id==actSun.id and boolTwrRaised:
-            #print "PERISCOPE: detected sun. state=%d, events to follow" % state
-            #print events
+            #PtDebugPrint("PERISCOPE: detected sun. state=%d, events to follow" % state)
+            #PtDebugPrint(events)
             if AgeStartedIn == PtGetAgeName():
                 ageSDL = PtGetAgeSDL()
                 for event in events:
@@ -448,12 +446,12 @@ class tldnPwrTwrPeriscope(ptResponder):
         if isinstance(control,ptGUIControlButton):
             btnID = control.getTagID()
         else:
-            #print "SCOPE GUI: non-button notification"
+            #PtDebugPrint("SCOPE GUI: non-button notification")
             return
 
-        #print "tldnPwrTwrPeriscope.OnGUINotify():\tbefore click...left=%f,up=%f,top=%d,btm=%d" % (scopeSpdLeft,scopeSpdUp,boolScopeAtTop,boolScopeAtBtm)
+        #PtDebugPrint("tldnPwrTwrPeriscope.OnGUINotify():\tbefore click...left=%f,up=%f,top=%d,btm=%d" % (scopeSpdLeft,scopeSpdUp,boolScopeAtTop,boolScopeAtBtm))
 
-        #print "SCOPE GUI: got a button id = %d" % btnID
+        #PtDebugPrint("SCOPE GUI: got a button id = %d" % btnID)
         if btnID == kGUILeftBtn:
             if scopeSpdLeft == scopeSpdLeftMax:
                 return
@@ -523,7 +521,7 @@ class tldnPwrTwrPeriscope(ptResponder):
 
     def OnControlKeyEvent(self,controlKey,activeFlag):
         "Control key events... anything we're interested in?"
-        #print "Got controlKey event %d and its activeFlage is %d" % (controlKey,activeFlag)
+        #PtDebugPrint("Got controlKey event %d and its activeFlage is %d" % (controlKey,activeFlag))
         if controlKey == PlasmaControlKeys.kKeyExitMode:
             self.IQuitTelescope()
         elif controlKey == PlasmaControlKeys.kKeyMoveBackward or controlKey == PlasmaControlKeys.kKeyRotateLeft or controlKey == PlasmaControlKeys.kKeyRotateRight:
@@ -549,7 +547,7 @@ class tldnPwrTwrPeriscope(ptResponder):
         virtCam = ptCamera()
         virtCam.save(Camera.sceneobject.getKey())
         # show the cockpit
-        if type(Vignette.value) != type(None) and Vignette.value != "":
+        if Vignette.value:
             PtLoadDialog(Vignette.value,self.key, "Teledahn")
             if ( PtIsDialogLoaded(Vignette.value) ):
                 PtShowDialog(Vignette.value)
@@ -562,7 +560,7 @@ class tldnPwrTwrPeriscope(ptResponder):
         global LocalAvatar
         global boolScopeOperator
         # exit every thing
-        if type(Vignette.value) != type(None) and Vignette.value != "":
+        if Vignette.value:
             PtHideDialog(Vignette.value)
         virtCam = ptCamera()
         virtCam.restore(Camera.sceneobject.getKey())

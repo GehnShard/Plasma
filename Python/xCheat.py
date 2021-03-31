@@ -51,64 +51,55 @@ def ListYeeshaPages(args):
     import Plasma
     import xLinkingBookDefs
     vault = Plasma.ptVault()
-    if type(vault) != type(None): #is the Vault online?
-        psnlSDL = vault.getPsnlAgeSDL()
-        if psnlSDL:
-            for sdlvar,page in xLinkingBookDefs.xYeeshaPages:
-                FoundValue = psnlSDL.findVar(sdlvar)
-                print "%s is %d" % (sdlvar, FoundValue.getInt())
-        else:
-            print "Could not find personal age SDL"
+    psnlSDL = vault.getPsnlAgeSDL()
+    if psnlSDL:
+        for sdlvar,page in xLinkingBookDefs.xYeeshaPages:
+            FoundValue = psnlSDL.findVar(sdlvar)
+            print("%s is %d" % (sdlvar, FoundValue.getInt()))
     else:
-        print "Could not find vault"
+        print("Could not find personal age SDL")
 
 
 def GetAllYeeshaPages(args):
     import Plasma
     import xLinkingBookDefs
     vault = Plasma.ptVault()
-    if type(vault) != type(None): #is the Vault online?
-        psnlSDL = vault.getPsnlAgeSDL()
-        if psnlSDL:
-            if args == "0":
-                newval = 0
-                print "xCheat.GetYeeshaPage(): removing all Yeesha pages..."
-            else:
-                newval = 1
-                print "xCheat.GetYeeshaPage(): adding all Yeesha pages..."
-            for sdlvar,page in xLinkingBookDefs.xYeeshaPages:
-                FoundValue = psnlSDL.findVar(sdlvar)
-                FoundValue.setInt(newval)
-            vault.updatePsnlAgeSDL(psnlSDL)
+    psnlSDL = vault.getPsnlAgeSDL()
+    if psnlSDL:
+        if args == "0":
+            newval = 0
+            print("xCheat.GetYeeshaPage(): removing all Yeesha pages...")
         else:
-            print "Could not find personal age SDL"
+            newval = 1
+            print("xCheat.GetYeeshaPage(): adding all Yeesha pages...")
+        for sdlvar,page in xLinkingBookDefs.xYeeshaPages:
+            FoundValue = psnlSDL.findVar(sdlvar)
+            FoundValue.setInt(newval)
+        vault.updatePsnlAgeSDL(psnlSDL)
     else:
-        print "Could not find vault"
+        print("Could not find personal age SDL")
 
 
 def GetYeeshaPage(args):
     import Plasma
     import xLinkingBookDefs
     vault = Plasma.ptVault()
-    if type(vault) != type(None): #is the Vault online?
-        psnlSDL = vault.getPsnlAgeSDL()
-        if args == None or args == "":
-            print "xCheat.GetYeeshaPage(): ERROR.  Must provide a Yeesha Page number."
-            return
-        thispage = "YeeshaPage" + args
-        if psnlSDL:
-            for sdlvar,page in xLinkingBookDefs.xYeeshaPages:
-                if sdlvar == thispage:
-                    FoundValue = psnlSDL.findVar(sdlvar)
-                    FoundValue.setInt(1)
-                    vault.updatePsnlAgeSDL(psnlSDL)
-                    print "xCheat.GetYeeshaPage(): Done. Have added: ",sdlvar
-                    return
-            print "xCheat.GetYeeshaPage(): ERROR.  Could not find Yeesha page: ",thispage
-        else:
-            print "xCheat.GetYeeshaPage(): ERROR.  Could not find personal age SDL"
+    psnlSDL = vault.getPsnlAgeSDL()
+    if not args:
+        print("xCheat.GetYeeshaPage(): ERROR.  Must provide a Yeesha Page number.")
+        return
+    thispage = "YeeshaPage" + args
+    if psnlSDL:
+        for sdlvar,page in xLinkingBookDefs.xYeeshaPages:
+            if sdlvar == thispage:
+                FoundValue = psnlSDL.findVar(sdlvar)
+                FoundValue.setInt(1)
+                vault.updatePsnlAgeSDL(psnlSDL)
+                print("xCheat.GetYeeshaPage(): Done. Have added: ",sdlvar)
+                return
+        print("xCheat.GetYeeshaPage(): ERROR.  Could not find Yeesha page: ",thispage)
     else:
-        print "xCheat.GetYeeshaPage(): ERROR.  Could not find vault"
+        print("xCheat.GetYeeshaPage(): ERROR.  Could not find personal age SDL")
 
 
 def GetAgeJourneyCloths(args):
@@ -136,7 +127,7 @@ def GetAgeJourneyCloths(args):
             ageChronNode = ageChild
             break
 
-    if type(ageChronNode) == type(None):
+    if ageChronNode is None:
         newNode = Plasma.ptVaultChronicleNode(0)
         newNode.chronicleSetName(ageName)
         newNode.chronicleSetValue("abcdefg")
@@ -201,7 +192,7 @@ def GenerateCleftSolution(args):
             newnode.chronicleSetValue("1," + ageVal + "," + str(v + 1))
             #newnode.chronicleSetValue("1," + str(solutionlist[v]) + "," + str(v + 1))
             entry.addNode(newnode)
-            print "%s solution is %s" % (agelist[v], ageVal)
+            print("%s solution is %s" % (agelist[v], ageVal))
 
 
 def ResetEnding(args):
@@ -231,9 +222,9 @@ def SndWhatIsLogTrack(args):
 def SndIsLogMode(args):
     import xSndLogTracks
     if xSndLogTracks.IsLogMode():
-        print "yes"
+        print("yes")
     else:
-        print "not yet"
+        print("not yet")
 
 
 def SndSetLogMode(args):
@@ -279,7 +270,7 @@ def GZSetGame(args):
     vault = Plasma.ptVault()
     # is there a chronicle for the GZ games?
     entry = vault.findChronicleEntry(PlasmaKITypes.kChronicleGZGames)
-    if type(entry) != type(None):
+    if entry is not None:
         entry.chronicleSetValue(gameString)
         entry.save()
     else:
@@ -307,7 +298,7 @@ def GZGetMarkers(args):
         vault = Plasma.ptVault()
         # is there a chronicle for the GZ games?
         entry = vault.findChronicleEntry(PlasmaKITypes.kChronicleGZGames)
-        if type(entry) != type(None):
+        if entry is not None:
             gameString = entry.chronicleGetValue()
             gargs = gameString.split()
             if len(gargs) == 3:
@@ -322,14 +313,14 @@ def GZGetMarkers(args):
                     newgotten = markerGottenNumber + markersToGet
                     if newgotten > markerToGetNumber:
                         newgotten = markerToGetNumber
-                    print "Updating markers gotten to %d from %d" % (newgotten,markerToGetNumber)
+                    print("Updating markers gotten to %d from %d" % (newgotten,markerToGetNumber))
                     upstring = "%d %s:%s %d:%d" % (markerGame,markerGottenColor,markerToGetColor,newgotten,markerToGetNumber)
                     entry.chronicleSetValue(upstring)
                     entry.save()
                     # just pick some marker to have gotten
                     # is there a chronicle for the GZ games?
                     entry = vault.findChronicleEntry(PlasmaKITypes.kChronicleGZMarkersAquired)
-                    if type(entry) != type(None):
+                    if entry is not None:
                         markers = entry.chronicleGetValue()
                         for mnum in range(markersToGet):
                             markerIdx = markers.index(PlasmaKITypes.kGZMarkerAvailable)
@@ -339,19 +330,19 @@ def GZGetMarkers(args):
                                     markers = markers[:markerIdx] + PlasmaKITypes.kGZMarkerCaptured + markers[-(len(markers)-(markerIdx+1)):]
                                 else:
                                     markers = markers[:markerIdx] + PlasmaKITypes.kGZMarkerCaptured
-                                print "Update marker #%d - out string is '%s'" % (markerIdx+1,markers)
+                                print("Update marker #%d - out string is '%s'" % (markerIdx+1,markers))
                                 entry.chronicleSetValue(markers)
                                 entry.save()
                     # update the 
                     Plasma.PtSendKIMessage(PlasmaKITypes.kGZUpdated,0)
                     return
                 except ValueError:
-                    print "xKI:GZ - error trying to read GZGames Chronicle '%s'" % (gameString)
+                    print("xKI:GZ - error trying to read GZGames Chronicle '%s'" % (gameString))
             else:
-                print "xKI:GZ - error GZGames string formation error (len=%d)" % (len(gargs))
+                print("xKI:GZ - error GZGames string formation error (len=%d)" % (len(gargs)))
         else:
             # if there is none, then error
-            print "Error - there is no GZMarker game going!"
+            print("Error - there is no GZMarker game going!")
 
 
 def GiveMeMarkerTag(args):
@@ -373,7 +364,7 @@ def GZGiveMeFullAccess(args):
     resetString = "0 off:off 0:0"
     vault = Plasma.ptVault()
     entry = vault.findChronicleEntry(PlasmaKITypes.kChronicleGZGames)
-    if type(entry) != type(None):
+    if entry is not None:
         entry.chronicleSetValue(resetString)
 
     # Finally, update the KI display
@@ -397,17 +388,17 @@ def RemoveMarkerTag(args):
     vault = Plasma.ptVault()
     # is there a chronicle for the GZ games?
     entry = vault.findChronicleEntry(PlasmaKITypes.kChronicleKIMarkerLevel)
-    if type(entry) != type(None):
+    if entry is not None:
         entry.chronicleSetValue(newlevel)
         entry.save()
     # is there a chronicle for the GZ games?
     entry = vault.findChronicleEntry(PlasmaKITypes.kChronicleGZGames)
-    if type(entry) != type(None):
+    if entry is not None:
         entry.chronicleSetValue("0")
         entry.save()
     # is there a chronicle for the GZ games?
     entry = vault.findChronicleEntry(PlasmaKITypes.kChronicleGZMarkersAquired)
-    if type(entry) != type(None):
+    if entry is not None:
         entry.chronicleSetValue("")
         entry.save()
     Plasma.PtSendKIMessage(PlasmaKITypes.kGZUpdated,0)
@@ -415,12 +406,12 @@ def RemoveMarkerTag(args):
     MGs = [ 'MG01','MG02','MG03','MG04','MG05','MG06','MG07','MG08','MG09','MG10','MG11','MG12','MG13','MG14']
     for mg in MGs:
         entry = vault.findChronicleEntry(mg)
-        if type(entry) != type(None):
+        if entry is not None:
             entry.chronicleSetValue("")
             entry.save()
    
     entry = vault.findChronicleEntry("CGZPlaying")
-    if type(entry) != type(None):
+    if entry is not None:
         entry.chronicleSetValue("")
         entry.save()
     # remove the marker games from the hidden folder--- later
@@ -434,11 +425,11 @@ def CGZKillAll(args):
     MGs = [ 'MG01','MG02','MG03','MG04','MG05','MG06','MG07','MG08','MG09','MG10','MG11','MG12','MG13','MG14']
     for mg in MGs:
         entry = vault.findChronicleEntry(mg)
-        if type(entry) != type(None):
+        if entry is not None:
             entry.chronicleSetValue("")
             entry.save()
     entry = vault.findChronicleEntry("CGZPlaying")
-    if type(entry) != type(None):
+    if entry is not None:
         entry.chronicleSetValue("")
         entry.save()
 
@@ -448,29 +439,29 @@ def ShowHiddenFolder(args):
     vault = Plasma.ptVault()
     jfolder = None
     master_agefolder = vault.getAgeJournalsFolder()
-    if type(master_agefolder) != type(None):
+    if master_agefolder is not None:
         agefolderRefs = master_agefolder.getChildNodeRefList()
         for agefolderRef in agefolderRefs:
             agefolder = agefolderRef.getChild()
             agefolder = agefolder.upcastToFolderNode()
-            if type(agefolder) != type(None):
+            if agefolder is not None:
                 # look for the Hidden folder
                 if "Hidden" == agefolder.folderGetName():
                     jfolder = agefolder
                     break
     if jfolder:
         # need to try to find the game
-        print "Hidden folder contents:"
+        print("Hidden folder contents:")
         folderRefs = jfolder.getChildNodeRefList()
         for jref in folderRefs:
             jnode = jref.getChild()
             jnode = jnode.upcastToMarkerListNode()
             # is it a marker folder list?
-            if type(jnode) != type(None):
+            if jnode is not None:
                 # is it named the right one?
-                print "markerFolder - ",jnode.folderGetName()
+                print("markerFolder - ",jnode.folderGetName())
     else:
-        print "There is no Hidden folder"
+        print("There is no Hidden folder")
 
 
 def RemoveHiddenContent(args):
@@ -480,21 +471,21 @@ def RemoveHiddenContent(args):
     vault = Plasma.ptVault()
     jfolder = None
     master_agefolder = vault.getAgeJournalsFolder()
-    if type(master_agefolder) != type(None):
+    if master_agefolder is not None:
         agefolderRefs = master_agefolder.getChildNodeRefList()
         for agefolderRef in agefolderRefs:
             agefolder = agefolderRef.getChild()
             agefolder = agefolder.upcastToFolderNode()
-            if type(agefolder) != type(None):
+            if agefolder is not None:
                 # look for the Hidden folder
                 if "Hidden" == agefolder.folderGetName():
                     jfolder = agefolder
                     break
     if jfolder:
-        print "Removing content"
+        print("Removing content")
         jfolder.removeAllNodes()
     else:
-        print "There is no Hidden folder"
+        print("There is no Hidden folder")
 
 
 #=======================================================
@@ -507,7 +498,7 @@ def RemoveHiddenContent(args):
 def _DumpEm(f,markerfolder,mfNumber):
     lines = 0
     tab = ""
-    print "  -dumping %s" % (markerfolder.getFolderName())
+    print("  -dumping %s" % (markerfolder.getFolderName()))
     f.write("#\n")
     f.write("# %s\n" %(markerfolder.getFolderName()))
     f.write("MG%02d = [ " % (mfNumber))
@@ -523,7 +514,7 @@ def _DumpEm(f,markerfolder,mfNumber):
     for markerRef in markerRefs:
         marker = markerRef.getChild()
         marker = marker.upcastToMarkerNode()
-        if type(marker) != type(None):
+        if marker is not None:
             f.write('    [ "%s", ' % (marker.markerGetText()))
             pos = marker.markerGetPosition()
             f.write("%g, %g, %g, " % (pos.getX(),pos.getY(),(pos.getZ())))
@@ -533,7 +524,7 @@ def _DumpEm(f,markerfolder,mfNumber):
             numMarkers += 1
     f.write("  ]\\\n]\n")
     lines += 2
-    print "      with %d markers" % (numMarkers)
+    print("      with %d markers" % (numMarkers))
     return lines
 
 
@@ -542,7 +533,7 @@ def DumpMarkers(args):
     import Plasma
     arglist = args.split()
     if len(arglist) < 2:
-        print 'ERROR - not enough arguments - DumpMarkers "filename foldername [markername]")'
+        print('ERROR - not enough arguments - DumpMarkers "filename foldername [markername]")')
         return
     filename = arglist[0]
     dfile = open(filename,'w+')
@@ -554,12 +545,12 @@ def DumpMarkers(args):
     vault = Plasma.ptVault()
     jfolder = None
     master_agefolder = vault.getAgeJournalsFolder()
-    if type(master_agefolder) != type(None):
+    if master_agefolder is not None:
         agefolderRefs = master_agefolder.getChildNodeRefList()
         for agefolderRef in agefolderRefs:
             agefolder = agefolderRef.getChild()
             agefolder = agefolder.upcastToFolderNode()
-            if type(agefolder) != type(None):
+            if agefolder is not None:
                 # might be a foldername with spaces! so see if it starts with the name
                 if argresidual.startswith(agefolder.folderGetName()):
                     jfolder = agefolder
@@ -574,7 +565,7 @@ def DumpMarkers(args):
             for jfolderRef in jfolderRefs:
                 jentry = jfolderRef.getChild()
                 jentry = jentry.upcastToMarkerListNode()
-                if type(jentry) != type(None):
+                if jentry is not None:
                     # see if we are looking for a particular markerfolder
                     if len(argresidual) > 0 and argresidual == jentry.getFolderName():
                         # only dump the one
@@ -586,13 +577,13 @@ def DumpMarkers(args):
                         lines += _DumpEm(dfile,jentry,totalmfs+1)
                         totalmfs += 1
         else:
-            print "Could not find folder"
+            print("Could not find folder")
     else:
-        print "Master age journal folders could not be found"
+        print("Master age journal folders could not be found")
     sess = "s"
     if totalmfs == 1:
         sess = ""
-    print "==Wrote %d markerfolder%s. %d lines total==" % (totalmfs,sess,lines)
+    print("==Wrote %d markerfolder%s. %d lines total==" % (totalmfs,sess,lines))
     dfile.write("mgs = [")
     for mg in range(totalmfs):
         dfile.write("(MG%02d,'MG%02d')," % (mg+1,mg+1))
@@ -606,13 +597,13 @@ def ImportGames(args):
     import PlasmaVaultConstants
     arglist = args.split()
     if len(arglist) < 2:
-        print 'ERROR - not enough arguments - ImportMarkers "filename foldername")'
+        print('ERROR - not enough arguments - ImportMarkers "filename foldername")')
         return
     filename = arglist[0]
     try:
         dfile = open(filename+'.py','r')
     except IOError:
-        print "ERROR - file %d could not be found" % (filename+'.py')
+        print("ERROR - file %d could not be found" % (filename+'.py'))
         return
     dfile.close()
     argresidual = args[len(filename)+1:]
@@ -621,12 +612,12 @@ def ImportGames(args):
     vault = Plasma.ptVault()
     jfolder = None
     master_agefolder = vault.getAgeJournalsFolder()
-    if type(master_agefolder) != type(None):
+    if master_agefolder is not None:
         agefolderRefs = master_agefolder.getChildNodeRefList()
         for agefolderRef in agefolderRefs:
             agefolder = agefolderRef.getChild()
             agefolder = agefolder.upcastToFolderNode()
-            if type(agefolder) != type(None):
+            if agefolder is not None:
                 # might be a foldername with spaces! so see if it starts with the name
                 if argresidual.startswith(agefolder.folderGetName()):
                     jfolder = agefolder
@@ -650,13 +641,13 @@ def ImportMarkers(args):
     import PlasmaVaultConstants
     arglist = args.split()
     if len(arglist) < 2:
-        print 'ERROR - not enough arguments - ImportMarkers "filename foldername")'
+        print('ERROR - not enough arguments - ImportMarkers "filename foldername")')
         return
     filename = arglist[0]
     try:
         dfile = open(filename+'.py','r')
     except IOError:
-        print "ERROR - file %d could not be found" % (filename+'.py')
+        print("ERROR - file %d could not be found" % (filename+'.py'))
         return
     dfile.close()
     argresidual = args[len(filename)+1:]
@@ -665,12 +656,12 @@ def ImportMarkers(args):
     vault = Plasma.ptVault()
     jfolder = None
     master_agefolder = vault.getAgeJournalsFolder()
-    if type(master_agefolder) != type(None):
+    if master_agefolder is not None:
         agefolderRefs = master_agefolder.getChildNodeRefList()
         for agefolderRef in agefolderRefs:
             agefolder = agefolderRef.getChild()
             agefolder = agefolder.upcastToFolderNode()
-            if type(agefolder) != type(None):
+            if agefolder is not None:
                 # might be a foldername with spaces! so see if it starts with the name
                 if argresidual.startswith(agefolder.folderGetName()):
                     jfolder = agefolder
@@ -685,7 +676,7 @@ def ImportMarkers(args):
                 jnode = jref.getChild()
                 jnode = jnode.upcastToMarkerListNode()
                 # is it a marker folder list?
-                if type(jnode) != type(None):
+                if jnode is not None:
                     # is it named the right one?
                     if jnode.folderGetName() == mg[1]:
                         # yes, add the markers to this game
@@ -703,7 +694,7 @@ def GetChildInfo(args):
     import Plasma
     vault = Plasma.ptVault()
     hoodGUID = vault.getLinkToMyNeighborhood().getAgeInfo().getAgeInstanceGuid()
-    print "hoodGUID: ",hoodGUID
+    print("hoodGUID: ",hoodGUID)
 
     parentname = None
     agevault = Plasma.ptAgeVault()
@@ -712,22 +703,22 @@ def GetChildInfo(args):
     parent = ageinfo.getParentAgeLink()
     if parent == None:
         agename = ageinfo.getAgeFilename()
-        print "not a child age.  age = ",agename
-        #print "with linking rules: ",agerules
+        print("not a child age.  age = ",agename)
+        #print("with linking rules: ",agerules)
         return
     parentinfo = parent.getAgeInfo()
     parentname = parentinfo.getAgeFilename()
     parentGUID = parentinfo.getAgeInstanceGuid()
-    print "parentGUID: ",parentGUID
+    print("parentGUID: ",parentGUID)
     
     if parentname == "Neighborhood":
         if hoodGUID == parentGUID:
-            print "child of hood:  yes"
+            print("child of hood:  yes")
         else:
-            print "child of hood:  different"
+            print("child of hood:  different")
     else:
-        print "child of hood:  no"
-    #print "linking rules: ",agerules
+        print("child of hood:  no")
+    #print("linking rules: ",agerules)
 
 
 def GetSDL(varName):
@@ -746,7 +737,7 @@ def GetSDL(varName):
     try:
         ageSDL = Plasma.PtGetAgeSDL()
     except:
-        print("xCheat.GetSDL(): Unable to retrieve SDL for '{}'.".format(ageName))
+        print(("xCheat.GetSDL(): Unable to retrieve SDL for '{}'.".format(ageName)))
         return
 
     varList = []
@@ -773,17 +764,17 @@ def GetSDL(varName):
                     val = ""
                 else:
                     val = ageSDL[var][0]
-                print("xCheat.GetSDL(): {:>{width}}  =  {}".format(var, val, width=maxlen))
+                print(("xCheat.GetSDL(): {:>{width}}  =  {}".format(var, val, width=maxlen)))
             except:
-                print("xCheat.GetSDL(): Error retrieving value for '{}'.".format(var))
+                print(("xCheat.GetSDL(): Error retrieving value for '{}'.".format(var)))
     else:
         try:
             if len(ageSDL[varName]) == 0:
-                print("xCheat.GetSDL():  SDL variable '{}' is not set.".format(varName))
+                print(("xCheat.GetSDL():  SDL variable '{}' is not set.".format(varName)))
             else:
-                print("xCheat.GetSDL(): {}  =  {}".format(varName, ageSDL[varName][0]))
+                print(("xCheat.GetSDL(): {}  =  {}".format(varName, ageSDL[varName][0])))
         except:
-            print("xCheat.GetSDL(): SDL variable '{}' not found.".format(varName))
+            print(("xCheat.GetSDL(): SDL variable '{}' not found.".format(varName)))
             return
 
 
@@ -806,24 +797,24 @@ def SetSDL(varNameAndVal):
     try:
         newval = int(varNameAndValList[1])
     except ValueError:
-        print("xCheat.SetSDL(): Can't use '{}'. Only numerical SDL values are supported.".format(varNameAndValList[1]))
+        print(("xCheat.SetSDL(): Can't use '{}'. Only numerical SDL values are supported.".format(varNameAndValList[1])))
         return
 
     ageName = Plasma.PtGetAgeName()
     try:
         ageSDL = Plasma.PtGetAgeSDL()
     except:
-        print("xCheat.SetSDL(): Unable to retrieve SDL for '{}'.".format(ageName))
+        print(("xCheat.SetSDL(): Unable to retrieve SDL for '{}'.".format(ageName)))
         return
 
     try:
         oldval = ageSDL[varName][0]
     except KeyError:
-        print("xCheat.SetSDL(): SDL variable '{}' not found.".format(varName))
+        print(("xCheat.SetSDL(): SDL variable '{}' not found.".format(varName)))
         return
 
     if newval == oldval:
-        print("xCheat.SetSDL(): Not changing value, '{}' is already {}.".format(varName, newval))
+        print(("xCheat.SetSDL(): Not changing value, '{}' is already {}.".format(varName, newval)))
         return
 
     if ageName == "Personal":
@@ -837,7 +828,7 @@ def SetSDL(varNameAndVal):
         ageSDL.sendToClients(varName)
         ageSDL[varName] = (newval,)
 
-    print("xCheat.SetSDL(): Setting '{}' to {} (was {}).".format(varName, newval, oldval))
+    print(("xCheat.SetSDL(): Setting '{}' to {} (was {}).".format(varName, newval, oldval)))
 
 
 def InstaPellets(args):
@@ -847,11 +838,11 @@ def InstaPellets(args):
     if ageName == "Ercana":
         sdl = Plasma.PtGetAgeSDL()
         if args == "":
-            print "xCheat.InstantPellets: ERROR.  Must specify a recipe value as argument."
+            print("xCheat.InstantPellets: ERROR.  Must specify a recipe value as argument.")
         else:
             PelletsPresent = sdl["ercaPelletMachine"][0]
             if PelletsPresent:
-                print "xCheat.InstantPellets: ERROR.  Must flush current pellets before using this cheat."
+                print("xCheat.InstantPellets: ERROR.  Must flush current pellets before using this cheat.")
             else:
                 iarg = string.atoi(args)
                 if iarg == 0:
@@ -859,7 +850,7 @@ def InstaPellets(args):
                 recipeSDL = (iarg + 300)
                 if recipeSDL < 1:
                     recipeSDL = 1
-                print "xCheat.InstantPellets: 5 pellets now created with Recipe of %d." % (iarg)
+                print("xCheat.InstantPellets: 5 pellets now created with Recipe of %d." % (iarg))
                 sdl["ercaPellet1"] = (recipeSDL,)
                 sdl["ercaPellet2"] = (recipeSDL,)
                 sdl["ercaPellet3"] = (recipeSDL,)
@@ -885,12 +876,12 @@ def CheckRecipe(args):
                 break
         if testVal:
             recipe = (recipeSDL - 300)
-            print "xCheat.CheckRecipe: Recipe of current pellet(s) = %d." % (recipe)
+            print("xCheat.CheckRecipe: Recipe of current pellet(s) = %d." % (recipe))
         else:
-            print "xCheat.CheckRecipe: No pellets currently exist, therefore no recipe."
+            print("xCheat.CheckRecipe: No pellets currently exist, therefore no recipe.")
 
 
 def GetPlayerID(self):
     import Plasma
     playerID = Plasma.PtGetLocalPlayer().getPlayerID()
-    print "playerID = ",playerID
+    print("playerID = ",playerID)

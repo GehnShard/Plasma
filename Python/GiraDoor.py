@@ -75,17 +75,17 @@ class GiraDoor(ptResponder):
         self.ageSDL.setNotify(self.key,"giraDoorOpen",0.0)
         
         # get initial SDL state
-        doorClosed = true
+        doorClosed = True
         try:
             doorOpen = self.ageSDL["giraDoorOpen"][0]
         except:
-            doorOpen = true
+            doorOpen = True
         
         if (doorOpen):
-            print"gira door open"
+            PtDebugPrint("gira door open")
             doorOpenInitResp.run(self.key,avatar = PtGetLocalAvatar())
         else:
-            print"gira door closed"
+            PtDebugPrint("gira door closed")
             
     #def OnSDLNotify(self,VARname,SDLname,playerID,tag):
     def OnNotify(self, state, id, events):

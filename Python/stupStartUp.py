@@ -62,7 +62,7 @@ class stupStartUp(ptResponder):
         ptResponder.__init__(self)
         self.id = 5339
         self.version = 1
-        print "stupStartUp: init  version = %d" % self.version
+        PtDebugPrint("stupStartUp: init  version = %d" % self.version)
 
     ###########################
     def OnFirstUpdate(self):
@@ -89,7 +89,7 @@ class stupStartUp(ptResponder):
             PtSetActivePlayer(0)
 
         avatar = PtGetLocalAvatar()
-        avatar.physics.suppress(true)
+        avatar.physics.suppress(True)
 
         cam = ptCamera()
         cam.undoFirstPerson()

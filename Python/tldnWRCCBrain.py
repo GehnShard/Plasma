@@ -138,7 +138,7 @@ class tldnWRCCBrain(ptResponder):
             self.SDL["OperatorID"] = (-1,)
             self.SDL["boolOperated"] = (0,)
             #respWRCCMaster.run(self.key,state='off')
-            print "tldnWRCCBrain.AvatarPage(): WRCC operator paged out, reenabled WRCC."
+            PtDebugPrint("tldnWRCCBrain.AvatarPage(): WRCC operator paged out, reenabled WRCC.")
         else:
             return
 
@@ -146,14 +146,12 @@ class tldnWRCCBrain(ptResponder):
     def Load(self):
         global boolWRCCOperated
         
-        solo = true
-        if len(PtGetPlayerList()):
-            solo = false
+        solo = not PtGetPlayerList()
 
         boolOperated = self.SDL["boolOperated"][0]
         if boolOperated:
             if solo:
-                print "tldnWRCCBrain.Load():\tboolOperated=%d but no one else here...correcting" % boolOperated
+                PtDebugPrint("tldnWRCCBrain.Load():\tboolOperated=%d but no one else here...correcting" % boolOperated)
                 boolOperated = 0
                 self.SDL["boolOperated"] = (0,)
                 self.SDL["OperatorID"] = (-1,)
@@ -161,7 +159,7 @@ class tldnWRCCBrain(ptResponder):
                 #respWRCCMaster.run(self.key,state='off')
             else:
                 actSitClickable.disable()
-                print "tldnWRCCBrain.Load():\tboolOperated=%d, disabling WRCC clickable" % boolOperated
+                PtDebugPrint("tldnWRCCBrain.Load():\tboolOperated=%d, disabling WRCC clickable" % boolOperated)
 
 
     def OnServerInitComplete(self):
@@ -202,39 +200,39 @@ class tldnWRCCBrain(ptResponder):
                     hatchLocked = 0
                     ageSDL[kStringAgeSDLHatchLocked] = (0,)                
             except:
-                pwrOn = false
-                cabinDrained = false
-                hatchOpen = false
-                hatchLocked = true
+                pwrOn = False
+                cabinDrained = False
+                hatchOpen = False
+                hatchLocked = True
                 PtDebugPrint("tldnWRCCBrain.OnServerInitComplete():\tERROR: age sdl read failed, defaulting:")
             PtDebugPrint("tldnWRCCBrain.OnServerInitComplete():\t%s = %d, %s=%d" % (kStringAgeSDLPowerOn,pwrOn,kStringAgeSDLCabinDrained,cabinDrained) )
             PtDebugPrint("tldnWRCCBrain.OnServerInitComplete():\t%s = %d, %s=%d" % (kStringAgeSDLHatchOpen,hatchOpen,kStringAgeSDLHatchLocked,hatchLocked) )
             
             # init cabin drained
             if cabinDrained:
-                respDrainLvr.run(self.key,state='drain',fastforward=true) # move the needle to drained position
-                respCabinDrain.run(self.key,state='drain',fastforward=true)
+                respDrainLvr.run(self.key,state='drain',fastforward=True) # move the needle to drained position
+                respCabinDrain.run(self.key,state='drain',fastforward=True)
             # init wrcc lock switch and hatch state LED
             if hatchLocked:
-                respLockSwitch.run(self.key,state='lock',fastforward=true)
+                respLockSwitch.run(self.key,state='lock',fastforward=True)
             else:
-                respLockSwitch.run(self.key,state='unlock',fastforward=true)
+                respLockSwitch.run(self.key,state='unlock',fastforward=True)
             if hatchOpen and pwrOn:
-                respHatchGlare.run(self.key,state='on',fastforward=true)
+                respHatchGlare.run(self.key,state='on',fastforward=True)
             else:
-                respHatchGlare.run(self.key,state='off',fastforward=true)
+                respHatchGlare.run(self.key,state='off',fastforward=True)
             # init hatchLocked LED, open/closed, detectors, exclude regions
             if not hatchLocked and pwrOn:
-                respHatchLock.run(self.key,state='on',fastforward=true)
+                respHatchLock.run(self.key,state='on',fastforward=True)
             else:
-                respHatchLock.run(self.key,state='off',fastforward=true)
+                respHatchLock.run(self.key,state='off',fastforward=True)
             if hatchOpen:
-                respHatchOps.run(self.key,state='openabove',fastforward=true)
+                respHatchOps.run(self.key,state='openabove',fastforward=True)
                 actCloseHatch.enable()
                 actOpenHatchAbv.disable()
                 respBlocker.run(self.key,state='on')
             else:
-                respHatchOps.run(self.key,state='close',fastforward=true)
+                respHatchOps.run(self.key,state='close',fastforward=True)
                 actCloseHatch.disable()
                 actOpenHatchAbv.enable()
                 respBlocker.run(self.key,state='off')
@@ -244,13 +242,13 @@ class tldnWRCCBrain(ptResponder):
                 bucketMode = ageSDL[kStringAgeSDLBucketLoopMode][0]
             except:
                 PtDebugPrint("tldnWRCCBrain.OnServerInitComplete():\tCould not read Bucket Loop Mode SDL, defaulting to: ON")
-                bucketMode = true
+                bucketMode = True
                 ageSDL[kStringAgeSDLBucketLoopMode] = (bucketMode,)
 
-            if bucketMode == true:
-                respBucketLoopMode.run(self.key, state=kOn, fastforward=true)
+            if bucketMode:
+                respBucketLoopMode.run(self.key, state=kOn, fastforward=True)
             else:
-                respBucketLoopMode.run(self.key, state=kOff, fastforward=true)
+                respBucketLoopMode.run(self.key, state=kOff, fastforward=True)
 
             return
 
@@ -296,11 +294,11 @@ class tldnWRCCBrain(ptResponder):
                     return
                 # so assume change is from vault manager - do some scene management
                 if cabinDrained:
-                    respDrainLvr.run(self.key,state='drain',fastforward=true)
-                    respCabinDrain.run(self.key,state='drain',fastforward=true)
+                    respDrainLvr.run(self.key,state='drain',fastforward=True)
+                    respCabinDrain.run(self.key,state='drain',fastforward=True)
                 else:
-                    respDrainLvr.run(self.key,state='reset',fastforward=true)                
-                    respCabinDrain.run(self.key,state='reset',fastforward=true)
+                    respDrainLvr.run(self.key,state='reset',fastforward=True)                
+                    respCabinDrain.run(self.key,state='reset',fastforward=True)
                 return
     
             ##############
@@ -312,19 +310,19 @@ class tldnWRCCBrain(ptResponder):
                     return
                 # so assume change is from vault manager - do some scene management
                 if hatchOpen:
-                    respHatchOps.run(self.key,state='openabove',fastforward=true)
+                    respHatchOps.run(self.key,state='openabove',fastforward=True)
                     actCloseHatch.enable()
                     actOpenHatchAbv.disable()
                     respBlocker.run(self.key,state='on')
                     if pwrOn:
-                        respHatchGlare.run(self.key,state='on',fastforward=true)
+                        respHatchGlare.run(self.key,state='on',fastforward=True)
                 else:
-                    respHatchOps.run(self.key,state='close',fastforward=true)
+                    respHatchOps.run(self.key,state='close',fastforward=True)
                     actCloseHatch.disable()
                     actOpenHatchAbv.enable()
                     respBlocker.run(self.key,state='off')
                     if pwrOn: # light wasn't on otherwise
-                        respHatchGlare.run(self.key,state='off',fastforward=true)
+                        respHatchGlare.run(self.key,state='off',fastforward=True)
                 return
     
             ###########
@@ -336,13 +334,13 @@ class tldnWRCCBrain(ptResponder):
                     return
                 # so assume change is from vault manager - do some scene management
                 if hatchLocked:
-                    respLockSwitch.run(self.key,state='lock',fastforward=true)
+                    respLockSwitch.run(self.key,state='lock',fastforward=True)
                     if pwrOn:  # light wasn't on otherwise
-                        respHatchLock.run(self.key,state='off',fastforward=true)
+                        respHatchLock.run(self.key,state='off',fastforward=True)
                 else:
-                    respLockSwitch.run(self.key,state='unlock',fastforward=true)
+                    respLockSwitch.run(self.key,state='unlock',fastforward=True)
                     if pwrOn:
-                        respHatchLock.run(self.key,state='on',fastforward=true)
+                        respHatchLock.run(self.key,state='on',fastforward=True)
                 return
 
 
@@ -351,7 +349,7 @@ class tldnWRCCBrain(ptResponder):
             ###########
             if VARname == kStringAgeSDLBucketLoopMode:
                 bucketMode = ageSDL[kStringAgeSDLBucketLoopMode][0]
-                if bucketMode == true:
+                if bucketMode:
                     respBucketLoopMode.run(self.key, state=kOn)
                 else:
                     respBucketLoopMode.run(self.key, state=kOff)
@@ -369,32 +367,32 @@ class tldnWRCCBrain(ptResponder):
         for event in events: #this detects the untrigger of the sitting component
             if event[0]==6 and event[1]==1 and id== actSitComponent.id:
                 if state==0: #true as player stands up
-                    print "tldnWRCCBrain.OnNotify():\tWRCC unoccupied, re-enabling WRCC sit clickable."
+                    PtDebugPrint("tldnWRCCBrain.OnNotify():\tWRCC unoccupied, re-enabling WRCC sit clickable.")
                     actSitClickable.enable()
                     self.SDL["boolOperated"] = (0,)
                     self.SDL["OperatorID"] = (-1,)
                     
                     if PtWasLocallyNotified(self.key):
                         PtEnableMouseMovement()
-                        print "tldnWRCCBrain.OnNotify():\tI'm the one who stood up, will hide panel's clickables"
+                        PtDebugPrint("tldnWRCCBrain.OnNotify():\tI'm the one who stood up, will hide panel's clickables")
                         respWRCCMaster.run(self.key,state='on')
 
         if not state: # notification is from some kind of untrigger
             return
 
         if id==actSitClickable.id:
-            print "tldnWRCCBrain.OnNotify():\tWRCC occupied, disabling WRCC sit clickable."
+            PtDebugPrint("tldnWRCCBrain.OnNotify():\tWRCC occupied, disabling WRCC sit clickable.")
             actSitClickable.disable()
             self.SDL["boolOperated"] = (1,)
                     
             LocalAvatar = PtFindAvatar(events)
             avID = PtGetClientIDFromAvatarKey(LocalAvatar.getKey())
             self.SDL["OperatorID"] = (avID,)
-            print "tldnWRCCBrain.OnNotify:\twrote SDL - scope operator id = ", avID 
+            PtDebugPrint("tldnWRCCBrain.OnNotify:\twrote SDL - scope operator id = ", avID) 
             
             if PtWasLocallyNotified(self.key):
                 PtDisableMouseMovement()
-                print "tldnWRCCBrain.OnNotify():\tI'm the one who sat down, will show panel's clickables"
+                PtDebugPrint("tldnWRCCBrain.OnNotify():\tI'm the one who sat down, will show panel's clickables")
                 respWRCCMaster.run(self.key,state='off')
         
         if id==actDrainLvr.id:
@@ -402,15 +400,15 @@ class tldnWRCCBrain(ptResponder):
                 ageSDL = PtGetAgeSDL()
                 if pwrOn and hatchLocked and not cabinDrained:
                     respDrainLvr.run(self.key,state='drain')
-                    print "tldnWRCCBrain.OnNotify:\tDraining under-cabin."
+                    PtDebugPrint("tldnWRCCBrain.OnNotify:\tDraining under-cabin.")
                     ageSDL.setTagString(kStringAgeSDLCabinDrained,"ignore") # ignore so we don't set global cabinDrained yet...see respCabinDrain callback below
                     ageSDL[kStringAgeSDLCabinDrained] = (1,) # set this now so folks coming in will just see it drained
                 elif pwrOn and hatchLocked and cabinDrained:
                     respDrainLvr.run(self.key,state='pull')
-                    print "tldnWRCCBrain.OnNotify:\tUnder-cabin already empty."
+                    PtDebugPrint("tldnWRCCBrain.OnNotify:\tUnder-cabin already empty.")
                 else:
                     respDrainLvr.run(self.key,state='off')
-                    print "tldnWRCCBrain.OnNotify:\tCan't operate drain -- pwrOn=%d hatchLocked=%d." % (pwrOn,hatchLocked)
+                    PtDebugPrint("tldnWRCCBrain.OnNotify:\tCan't operate drain -- pwrOn=%d hatchLocked=%d." % (pwrOn,hatchLocked))
             return
 
         if id==respDrainLvr.id:
@@ -441,10 +439,10 @@ class tldnWRCCBrain(ptResponder):
                         ageSDL[kStringAgeSDLHatchLocked] = (1,)
                 elif hatchLocked:
                     respLockSwitch.run(self.key,state='unlockfail')
-                    print "tldnWRCCBrain.OnNotify:\tCan't unlock hatch -- pwrOn=%d hatchOpen=%d cabinDraining=%d." % (pwrOn,hatchOpen,cabinDraining)
+                    PtDebugPrint("tldnWRCCBrain.OnNotify:\tCan't unlock hatch -- pwrOn=%d hatchOpen=%d cabinDraining=%d." % (pwrOn,hatchOpen,cabinDraining))
                 else:
                     respLockSwitch.run(self.key,state='lockfail')
-                    print "tldnWRCCBrain.OnNotify:\tCan't lock hatch -- pwrOn=%d hatchOpen=%d cabinDraining=%d." % (pwrOn,hatchOpen,cabinDraining)
+                    PtDebugPrint("tldnWRCCBrain.OnNotify:\tCan't lock hatch -- pwrOn=%d hatchOpen=%d cabinDraining=%d." % (pwrOn,hatchOpen,cabinDraining))
             return
 
         if id==actOpenHatchAbv.id:
@@ -473,9 +471,9 @@ class tldnWRCCBrain(ptResponder):
         if id == actBucketLoopMode.id:
             ageSDL = PtGetAgeSDL()
             bucketMode = ageSDL[kStringAgeSDLBucketLoopMode][0]
-            if bucketMode == true:
-                ageSDL[kStringAgeSDLBucketLoopMode] = (false,)
+            if bucketMode:
+                ageSDL[kStringAgeSDLBucketLoopMode] = (False,)
             else:
-                ageSDL[kStringAgeSDLBucketLoopMode] = (true,)
+                ageSDL[kStringAgeSDLBucketLoopMode] = (True,)
 
 

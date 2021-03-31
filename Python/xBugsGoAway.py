@@ -62,37 +62,35 @@ class xBugsGoAway(ptResponder):
     
     def ISaveBugCount(self, count):
         vault = ptVault()
-        if type(vault) != type(None):
-            entry = vault.findChronicleEntry(chronicleEntryName)
-            if type(entry) == type(None):
-                # not found... add chronicle
-                vault.addChronicleEntry(chronicleEntryName,0,str(count))
-            else:
-                entry.chronicleSetValue(str(count))
-                entry.save()
+        entry = vault.findChronicleEntry(chronicleEntryName)
+        if entry is None:
+            # not found... add chronicle
+            vault.addChronicleEntry(chronicleEntryName,0,str(count))
+        else:
+            entry.chronicleSetValue(str(count))
+            entry.save()
     
     def IGetBugCount(self):
         vault = ptVault()
-        if type(vault) != type(None):
-            entry = vault.findChronicleEntry(chronicleEntryName)
-            if type(entry) != type(None):
-                return int(entry.chronicleGetValue())
-        return 0 # no vault or no chronicle var
+        entry = vault.findChronicleEntry(chronicleEntryName)
+        if entry is not None:
+            return int(entry.chronicleGetValue())
+        return 0 # no chronicle var
 
     def OnServerInitComplete(self):
         avatar = 0
         try:
             avatar = PtGetLocalAvatar()
         except:
-            print "xBugsGoAway.OnServerInitComplete() - failed to get local avatar"
+            PtDebugPrint("xBugsGoAway.OnServerInitComplete() - failed to get local avatar")
             return
         
         self.bugCount = self.IGetBugCount()
-        print"xBugsGoAway.OnServerInitComplete() - Linking in with "+str(self.bugCount)+" bugs"
+        PtDebugPrint("xBugsGoAway.OnServerInitComplete() - Linking in with "+str(self.bugCount)+" bugs")
 
         if (self.bugCount != 0):
             PtSetParticleDissentPoint(0,0,10000,avatar.getKey())
             PtKillParticles(10.0,1,avatar.getKey())
-            PtSetLightAnimStart(avatar.getKey(),bugLightObjectName,false)
-            print "xBugsGoAway.OnServerInitComplete() - Killing all bugs"
+            PtSetLightAnimStart(avatar.getKey(),bugLightObjectName,False)
+            PtDebugPrint("xBugsGoAway.OnServerInitComplete() - Killing all bugs")
             self.ISaveBugCount(0)

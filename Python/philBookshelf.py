@@ -76,7 +76,7 @@ class philBookshelf(ptModifier):
         self.id = 5327
         self.version = 1
         minor = 1
-        print ('__init__philBookshelf v. %d.%d' % (self.version, minor))
+        PtDebugPrint(('__init__philBookshelf v. %d.%d' % (self.version, minor)))
 
 
 
@@ -90,10 +90,8 @@ class philBookshelf(ptModifier):
 
 
     def OnNotify(self,state,id,events):
-        boolLinkerIsMe = false
-        if PtWasLocallyNotified(self.key):
-            boolLinkerIsMe = true
-        print ('philBookshelf.OnNotify(): state = %d, id = %d, me = %s' % (state, id, boolLinkerIsMe))
+        boolLinkerIsMe = PtWasLocallyNotified(self.key)
+        PtDebugPrint(('philBookshelf.OnNotify(): state = %d, id = %d, me = %s' % (state, id, boolLinkerIsMe)))
         
         if id == actBookshelfExit.id:
             self.IDisengageShelf(boolLinkerIsMe)
@@ -104,7 +102,7 @@ class philBookshelf(ptModifier):
                 avatar = PtFindAvatar(events)
                 if event[0] == kMultiStageEvent and event[1] == 0 and LocalAvatar == avatar: # Smart seek completed. Exit multistage, and show GUI.
                     SeekBehavior.gotoStage(avatar, -1) 
-                    print "philBookshelf.OnNotify():\tengaging bookshelf"
+                    PtDebugPrint("philBookshelf.OnNotify():\tengaging bookshelf")
                     avatar.draw.disable()
                     # set camera to Shelf Camera
                     virtCam = ptCamera()
@@ -163,8 +161,8 @@ class philBookshelf(ptModifier):
                         respShelveBook.run(self.key)
     
 
-    def IDisengageShelf(self, boolLinkerIsMe = false):
-        print ('philBookshelf.IDisengageShelf(): me = %s' % boolLinkerIsMe)
+    def IDisengageShelf(self, boolLinkerIsMe = False):
+        PtDebugPrint(('philBookshelf.IDisengageShelf(): me = %s' % boolLinkerIsMe))
         actBookshelfExit.disable()
         # fastforward removed because it disables netPropagate
         respMoveShelf.run(self.key, state = "lower")
@@ -177,19 +175,19 @@ class philBookshelf(ptModifier):
             virtCam = ptCamera()
             virtCam.save(HutCamera.sceneobject.getKey())
             PtEnableMovementKeys()
-            PtGetControlEvents(false,self.key)
+            PtGetControlEvents(False,self.key)
             PtSendKIMessage(kEnableKIandBB,0)
 
 
 
     def OnControlKeyEvent(self,controlKey,activeFlag):
         if controlKey == PlasmaControlKeys.kKeyExitMode or controlKey == PlasmaControlKeys.kKeyMoveBackward:
-            self.IDisengageShelf(true)
+            self.IDisengageShelf(True)
 
 
     def OnTimer(self, id):
         if id == 1:
-            PtGetControlEvents(true,self.key)
+            PtGetControlEvents(True,self.key)
             actBookshelfExit.enable()
 
 

@@ -111,7 +111,7 @@ class xYeeshaPages(ptModifier):
         self.id = 5225
         version = 6
         self.version = version
-        print "__init__xYeeshaPages v.", version
+        PtDebugPrint("__init__xYeeshaPages v.", version)
 
 
     def OnFirstUpdate(self):
@@ -153,48 +153,44 @@ class xYeeshaPages(ptModifier):
             btnID = control.getTagID()
 
         if event == 2 and btnID in YeeshaPageIDList:
-            print "xYeeshaPages.OnGUINotify():\tPicked up page number: ", PageNumber.value
+            PtDebugPrint("xYeeshaPages.OnGUINotify():\tPicked up page number: ", PageNumber.value)
 #            PtUnloadDialog(DialogName)
             PtHideDialog(DialogName)
             
             vault = ptVault()
-            if type(vault) != type(None): #is the Vault online?
                 
-                psnlSDL = vault.getPsnlAgeSDL()
-                if psnlSDL:
-                    YeeshaPageVar = psnlSDL.findVar("YeeshaPage" + str(PageNumber.value))
+            psnlSDL = vault.getPsnlAgeSDL()
+            if psnlSDL:
+                YeeshaPageVar = psnlSDL.findVar("YeeshaPage" + str(PageNumber.value))
+                
+                PtDebugPrint ("xYeeshaPages.py: The previous value of the SDL variable %s is %s" % ("YeeshaPage" + str(PageNumber.value), YeeshaPageVar.getInt()))
+
+                if YeeshaPageVar.getInt() != 0: 
+                    PtDebugPrint ("xYeeshaPages.py: You've already found Yeesha Page #%s. Move along. Move along." % (PageNumber.value))
+                    return
                     
-                    PtDebugPrint ("xYeeshaPages.py: The previous value of the SDL variable %s is %s" % ("YeeshaPage" + str(PageNumber.value), YeeshaPageVar.getInt()))
-    
-                    if YeeshaPageVar.getInt() != 0: 
-                        PtDebugPrint ("xYeeshaPages.py: You've already found Yeesha Page #%s. Move along. Move along." % (PageNumber.value))
-                        return
-                        
-                    else:
-                        PtDebugPrint ("xYeeshaPages.py: Yeesha Page #%s is new to you." % (PageNumber.value))
-                        
-                        PtDebugPrint ("xYeeshaPages.py: Trying to update the value of the SDL variable %s to 1" % ("YeeshaPage" + str(PageNumber.value)))
-                        YeeshaPageVar.setInt(4)
-                        vault.updatePsnlAgeSDL (psnlSDL)
-
-                        PtSendKIMessageInt(kStartBookAlert,0)
-
-                        if (PageNumber.value) == 25:
-                            #Cleft is done, set SDL to start link back to Relto
-                            actClickableBook.disableActivator()
-                            PtSendKIMessage(kDisableKIandBB,0)
-                            ageSDL = PtGetAgeSDL()
-                            ageSDL["clftIsCleftDone"] = (1,)
-                            vault = ptVault()
-                            vault.addChronicleEntry("CleftSolved",1,"yes")
-                            PtDebugPrint("Chronicle updated with variable 'CleftSolved'.",level=kDebugDumpLevel)
-                            #PtAtTimeCallback(self.key,kWaitFadeoutSecs,kStartFadeoutID)
-
                 else:
-                    PtDebugPrint("xYeeshaPages: Error trying to access the Chronicle psnlSDL. psnlSDL = %s" % ( psnlSDL))
+                    PtDebugPrint ("xYeeshaPages.py: Yeesha Page #%s is new to you." % (PageNumber.value))
                     
+                    PtDebugPrint ("xYeeshaPages.py: Trying to update the value of the SDL variable %s to 1" % ("YeeshaPage" + str(PageNumber.value)))
+                    YeeshaPageVar.setInt(4)
+                    vault.updatePsnlAgeSDL (psnlSDL)
+
+                    PtSendKIMessageInt(kStartBookAlert,0)
+
+                    if (PageNumber.value) == 25:
+                        #Cleft is done, set SDL to start link back to Relto
+                        actClickableBook.disableActivator()
+                        PtSendKIMessage(kDisableKIandBB,0)
+                        ageSDL = PtGetAgeSDL()
+                        ageSDL["clftIsCleftDone"] = (1,)
+                        vault = ptVault()
+                        vault.addChronicleEntry("CleftSolved",1,"yes")
+                        PtDebugPrint("Chronicle updated with variable 'CleftSolved'.",level=kDebugDumpLevel)
+                        #PtAtTimeCallback(self.key,kWaitFadeoutSecs,kStartFadeoutID)
+
             else:
-                PtDebugPrint("xYeeshaPages: Error trying to access the Vault. Can't access YeeshaPageChanges chronicle." )
+                PtDebugPrint("xYeeshaPages: Error trying to access the Chronicle psnlSDL. psnlSDL = %s" % ( psnlSDL))
 
         elif event == 2 and btnID == kYeeshaPageCancel:
             PtHideDialog(DialogName)
@@ -206,7 +202,7 @@ class xYeeshaPages(ptModifier):
         mydialog = PtGetDialogFromString(DialogName)
 
         #first hide them all
-#        print "PageNumber = ", PageNumber.value
+#        PtDebugPrint("PageNumber = ", PageNumber.value)
         ptGUIControlButton(mydialog.getControlFromTag(kYeeshaPage01)).hide()
         ptGUIControlButton(mydialog.getControlFromTag(kYeeshaPage02)).hide()
         ptGUIControlButton(mydialog.getControlFromTag(kYeeshaPage03)).hide() 
@@ -284,14 +280,14 @@ class xYeeshaPages(ptModifier):
 
 
         else:
-            print "xYeeshaPages.IDrawLinkPanel():\tERROR: couldn't find page named ",PageNumber.value
+            PtDebugPrint("xYeeshaPages.IDrawLinkPanel():\tERROR: couldn't find page named ",PageNumber.value)
         return
 
 #
 #    def OnTimer(self,id):
 #        if id == kStartFadeoutID:
 #            PtFadeOut(kFadeOutSecs,1)
-#            print "\txYeeshaPages.OnTimer(): Linking the player from Cleft to Relto.  FadeOut over", kFadeOutSecs," seconds."
+#            PtDebugPrint("\txYeeshaPages.OnTimer(): Linking the player from Cleft to Relto.  FadeOut over", kFadeOutSecs," seconds.")
 #            PtAtTimeCallback(self.key,kReltoLinkSecs,kReltoLinkID)
 #        elif id == kReltoLinkID:  
 #            #link back to Relto now

@@ -45,7 +45,7 @@ Module: ercaBakeryElev.py
 Age: Ercana
 Date: December 2003
 Author: Chris Doyle
-toggles an age sdl bool only if another age sdl bool is true
+toggles an age sdl bool only if another age sdl bool is True
 """
 
 from Plasma import *
@@ -265,14 +265,14 @@ class ercaBakeryElev(ptResponder):
         ageSDL = PtGetAgeSDL()
         
         if (id == ActElevBtn.id and state and LocalAvatar == PtFindAvatar(events)):
-            print "ActElevBtn callback"
+            PtDebugPrint("ActElevBtn callback")
             ageSDL[SDLElevBusy.value] = (1,)
 
         if (id == RespElevClk.id):
-            print "RespElevClk callback"
+            PtDebugPrint("RespElevClk callback")
             if boolElevPos:
                 if self.sceneobject.isLocallyOwned():
-                    print "owner"
+                    PtDebugPrint("owner")
                     ageSDL[SDLElevPos.value] = (0,)
                 else:
                     pass
@@ -282,13 +282,13 @@ class ercaBakeryElev(ptResponder):
                     RespElevOps.run(self.key,state="jam")
                 else:
                     if self.sceneobject.isLocallyOwned():
-                        print "owner"
+                        PtDebugPrint("owner")
                         ageSDL[SDLElevPos.value] = (1,)
 
         if (id == RespElevOps.id):
-            print "RespElevOps callback"
+            PtDebugPrint("RespElevOps callback")
             if self.sceneobject.isLocallyOwned():
-                print "owner"
+                PtDebugPrint("owner")
                 ageSDL[SDLElevBusy.value] = (0,)
             if boolPwr:
                 RespElevPwr.run(self.key,state="on")
@@ -304,10 +304,10 @@ class ercaBakeryElev(ptResponder):
                 RespBkryPwrOn.run(self.key,avatar=objAvatar)
         
         if (id == RespBkryPwrOff.id) and self.sceneobject.isLocallyOwned():
-            print "owner"
+            PtDebugPrint("owner")
             ageSDL[SDLPower.value] = (0,)
         
         if (id == RespBkryPwrOn.id) and self.sceneobject.isLocallyOwned():
-            print "owner"    
+            PtDebugPrint("owner")    
             ageSDL[SDLPower.value] = (1,)
 

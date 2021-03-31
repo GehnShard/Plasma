@@ -85,14 +85,14 @@ boolForceOpen = ptAttribBoolean(24,"Force Open if Age Empty")
 # if I enter an age by myself and a door that should've auto-closed is open...just close it and correct the state
 boolForceClose = ptAttribBoolean(25,"Force Close if Age Empty")
 
-boolOwnedDoor = ptAttribBoolean(26,"Only Owners Can Use",default=false)
+boolOwnedDoor = ptAttribBoolean(26,"Only Owners Can Use",default=False)
 
 stringSDLVarEnabled = ptAttribString(27,"SDL Bool Enabled (Optional)") # for lockable or powerable doors etc.
 
 # ---------
 # globals
 # ---------
-boolEnableOK = true # false if it's owned door and I'm not an owner, true otherwise -- set in OnServerInitComplete
+boolEnableOK = True # False if it's owned door and I'm not an owner, true otherwise -- set in OnServerInitComplete
 AgeStartedIn = None
 
 class xStandardDoor(ptResponder):
@@ -104,15 +104,15 @@ class xStandardDoor(ptResponder):
         
         version = 6
         self.version = version
-        print "__init__xStandardDoor v.", version
+        PtDebugPrint("__init__xStandardDoor v.", version)
         self.DoorStack = []
 
     def OnFirstUpdate(self):
-        print "xStandardDoor: Located in age %s, Max Object %s" % (str(PtGetAgeName()),str(self.sceneobject.getName()))
+        PtDebugPrint("xStandardDoor: Located in age %s, Max Object %s" % (str(PtGetAgeName()),str(self.sceneobject.getName())))
         # get the age we started in
         global AgeStartedIn
         AgeStartedIn = PtGetAgeName()
-        if not (type(stringSDLVarClosed.value) == type("") and stringSDLVarClosed.value != ""):
+        if not stringSDLVarClosed.value:
             PtDebugPrint("xStandardDoor.OnFirstUpdate():\tERROR: missing SDL var name in max file")
 
     def OnServerInitComplete(self):
@@ -132,7 +132,7 @@ class xStandardDoor(ptResponder):
             try:
                 doorClosed = ageSDL[stringSDLVarClosed.value][0]
             except:
-                doorClosed = true
+                doorClosed = True
                 PtDebugPrint("xStandardDoor.OnServerInitComplete():\tERROR: age sdl read failed, defaulting door closed value")
             PtDebugPrint("xStandardDoor.OnServerInitComplete():\tageSDL[%s] = %d" % (stringSDLVarClosed.value,doorClosed) )
             
@@ -140,9 +140,9 @@ class xStandardDoor(ptResponder):
                 if stringSDLVarEnabled.value != "":
                     doorEnabled = ageSDL[stringSDLVarEnabled.value][0]
                 else:
-                    doorEnabled = true
+                    doorEnabled = True
             except:
-                doorEnabled = true
+                doorEnabled = True
                 PtDebugPrint("xStandardDoor.OnServerInitComplete():\tERROR: age sdl read failed, defaulting door enabled")
     
             # correct SDL state if necessary
@@ -160,17 +160,17 @@ class xStandardDoor(ptResponder):
     
             # initialize door whatnots based on SDL state
             if not boolOwnedDoor.value:
-                boolEnableOK = true
+                boolEnableOK = True
             else:
                 vault = ptVault()
                 if vault.amOwnerOfCurrentAge():
                     PtDebugPrint("xStandardDoor.OnServerInitComplete():\tWelcome Home!")
-                    boolEnableOK = true
+                    boolEnableOK = True
                 else:
                     PtDebugPrint("xStandardDoor.OnServerInitComplete():\tWelcome Visitor.")
-                    boolEnableOK = false
+                    boolEnableOK = False
             if not doorEnabled:
-                boolEnableOK = false
+                boolEnableOK = False
     
             if not doorClosed:
                 xrgnDoorBlocker.releaseNow(self.key)
@@ -218,14 +218,14 @@ class xStandardDoor(ptResponder):
     
                 if not doorEnabled:
                     PtDebugPrint("xStandardDoor.OnSDLNotify():\tDoor Disabled")
-                    boolEnableOK = false
+                    boolEnableOK = False
                     actExterior.disable()
                     actInterior.disable()
                     return
                     
                 if not boolOwnedDoor.value:
                     PtDebugPrint("xStandardDoor.OnSDLNotify():\tDoor Enabled")
-                    boolEnableOK = true
+                    boolEnableOK = True
                     actExterior.enable()
                     actInterior.enable()
                     return
@@ -233,7 +233,7 @@ class xStandardDoor(ptResponder):
                     vault = ptVault()
                     if vault.amOwnerOfCurrentAge():
                         PtDebugPrint("xStandardDoor.OnSDLNotify():\tOwners-Only Door Enabled")
-                        boolEnableOK = true
+                        boolEnableOK = True
                         actExterior.enable()
                         actInterior.enable()
                         return
@@ -266,7 +266,7 @@ class xStandardDoor(ptResponder):
                         OkTags = ["fromOutside", "fromInside", "fromAuto", "fastforward"]
                         if tag in OkTags:
                             self.SendNote('%s;%d;%d;true' % (tag, playerID, fastforward), playerID)
-                            print 'xStandardDoor.OnSDLNotify():\tClosing ', tag 
+                            PtDebugPrint('xStandardDoor.OnSDLNotify():\tClosing ', tag) 
                         else:
                             PtDebugPrint("xStandardDoor.OnSDLNotify():\tWARNING missing or invalid hint string:%s" % (tag)) # ok if from vaultmanager
                             fastforward = 1
@@ -277,25 +277,25 @@ class xStandardDoor(ptResponder):
                             else:
                                 PtDebugPrint("xStandardDoor.OnSDLNotify():\tWARNING: door set to neither manual close nor auto close, can't close")
                     except:
-                        print "xStandardDoor.OnSDLNotify():\tERROR processing sdl var %s hint string: %s" % (VARname,tag)
+                        PtDebugPrint("xStandardDoor.OnSDLNotify():\tERROR processing sdl var %s hint string: %s" % (VARname,tag))
                     if fastforward: # reenable clickables and xregion state via responder won't happen so do it manually
                         if boolEnableOK:
                             actExterior.enable()
                             actInterior.enable()
                         xrgnDoorBlocker.clearNow(self.key)                    
                 else:
-                    # doorClosed changed to false (open the door)
+                    # doorClosed changed to False (open the door)
                     try:
                         OkTags = ["fromOutside", "fromInside"]
                         if tag in OkTags:
                             self.SendNote('%s;%d;%d;false' % (tag, playerID, fastforward), playerID)
-                            print 'xStandardDoor.OnSDLNotify():\tOpening ', tag
+                            PtDebugPrint('xStandardDoor.OnSDLNotify():\tOpening ', tag)
                         else:
                             PtDebugPrint("xStandardDoor.OnSDLNotify():\tWARNING missing or invalid hint string:%s" % (tag))
                             fastforward = 1
                             respOpenExt.run(self.key,fastforward=fastforward)
                     except:
-                        print "xStandardDoor.OnSDLNotify():\tERROR processing sdl var %s hint string: %s" % (VARname,tag)
+                        PtDebugPrint("xStandardDoor.OnSDLNotify():\tERROR processing sdl var %s hint string: %s" % (VARname,tag))
                         fastforward = 1
                         respOpenExt.run(self.key,fastforward=fastforward)
                     if fastforward: # reenable clickables and xregion state via responder won't happen so do it manually
@@ -305,16 +305,16 @@ class xStandardDoor(ptResponder):
                         xrgnDoorBlocker.releaseNow(self.key)                    
 
     def OnNotify(self,state,id,events):
-        print "xStandardDoor: ID notified:", id
+        PtDebugPrint("xStandardDoor: ID notified:", id)
         
         if id == -1:
             self.DoorStack.append(events[0][1])
-            print "xStandardDoor: New list is: %s" % (str(self.DoorStack))
+            PtDebugPrint("xStandardDoor: New list is: %s" % (str(self.DoorStack)))
 
             if len(self.DoorStack) == 1:
-                print "xStandardDoor: List is only one command long, so I'm playing it"
+                PtDebugPrint("xStandardDoor: List is only one command long, so I'm playing it")
                 code = self.DoorStack[0]
-                print "xStandardDoor: Playing command: %s" % (code)
+                PtDebugPrint("xStandardDoor: Playing command: %s" % (code))
                 self.ExecCode(code)
                 return
 
@@ -331,7 +331,7 @@ class xStandardDoor(ptResponder):
                 actInterior.enable()
 
     def SendNote(self, ExtraInfo, avatar):
-        print "xStandardDoor: Avatar who did this:", avatar
+        PtDebugPrint("xStandardDoor: Avatar who did this:", avatar)
         if avatar == 0:
             notify = ptNotify(self.key)
             notify.clearReceivers()
@@ -355,11 +355,11 @@ class xStandardDoor(ptResponder):
     def UpdateRespStack (self):
         #Updates the Responder List
         old = self.DoorStack.pop(0)
-        print "xStandardDoor: Getting rid of Resp: %s" % (old)
+        PtDebugPrint("xStandardDoor: Getting rid of Resp: %s" % (old))
         if len(self.DoorStack):            
-            print "xStandardDoor: There's at lest one more Resp to play."
+            PtDebugPrint("xStandardDoor: There's at lest one more Resp to play.")
             code = self.DoorStack[0]            
-            print "Playing command: %s" % (code)
+            PtDebugPrint("Playing command: %s" % (code))
             self.ExecCode(code)
 
     def ExecCode (self, code):
@@ -379,7 +379,7 @@ class xStandardDoor(ptResponder):
                 elif tag == "fastforward":
                     respCloseExt.run(self.key,avatar=ptSceneobject(PtGetAvatarKeyFromClientID(playerId),self.key),fastforward=1,netPropagate=0)
                 else:
-                    print "xStandardDoor.ExecCode(): ERROR! Invalid tag '%s'." % (tag)
+                    PtDebugPrint("xStandardDoor.ExecCode(): ERROR! Invalid tag '%s'." % (tag))
                     self.DoorStack.pop(0)
             else:
                 if tag == "fromOutside":
@@ -387,8 +387,8 @@ class xStandardDoor(ptResponder):
                 elif tag == "fromInside" or playerId == 0:
                     respOpenInt.run(self.key,avatar=ptSceneobject(PtGetAvatarKeyFromClientID(playerId),self.key),fastforward=fastForward,netPropagate=0)
                 else:
-                    print "xStandardDoor.ExecCode(): ERROR! Invalid tag '%s'." % (tag)
+                    PtDebugPrint("xStandardDoor.ExecCode(): ERROR! Invalid tag '%s'." % (tag))
                     self.DoorStack.pop(0)
         except:
-            print "xStandardDoor.ExecCode(): ERROR! Invalid code '%s'." % (code)
+            PtDebugPrint("xStandardDoor.ExecCode(): ERROR! Invalid code '%s'." % (code))
             self.DoorStack.pop(0)
