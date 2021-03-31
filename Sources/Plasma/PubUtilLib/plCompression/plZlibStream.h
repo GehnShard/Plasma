@@ -67,12 +67,12 @@ protected:
     int IValidateGzHeader(uint32_t byteCount, const void* buffer);
 
 public:
-    plZlibStream();
+    plZlibStream() : fOutput(), fZStream(), fHeader(kNeedMoreData), fDecompressedOk(), fMode() { }
     virtual ~plZlibStream();
 
-    bool     Open(const plFileName& filename, const char* mode) HS_OVERRIDE;
-    bool     Close() HS_OVERRIDE;
-    uint32_t Write(uint32_t byteCount, const void* buffer) HS_OVERRIDE;
+    bool     Open(const plFileName& filename, const char* mode) override;
+    bool     Close() override;
+    uint32_t Write(uint32_t byteCount, const void* buffer) override;
 
     // Since most functions don't check the return value from Write, you can
     // call this after you've passed in all your data to determine if it
@@ -80,12 +80,12 @@ public:
     bool DecompressedOk() { return fDecompressedOk; }
 
     // You can't use these
-    virtual bool     AtEnd();
-    virtual uint32_t Read(uint32_t byteCount, void* buffer);
-    virtual void     Skip(uint32_t deltaByteCount);
-    virtual void     Rewind();
-    virtual void     FastFwd();
-    virtual uint32_t GetEOF();
+    bool     AtEnd() override;
+    uint32_t Read(uint32_t byteCount, void* buffer) override;
+    void     Skip(uint32_t deltaByteCount) override;
+    void     Rewind() override;
+    void     FastFwd() override;
+    uint32_t GetEOF() override;
 };
 
 #endif // plZlibStream_h_inc

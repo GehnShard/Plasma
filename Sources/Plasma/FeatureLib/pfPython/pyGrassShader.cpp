@@ -42,14 +42,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "pyGrassShader.h"
 #include "plSurface/plGrassShaderMod.h"
 
 pyGrassShader::pyGrassShader()
 {
-    fShaderKey = nil;
 }
 
 pyGrassShader::pyGrassShader(plKey key)

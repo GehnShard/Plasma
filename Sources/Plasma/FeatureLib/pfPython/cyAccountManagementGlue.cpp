@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include <Python.h>
-#pragma hdrstop
 
 #include "cyAccountManagement.h"
 #include "pyGlueHelpers.h"
@@ -61,18 +60,17 @@ PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtGetAccountName, "Returns the account na
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtCreatePlayer, args, "Params: playerName, avatarShape, invitation\nCreates a new player")
 {
-    PyObject* playerName;
-    PyObject* avatarShape;
-    PyObject* invitation;
-    if (!PyArg_ParseTuple(args, "OOO", &playerName, &avatarShape, &invitation) ||
-        !PyString_CheckEx(playerName) || !PyString_CheckEx(avatarShape) || !PyString_CheckEx(invitation))
-    {
+    ST::string playerName;
+    ST::string avatarShape;
+    ST::string invitation;
+    if (!PyArg_ParseTuple(args, "O&O&O&", PyUnicode_STStringConverter, &playerName,
+                          PyUnicode_STStringConverter, &avatarShape,
+                          PyUnicode_STStringConverter, &invitation)) {
         PyErr_SetString(PyExc_TypeError, "PtCreatePlayer expects three strings");
         PYTHON_RETURN_ERROR;
     }
 
-    cyAccountManagement::CreatePlayer(PyString_AsStringEx(playerName), PyString_AsStringEx(avatarShape),
-                                      PyString_AsStringEx(invitation));
+    cyAccountManagement::CreatePlayer(playerName, avatarShape, invitation);
     PYTHON_RETURN_NONE;
 }
 
@@ -109,35 +107,36 @@ PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtIsActivePlayerSet, "Returns whether or 
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtChangePassword, args, "Params: password\nChanges the current account's password")
 {
-    PyObject* password;
-    if (!PyArg_ParseTuple(args, "O", &password) || !PyString_CheckEx(password))
-    {
+    ST::string password;
+    if (!PyArg_ParseTuple(args, "O&", PyUnicode_STStringConverter, &password)) {
         PyErr_SetString(PyExc_TypeError, "PtChangePassword expects a string");
         PYTHON_RETURN_ERROR;
     }
 
-    cyAccountManagement::ChangePassword(PyString_AsStringEx(password));
+    cyAccountManagement::ChangePassword(password);
     PYTHON_RETURN_NONE;
 }
 
-void cyAccountManagement::AddPlasmaMethods(std::vector<PyMethodDef> &methods)
+void cyAccountManagement::AddPlasmaMethods(PyObject* m)
 {
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetAccountPlayerList);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetAccountName);
-    PYTHON_GLOBAL_METHOD(methods, PtCreatePlayer);
-    PYTHON_GLOBAL_METHOD(methods, PtDeletePlayer);
-    PYTHON_GLOBAL_METHOD(methods, PtSetActivePlayer);
-    PYTHON_GLOBAL_METHOD(methods, PtIsActivePlayerSet);
-    PYTHON_GLOBAL_METHOD(methods, PtChangePassword);
+    PYTHON_START_GLOBAL_METHOD_TABLE(ptAccountManagement)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetAccountPlayerList)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetAccountName)
+        PYTHON_GLOBAL_METHOD(PtCreatePlayer)
+        PYTHON_GLOBAL_METHOD(PtDeletePlayer)
+        PYTHON_GLOBAL_METHOD(PtSetActivePlayer)
+        PYTHON_GLOBAL_METHOD(PtIsActivePlayerSet)
+        PYTHON_GLOBAL_METHOD(PtChangePassword)
+    PYTHON_END_GLOBAL_METHOD_TABLE(m, ptAccountManagement)
 }
 
 void cyAccountManagement::AddPlasmaConstantsClasses(PyObject *m)
 {
-    PYTHON_ENUM_START(PtAccountUpdateType);
-    PYTHON_ENUM_ELEMENT(PtAccountUpdateType, kCreatePlayer,     plAccountUpdateMsg::kCreatePlayer);
-    PYTHON_ENUM_ELEMENT(PtAccountUpdateType, kDeletePlayer,     plAccountUpdateMsg::kDeletePlayer);
-    PYTHON_ENUM_ELEMENT(PtAccountUpdateType, kUpgradePlayer,    plAccountUpdateMsg::kUpgradePlayer);
-    PYTHON_ENUM_ELEMENT(PtAccountUpdateType, kActivePlayer,     plAccountUpdateMsg::kActivePlayer);
-    PYTHON_ENUM_ELEMENT(PtAccountUpdateType, kChangePassword,   plAccountUpdateMsg::kChangePassword);
-    PYTHON_ENUM_END(m, PtAccountUpdateType);
+    PYTHON_ENUM_START(PtAccountUpdateType)
+    PYTHON_ENUM_ELEMENT(PtAccountUpdateType, kCreatePlayer,     plAccountUpdateMsg::kCreatePlayer)
+    PYTHON_ENUM_ELEMENT(PtAccountUpdateType, kDeletePlayer,     plAccountUpdateMsg::kDeletePlayer)
+    PYTHON_ENUM_ELEMENT(PtAccountUpdateType, kUpgradePlayer,    plAccountUpdateMsg::kUpgradePlayer)
+    PYTHON_ENUM_ELEMENT(PtAccountUpdateType, kActivePlayer,     plAccountUpdateMsg::kActivePlayer)
+    PYTHON_ENUM_ELEMENT(PtAccountUpdateType, kChangePassword,   plAccountUpdateMsg::kChangePassword)
+    PYTHON_ENUM_END(m, PtAccountUpdateType)
 }

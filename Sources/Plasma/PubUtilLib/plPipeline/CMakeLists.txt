@@ -1,14 +1,3 @@
-include_directories("../../CoreLib")
-include_directories("../../FeatureLib")
-include_directories("../../NucleusLib/inc")
-include_directories("../../NucleusLib")
-include_directories("../../PubUtilLib")
-
-if(PLASMA_PIPELINE STREQUAL "DirectX")
-    include_directories(${DirectX_INCLUDE_DIR})
-endif(PLASMA_PIPELINE STREQUAL "DirectX")
-include_directories(${OPENAL_INCLUDE_DIR})
-
 set(plPipeline_SOURCES
     hsG3DDeviceSelector.cpp
     pl3DPipeline.cpp
@@ -47,7 +36,6 @@ set(plGLPipeline_SOURCES
 )
 
 set(plPipeline_HEADERS
-    hsFogControl.h
     hsG3DDeviceSelector.h
     hsWinRef.h
     pl3DPipeline.h
@@ -96,18 +84,62 @@ set(plGLPipeline_HEADERS
     GL/plGLPipeline.h
 )
 
-if(PLASMA_PIPELINE STREQUAL "DirectX")
-    add_library(plPipeline STATIC ${plPipeline_SOURCES} ${plDXPipeline_SOURCES} ${plPipeline_HEADERS} ${plDXPipeline_HEADERS})
+set(plPipeline_ALL_FILES
+    ${plPipeline_SOURCES}
+    ${plPipeline_HEADERS}
+)
 
-    target_link_libraries(plPipeline ${DirectX_LIBRARIES})
+set(plPipeline_PCH
+    Pch.h
+)
+
+if(PLASMA_PIPELINE STREQUAL "DirectX")
+    list(APPEND plPipeline_ALL_FILES ${plDXPipeline_SOURCES} ${plDXPipeline_HEADERS})
+    list(APPEND plPipeline_PCH DX/Pch.h)
 endif(PLASMA_PIPELINE STREQUAL "DirectX")
 
 if(PLASMA_PIPELINE STREQUAL "OpenGL")
-    add_library(plPipeline STATIC ${plPipeline_SOURCES} ${plGLPipeline_SOURCES} ${plPipeline_HEADERS} ${plGLPipeline_HEADERS})
-
-    target_link_libraries(plPipeline EGL)
-    target_link_libraries(plPipeline GLESv2)
+    find_package(OpenGL REQUIRED)
+    list(APPEND plPipeline_ALL_FILES ${plGLPipeline_SOURCES} ${plGLPipeline_HEADERS})
 endif(PLASMA_PIPELINE STREQUAL "OpenGL")
+
+plasma_library(plPipeline
+    SOURCES ${plPipeline_ALL_FILES}
+    PRECOMPILED_HEADERS ${plPipeline_PCH}
+)
+target_link_libraries(plPipeline
+    PUBLIC
+        CoreLib
+        pnKeyedObject
+        pnModifier
+        pnNucleusInc
+        plGImage
+        plProgressMgr
+        plScene
+        plStatusLog
+    PRIVATE
+        pnMessage
+        pnNetCommon
+        pnSceneObject
+        plAudio
+        plAvatar
+        plClientResMgr
+        plDrawable
+        plGLight
+        plIntersect
+        plMessage
+        plNetClient
+        plResMgr
+        plSurface
+        pfCamera # plCaptureRender, plDynamicEnvMap, plDXPipeline
+        pfGameGUIMgr # plCaptureRender
+        $<$<STREQUAL:${PLASMA_PIPELINE},DirectX>:${DirectX_LIBRARIES}>
+        $<$<STREQUAL:${PLASMA_PIPELINE},OpenGL>:OpenGL::GL>
+    INTERFACE
+        pnFactory
+)
+
+target_include_directories(plPipeline PRIVATE "${PLASMA_SOURCE_ROOT}/FeatureLib")
 
 source_group("Source Files" FILES ${plPipeline_SOURCES})
 source_group("Header Files" FILES ${plPipeline_HEADERS})

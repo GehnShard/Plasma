@@ -39,14 +39,15 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include <algorithm>
-#include "hsTimer.h"
-#include "hsTemplates.h"
-#include "hsStream.h"
 #include "plSDL.h"
 
-#include "plNetMessage/plNetMessage.h"
+#include "hsStream.h"
+#include "hsTimer.h"
+
 #include "pnNetCommon/plNetApp.h"
+#include "pnNetCommon/pnNetCommon.h"
+
+#include "plNetMessage/plNetMessage.h"
 
 const ST::string plSDL::kAgeSDLObjectName = ST_LITERAL("AgeSDLHook");
 
@@ -79,13 +80,13 @@ void plSDL::VariableLengthWrite(hsStream* s, int size, int val)
     if (size < (1<<8))
     {
         hsAssert(val < (1<<8), "SDL data loss");
-        s->WriteByte(val);
+        s->WriteByte((uint8_t)val);
     }
     else
     if (size < (1<<16))
     {
         hsAssert(val < (1<<16), "SDL data loss");
-        s->WriteLE16(val);
+        s->WriteLE16((uint16_t)val);
     }
     else
         s->WriteLE32(val);
@@ -95,13 +96,13 @@ void plSDL::VariableLengthWrite(hsStream* s, int size, int val)
 // State Data
 /////////////////////////////////////////////////////////////////////////////////
 plStateDataRecord::plStateDataRecord(const ST::string& name, int version) : fFlags(0)
-, fDescriptor( nil )
+, fDescriptor()
 {
     SetDescriptor(name, version);
 }
 
 plStateDataRecord::plStateDataRecord(plStateDescriptor* sd) : fFlags(0)
-, fDescriptor( nil )
+, fDescriptor()
 {
     IInitDescriptor(sd);
 }
@@ -120,9 +121,8 @@ void plStateDataRecord::SetDescriptor(const ST::string& name, int version)
 
 void plStateDataRecord::IDeleteVarsList(VarsList& vars)
 {
-    std::for_each( vars.begin(), vars.end(),
-        [](plStateVariable* var) { delete var; }
-    );
+    for (plStateVariable* var : vars)
+        delete var;
     vars.clear();
 }
 
@@ -274,7 +274,7 @@ bool plStateDataRecord::Read(hsStream* s, float timeConvert, uint32_t readOption
             }
         }
     }
-    catch (std::exception &e)
+    catch (const std::exception &e)
     {
         hsAssert(false,
             ST::format("Something bad happened ({}) while reading simple var data, desc:{}",
@@ -315,7 +315,7 @@ bool plStateDataRecord::Read(hsStream* s, float timeConvert, uint32_t readOption
             }
         }
     }
-    catch (std::exception &e)
+    catch (const std::exception &e)
     {
         hsAssert(false,
             ST::format("Something bad happened ({}) while reading nested var data, desc:{}",
@@ -409,8 +409,7 @@ void plStateDataRecord::Write(hsStream* s, float timeConvert, uint32_t writeOpti
 //
 bool plStateDataRecord::ReadStreamHeader(hsStream* s, ST::string* name, int* version, plUoid* objUoid)
 {
-    uint16_t savFlags;
-    s->ReadLE(&savFlags);
+    uint16_t savFlags = s->ReadLE16();
     if (!(savFlags & plSDL::kAddedVarLengthIO))     // using to establish a new version in the header, can delete in 8/03
     {
         *name = "";
@@ -448,7 +447,7 @@ void plStateDataRecord::WriteStreamHeader(hsStream* s, plUoid* objUoid) const
     if (objUoid)
         savFlags |= plSDL::kHasUoid;
 
-    s->WriteLE(savFlags);
+    s->WriteLE16(savFlags);
     s->WriteSafeString(GetDescriptor()->GetName());         
     s->WriteLE16((int16_t)GetDescriptor()->GetVersion());
     if (objUoid)
@@ -678,7 +677,7 @@ plStateVariable* plStateDataRecord::IFindVar(const VarsList& vars, const ST::str
     if (plSDLMgr::GetInstance()->GetNetApp())
         plSDLMgr::GetInstance()->GetNetApp()->ErrorMsg("Failed to find SDL var {}", name);
 
-    return nil;
+    return nullptr;
 }
 
 //

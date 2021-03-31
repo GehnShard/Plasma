@@ -46,7 +46,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 class plPickLocalizationDlg
 {
-    static BOOL CALLBACK IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+    static INT_PTR CALLBACK IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
     bool IInitDlg(HWND hDlg);
     void IUpdateValue(HWND hDlg);
@@ -59,7 +59,7 @@ class plPickLocalizationDlg
     HWND fTree;
 
 public:
-    plPickLocalizationDlg(const char *path): fPath(path?path:""), fTree(nil) {}
+    plPickLocalizationDlg(const char *path): fPath(path?path:""), fTree() { }
 
     bool DoPick(); // returns true if [Ok] clicked, false otherwise.
     const char *GetValue() const {return fPath.c_str();}

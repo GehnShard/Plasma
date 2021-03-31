@@ -39,27 +39,28 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+
 #include "plNetClientRecorder.h"
-#include "hsStream.h"
-#include "plNetMessage/plNetMessage.h"
+
 #include "plCreatableIndex.h"
-#include "hsResMgr.h"
 #include "plgDispatch.h"
-#include "plSDL/plSDL.h"
+#include "hsResMgr.h"
+#include "hsStream.h"
+
+#include "pnMessage/plNotifyMsg.h"
 #include "pnNetCommon/plNetApp.h"
 
+#include "plMessage/plAgeLoadedMsg.h"
 #include "plMessage/plLinkToAgeMsg.h"
 #include "plMessage/plLoadAvatarMsg.h"
-#include "plMessage/plLinkToAgeMsg.h"
-#include "pnMessage/plNotifyMsg.h"
-#include "plMessage/plAgeLoadedMsg.h"
-
+#include "plNetMessage/plNetMessage.h"
+#include "plSDL/plSDL.h"
 #include "plStatusLog/plStatusLog.h"
 
 plNetClientStreamRecorder::plNetClientStreamRecorder(TimeWrapper* timeWrapper) :
     plNetClientLoggingRecorder(timeWrapper),
-    fRecordStream(nil),
-    fResMgr(nil)
+    fRecordStream(),
+    fResMgr()
 {
     if (fLog)
         delete fLog;
@@ -144,7 +145,7 @@ bool plNetClientStreamRecorder::BeginPlayback(const char* recName)
         else
         {
             delete fRecordStream;
-            fRecordStream = nil;
+            fRecordStream = nullptr;
             return false;
         }
 
@@ -185,13 +186,13 @@ void plNetClientStreamRecorder::RecordAgeLoadedMsg(plAgeLoadedMsg* ageLoadedMsg)
 
 bool plNetClientStreamRecorder::IsQueueEmpty()
 {
-    return (fRecordStream == nil);
+    return (fRecordStream == nullptr);
 }
 
 
 plNetMessage* plNetClientStreamRecorder::GetNextMessage()
 {
-    plNetMessage* msg = nil;
+    plNetMessage* msg = nullptr;
     while (!fBetweenAges && (msg = IGetNextMessage()))
     {
         if (IIsValidMsg(msg))
@@ -200,12 +201,12 @@ plNetMessage* plNetClientStreamRecorder::GetNextMessage()
             hsRefCnt_SafeUnRef(msg);
     }
 
-    return nil;
+    return nullptr;
 }
 
 plNetMessage* plNetClientStreamRecorder::IGetNextMessage()
 {
-    plNetMessage* msg = nil;
+    plNetMessage* msg = nullptr;
 
     if (!IsQueueEmpty() && GetNextMessageTimeDelta() <= 0 )
     {
@@ -239,7 +240,7 @@ plNetMessage* plNetClientStreamRecorder::IGetNextMessage()
         {
             fRecordStream->Close();
             delete fRecordStream;
-            fRecordStream = nil;
+            fRecordStream = nullptr;
         }
     }
     
@@ -303,8 +304,8 @@ void plNetClientStreamRecorder::ILogMsg(plNetMessage* msg, const char* preText)
         if (gameMsg->StreamInfo()->GetStreamType() == CLASS_INDEX_SCOPED(plNotifyMsg))
         {
             plNotifyMsg* notifyMsg = plNotifyMsg::ConvertNoRef(gameMsg->GetContainedMsg(GetResMgr()));
-            int numEvents = notifyMsg->GetEventCount();
-            for (int i = 0; i < numEvents; i++)
+            size_t numEvents = notifyMsg->GetEventCount();
+            for (size_t i = 0; i < numEvents; i++)
             {
                 const char* eventName = "";
 

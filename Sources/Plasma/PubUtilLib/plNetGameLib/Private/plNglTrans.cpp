@@ -46,7 +46,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 ***/
 
 #include "../Pch.h"
-#pragma hdrstop
 
 
 namespace Ngl {
@@ -85,7 +84,7 @@ static NetTrans * FindTransIncRef_CS (unsigned transId, const char tag[]) {
             return trans;
         }
 
-    return nil;
+    return nullptr;
 }
 
 //============================================================================
@@ -173,7 +172,7 @@ void NetTransDestroy (bool wait) {
         
     while (s_perf[kPerfCurrTransactions]) {
         NetTransUpdate();
-        AsyncSleep(10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 

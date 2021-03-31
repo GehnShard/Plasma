@@ -41,15 +41,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
+#include "MaxAPI.h"
+
 #include "pnKeyedObject/plKey.h"
 
 #include "plMaxNode.h"
 #include "MaxComponent/plComponent.h"
 #include "MaxComponent/plComponentMgr.h"
 #include "resource.h"
-
-#include <notify.h>
-#pragma hdrstop
 
 #include "plComponentPanel.h"
 #include "plComponentDlg.h"
@@ -71,7 +70,7 @@ public:
 static ComponentUtilClassDesc theComponentUtilCD;
 ClassDesc* GetComponentUtilDesc() { return &theComponentUtilCD; }
 
-plComponentUtil::plComponentUtil() : fInterface(nil), fhPanel(nil), fCurComponent(nil), fLastComponent(nil)
+plComponentUtil::plComponentUtil() : fInterface(), fhPanel(), fCurComponent(), fLastComponent()
 {
 }
 
@@ -84,12 +83,12 @@ plComponentUtil& plComponentUtil::Instance()
 ////////////////////////////////////////////////////////////////////////////////
 // Proc for the currently selected object dialog
 //
-BOOL CALLBACK plComponentUtil::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK plComponentUtil::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     return Instance().DlgProc(hDlg, msg, wParam, lParam);
 }
 
-BOOL plComponentUtil::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plComponentUtil::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -154,14 +153,14 @@ BOOL plComponentUtil::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
                             if (width > ListView_GetColumnWidth(nmhdr->hwndFrom, 0))
                             {
                                 ListView_SetColumnWidth(nmhdr->hwndFrom, 0, width);
-                                InvalidateRect(nmhdr->hwndFrom, NULL, FALSE);
+                                InvalidateRect(nmhdr->hwndFrom, nullptr, FALSE);
                             }
 
                             // Update the name in the tree too
                             plComponentDlg::Instance().IUpdateNodeName((plMaxNode*)comp->GetINode());
 
                             // Return true to keep the changes
-                            SetWindowLong(hDlg, DWL_MSGRESULT, TRUE);
+                            SetWindowLongPtr(hDlg, DWLP_MSGRESULT, TRUE);
                         }
                         
                         plMaxAccelerators::Enable();
@@ -218,7 +217,7 @@ plComponentBase* plComponentUtil::IGetListSelection()
             return (plComponentBase*)item.lParam;
     }
 
-    return nil;
+    return nullptr;
 }
 
 void plComponentUtil::BeginEditParams(Interface *ip, IUtil *iu)
@@ -242,9 +241,9 @@ void plComponentUtil::EndEditParams(Interface *ip, IUtil *iu)
     IDestroyRollups();
 
     GetCOREInterface()->DeleteRollupPage(fhPanel);
-    fhPanel = nil;
-    fCurComponent = nil;
-    fInterface = nil;
+    fhPanel = nullptr;
+    fCurComponent = nullptr;
+    fInterface = nullptr;
 }
 
 void plComponentUtil::SelectionSetChanged(Interface *ip, IUtil *iu)
@@ -267,7 +266,7 @@ void plComponentUtil::IUpdateRollups()
     int nodeCount = fInterface->GetSelNodeCount();
     if (nodeCount == 0)
     {
-        IAddRollups(nil);
+        IAddRollups(nullptr);
         return;
     }
 
@@ -316,7 +315,7 @@ void plComponentUtil::IUpdateRollups()
         ListView_EnsureVisible(hList, idx, FALSE);
     }
     else
-        IAddRollups(nil);
+        IAddRollups(nullptr);
 }
 
 int plComponentUtil::IFindListItem(plComponentBase* comp)
@@ -353,7 +352,7 @@ void plComponentUtil::IAddRollups(plComponentBase* comp)
 
     // Put the number of targets in the text box
     char buf[12];
-    itoa(numTargs, buf, 10);
+    snprintf(buf, sizeof(buf), "%u", numTargs);
     SetWindowText(GetDlgItem(fhPanel, IDC_NUM_TARGS), buf);
 
     // Enable the forward/back buttons if there are multiple targets
@@ -444,7 +443,7 @@ void plComponentUtil::IComponentPreDelete(plComponentBase* comp)
     if (fCurComponent == comp)
     {
         IDestroyRollups();
-        fCurComponent = nil;
+        fCurComponent = nullptr;
     }
 }
 
@@ -467,7 +466,7 @@ void IGetReferencesRecur(plMaxNode* node, INode* target, std::vector<plMaxNode*>
     }
 }
 
-BOOL CALLBACK RefDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK RefDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {

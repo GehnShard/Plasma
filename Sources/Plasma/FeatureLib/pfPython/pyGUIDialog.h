@@ -76,7 +76,7 @@ public:
     PYTHON_CLASS_CONVERT_FROM_DEFINITION(pyGUIDialog); // converts a PyObject to a pyGUIDialog (throws error if not correct type)
 
     static void AddPlasmaClasses(PyObject *m);
-    static void AddPlasmaMethods(std::vector<PyMethodDef> &methods);
+    static void AddPlasmaMethods(PyObject* m);
 
     static bool IsGUIDialog(pyKey& gckey);
 
@@ -123,7 +123,7 @@ public:
     virtual const char  *GetName();
     virtual uint32_t      GetVersion();
 
-    virtual uint32_t      GetNumControls();
+    virtual size_t      GetNumControls();
     virtual PyObject*   GetControl( uint32_t idx ); // returns pyKey
     virtual void        SetFocus( pyKey& gcKey );
     virtual void        NoFocus( );

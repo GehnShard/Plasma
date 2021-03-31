@@ -54,7 +54,6 @@ from PlasmaKITypes import *
 from PlasmaVaultConstants import *
 from PlasmaNetConstants import *
 from colorsys import *
-import string
 import PlasmaControlKeys
 import time
 import os   #used for saving pictures locally
@@ -252,7 +251,7 @@ def GetItemName(maxName):
     try:
         return PtGetLocalizedString(xACAItems.xClothesXRef[maxName])
     except:
-        return U"*" + unicode(maxName) + U"*"
+        return "*" + str(maxName) + "*"
 
 # Timer constants
 kTimerUpdateMorphs = 99
@@ -375,7 +374,7 @@ def SaveAvatarToDisk():
     name = PtGetLocalPlayer().getPlayerName()
     
     # write them to a file on disk
-    saveFile = file(name+".avatar.ava",'w')
+    saveFile = open(name+".avatar.ava",'w')
     saveFile.write(str(len(clothingList))+'\n')
     for i in range(len(clothingList)):
         item = clothingList[i]
@@ -736,7 +735,7 @@ class xAvatarCustomization(ptModifier):
                             descbox.setStringW(newitem.description)
                             # set up the color pickers
                             colorbar1 = ptGUIControlTextBox(AvCustGUI.dialog.getControlFromTag(kColorbarName1))
-                            if newitem.colorlabel1 == U"":
+                            if newitem.colorlabel1 == "":
                                 self.IHideColorPicker(kColor1ClickMap)
                             else:
                                 self.IShowColorPicker(kColor1ClickMap)
@@ -746,7 +745,7 @@ class xAvatarCustomization(ptModifier):
                                 else:
                                     self.IDrawPickerThingy(kColor1ClickMap,lastcolor1)
                             colorbar2 = ptGUIControlTextBox(AvCustGUI.dialog.getControlFromTag(kColorbarName2))
-                            if newitem.colorlabel2 == U"":
+                            if newitem.colorlabel2 == "":
                                 self.IHideColorPicker(kColor2ClickMap)
                             else:
                                 self.IShowColorPicker(kColor2ClickMap)
@@ -790,14 +789,14 @@ class xAvatarCustomization(ptModifier):
                                     descbox.setStringW(newitem.description)
                                     # set up the color pickers
                                     colorbar1 = ptGUIControlTextBox(AvCustGUI.dialog.getControlFromTag(kColorbarName1))
-                                    if newitem.colorlabel1 == U"":
+                                    if newitem.colorlabel1 == "":
                                         self.IHideColorPicker(kColor1ClickMap)
                                     else:
                                         self.IShowColorPicker(kColor1ClickMap)
                                         colorbar1.setStringW(newitem.colorlabel1)
                                         self.IDrawPickerThingy(kColor1ClickMap,lastcolor1)
                                     colorbar2 = ptGUIControlTextBox(AvCustGUI.dialog.getControlFromTag(kColorbarName2))
-                                    if newitem.colorlabel2 == U"":
+                                    if newitem.colorlabel2 == "":
                                         self.IHideColorPicker(kColor2ClickMap)
                                     else:
                                         self.IShowColorPicker(kColor2ClickMap)
@@ -1110,19 +1109,19 @@ class xAvatarCustomization(ptModifier):
         # open the file and read in the settings
         name = PtGetLocalPlayer().getPlayerName()
         try:
-            saveFile = file(name+".avatar.ava",'r')
+            saveFile = open(name+".avatar.ava",'r')
             numClothingItems = int(saveFile.readline())
             clothingList = []
             color1 = []
             color2 = []
             for i in range(numClothingItems):
                 line = saveFile.readline()
-                items = string.split(line)
+                items = line.split()
                 clothingList.append(items[0])
                 color1.append(ptColor(float(items[1]),float(items[2]),float(items[3])))
                 color2.append(ptColor(float(items[4]),float(items[5]),float(items[6])))
             line = saveFile.readline()
-            items = string.split(line)
+            items = line.split()
             skinColor = ptColor(float(items[0]),float(items[1]),float(items[2]))
             numMorphs = int(saveFile.readline())
             geomMorphs = []
@@ -1288,12 +1287,12 @@ class xAvatarCustomization(ptModifier):
 
         if id == 999:
             newImage = TestMap.textmap.getImage()
-            basePath = PtGetUserPath() + U"\\Avatars\\"
+            basePath = PtGetUserPath() + "\\Avatars\\"
             if not PtCreateDir(basePath):
-                PtDebugPrint(U"xAvatarCustomization::OnTimer(): Unable to create \"" + basePath + "\" directory. Avatar pic is NOT saved.")
+                PtDebugPrint("xAvatarCustomization::OnTimer(): Unable to create \"" + basePath + "\" directory. Avatar pic is NOT saved.")
                 return
-            filename = basePath + unicode(PtGetLocalPlayer().getPlayerID()) + U".jpg"
-            PtDebugPrint(U"xAvatarCustomization::OnTimer(): Saving avatar pic to \"" + filename + U"\"")
+            filename = basePath + str(PtGetLocalPlayer().getPlayerID()) + ".jpg"
+            PtDebugPrint("xAvatarCustomization::OnTimer(): Saving avatar pic to \"" + filename + "\"")
             newImage.saveAsJPEG(filename, 90)
 
     def IUpdateAllControls(self):
@@ -1340,7 +1339,7 @@ class xAvatarCustomization(ptModifier):
         # get (or re-get) the closet
         TheCloset = ClothingCloset()
         # start from the top and go down Hair thru Feet (and Accessories)
-        for listboxID in TheCloset.viewkeys():
+        for listboxID in TheCloset.keys():
             # do the primary clothing listbox
             group = TheCloset[listboxID]
             # add the listbox class if we don't have it already
@@ -1372,7 +1371,7 @@ class xAvatarCustomization(ptModifier):
         "Gets whats being worn and sets the dialogs to show what we are wearing"
         # assumes that WornList is already filled out
         global listboxDict
-        for id in TheCloset.viewkeys():
+        for id in TheCloset.keys():
             # tell the listboxes to update themselves
             listboxDict[id].SetWhatWearing()
             listboxDict[id].UpdateScrollArrows()
@@ -1575,13 +1574,13 @@ class xAvatarCustomization(ptModifier):
                 descbox = ptGUIControlTextBox(AvCustGUI.dialog.getControlFromTag(kClothingDesc))
                 descbox.setStringW(wornitem.description)
                 colorbar1 = ptGUIControlTextBox(AvCustGUI.dialog.getControlFromTag(kColorbarName1))
-                if wornitem.colorlabel1 == U"":
+                if wornitem.colorlabel1 == "":
                     self.IHideColorPicker(kColor1ClickMap)
                 else:
                     self.IShowColorPicker(kColor1ClickMap)
                     colorbar1.setStringW(wornitem.colorlabel1)
                 colorbar2 = ptGUIControlTextBox(AvCustGUI.dialog.getControlFromTag(kColorbarName2))
-                if wornitem.colorlabel2 == U"":
+                if wornitem.colorlabel2 == "":
                     self.IHideColorPicker(kColor2ClickMap)
                 else:
                     self.IShowColorPicker(kColor2ClickMap)
@@ -1791,10 +1790,10 @@ class ClothingItem:
         self.tintValue2 = 1.0
         self.name = ""
         self.type = 0
-        self.description = U""
+        self.description = ""
         self.thumbnail = 0
-        self.colorlabel1 = U"Color 1"
-        self.colorlabel2 = U"Color 2"
+        self.colorlabel1 = "Color 1"
+        self.colorlabel2 = "Color 2"
         self.accessories = []
         self.meshicon = 0 # is this a category icon and not real clothing?
         self.logofor = "" # is this clothing item a logo for another?
@@ -1826,7 +1825,7 @@ class ClothingItem:
                 if clothing[2] != "":
                     self.description = GetItemName(clothing[2])
             except:
-                self.description = U"*"+unicode(clothing[2])+U"*"
+                self.description = "*"+str(clothing[2])+"*"
             self.thumbnail = clothing[3]
             # determine more from the custom string
             if len(clothing[4]) > 0:
@@ -1834,7 +1833,7 @@ class ClothingItem:
                 for part in parts:
                     parm = part.split('=')
                     try:
-                        ls = string.lower(parm[0].strip())
+                        ls = parm[0].strip().lower()
                     except LookupError:
                         ls = ""
                     try:
@@ -1847,28 +1846,28 @@ class ClothingItem:
                             if rs != "":
                                 self.colorlabel1 = GetItemName(rs)
                             else:
-                                self.colorlabel1 = U""
+                                self.colorlabel1 = ""
                         except KeyError:
-                            self.colorlabel1 = U"*"+unicode(rs)+U"*"
+                            self.colorlabel1 = "*"+str(rs)+"*"
                     elif ls == "colorlabel2":
                         try:
                             if rs != "":
                                 self.colorlabel2 = GetItemName(rs)
                             else:
-                                self.colorlabel2 = U""
+                                self.colorlabel2 = ""
                         except KeyError:
-                            self.colorlabel2 = U"*"+unicode(rs)+U"*"
+                            self.colorlabel2 = "*"+str(rs)+"*"
                     elif ls == "saturationlayer1":
-                        self.tintSaturation1 = string.atof(rs)
+                        self.tintSaturation1 = float(rs)
                     elif ls == "saturationlayer2":
-                        self.tintSaturation2 = string.atof(rs)
+                        self.tintSaturation2 = float(rs)
                     elif ls == "valuelayer1":
-                        self.tintValue1 = string.atof(rs)
+                        self.tintValue1 = float(rs)
                     elif ls == "valuelayer2":
-                        self.tintValue2 = string.atof(rs)
+                        self.tintValue2 = float(rs)
                     elif ls == "clothingtype":
                         # change clothing group name into clothingtype
-                        rs = string.lower(rs)
+                        rs = rs.lower()
                         if rs == "pants":
                             self.groupwith = kPantsClothingItem
                         elif rs == "shirt":
@@ -1888,7 +1887,7 @@ class ClothingItem:
                     elif ls == "accessory":
                         self.accessoryType = 0
                     elif ls == "incloset":
-                        rs = string.lower(rs)
+                        rs = rs.lower()
                         if rs == "yes":
                             self.inCloset = 1
                         elif rs == "no":
@@ -1896,7 +1895,7 @@ class ClothingItem:
                         else:
                             PtDebugPrint("AvaCusta: Unknown inCloset type of %s on clothing item %s" % (rs,self.name))
                     elif ls == "inclosetcolor1":
-                        rs = string.lower(rs)
+                        rs = rs.lower()
                         if rs == "yes":
                             self.inClosetColor1 = 1
                         elif rs == "no":
@@ -1904,7 +1903,7 @@ class ClothingItem:
                         else:
                             PtDebugPrint("AvaCusta: Unknown inClosetColor1 type of %s on clothing item %s" % (rs,self.name))
                     elif ls == "inclosetcolor2":
-                        rs = string.lower(rs)
+                        rs = rs.lower()
                         if rs == "yes":
                             self.inClosetColor2 = 1
                         elif rs == "no":
@@ -2164,17 +2163,17 @@ class ClothingCloset:
         return len(self.clothingGroups)
 
     def keys(self):
-        return self.clothingGroups.viewkeys()
+        return self.clothingGroups.keys()
 
     def findGroup(self,clothing_type):
-        for group in self.clothingGroups.viewvalues():
+        for group in self.clothingGroups.values():
             if group.clothingType == clothing_type:
                 return group
         return None
 
     def findClothingItem(self,finditem):
         "find the clothing item in the closet, return group and index"
-        for group in self.clothingGroups.viewvalues():
+        for group in self.clothingGroups.values():
             # search through the normal clothing
             for idx in range(len(group)):
                 if group[idx].name == finditem.name:
@@ -2187,7 +2186,7 @@ class ClothingCloset:
     
     def getItemByName(self,itemName):
         "return the clothing item with the desired name"
-        for group in self.clothingGroups.viewvalues():
+        for group in self.clothingGroups.values():
             # search through the normal clothing
             for idx in range(len(group)):
                 if group[idx].name == itemName:

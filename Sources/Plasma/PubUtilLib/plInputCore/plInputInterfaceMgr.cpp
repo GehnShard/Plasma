@@ -54,6 +54,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plInputInterface.h"
 #include "plInputDevice.h"      // For mouse device stuff
 
+#include "plAvatarInputInterface.h"
+#include "plSceneInputInterface.h"
+#include "plDebugInputInterface.h"
+#include "plTelescopeInputInterface.h"
+
 #include "pnInputCore/plKeyMap.h"
 #include "plMessage/plInputEventMsg.h"
 #include "plMessage/plInputIfaceMgrMsg.h"
@@ -66,7 +71,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnKeyedObject/plFixedKey.h"
 
 #include "pnNetCommon/plNetApp.h"
-#include "plNetClient/plNetClientMgr.h"
 
 #include "hsResMgr.h"
 #include "plgDispatch.h"
@@ -79,7 +83,7 @@ plProfile_CreateTimer("Input", "Update", Input);
 
 void plCtrlCmd::Write(hsStream* stream, hsResMgr* mgr)
 {
-    stream->WriteLE32( fControlCode );
+    stream->WriteLE32((uint32_t)fControlCode);
     stream->WriteBool( fControlActivated );
     fPt.Write(stream);
 
@@ -101,13 +105,13 @@ void plCtrlCmd::Read(hsStream* stream, hsResMgr* mgr)
 
 plDefaultKeyCatcher::~plDefaultKeyCatcher()
 {
-    if( plInputInterfaceMgr::GetInstance() != nil )
-        plInputInterfaceMgr::GetInstance()->SetDefaultKeyCatcher( nil );
+    if (plInputInterfaceMgr::GetInstance() != nullptr)
+        plInputInterfaceMgr::GetInstance()->SetDefaultKeyCatcher(nullptr);
 }
 
 //// Statics /////////////////////////////////////////////////////////////////
 
-plInputInterfaceMgr *plInputInterfaceMgr::fInstance = nil;
+plInputInterfaceMgr *plInputInterfaceMgr::fInstance = nullptr;
 
 
 //// Constructor/Destructor //////////////////////////////////////////////////
@@ -125,25 +129,20 @@ plInputInterfaceMgr::plInputInterfaceMgr()
     // make sure we don't miss control keys on remote players
     SetSynchFlagsBit(plSynchedObject::kSendReliably);
 #endif
-    hsAssert( fInstance == nil, "Attempting to create two input interface managers!" );
+    hsAssert(fInstance == nullptr, "Attempting to create two input interface managers!");
     fInstance = this;
 
-    fCurrentFocus = nil;
-    fDefaultCatcher = nil;
+    fCurrentFocus = nullptr;
+    fDefaultCatcher = nullptr;
 }
 
 plInputInterfaceMgr::~plInputInterfaceMgr()
 {
     Shutdown();
-    fInstance = nil;
+    fInstance = nullptr;
 }
 
 //// Init ////////////////////////////////////////////////////////////////////
-
-#include "plAvatarInputInterface.h"
-#include "plSceneInputInterface.h"
-#include "plDebugInputInterface.h"
-#include "plTelescopeInputInterface.h"
 
 void    plInputInterfaceMgr::Init()
 {
@@ -176,21 +175,19 @@ void    plInputInterfaceMgr::Init()
 
 void    plInputInterfaceMgr::Shutdown()
 {
-    int i;
-
 
 //  WriteKeyMap();
 
-    for( i = 0; i < fInterfaces.GetCount(); i++ )
+    for (plInputInterface* iface : fInterfaces)
     {
-        fInterfaces[ i ]->Shutdown();
-        hsRefCnt_SafeUnRef( fInterfaces[ i ] );
+        iface->Shutdown();
+        hsRefCnt_SafeUnRef(iface);
     }
-    fInterfaces.Reset();
+    fInterfaces.clear();
 
-    for( i = 0; i < fMessageQueue.GetCount(); i++ )
-        delete fMessageQueue[ i ];
-    fMessageQueue.Reset();
+    for (plCtrlCmd* ctrlMsg : fMessageQueue)
+        delete ctrlMsg;
+    fMessageQueue.clear();
 
     plgDispatch::Dispatch()->UnRegisterForType( plInputIfaceMgrMsg::Index(), GetKey() );
     plgDispatch::Dispatch()->UnRegisterForType( plInputEventMsg::Index(), GetKey() );
@@ -210,16 +207,14 @@ void    plInputInterfaceMgr::Shutdown()
 
 void    plInputInterfaceMgr::IAddInterface( plInputInterface *iface )
 {
-    int     i;
-
-
-    for( i = 0; i < fInterfaces.GetCount(); i++ )
+    auto iter = fInterfaces.cbegin();
+    for (; iter != fInterfaces.cend(); ++iter)
     {
-        if( fInterfaces[ i ]->GetPriorityLevel() < iface->GetPriorityLevel() )
+        if ((*iter)->GetPriorityLevel() < iface->GetPriorityLevel())
             break;
     }
 
-    fInterfaces.Insert( i, iface );
+    fInterfaces.insert(iter, iface);
     hsRefCnt_SafeRef( iface );
     iface->Init( this );
     iface->ISetMessageQueue( &fMessageQueue );
@@ -227,12 +222,12 @@ void    plInputInterfaceMgr::IAddInterface( plInputInterface *iface )
 
 void    plInputInterfaceMgr::IRemoveInterface( plInputInterface *iface )
 {
-    int     idx = fInterfaces.Find( iface );
-    if( idx != fInterfaces.kMissingIndex )
+    auto iter = std::find(fInterfaces.begin(), fInterfaces.end(), iface);
+    if (iter != fInterfaces.end())
     {
-        fInterfaces[ idx ]->Shutdown();
-        hsRefCnt_SafeUnRef( fInterfaces[ idx ] );
-        fInterfaces.Remove( idx );
+        (*iter)->Shutdown();
+        hsRefCnt_SafeUnRef(*iter);
+        fInterfaces.erase(iter);
     }
 }
 
@@ -241,15 +236,15 @@ void    plInputInterfaceMgr::IRemoveInterface( plInputInterface *iface )
 void plInputInterfaceMgr::ResetClickableState()
 {
     // look for the scene input interface
-    for(int i = 0; i < fInterfaces.GetCount(); i++ )
-        fInterfaces[i]->ResetClickableState();
+    for (plInputInterface* iface : fInterfaces)
+        iface->ResetClickableState();
 }
 
 //// IUpdateCursor ///////////////////////////////////////////////////////////
 
 void    plInputInterfaceMgr::IUpdateCursor( int32_t newCursor )
 {
-    char*     mouseCursorResID;
+    const char*     mouseCursorResID;
 
 
     fCurrentCursor = newCursor;
@@ -299,28 +294,31 @@ bool plInputInterfaceMgr::IEval( double secs, float del, uint32_t dirty )
 {
     const char *inputEval = "Eval";
     plProfile_BeginLap(Input, inputEval);
-    int     i;
 
 
     // Let all our layers eval
-    for( i = 0; i < fInterfaces.GetCount(); i++ )
-        fInterfaces[ i ]->IEval( secs, del, dirty );
+    for (plInputInterface* iface : fInterfaces)
+        iface->IEval(secs, del, dirty);
 
     // Handle our message queue now
-    for( i = 0; i < fMessageQueue.Count(); i++ )
+    // NOTE: Do not use a range-based for loop here, since the size of
+    // fMessageQueue might change in the middle of the loop !!!
+    for (size_t i = 0; i < fMessageQueue.size(); ++i)
     {
+        plCtrlCmd* ctrlMsg = fMessageQueue[i];
+
         // Can its layer handle it?
-        if( !fMessageQueue[ i ]->GetSource()->IHandleCtrlCmd( fMessageQueue[ i ] ) )
+        if (!ctrlMsg->GetSource()->IHandleCtrlCmd(ctrlMsg))
         {
             // Nope, just dispatch it like normal
             plControlEventMsg* pMsg = new plControlEventMsg;
-            for (int j = 0; j < fReceivers.Count(); j++)
-                pMsg->AddReceiver( fReceivers[ j ] );
-            pMsg->SetControlActivated( fMessageQueue[i]->fControlActivated );
-            pMsg->SetControlCode( fMessageQueue[i]->fControlCode );
-            pMsg->SetControlPct(fMessageQueue[i]->fPct);
-            pMsg->SetTurnToPt( fMessageQueue[i]->fPt );
-            pMsg->SetCmdString(fMessageQueue[i]->GetCmdString());       
+            for (const auto& rcKey : fReceivers)
+                pMsg->AddReceiver(rcKey);
+            pMsg->SetControlActivated(ctrlMsg->fControlActivated);
+            pMsg->SetControlCode(ctrlMsg->fControlCode);
+            pMsg->SetControlPct(ctrlMsg->fPct);
+            pMsg->SetTurnToPt(ctrlMsg->fPt);
+            pMsg->SetCmdString(ctrlMsg->GetCmdString());
             pMsg->SetSender( GetKey() );    
             plgDispatch::MsgSend( pMsg );
 
@@ -328,19 +326,19 @@ bool plInputInterfaceMgr::IEval( double secs, float del, uint32_t dirty )
             //      send same msg over network to players
             ///////////////////////////////////////////////////////
 
-            if (fMessageQueue[i]->fNetPropagateToPlayers)
+            if (ctrlMsg->fNetPropagateToPlayers)
             {
                 pMsg = new plControlEventMsg;
-                for (int j = 0; j < fReceivers.Count(); j++)
-                    if (fReceivers[j] == plNetClientApp::GetInstance()->GetLocalPlayerKey())
-                        pMsg->AddReceiver( fReceivers[j] );
+                for (const plKey& rcKey : fReceivers)
+                    if (rcKey == plNetClientApp::GetInstance()->GetLocalPlayerKey())
+                        pMsg->AddReceiver(rcKey);
                 if (pMsg->GetNumReceivers())
                 {
-                    pMsg->SetControlActivated( fMessageQueue[i]->fControlActivated );
-                    pMsg->SetControlCode( fMessageQueue[i]->fControlCode );
-                    pMsg->SetControlPct(fMessageQueue[i]->fPct);
-                    pMsg->SetTurnToPt( fMessageQueue[i]->fPt );
-                    pMsg->SetCmdString(fMessageQueue[i]->GetCmdString());
+                    pMsg->SetControlActivated(ctrlMsg->fControlActivated);
+                    pMsg->SetControlCode(ctrlMsg->fControlCode);
+                    pMsg->SetControlPct(ctrlMsg->fPct);
+                    pMsg->SetTurnToPt(ctrlMsg->fPt);
+                    pMsg->SetCmdString(ctrlMsg->GetCmdString());
                     pMsg->SetSender( GetKey() );
                     pMsg->SetBCastFlag(plMessage::kNetPropagate | plMessage::kPropagateToModifiers | 
                         plMessage::kNetUseRelevanceRegions);    // bcast only to other players who care about the region I'm in
@@ -355,9 +353,9 @@ bool plInputInterfaceMgr::IEval( double secs, float del, uint32_t dirty )
     }
 
     // Clear the message queue
-    for( i = 0; i < fMessageQueue.Count(); i++ )
-        delete fMessageQueue[ i ];
-    fMessageQueue.SetCount( 0 );
+    for (plCtrlCmd* ctrlMsg : fMessageQueue)
+        delete ctrlMsg;
+    fMessageQueue.clear();
 
     plProfile_EndLap(Input, inputEval);
     return true;
@@ -414,9 +412,6 @@ bool plInputInterfaceMgr::ICheckCursor(plInputInterface *iFace)
 
 bool    plInputInterfaceMgr::MsgReceive( plMessage *msg )
 {
-    int     i;
-
-
     plEvalMsg *pEvalMsg = plEvalMsg::ConvertNoRef( msg );
     if( pEvalMsg )
     {
@@ -425,12 +420,12 @@ bool    plInputInterfaceMgr::MsgReceive( plMessage *msg )
     }
 
     plInputEventMsg *ieMsg = plInputEventMsg::ConvertNoRef( msg );
-    if( ieMsg != nil )
+    if (ieMsg != nullptr)
     {
         const char *inputIEM = "InputEventMsg";
         plProfile_BeginLap(Input, inputIEM);
         bool handled = false;
-        uint32_t missedInputStartIdx = 0;
+        size_t missedInputStartIdx = 0;
         plInputInterface *oldCurrentFocus = fCurrentFocus;
 
         // Current focus (if there is one) gets first crack
@@ -445,7 +440,8 @@ bool    plInputInterfaceMgr::MsgReceive( plMessage *msg )
         if (!handled)
         {
             // Walk our stack
-            for( i = 0; i < fInterfaces.GetCount(); i++ )
+            size_t i;
+            for (i = 0; i < fInterfaces.size(); i++)
             {
                 if( fInterfaces[ i ]->IsEnabled() && fInterfaces[ i ] != oldCurrentFocus)
                 {
@@ -461,7 +457,7 @@ bool    plInputInterfaceMgr::MsgReceive( plMessage *msg )
             if( !handled )
             {
                 // Fell all the way through the stack...must've been a very uninteresting message...
-                if( plKeyEventMsg::ConvertNoRef( ieMsg ) && fDefaultCatcher != nil )
+                if (plKeyEventMsg::ConvertNoRef(ieMsg) && fDefaultCatcher != nullptr)
                 {
                     // But somebody loves those keys :)
                     fDefaultCatcher->HandleKeyEvent( plKeyEventMsg::ConvertNoRef( ieMsg ) );
@@ -471,7 +467,7 @@ bool    plInputInterfaceMgr::MsgReceive( plMessage *msg )
         }
 
         // Notify the rest of the interfaces in the stack that they missed the event ("lost focus", as it were)
-        for (i = missedInputStartIdx; i < fInterfaces.GetCount(); i++)
+        for (size_t i = missedInputStartIdx; i < fInterfaces.size(); i++)
             if (fInterfaces[i] != oldCurrentFocus)
                 fInterfaces[i]->MissedInputEvent(ieMsg);
 
@@ -485,9 +481,9 @@ bool    plInputInterfaceMgr::MsgReceive( plMessage *msg )
 
             if (!cursorHandled)
             {
-                for( i = 0; i < fInterfaces.GetCount(); i++ )
+                for (plInputInterface* iface : fInterfaces)
                 {
-                    if (ICheckCursor(fInterfaces[i]))
+                    if (ICheckCursor(iface))
                     {
                         cursorHandled = true;
                         break;
@@ -516,7 +512,7 @@ bool    plInputInterfaceMgr::MsgReceive( plMessage *msg )
     }
 
     plInputIfaceMgrMsg *mgrMsg = plInputIfaceMgrMsg::ConvertNoRef( msg );
-    if( mgrMsg != nil )
+    if (mgrMsg != nullptr)
     {
         if( mgrMsg->GetCommand() == plInputIfaceMgrMsg::kAddInterface )
         {
@@ -539,15 +535,15 @@ bool    plInputInterfaceMgr::MsgReceive( plMessage *msg )
     }
 
     plPlayerPageMsg *pPMsg = plPlayerPageMsg::ConvertNoRef( msg );
-    if( pPMsg != nil && !pPMsg->fUnload)
+    if (pPMsg != nullptr && !pPMsg->fUnload)
     {
-        if( pPMsg->fPlayer == plNetClientMgr::GetInstance()->GetLocalPlayerKey() )
-            fReceivers.Append( pPMsg->fPlayer );
+        if( pPMsg->fPlayer == plNetClientApp::GetInstance()->GetLocalPlayerKey() )
+            fReceivers.emplace_back(pPMsg->fPlayer);
         else
         {
-            int idx = fReceivers.Find( pPMsg->fPlayer );
-            if( idx != fReceivers.kMissingIndex )
-                fReceivers.Remove( idx );
+            auto idx = std::find(fReceivers.cbegin(), fReceivers.cend(), pPMsg->fPlayer);
+            if (idx != fReceivers.cend())
+                fReceivers.erase(idx);
         }
     }
     
@@ -556,25 +552,20 @@ bool    plInputInterfaceMgr::MsgReceive( plMessage *msg )
     {
         if( pCMsg->Cmd( plCmdIfaceModMsg::kAdd ) )
         {   
-            for( int i = 0; i < fReceivers.Count(); i++ )
+            for (const plKey& rcKey : fReceivers)
             {
-                if( fReceivers[i] == pCMsg->GetSender() )
+                if (rcKey == pCMsg->GetSender())
                     return true;
             }
-            fReceivers.Append( pCMsg->GetSender() );
+            fReceivers.emplace_back(pCMsg->GetSender());
             return true;
         }
         else
         if( pCMsg->Cmd( plCmdIfaceModMsg::kRemove ) )
         {
-            for( int i = 0; i < fReceivers.Count(); i++ )
-            {
-                if( fReceivers[ i ] == pCMsg->GetSender() )
-                {
-                    fReceivers.Remove( i );
-                    break;
-                }
-            }
+            auto idx = std::find(fReceivers.cbegin(), fReceivers.cend(), pCMsg->GetSender());
+            if (idx != fReceivers.cend())
+                fReceivers.erase(idx);
             return true;
         }
     }
@@ -596,9 +587,9 @@ bool    plInputInterfaceMgr::MsgReceive( plMessage *msg )
         return true;
     }
     // Wasn't one we want. Was it one that one of our interfaces wanted?
-    for( i = 0; i < fInterfaces.GetCount(); i++ )
+    for (plInputInterface* iface : fInterfaces)
     {
-        if( fInterfaces[ i ]->MsgReceive( msg ) )
+        if (iface->MsgReceive(msg))
             return true;
     }
 
@@ -627,16 +618,13 @@ void    plInputInterfaceMgr::Write( hsStream* s, hsResMgr* mgr )
         
 plKeyMap    *plInputInterfaceMgr::IGetRoutedKeyMap( ControlEventCode code )
 {
-    int                 i;
-
-
-    for( i = 0; i < fInterfaces.GetCount(); i++ )
+    for (plInputInterface* iface : fInterfaces)
     {
-        if( fInterfaces[ i ]->IOwnsControlCode( code ) )
-            return fInterfaces[ i ]->fControlMap;
+        if (iface->IOwnsControlCode(code))
+            return iface->fControlMap;
     }
 
-    return nil;
+    return nullptr;
 }
 
 //// IUnbind /////////////////////////////////////////////////////////////////
@@ -649,18 +637,15 @@ plKeyMap    *plInputInterfaceMgr::IGetRoutedKeyMap( ControlEventCode code )
 void    plInputInterfaceMgr::IUnbind( const plKeyCombo &key )
 {
 #if !(ALLOW_MULTIPLE_CMDS_PER_KEY)
-    int                 i;
-
-
-    for( i = 0; i < fInterfaces.GetCount(); i++ )
-        fInterfaces[ i ]->fControlMap->UnmapKey( key );
+    for (plInputInterface* iface : fInterfaces)
+        iface->fControlMap->UnmapKey(key);
 #endif
 }
 
 void plInputInterfaceMgr::ClearAllKeyMaps()
 {
-    for (int i = 0; i < fInterfaces.Count(); i++)
-        fInterfaces[i]->ClearKeyMap();
+    for (plInputInterface* iface : fInterfaces)
+        iface->ClearKeyMap();
 }
 
 //// Binding Routers /////////////////////////////////////////////////////////
@@ -668,7 +653,7 @@ void plInputInterfaceMgr::ClearAllKeyMaps()
 void    plInputInterfaceMgr::BindAction( const plKeyCombo &key, ControlEventCode code )
 {
     plKeyMap *map = IGetRoutedKeyMap( code );
-    if( map != nil )
+    if (map != nullptr)
     {
         // Use default prefs
         map->EnsureKeysClear( key, plKeyCombo::kUnmapped );
@@ -681,7 +666,7 @@ void    plInputInterfaceMgr::BindAction( const plKeyCombo &key1, const plKeyComb
                                         ControlEventCode code )
 {
     plKeyMap *map = IGetRoutedKeyMap( code );
-    if( map != nil )
+    if (map != nullptr)
     {
         // Force the bindings to each key, since the user specified both
         map->EnsureKeysClear( key1, key2 );
@@ -694,13 +679,13 @@ void    plInputInterfaceMgr::BindAction( const plKeyCombo &key1, const plKeyComb
 const plKeyBinding* plInputInterfaceMgr::FindBinding( ControlEventCode code )\
 {
     plKeyMap *map = IGetRoutedKeyMap( code );
-    if( map != nil )
+    if (map != nullptr)
     {
         // Use default prefs
         return map->FindBinding(code);
     }
 
-    return nil;
+    return nullptr;
 }
 
 void plInputInterfaceMgr::BindConsoleCmd( const plKeyCombo &key, const char *cmd, plKeyMap::BindPref pref /*= kNoPreference*/  )
@@ -711,7 +696,7 @@ void plInputInterfaceMgr::BindConsoleCmd( const plKeyCombo &key, const char *cmd
 //#endif
 
     plKeyMap *map = IGetRoutedKeyMap( B_CONTROL_CONSOLE_COMMAND );
-    if( map != nil )
+    if (map != nullptr)
     {
         // Default prefs again
         map->EnsureKeysClear( key, plKeyCombo::kUnmapped );
@@ -728,21 +713,19 @@ void plInputInterfaceMgr::BindConsoleCmd( const plKeyCombo &key, const char *cmd
 const plKeyBinding* plInputInterfaceMgr::FindBindingByConsoleCmd( const char *cmd )
 {
     plKeyMap *map = IGetRoutedKeyMap( B_CONTROL_CONSOLE_COMMAND );
-    if( map != nil )
+    if (map != nullptr)
     {
         return map->FindConsoleBinding(cmd);
     }
-    return nil;
+    return nullptr;
 }
 
 //// InitDefaultKeyMap ///////////////////////////////////////////////////////
 
 void    plInputInterfaceMgr::InitDefaultKeyMap()
 {
-    int     i;
-
-    for( i = 0; i < fInterfaces.GetCount(); i++ )
-        fInterfaces[ i ]->RestoreDefaultKeyMappings();
+    for (plInputInterface* iface : fInterfaces)
+        iface->RestoreDefaultKeyMappings();
 
     RefreshInterfaceKeyMaps();
 }
@@ -751,11 +734,8 @@ void    plInputInterfaceMgr::InitDefaultKeyMap()
 
 void    plInputInterfaceMgr::RefreshInterfaceKeyMaps()
 {
-    int     i;
-
-
-    for( i = 0; i < fInterfaces.GetCount(); i++ )
-        fInterfaces[ i ]->RefreshKeyMap();
+    for (plInputInterface* iface : fInterfaces)
+        iface->RefreshKeyMap();
 }
 
 //// WriteKeyMap /////////////////////////////////////////////////////////////
@@ -765,7 +745,8 @@ void    plInputInterfaceMgr::WriteKeyMap()
 #ifdef PLASMA_EXTERNAL_RELEASE
     return;
 #endif
-    FILE* gKeyFile = fopen("init\\keyboard.fni", "wt");
+    plFileName fname = plFileName::Join("init", "keyboard.fni");
+    FILE* gKeyFile = plFileSystem::Open(fname, "wt");
 
     if (gKeyFile)
     {
@@ -792,10 +773,9 @@ void    plInputInterfaceMgr::WriteKeyMap()
         fprintf(gKeyFile, "# Keyboard.BindAction \t\tKey1\tKey2\t\t\t\tControl\n");
         fprintf(gKeyFile, "#\n");
 //      fprintf(gKeyFile, "Keyboard.ClearBindings\n");
-        int i;
         
-        for( i = 0; i < fInterfaces.GetCount(); i++ )
-            IWriteNonConsoleCmdKeys( fInterfaces[ i ]->fControlMap, gKeyFile );
+        for (plInputInterface* iface : fInterfaces)
+            IWriteNonConsoleCmdKeys(iface->fControlMap, gKeyFile);
 
         fprintf(gKeyFile, "#\n");
         fprintf(gKeyFile, "# Console command bindings:\n");
@@ -803,8 +783,8 @@ void    plInputInterfaceMgr::WriteKeyMap()
         fprintf(gKeyFile, "# Keyboard.BindConsoleCmd \tKey\t\t\tCommand\n");
         fprintf(gKeyFile, "#\n");
         
-        for( i = 0; i < fInterfaces.GetCount(); i++ )
-            IWriteConsoleCmdKeys( fInterfaces[ i ]->fControlMap, gKeyFile );
+        for (plInputInterface* iface : fInterfaces)
+            IWriteConsoleCmdKeys(iface->fControlMap, gKeyFile);
 
         fprintf(gKeyFile, "#\n");
         fprintf(gKeyFile, "# Available game commands:\n");
@@ -837,8 +817,10 @@ void    plInputInterfaceMgr::WriteKeyMap()
             //  keyConvert = &plKeyMap::fKeyConversionItalian[0];
             //  break;
             // default is English
+            default:
+                break;
         }
-        for (i = 0; keyConvert[i].fVKey != 0xffffffff; i++)
+        for (size_t i = 0; keyConvert[i].fVKey != 0xffffffff; i++)
         {   
 //              if (stricmp(fKeyMap->fKeyConversion[i].fKeyName, "Shift") == 0)
 //                  continue;
@@ -856,7 +838,7 @@ void plInputInterfaceMgr::SetCurrentFocus(plInputInterface *focus)
 void plInputInterfaceMgr::ReleaseCurrentFocus(plInputInterface *focus)
 {
     if (fCurrentFocus == focus)
-        fCurrentFocus = nil;
+        fCurrentFocus = nullptr;
 }
 
 
@@ -875,7 +857,7 @@ const char  *plInputInterfaceMgr::IKeyComboToString( const plKeyCombo &combo )
     else
     {
         const char *c = plKeyMap::ConvertVKeyToChar( combo.fKey );
-        if( c != nil )
+        if (c != nullptr)
             strncpy( str, c, sizeof( str ) );
         else
         {

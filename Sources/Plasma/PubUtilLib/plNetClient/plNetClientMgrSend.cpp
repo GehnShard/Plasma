@@ -39,35 +39,38 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "hsTimer.h"
-#include "hsResMgr.h"
+
 #include "plNetClientMgr.h"
-#include "plCreatableIndex.h"   
-#include "plNetCommon/plNetObjectDebugger.h"
 
-#include "pnNetCommon/plSynchedObject.h"
-#include "pnNetCommon/plSDLTypes.h"
+#include "plCreatableIndex.h"
+#include "hsResMgr.h"
+#include "hsTimer.h"
+
 #include "pnMessage/plCameraMsg.h"
+#include "pnNetCommon/plSDLTypes.h"
+#include "pnNetCommon/plSynchedObject.h"
+#include "pnNetCommon/pnNetCommon.h"
+#include "pnSceneObject/plSceneObject.h"
 
-#include "plNetClientRecorder/plNetClientRecorder.h"
-#include "plMessage/plLoadCloneMsg.h"
-#include "plMessage/plLoadAvatarMsg.h"
-#include "plAvatar/plAvatarClothing.h"
 #include "plAvatar/plArmatureMod.h"
+#include "plAvatar/plAvatarClothing.h"
 #include "plAvatar/plAvatarMgr.h"
-#include "plNetMessage/plNetMessage.h"
-#include "plMessage/plCCRMsg.h"
-#include "plVault/plVault.h"
 #include "plContainer/plConfigInfo.h"
 #include "plDrawable/plMorphSequence.h"
-#include "plParticleSystem/plParticleSystem.h"
+#include "plMessage/plCCRMsg.h"
+#include "plMessage/plLoadAvatarMsg.h"
+#include "plMessage/plLoadCloneMsg.h"
+#include "plNetClientRecorder/plNetClientRecorder.h"
+#include "plNetCommon/plNetObjectDebugger.h"
+#include "plNetGameLib/plNetGameLib.h"
+#include "plNetMessage/plNetMessage.h"
 #include "plParticleSystem/plParticleSDLMod.h"
+#include "plParticleSystem/plParticleSystem.h"
 #include "plResMgr/plLocalization.h"
+#include "plSDL/plSDL.h"
+#include "plVault/plVault.h"
 
 #include "pfMessage/pfKIMsg.h"  // TMP
-
-#include "plNetGameLib/plNetGameLib.h"
-#include "plSDL/plSDL.h"
 
 //
 // request members list from server
@@ -98,18 +101,17 @@ int plNetClientMgr::ISendDirtyState(double secs)
 {
     std::vector<plSynchedObject::StateDefn> carryOvers;
 
-    int32_t num=plSynchedObject::GetNumDirtyStates();
+    size_t num = plSynchedObject::GetNumDirtyStates();
 #if 0
     if (num)
     {
         DebugMsg("{} dirty sdl state msgs queued, t={f}", num, secs);
     }
 #endif
-    int32_t i;
-    for(i=0;i<num;i++)
-    {
+
+    for (size_t i = 0; i < num; i++) {
         plSynchedObject::StateDefn* state=plSynchedObject::GetDirtyState(i);
-        
+
         plSynchedObject* obj=state->GetObject();
         if (!obj)
             continue;   // could add to carryOvers
@@ -126,7 +128,7 @@ int plNetClientMgr::ISendDirtyState(double secs)
         }
 
         obj->CallDirtyNotifiers();
-        obj->SendSDLStateMsg(state->fSDLName.c_str(), state->fSendFlags);       
+        obj->SendSDLStateMsg(state->fSDLName.c_str(), state->fSendFlags);
     }
 
     plSynchedObject::ClearDirtyState(carryOvers);
@@ -216,13 +218,11 @@ void plNetClientMgr::SendLocalPlayerAvatarCustomizations()
     if (avMod->IsInStealthMode() && avMod->GetTarget(0))
         avMod->GetTarget(0)->DirtySynchState(kSDLAvatar, plSynchedObject::kForceFullSend);
 
-    hsTArray<const plMorphSequence*> morphs;
+    std::vector<const plMorphSequence*> morphs;
     plMorphSequence::FindMorphMods(avMod->GetTarget(0), morphs);
-    int i;
-    for (i = 0; i < morphs.GetCount(); i++)
-        if (morphs[i]->GetTarget(0))
-            morphs[i]->GetTarget(0)->DirtySynchState(kSDLMorphSequence, plSynchedObject::kBCastToClients);
-
+    for (const plMorphSequence* morphSeq : morphs)
+        if (morphSeq->GetTarget(0))
+            morphSeq->GetTarget(0)->DirtySynchState(kSDLMorphSequence, plSynchedObject::kBCastToClients);
 }
 
 //
@@ -258,14 +258,14 @@ int plNetClientMgr::ISendGameMessage(plMessage* msg)
 #endif
 
     // get sender object
-    plSynchedObject* synchedObj = msg->GetSender() ? plSynchedObject::ConvertNoRef(msg->GetSender()->ObjectIsLoaded()) : nil;
+    plSynchedObject* synchedObj = msg->GetSender() ? plSynchedObject::ConvertNoRef(msg->GetSender()->ObjectIsLoaded()) : nullptr;
 
     // if sender is flagged as localOnly, he shouldn't talk to the network
     if (synchedObj && !synchedObj->IsNetSynched() )
         return hsOK;
 
     // choose appropriate type of net game msg wrapper
-    plNetMsgGameMessage* netMsgWrap=nil;
+    plNetMsgGameMessage* netMsgWrap = nullptr;
     plLoadCloneMsg* loadClone = plLoadCloneMsg::ConvertNoRef(msg);
     if (loadClone)
     {
@@ -387,7 +387,7 @@ int plNetClientMgr::ISendGameMessage(plMessage* msg)
     netMsgWrap->SetNetProtocol(kNetProtocolCli2Game);
     int ret = SendMsg(netMsgWrap);
 
-    if (plNetObjectDebugger::GetInstance()->IsDebugObject(msg->GetSender() ? msg->GetSender()->ObjectIsLoaded() : nil))
+    if (plNetObjectDebugger::GetInstance()->IsDebugObject(msg->GetSender() ? msg->GetSender()->ObjectIsLoaded() : nullptr))
     {
     #if 0
         hsLogEntry(plNetObjectDebugger::GetInstance()->LogMsg(

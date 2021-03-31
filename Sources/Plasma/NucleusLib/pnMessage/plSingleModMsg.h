@@ -46,15 +46,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plMessage.h"
 #include "hsBitVector.h"
 
-class hsStream;
-class hsResMgr;
-
-
 class plSingleModMsg : public plMessage
 {
 public:
     plSingleModMsg()
-        : plMessage(nil, nil, nil) {}
+        : plMessage(nullptr, nullptr, nullptr) { }
     plSingleModMsg(const plKey &s, 
                 const plKey &r, 
                 const double* t)
@@ -75,11 +71,14 @@ public:
     void ClearCmd() { fCmd.Clear(); }
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+    void Read(hsStream* stream, hsResMgr* mgr) override
+    {
         plMessage::IMsgRead(stream, mgr);
         fCmd.Read(stream);
     }
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+
+    void Write(hsStream* stream, hsResMgr* mgr) override
+    {
         plMessage::IMsgWrite(stream, mgr);
         fCmd.Write(stream);
     }

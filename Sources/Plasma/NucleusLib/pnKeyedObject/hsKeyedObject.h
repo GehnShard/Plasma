@@ -55,7 +55,7 @@ class plUoid;
 class hsKeyedObject : public plReceiver
 {
 public:
-    hsKeyedObject() : fpKey(nil) {}
+    hsKeyedObject() = default;
     virtual ~hsKeyedObject();
 
     CLASSNAME_REGISTER(hsKeyedObject);
@@ -69,10 +69,10 @@ public:
     // experimental; currently "is ready to process Loads"
     virtual bool IsFinal() { return true; };
 
-    void Read(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void Write(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void Read(hsStream* s, hsResMgr* mgr) override;
+    void Write(hsStream* s, hsResMgr* mgr) override;
 
-    bool MsgReceive(plMessage* msg) HS_OVERRIDE;
+    bool MsgReceive(plMessage* msg) override;
 
     // Send a reference to GetKey() via enclosed message. See plKey::SendRef()
     bool SendRef(plRefMsg* refMsg, plRefFlags::Type flags);

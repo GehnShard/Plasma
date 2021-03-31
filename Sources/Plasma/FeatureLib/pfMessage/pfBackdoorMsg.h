@@ -49,7 +49,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define _pfBackdoorMsg_h
 
 #include "HeadSpin.h"
-#include "hsStream.h"
+
+#include <string_theory/string>
+
 #include "pnMessage/plMessage.h"
 
 class pfBackdoorMsg : public plMessage
@@ -59,9 +61,9 @@ class pfBackdoorMsg : public plMessage
         ST::string  fString;
 
     public:
-        pfBackdoorMsg() : plMessage(nil, nil, nil) {}
+        pfBackdoorMsg() : plMessage(nullptr, nullptr, nullptr) { }
         pfBackdoorMsg(const ST::string& target, const ST::string& string)
-            : plMessage(nil, nil, nil), fTarget(target), fString(string)
+            : plMessage(nullptr, nullptr, nullptr), fTarget(target), fString(string)
         {
             // across the net and just to those listening
             SetBCastFlag( plMessage::kNetPropagate );
@@ -71,19 +73,8 @@ class pfBackdoorMsg : public plMessage
         CLASSNAME_REGISTER( pfBackdoorMsg );
         GETINTERFACE_ANY( pfBackdoorMsg, plMessage );
 
-        virtual void Read(hsStream* s, hsResMgr* mgr) 
-        { 
-            plMessage::IMsgRead( s, mgr ); 
-            fTarget = s->ReadSafeString();
-            fString = s->ReadSafeString();
-        }
-        
-        virtual void Write(hsStream* s, hsResMgr* mgr) 
-        { 
-            plMessage::IMsgWrite( s, mgr ); 
-            s->WriteSafeString(fTarget);
-            s->WriteSafeString(fString);
-        }
+        void Read(hsStream* s, hsResMgr* mgr) override;
+        void Write(hsStream* s, hsResMgr* mgr) override;
 
         ST::string  GetTarget() const { return fTarget; }
         ST::string  GetString() const { return fString; }

@@ -40,41 +40,36 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
-
-#include "HeadSpin.h"
-#include <algorithm>
-
 #include "plSceneNode.h"
-#include "pnDispatch/plDispatch.h"
-#include "plMessage/plNodeCleanupMsg.h"
-#include "pnMessage/plNodeRefMsg.h"
 
-#include "hsStream.h"
-#include "hsResMgr.h"
-
-#include "pnSceneObject/plSceneObject.h"
-#include "plDrawable.h"
-#include "plPhysical.h"
-#include "plAudible.h"
-#include "plGLight/plLightInfo.h"
-#include "pnMessage/plRefMsg.h"
-#include "plPipeline.h"
-#include "pnKeyedObject/plKey.h"
-#include "plDrawable/plSpaceTreeMaker.h"
-#include "plDrawable/plSpaceTree.h"
 #include "plPageTreeMgr.h"
 #include "plOccluder.h"
 
-//MFHORSE
-//BLACK
-// temp hack for debugging
-#include "plDrawable/plDrawableSpans.h"
-#include "pnKeyedObject/plKeyImp.h"
+#include "HeadSpin.h"
+#include "plAudible.h"
+#include "plgDispatch.h"
+#include "plDrawable.h"
+#include "plPhysical.h"
+#include "plPipeline.h"
+#include "hsResMgr.h"
+#include "hsStream.h"
+
+#include <algorithm>
+
+#include "pnKeyedObject/plKey.h"
+#include "pnMessage/plNodeRefMsg.h"
+#include "pnMessage/plRefMsg.h"
+#include "pnSceneObject/plSceneObject.h"
+
+#include "plDrawable/plSpaceTree.h"
+#include "plDrawable/plSpaceTreeMaker.h"
+#include "plGLight/plLightInfo.h"
+#include "plMessage/plNodeCleanupMsg.h"
 
 plSceneNode::plSceneNode()
-:   fDepth(0),
-    fSpaceTree(nil),
-    fFilterGenerics(false)
+:   fDepth(),
+    fSpaceTree(),
+    fFilterGenerics()
 {
 }
 
@@ -122,56 +117,48 @@ void plSceneNode::Write(hsStream* s, hsResMgr* mgr)
 {
     hsKeyedObject::Write(s, mgr);
 
-    int i;
+    s->WriteLE32((uint32_t)fSceneObjects.size());
+    for (plSceneObject* sceneObject : fSceneObjects)
+        mgr->WriteKey(s, sceneObject);
 
-    s->WriteLE32(fSceneObjects.size());
-    for( i = 0; i < fSceneObjects.size(); i++ )
-        mgr->WriteKey(s,fSceneObjects[i]);
-
-    s->WriteLE32(fGenericPool.size());
-    for( i = 0; i < fGenericPool.size(); i++ )
-        mgr->WriteKey(s, fGenericPool[i]);
+    s->WriteLE32((uint32_t)fGenericPool.size());
+    for (hsKeyedObject* generic : fGenericPool)
+        mgr->WriteKey(s, generic);
 }
 
-void plSceneNode::Harvest(plVolumeIsect* isect, hsTArray<plDrawVisList>& levList)
+void plSceneNode::Harvest(plVolumeIsect* isect, std::vector<plDrawVisList>& levList)
 {
-    static hsTArray<int16_t> visList;
-    visList.SetCount(0);
+    static std::vector<int16_t> visList;
+    visList.clear();
     GetSpaceTree()->HarvestLeaves(isect, visList);
-    static hsTArray<int16_t> visSpans;
-    visSpans.SetCount(0);
+    static std::vector<int16_t> visSpans;
+    visSpans.clear();
 
-    int i;
-    for( i = 0; i < visList.GetCount(); i++ )
+    for (int16_t idx : visList)
     {
-        int idx = visList[i];
         fDrawPool[idx]->GetSpaceTree()->HarvestLeaves(isect, visSpans);
-        if( visSpans.GetCount() )
+        if (!visSpans.empty())
         {
-            plDrawVisList* drawVis = levList.Push();
-            drawVis->fDrawable = fDrawPool[idx];
-            drawVis->fVisList.Swap(visSpans);
+            plDrawVisList& drawVis = levList.emplace_back(fDrawPool[idx]);
+            drawVis.fVisList.swap(visSpans);
         }
     }
 }
 
-void plSceneNode::CollectForRender(plPipeline* pipe, hsTArray<plDrawVisList>& levList, plVisMgr* visMgr)
+void plSceneNode::CollectForRender(plPipeline* pipe, std::vector<plDrawVisList>& levList, plVisMgr* visMgr)
 {
-    static hsTArray<int16_t> visList;
-    visList.SetCount(0);
+    static std::vector<int16_t> visList;
+    visList.clear();
     pipe->HarvestVisible(GetSpaceTree(), visList);
-    static hsTArray<int16_t> visSpans;
-    visSpans.SetCount(0);
+    static std::vector<int16_t> visSpans;
+    visSpans.clear();
 
-    int i;
-    for( i = 0; i < visList.GetCount(); i++ )
+    for (int16_t idx : visList)
     {
-        int idx = visList[i];
         if( pipe->PreRender(fDrawPool[idx], visSpans, visMgr) )
         {
-            plDrawVisList* drawVis = levList.Push();
-            drawVis->fDrawable = fDrawPool[idx];
-            drawVis->fVisList.Swap(visSpans);
+            plDrawVisList& drawVis = levList.emplace_back(fDrawPool[idx]);
+            drawVis.fVisList.swap(visSpans);
         }
     }
 }
@@ -187,7 +174,7 @@ plSpaceTree* plSceneNode::IBuildSpaceTree()
     maker.Reset();
     
     hsBounds3Ext bnd;
-    hsPoint3 zero(0, 0, 0);
+    hsPoint3 zero;
     bnd.Reset(&zero);
     
     int i;
@@ -208,12 +195,13 @@ plSpaceTree* plSceneNode::IBuildSpaceTree()
 plSpaceTree* plSceneNode::ITrashSpaceTree()
 {
     delete fSpaceTree;
-    return fSpaceTree = nil;
+    return fSpaceTree = nullptr;
 }
 
 void plSceneNode::IDirtySpaceTree()
 {
-    for (size_t i = 0; i < fDrawPool.size(); ++i)
+    hsAssert(fDrawPool.size() < std::numeric_limits<uint16_t>::max(), "Too many nodes");
+    for (uint16_t i = 0; i < fDrawPool.size(); ++i)
     {
         plDrawable* drawable = fDrawPool[i];
         if (drawable && drawable->GetSpaceTree()->IsDirty() )
@@ -284,9 +272,9 @@ void plSceneNode::ISetLight(plLightInfo* l)
 
 void plSceneNode::ISetOccluder(plOccluder* o)
 {
-    if( fOccluders.kMissingIndex == fOccluders.Find(o) )
+    if (std::find(fOccluders.cbegin(), fOccluders.cend(), o) == fOccluders.cend())
     {
-        fOccluders.Append(o);
+        fOccluders.emplace_back(o);
     }
 }
 
@@ -353,9 +341,9 @@ void plSceneNode::IRemoveLight(plLightInfo* l)
 
 void plSceneNode::IRemoveOccluder(plOccluder* o)
 {
-    int idx = fOccluders.Find(o);
-    if( idx != fOccluders.kMissingIndex )
-        fOccluders.Remove(idx);
+    auto iter = std::find(fOccluders.cbegin(), fOccluders.cend(), o);
+    if (iter != fOccluders.cend())
+        fOccluders.erase(iter);
 }
 
 void plSceneNode::IRemoveGeneric(hsKeyedObject* k)
@@ -400,8 +388,6 @@ bool plSceneNode::IOnRemove(plNodeRefMsg* refMsg)
 
 bool plSceneNode::IOnAdd(plNodeRefMsg* refMsg)
 {
-    int which = refMsg->fWhich;
-
     switch( refMsg->fType )
     {
     case plNodeRefMsg::kDrawable:
@@ -463,18 +449,17 @@ void    plSceneNode::ICleanUp()
 
     if (fFilterGenerics)
     {
-        int i;
-        for ( i = fSceneObjects.size() - 1; i >= 0; i--)
+        for (hsSsize_t i = fSceneObjects.size() - 1; i >= 0; i--)
             GetKey()->Release(fSceneObjects[i]->GetKey());
-        for ( i = fDrawPool.size() - 1; i >= 0; i--)
+        for (hsSsize_t i = fDrawPool.size() - 1; i >= 0; i--)
             GetKey()->Release(fDrawPool[i]->GetKey());
-        for ( i = fSimulationPool.size() - 1; i >= 0; i--)
+        for (hsSsize_t i = fSimulationPool.size() - 1; i >= 0; i--)
             GetKey()->Release(fSimulationPool[i]->GetKey());
-        for ( i = fAudioPool.size() - 1; i >= 0; i--)
+        for (hsSsize_t i = fAudioPool.size() - 1; i >= 0; i--)
             GetKey()->Release(fAudioPool[i]->GetKey());
-        for ( i = fOccluders.GetCount() - 1; i >= 0; i--)
+        for (hsSsize_t i = fOccluders.size() - 1; i >= 0; i--)
             GetKey()->Release(fOccluders[i]->GetKey());
-        for ( i = fLightPool.size() - 1; i >= 0; i--)
+        for (hsSsize_t i = fLightPool.size() - 1; i >= 0; i--)
             GetKey()->Release(fLightPool[i]->GetKey());
     }
 

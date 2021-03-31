@@ -42,7 +42,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plSDLNotificationMsg_inc
 #define plSDLNotificationMsg_inc
 
-#include "pnMessage/plMessage.h"
+#include "plMessage.h"
 
 class plSimpleStateVariable;
 class plSDLNotificationMsg : public plMessage
@@ -54,17 +54,17 @@ public:
     int fPlayerID;              // pid of the player who changed the data
     ST::string fHintString;     // hint from the player who changed the data
 
-    plSDLNotificationMsg() : fDelta(0), fVar(nil), fPlayerID(0) {}
+    plSDLNotificationMsg() : fDelta(), fVar(), fPlayerID() { }
     ~plSDLNotificationMsg() { }
 
     CLASSNAME_REGISTER(plSDLNotificationMsg);
     GETINTERFACE_ANY(plSDLNotificationMsg, plMessage);
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+    void Read(hsStream* stream, hsResMgr* mgr) override {
         hsAssert(false, "NA: LocalOnly msg");
     }
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+    void Write(hsStream* stream, hsResMgr* mgr) override {
         hsAssert(false, "NA: LocalOnly msg");
     }
 };

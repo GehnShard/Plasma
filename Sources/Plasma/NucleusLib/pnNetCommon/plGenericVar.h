@@ -148,7 +148,7 @@ protected:
     ST::string    fName;
 public:
     plGenericVar(const plGenericVar &c) { CopyFrom(c); }
-    plGenericVar(const ST::string& name=ST::null) : fName(name) { }
+    plGenericVar(const ST::string& name={}) : fName(name) { }
     virtual ~plGenericVar() { }
 
     virtual void Reset() { Value().Reset(); }   // reset runtime state, not inherent state
@@ -174,10 +174,10 @@ public:
     CLASSNAME_REGISTER(plCreatableGenericValue);
     GETINTERFACE_ANY(plCreatableGenericValue, plCreatable);
 
-    void Read(hsStream* s, hsResMgr*) HS_OVERRIDE {
+    void Read(hsStream* s, hsResMgr*) override {
         fValue.Read(s);
     }
-    void Write(hsStream* s, hsResMgr*) HS_OVERRIDE {
+    void Write(hsStream* s, hsResMgr*) override {
         fValue.Write(s);
     }
 

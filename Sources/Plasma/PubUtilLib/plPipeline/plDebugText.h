@@ -48,9 +48,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _plDebugText_h
 #define _plDebugText_h
 
+#include <vector>
+
 #include "HeadSpin.h"
 #include "hsColorRGBA.h"
-#include "hsTemplates.h"
 
 
 //// plDebugText Class Definition ////////////////////////////////////////////
@@ -66,7 +67,7 @@ class plDebugText
 
         plDebugText() 
         { 
-            fManager = nil;
+            fManager = nullptr;
 #ifdef PLASMA_EXTERNAL_RELEASE
             SetFont( "Trebuchet MS Bold", 8 );
 #else
@@ -177,15 +178,15 @@ class   plDebugTextManager
             ~plDebugTextNode() { }
         };
 
-        hsTArray<plDebugTextNode>   fList;
-        hsTArray<plDebugTextNode>   fDrawOnTopList;
+        std::vector<plDebugTextNode> fList;
+        std::vector<plDebugTextNode> fDrawOnTopList;
 
         plTextFont                  *fFont;
         uint32_t                      fSWidth, fSHeight;
 
     public:
 
-        plDebugTextManager() { plDebugText::Instance().SetManager( this ); fFont = nil; }
+        plDebugTextManager() { plDebugText::Instance().SetManager(this); fFont = nullptr; }
         ~plDebugTextManager();
 
         void    AddString( uint16_t x, uint16_t y, const char *s, uint32_t hexColor, uint8_t style, bool drawOnTop = false );

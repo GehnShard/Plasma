@@ -50,7 +50,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _plAnimObjInterface_h
 #define _plAnimObjInterface_h
 
-#include "hsTemplates.h"
+#include <vector>
 
 class plKey;
 
@@ -77,7 +77,7 @@ class plAnimObjInterface
         };
 
         // Given the optional INode to restrict to, return the list of keys to send messages to for conversion
-        virtual bool    GetKeyList( INode *restrictedNode, hsTArray<plKey> &outKeys ) = 0;
+        virtual bool    GetKeyList(INode *restrictedNode, std::vector<plKey> &outKeys) = 0;
 
         // Return the name of the segment/animation that this interface references. Pass "false" to get the 
         // ENTIRE_ANIMATION_NAME string for entire animations, "true" for nil.

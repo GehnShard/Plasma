@@ -42,16 +42,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef pfMarkerMgr_h_inc
 #define pfMarkerMgr_h_inc
 
+#include "HeadSpin.h"
+
+#include "pnKeyedObject/plKey.h"
 #include "pnKeyedObject/hsKeyedObject.h"
+
 #include <map>
 
 class plStatusLog;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class pfMarkerMsg;
 class pfMarkerGame;
 class pfMarkerInfo;
+class pfMarkerMsg;
 
 class pfMarkerMgr : public hsKeyedObject
 {
@@ -89,7 +93,7 @@ public:
     static pfMarkerMgr* Instance();
     static void Shutdown();
 
-    bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
 
     void AddMarker(const struct hsPoint3& pos, uint32_t id, bool justCreated);
     void RemoveMarker(uint32_t id);

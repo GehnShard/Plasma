@@ -45,7 +45,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 //////////////////////////////////////////////////////////////////////
 
-#pragma hdrstop
 
 #include "pyVaultChronicleNode.h"
 #include "plVault/plVault.h"
@@ -79,7 +78,7 @@ ST::string pyVaultChronicleNode::Chronicle_GetName() const
         VaultChronicleNode chron(fNode);
         return chron.GetEntryName();
     }
-    return ST::null;
+    return ST::string();
 }
 
 void pyVaultChronicleNode::Chronicle_SetValue( const char * text )
@@ -96,7 +95,7 @@ ST::string pyVaultChronicleNode::Chronicle_GetValue() const
         VaultChronicleNode chron(fNode);
         return chron.GetEntryValue();
     }
-    return ST::null;
+    return ST::string();
 }
 
 void pyVaultChronicleNode::Chronicle_SetType( uint32_t type )

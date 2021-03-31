@@ -47,7 +47,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <max.h>
 #include "resource.h"
 #include <vector>
-#pragma hdrstop
 
 #include "plPickLocalizationDlg.h"
 #include "pfLocalizationMgr/pfLocalizationDataMgr.h"
@@ -61,7 +60,7 @@ bool plPickLocalizationDlg::DoPick()
 {
     plMaxAccelerators::Disable();
 
-    BOOL ret = DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_PICK_LOCALIZATION),
+    INT_PTR ret = DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_PICK_LOCALIZATION),
         GetCOREInterface()->GetMAXHWnd(), IDlgProc, (LPARAM)this);
 
     plMaxAccelerators::Enable();
@@ -109,13 +108,13 @@ std::string WStringToString(std::wstring val)
 
 HTREEITEM plPickLocalizationDlg::IAddVar(std::string name, std::string match, HTREEITEM hParent)
 {
-    TVINSERTSTRUCT tvi = {0};
+    TVINSERTSTRUCT tvi = {};
     tvi.hParent = hParent;
     tvi.hInsertAfter = TVI_LAST;
     tvi.item.mask = TVIF_TEXT | TVIF_PARAM;
     tvi.item.pszText = (char*)name.c_str();
     tvi.item.cchTextMax = name.length();
-    tvi.item.lParam = (LPARAM)nil;
+    tvi.item.lParam = (LPARAM)nullptr;
 
     HTREEITEM hItem = TreeView_InsertItem(fTree, &tvi);
 
@@ -211,9 +210,9 @@ bool plPickLocalizationDlg::IValidatePath()
     return true;
 }
 
-BOOL CALLBACK plPickLocalizationDlg::IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK plPickLocalizationDlg::IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    static plPickLocalizationDlg* pthis = nil;
+    static plPickLocalizationDlg* pthis = nullptr;
 
     switch (msg)
     {

@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include <Python.h>
-#pragma hdrstop
 
 #include "pyVaultNode.h"
 #include "pnUUID/pnUUID.h"
@@ -63,20 +62,14 @@ PYTHON_RICH_COMPARE_DEFINITION(ptVaultNode, obj1, obj2, compareType)
         return nullptr;
     }
 
-    if ((obj1 == Py_None) || (obj2 == Py_None)) {
-        if (compareType == Py_EQ) {
-            PYTHON_RETURN_BOOL(obj1 == obj2);
-        } else if (compareType == Py_NE) {
-            PYTHON_RETURN_BOOL(obj1 != obj2);
-        }
-    }
+    // tp_richcompare documentation indicates obj1 should ALWAYS be an instance of this type.
+    hsAssert(pyVaultNode::Check(obj1), "left hand of richcompare is not a ptVaultNode????");
 
     // Truth testing
-    if ((pyVaultNode::Check(obj1) || PyBool_Check(obj1)) && (pyVaultNode::Check(obj2) || PyBool_Check(obj2))) {
-        pyVaultNode* node = pyVaultNode::Check(obj1) ? pyVaultNode::ConvertFrom(obj1) :
-                                                       pyVaultNode::ConvertFrom(obj2);
+    if (PyBool_Check(obj2)) {
+        pyVaultNode* node = pyVaultNode::ConvertFrom(obj1);
         bool value = node->fNode->IsUsed();
-        bool cmp = PyBool_Check(obj1) ? PyInt_AsLong(obj1) != 0 : PyInt_AsLong(obj2);
+        bool cmp = PyLong_AsLong(obj2);
         if (compareType == Py_EQ) {
             PYTHON_RETURN_BOOL(value == cmp);
         } else if (compareType == Py_NE) {
@@ -85,7 +78,7 @@ PYTHON_RICH_COMPARE_DEFINITION(ptVaultNode, obj1, obj2, compareType)
     }
 
     // Vault nodes can only be equal to vault nodes
-    if (!pyVaultNode::Check(obj1) || !pyVaultNode::Check(obj2)) {
+    if (!pyVaultNode::Check(obj2)) {
         if (compareType == Py_EQ) {
             Py_RETURN_FALSE;
         } else if (compareType == Py_NE) {
@@ -152,12 +145,12 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVaultNode, getCreateAgeTime)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultNode, getCreateAgeName)
 {
-    return PyString_FromSTString(self->fThis->GetCreateAgeName());
+    return PyUnicode_FromSTString(self->fThis->GetCreateAgeName());
 }
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultNode, getCreateAgeGuid)
 {
-    return PyString_FromSTString(self->fThis->GetCreateAgeGuid().AsString());
+    return PyUnicode_FromSTString(self->fThis->GetCreateAgeGuid().AsString());
 }
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultNode, getCreateAgeCoords)
@@ -172,7 +165,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVaultNode, getChildNodeRefList)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultNode, getChildNodeCount)
 {
-    return PyInt_FromLong(self->fThis->GetChildNodeCount());
+    return PyLong_FromLong(self->fThis->GetChildNodeCount());
 }
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultNode, getClientID)
@@ -279,7 +272,7 @@ PYTHON_METHOD_DEFINITION(ptVaultNode, getNode, args)
 
 PYTHON_METHOD_DEFINITION(ptVaultNode, findNode, args)
 {
-    PyObject* nodeObj = NULL;
+    PyObject* nodeObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &nodeObj))
     {
         PyErr_SetString(PyExc_TypeError, "findNode expects a ptVaultNode");
@@ -296,8 +289,8 @@ PYTHON_METHOD_DEFINITION(ptVaultNode, findNode, args)
 
 PYTHON_METHOD_DEFINITION(ptVaultNode, addNode, args)
 {
-    PyObject* nodeObj = NULL;
-    PyObject* cb = NULL;
+    PyObject* nodeObj = nullptr;
+    PyObject* cb = nullptr;
     unsigned long cbContext = 0;
     if (!PyArg_ParseTuple(args, "O|Ol", &nodeObj, &cb, &cbContext))
     {
@@ -316,7 +309,7 @@ PYTHON_METHOD_DEFINITION(ptVaultNode, addNode, args)
 PYTHON_METHOD_DEFINITION(ptVaultNode, linkToNode, args)
 {
     int nodeID;
-    PyObject* cb = NULL;
+    PyObject* cb = nullptr;
     unsigned long cbContext = 0;
     if (!PyArg_ParseTuple(args, "i|Ol", &nodeID, &cb, &cbContext))
     {
@@ -329,8 +322,8 @@ PYTHON_METHOD_DEFINITION(ptVaultNode, linkToNode, args)
 
 PYTHON_METHOD_DEFINITION(ptVaultNode, removeNode, args)
 {
-    PyObject* nodeObj = NULL;
-    PyObject* cb = NULL;
+    PyObject* nodeObj = nullptr;
+    PyObject* cb = nullptr;
     unsigned long cbContext = 0;
     if (!PyArg_ParseTuple(args, "O|Ol", &nodeObj, &cb, &cbContext))
     {
@@ -348,7 +341,7 @@ PYTHON_METHOD_DEFINITION(ptVaultNode, removeNode, args)
 
 PYTHON_METHOD_DEFINITION(ptVaultNode, save, args)
 {
-    PyObject* cb = NULL;
+    PyObject* cb = nullptr;
     unsigned long cbContext = 0;
     if (!PyArg_ParseTuple(args, "|Ol", &cb, &cbContext))
     {
@@ -361,7 +354,7 @@ PYTHON_METHOD_DEFINITION(ptVaultNode, save, args)
 
 PYTHON_METHOD_DEFINITION(ptVaultNode, saveAll, args)
 {
-    PyObject* cb = NULL;
+    PyObject* cb = nullptr;
     unsigned long cbContext = 0;
     if (!PyArg_ParseTuple(args, "|Ol", &cb, &cbContext))
     {
@@ -381,7 +374,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVaultNode, forceSave)
 PYTHON_METHOD_DEFINITION(ptVaultNode, sendTo, args)
 {
     unsigned long destNodeID;
-    PyObject* cb = NULL;
+    PyObject* cb = nullptr;
     unsigned long cbContext = 0;
     if (!PyArg_ParseTuple(args, "l|Ol", &destNodeID, &cb, &cbContext))
     {
@@ -518,11 +511,12 @@ PYTHON_START_METHODS_TABLE(ptVaultNode)
 PYTHON_END_METHODS_TABLE;
 
 // Type structure definition
-#define ptVaultNode_COMPARE         PYTHON_NO_COMPARE
 #define ptVaultNode_AS_NUMBER       PYTHON_NO_AS_NUMBER
 #define ptVaultNode_AS_SEQUENCE     PYTHON_NO_AS_SEQUENCE
 #define ptVaultNode_AS_MAPPING      PYTHON_NO_AS_MAPPING
 #define ptVaultNode_STR             PYTHON_NO_STR
+#define ptVaultNode_GETATTRO        PYTHON_NO_GETATTRO
+#define ptVaultNode_SETATTRO        PYTHON_NO_SETATTRO
 #define ptVaultNode_RICH_COMPARE    PYTHON_DEFAULT_RICH_COMPARE(ptVaultNode)
 #define ptVaultNode_GETSET          PYTHON_NO_GETSET
 #define ptVaultNode_BASE            PYTHON_NO_BASE

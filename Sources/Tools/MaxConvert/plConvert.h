@@ -43,19 +43,21 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plConvert_inc
 #define plConvert_inc
 
+#include <vector>
+
 class plErrorMsg;
 class plKey;
+class plLightMapGen;
 class plLocation;
 class plMaxNode;
 class plMessage;
-class plLightMapGen;
 class hsVertexShader;
 
 class plConvertSettings
 {
 public:
-    plConvertSettings() : fSceneViewer(false), fReconvert(false), fDoPreshade(true), fDoLightMap(true),
-        fLightMapGen(nil), fVertexShader(nil), fPhysicalsOnly(false), fExportPage(nil) {}
+    plConvertSettings() : fSceneViewer(), fReconvert(), fDoPreshade(true), fDoLightMap(true),
+        fLightMapGen(), fVertexShader(), fPhysicalsOnly(), fExportPage() { }
 
     bool fSceneViewer;  // Are we converting this for the SceneViewer?
     bool fReconvert;    // Don't need to set, will be done internally by plConvert
@@ -75,7 +77,7 @@ protected:
     plErrorMsg*         fpErrorMsg;
     Interface*          fInterface;
     plConvertSettings*  fSettings;
-    hsTArray<plMessage*>    fMsgQueue;
+    std::vector<plMessage*> fMsgQueue;
 
     plConvert();
     bool                IMakeSceneObject(INode* node);
@@ -104,7 +106,7 @@ public:
     void   DeInit();
 
     bool Convert();
-    bool Convert(hsTArray<plMaxNode*>& nodes);    // Convert a set of nodes (for SceneViewer update)
+    bool Convert(std::vector<plMaxNode*>& nodes);    // Convert a set of nodes (for SceneViewer update)
     
     plMaxNode* GetRootNode();
     void SendEnvironmentMessage(plMaxNode* pNode, plMaxNode* efxRegion, plMessage* msg, bool ignorePhysicals = false); // iterates through scene to find nodes contained by the efxRegion

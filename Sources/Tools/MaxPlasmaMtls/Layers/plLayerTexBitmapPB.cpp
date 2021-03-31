@@ -75,7 +75,7 @@ class BitmapDlgProc : public ParamMap2UserDlgProc
 public:
     /// Called to update the controls of the dialog
     /// Note: we're bad that we use a static here, but 
-    virtual void    Update( TimeValue t, Interval &valid, IParamMap2 *map )
+    void    Update(TimeValue t, Interval &valid, IParamMap2 *map) override
     {
         ICustButton     *bmSelectBtn;
         IParamBlock2    *pblock;
@@ -124,7 +124,7 @@ public:
         HWND dlg = map->GetHWnd();
         
         plDetailCurveCtrl *ctrl = GET_DETAIL_CURVE_CTRL( dlg, IDC_DETAIL_CURVE_CTRL );
-        if( ctrl == NULL )
+        if (ctrl == nullptr)
         {
             // The control hasn't been created, so create it already!
             HWND                basis;
@@ -140,7 +140,7 @@ public:
         
         EnableWindow( GetDlgItem( dlg, IDC_DETAIL_CURVE_CTRL ), (BOOL)pblock->GetInt( kBmpUseDetail, t ) );
         
-        if( ctrl != NULL )
+        if (ctrl != nullptr)
         {
             ctrl->SetStartPoint( (float)pblock->GetInt( kBmpDetailStartSize, t ) / 100.f,
                 (float)pblock->GetInt( kBmpDetailStartOpac, t ) / 100.f );
@@ -149,15 +149,15 @@ public:
         }
         
     }
-    
-    virtual BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         static ICustButton* bmSelectBtn;
         
         switch (msg)
         {
         case WM_INITDIALOG:
-            fLastBMap = NULL;
+            fLastBMap = nullptr;
             fSettingDetailValues = false;
             break;
             
@@ -199,7 +199,7 @@ public:
                 map->UpdateUI( t );
                 fSettingDetailValues = false;
             }
-            return 0;
+            return FALSE;
             
         case WM_COMMAND:
             if( HIWORD( wParam ) == EN_CHANGE && LOWORD( wParam ) == IDC_EXPORTWIDTH )
@@ -243,7 +243,7 @@ public:
             else if (LOWORD(wParam) == IDC_LAYER_NAME)
             {
                 plPlasmaMAXLayer *layer = (plPlasmaMAXLayer *)map->GetParamBlock()->GetOwner();
-                if (layer == nil)
+                if (layer == nullptr)
                     return FALSE;
                 BOOL selectedNewBitmap = layer->HandleBitmapSelection();
                 
@@ -258,10 +258,10 @@ public:
                     
                     bmSelectBtn = GetICustButton(GetDlgItem(hWnd,IDC_LAYER_NAME));
                     PBBitmap *pbbm = layer->GetPBBitmap();
-                    bmSelectBtn->SetText(pbbm != nil ? (TCHAR*)pbbm->bi.Filename() : "");
+                    bmSelectBtn->SetText(pbbm != nullptr ? (TCHAR*)pbbm->bi.Filename() : "");
                     ReleaseICustButton(bmSelectBtn);
                     
-                    if (pbbm != nil)
+                    if (pbbm != nullptr)
                     {
                         // Init values for clamping spinners to powers of 2
                         int width = IFloorPow2( pbbm->bi.Width() );
@@ -299,13 +299,13 @@ public:
         
         return FALSE;
     }
-    virtual void DeleteThis() {};
+    void DeleteThis() override { }
     
     void    ISetDetailCurveNumLevels( IParamMap2 *map, TimeValue t )
     {
         /// Set the level count on the detail control
         plDetailCurveCtrl *ctrl = GET_DETAIL_CURVE_CTRL( map->GetHWnd(), IDC_DETAIL_CURVE_CTRL );
-        if( ctrl != NULL )
+        if (ctrl != nullptr)
         {
             IParamBlock2 *pblock = map->GetParamBlock();
             int w = pblock->GetInt( kBmpExportWidth, t );
@@ -361,7 +361,7 @@ public:
         // And clamp aspect ratio
         PBBitmap        *pbbm = pblock->GetBitmap( kBmpBitmap, t );
         
-        if( pbbm != NULL )
+        if (pbbm != nullptr)
         {
             int realWidth = pbbm->bi.Width();
             int realHeight = pbbm->bi.Height();
@@ -373,7 +373,7 @@ public:
                 aspect = (float)realWidth / (float)realHeight;
             
             int value = newVal;
-            value *= aspect;
+            value = int(value * aspect);
             
             if( value < 4 )
             {
@@ -381,7 +381,7 @@ public:
                 value = 4;
                 pblock->SetValue( otherNew, t, value );
                 pblock->SetValue( otherOld, t, value );
-                value = value / aspect;
+                value = int(value / aspect);
                 pblock->SetValue( clampNew, t, value );
                 pblock->SetValue( clampOld, t, value );
             }
@@ -410,7 +410,7 @@ static BitmapDlgProc gBitmapDlgProc;
 
 static ParamBlockDesc2 gBitmapParamBlk
 (
-    plLayerTex::kBlkBitmap, _T("bitmap"),  0, GetLayerTexDesc(),//NULL,
+    plLayerTex::kBlkBitmap, _T("bitmap"),  0, GetLayerTexDesc(),//nullptr,
     P_AUTO_CONSTRUCT + P_AUTO_UI, plLayerTex::kRefBitmap,
 
     IDD_LAYER_TEX, IDS_LAYER_TEX, 0, 0, &gBitmapDlgProc,
@@ -569,11 +569,12 @@ ParamBlockDesc2 *GetBitmapBlk() { return &gBitmapParamBlk; }
 class BMTexPBAccessor : public PBAccessor
 {
 public:
-    void Set(PB2Value& val, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)
+    void Set(PB2Value& val, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override
     {
       plLayerTex* layer = (plLayerTex*)owner;
 
-      if(layer == NULL) return;
+      if (layer == nullptr)
+          return;
       
       IParamBlock2 *pb = layer->GetParamBlockByID(plLayerTex::kBlkBitmap);
 
@@ -651,14 +652,14 @@ public:
             case kBmpDetailStopSize:
             case kBmpDetailStartOpac:
             case kBmpDetailStopOpac:
-                if( pb != NULL )
+                if (pb != nullptr)
                 {
                     if( IIsProcSettingDetailValues( pb ) )
                         break;  // Ignore, since we're the ones setting 'em
 
                     HWND dlg = pb->GetMap()->GetHWnd();
                     plDetailCurveCtrl *ctrl = GET_DETAIL_CURVE_CTRL( dlg, IDC_DETAIL_CURVE_CTRL );
-                    if( ctrl != NULL )
+                    if (ctrl != nullptr)
                     {
                         if( id == kBmpDetailStartSize || id == kBmpDetailStartOpac )
                             ctrl->SetStartPoint( (float)pb->GetInt( kBmpDetailStartSize, t ) / 100.f,
@@ -686,7 +687,7 @@ public:
                 break;
 
             case kBmpUseDetail:
-                if( pb != NULL )
+                if (pb != nullptr)
                 {
                     HWND dlg = pb->GetMap()->GetHWnd();
                     EnableWindow( GetDlgItem( dlg, IDC_DETAIL_CURVE_CTRL ), (BOOL)val.i );
@@ -694,7 +695,7 @@ public:
                 break;
         }
     }
-    void Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t, Interval &valid)
+    void Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t, Interval &valid) override
     {
     }
 
@@ -755,7 +756,7 @@ void BMCropper::OnClose()
 bool    BMTexPBAccessor::IIsProcSettingDetailValues( IParamBlock2 *pb )
 {
     BitmapDlgProc *proc = (BitmapDlgProc *)pb->GetMap()->GetUserDlgProc();
-    if( proc != NULL )
+    if (proc != nullptr)
         return proc->fSettingDetailValues;
 
     return false;

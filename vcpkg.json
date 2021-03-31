@@ -1,0 +1,47 @@
+{
+    "name": "plasma",
+    "version-string": "2.0.70.2",
+    "description": "Cyan Worlds' Plasma game engine",
+    "dependencies": [
+      "asio",
+      "curl",
+      "expat",
+      "freetype",
+      "libjpeg-turbo",
+      "libogg",
+      "libpng",
+      "libvorbis",
+      "libvpx",
+      "libwebm",
+      "openal-soft",
+      "openssl",
+      "opus",
+      "physx",
+      {
+        "name": "python3",
+        "features": [
+          "deprecated-win7-support"
+        ]
+      },
+      "speex",
+      "string-theory",
+      {
+        "name": "libuuid",
+        "platform": "linux | osx"
+      },
+      "zlib"
+    ],
+    "features": {
+      "cairosvg": {
+        "description": "Installs a functional cairosvg Python module for the resource.dat generator.",
+        "dependencies": [
+          {
+            "name": "cairo",
+            "platform": "windows",
+            "default-features": false
+          },
+          "python3-cairosvg"
+        ]
+      }
+    }
+  }

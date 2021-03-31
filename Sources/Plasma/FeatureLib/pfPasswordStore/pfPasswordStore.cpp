@@ -51,8 +51,8 @@ pfPasswordStore* pfPasswordStore::Instance()
 {
 #if defined(HS_BUILD_FOR_WIN32)
     static pfWin32PasswordStore store;
-#elif defined(HS_BUILD_FOR_OSX)
-    static pfMacPasswordStore store;
+#elif defined(HAVE_SECURITY)
+    static pfApplePasswordStore store;
 #elif defined(HAVE_LIBSECRET)
     static pfUnixPasswordStore store;
 #else
@@ -81,11 +81,11 @@ pfFilePasswordStore::pfFilePasswordStore()
 ST::string pfFilePasswordStore::GetPassword(const ST::string& username)
 {
     plFileName loginDat = plFileName::Join(plFileSystem::GetInitPath(), "login.dat");
-    ST::string password = ST::null;
+    ST::string password;
 
 #ifndef PLASMA_EXTERNAL_RELEASE
     // internal builds can use the local init directory
-    plFileName local("init\\login.dat");
+    plFileName local = plFileName::Join("init", "login.dat");
     if (plFileInfo(local).Exists())
         loginDat = local;
 #endif
@@ -118,7 +118,7 @@ bool pfFilePasswordStore::SetPassword(const ST::string& username, const ST::stri
 
 #ifndef PLASMA_EXTERNAL_RELEASE
     // internal builds can use the local init directory
-    plFileName local("init\\login.dat");
+    plFileName local = plFileName::Join("init", "login.dat");
     if (plFileInfo(local).Exists())
         loginDat = local;
 #endif

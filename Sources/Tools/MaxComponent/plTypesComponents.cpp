@@ -41,6 +41,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
+#include "hsWindows.h"
+
 #include "plgDispatch.h"
 #include "hsGeometry3.h"
 #include "hsResMgr.h"
@@ -50,12 +52,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAnimComponent.h"
 #include "plAudioComponents.h"
 #include "MaxMain/plMaxNode.h"
+#include "MaxMain/MaxAPI.h"
+
 #include "resource.h"
-
-#include <iparamm2.h>
-#include <windowsx.h>
-#pragma hdrstop
-
 
 #include "pnSceneObject/plSceneObject.h"
 
@@ -86,10 +85,10 @@ class plStartingPointComponent : public plComponent
 {
 public:
     plStartingPointComponent();
-    void DeleteThis() { delete this; }
-    bool SetupProperties(plMaxNode* node, plErrorMsg* pErrMsg);
-    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    void DeleteThis() override { delete this; }
+    bool SetupProperties(plMaxNode* node, plErrorMsg* pErrMsg) override;
+    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
     //bool IsValidNodeType(plMaxNode *pNode);
 };
 
@@ -143,9 +142,9 @@ protected:
 public:
     plVehicleComponent();
 
-    bool SetupProperties(plMaxNode* node, plErrorMsg* pErrMsg);
-    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode* node, plErrorMsg* pErrMsg) override;
+    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 CLASS_DESC(plVehicleComponent, gVehicleDesc, "(ex)Vehicle", "Vehicle", COMP_TYPE_MISC, Class_ID(0x75903e2, 0x50ac210b))
@@ -174,7 +173,7 @@ protected:
     }
 
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2* pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2* pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -198,7 +197,7 @@ public:
 
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plVehicleComponentProc gVehicleComponentProc;
 
@@ -244,7 +243,7 @@ ParamBlockDesc2 gVehicleBlock
     end
 );
 
-plVehicleComponent::plVehicleComponent() : fMod(nil)
+plVehicleComponent::plVehicleComponent() : fMod()
 {
     fClassDesc = &gVehicleDesc;
     fClassDesc->MakeAutoParamBlocks(this);
@@ -340,7 +339,7 @@ bool plVehicleComponent::PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg)
     plKey modKey = pNode->AddModifier(fMod, IGetUniqueName(pNode));
 
     plMaxNode* detectorNode = (plMaxNode*)fCompPB->GetINode(kVehicleDriveDet);
-    plComponentBase* comp = detectorNode ? detectorNode->ConvertToComponent() : nil;
+    plComponentBase* comp = detectorNode ? detectorNode->ConvertToComponent() : nullptr;
     if (comp)
         comp->AddReceiverKey(modKey);
 
@@ -427,10 +426,10 @@ class plMaintainersMarkerComponent : public plComponent
 {
 public:
     plMaintainersMarkerComponent();
-    void DeleteThis() { delete this; }
-    bool SetupProperties(plMaxNode* node, plErrorMsg* pErrMsg);
-    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    void DeleteThis() override { delete this; }
+    bool SetupProperties(plMaxNode* node, plErrorMsg* pErrMsg) override;
+    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 //Max desc stuff necessary.
@@ -441,7 +440,7 @@ ParamBlockDesc2 gMaintainersBk
 (
     
     1, _T("maintainersMarker"), 0, &gMaintainersDesc, P_AUTO_CONSTRUCT  + P_AUTO_UI, plComponent::kRefComp,
-    IDD_COMP_MAINTAINERS_MARKER, IDS_COMP_MAINTAINERS_MARKER, 0, 0, NULL,
+    IDD_COMP_MAINTAINERS_MARKER, IDS_COMP_MAINTAINERS_MARKER, 0, 0, nullptr,
 
     kCalibrated, _T("Calibrated"),      TYPE_INT,       0, 0,
         p_ui, TYPE_RADIO, 3,    IDC_RADIO_BROKEN, IDC_RADIO_REPAIRED, IDC_RADIO_CALIBRATED,
@@ -494,9 +493,9 @@ protected:
 
 public:
     plGameMarkerComponent();
-    bool SetupProperties(plMaxNode* node, plErrorMsg* pErrMsg);
-    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode* node, plErrorMsg* pErrMsg) override;
+    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 CLASS_DESC(plGameMarkerComponent, gGameMarkerDesc, "Game Marker",  "GameMarker", COMP_TYPE_TYPE, Class_ID(0x4a15029a, 0x350f7258))
@@ -557,7 +556,7 @@ protected:
         {
             SetDlgItemText(hWnd, IDC_MTL_BUTTON, mtl->GetName());
 
-            plNotetrackAnim anim(mtl, nil);
+            plNotetrackAnim anim(mtl, nullptr);
             ILoadCombo(hWnd, IDC_ANIM_RED_COMBO, kMarkerRedAnim, pb, anim);
             ILoadCombo(hWnd, IDC_ANIM_GREEN_COMBO, kMarkerGreenAnim, pb, anim);
             ILoadCombo(hWnd, IDC_ANIM_OPEN_COMBO, kMarkerOpenAnim, pb, anim);
@@ -585,7 +584,7 @@ protected:
     }
 
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2* pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2* pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -641,7 +640,7 @@ public:
 
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plGameMarkerComponentProc gGameMarkerComponentProc;
 
@@ -716,10 +715,10 @@ plKey plGameMarkerComponent::IGetMtlAnimKey(int paramID, plMaxNode* node)
 {
     Mtl* mtl = fCompPB->GetMtl(kMarkerMtl);
     plMaxNode* mtlNode  = (plMaxNode*)fCompPB->GetINode(kMarkerMtlNode);
-    hsTArray<plKey> keys;
+    std::vector<plKey> keys;
     ST::string anim = ST::string::from_utf8(fCompPB->GetStr(paramID));
     GetMatAnimModKey(mtl, mtlNode, anim, keys);
-    hsAssert(keys.Count() == 1, "Wrong number of keys");
+    hsAssert(keys.size() == 1, "Wrong number of keys");
     return keys[0];
 }
 
@@ -733,7 +732,7 @@ plKey plGameMarkerComponent::IGetAnimKey(int nodeID, int compID)
         return comp->GetModKey(animNode);
     }
 
-    return nil;
+    return nullptr;
 }
 
 bool plGameMarkerComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
@@ -771,14 +770,14 @@ class plCameraComponent : public plComponent
 {
 public:
     plCameraComponent();
-    void DeleteThis() { delete this; }
-    virtual bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    void DeleteThis() override { delete this; }
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
     bool IsValidNodeType(plMaxNode *pNode);
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    virtual bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
 
 };
 
@@ -799,7 +798,7 @@ ParamBlockDesc2 gCameraBk
 (   
     1, _T("camera"), 0, &gCameraDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_CAMERA, IDS_COMP_CAMERAS,  0, 0, NULL,
+    IDD_COMP_CAMERA, IDS_COMP_CAMERAS,  0, 0, nullptr,
 
     // params
     kCamera,    _T("Animation"),        TYPE_INT,       0, 0,

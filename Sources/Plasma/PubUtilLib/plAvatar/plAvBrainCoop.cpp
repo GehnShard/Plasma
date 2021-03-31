@@ -49,20 +49,22 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAvBrainCoop.h"
 
 // local
-#include "plArmatureMod.h"
 #include "plAnimStage.h"
-#include "plAvTaskSeek.h"
+#include "plArmatureMod.h"
 #include "plAvatarMgr.h"
+#include "plAvTaskSeek.h"
 
 // other
-#include "plScene/plSceneNode.h"
+#include "hsResMgr.h"
+#include "hsStream.h"
+
+#include "pnMessage/plNotifyMsg.h"
 #include "pnNetCommon/plNetApp.h"
 
-// messages
 #include "plMessage/plAvatarMsg.h"
 #include "plMessage/plAvCoopMsg.h"
 #include "plMessage/plPickedMsg.h"
-#include "pnMessage/plNotifyMsg.h"
+#include "plScene/plSceneNode.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -226,8 +228,8 @@ void plAvBrainCoop::Write(hsStream *stream, hsResMgr *mgr)
     stream->WriteLE32(fInitiatorID);
     stream->WriteLE16(fInitiatorSerial);
 
-    bool hasHostKey = (fHostKey != nil);
-    bool hasGuestKey = (fGuestKey != nil);
+    bool hasHostKey = (fHostKey != nullptr);
+    bool hasGuestKey = (fGuestKey != nullptr);
 
     stream->WriteBool(hasHostKey);
     if(hasHostKey)
@@ -239,15 +241,17 @@ void plAvBrainCoop::Write(hsStream *stream, hsResMgr *mgr)
 
     stream->WriteBool(fWaitingForClick);
 
-    stream->WriteLE16(fRecipients.size());
-    for (unsigned i = 0; i < fRecipients.size(); i++)
-        mgr->WriteKey(stream, fRecipients[i]);
+    size_t numRecipients = fRecipients.size();
+    hsAssert(numRecipients < std::numeric_limits<uint16_t>::max(), "Too many recipients");
+    stream->WriteLE16(uint16_t(numRecipients));
+    for (const plKey& recipient : fRecipients)
+        mgr->WriteKey(stream, recipient);
 }
 
 plKey plAvBrainCoop::GetRecipient()
 {
     if (fRecipients.size() == 0)
-        return nil;
+        return nullptr;
     return fRecipients[0];
 }
 

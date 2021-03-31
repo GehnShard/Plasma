@@ -40,11 +40,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
+#include "plOneShotCallbacks.h"
+
 #include "hsResMgr.h"
 #include "hsStream.h"
-#pragma hdrstop
-
-#include "plOneShotCallbacks.h"
 
 plOneShotCallbacks::plOneShotCallbacks()
 {

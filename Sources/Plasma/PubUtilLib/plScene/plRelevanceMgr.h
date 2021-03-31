@@ -42,14 +42,16 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plRelevanceMgr_inc
 #define plRelevanceMgr_inc
 
+#include <vector>
+
 #include "pnKeyedObject/hsKeyedObject.h"
-#include "hsGeometry3.h"
-#include "hsTemplates.h"
-#include "hsBitVector.h"
 
-
+class hsBitVector;
+struct hsPoint3;
 class plRelevanceRegion;
 class hsStream;
+
+namespace ST { class string; }
 
 class plRelevanceMgr : public hsKeyedObject
 {
@@ -62,7 +64,7 @@ public:
     static void DeInit();   
 
 protected:
-    hsTArray<plRelevanceRegion*> fRegions;  
+    std::vector<plRelevanceRegion*> fRegions;
     bool fEnabled;
 
     void IAddRegion(plRelevanceRegion *);
@@ -74,7 +76,7 @@ public:
     CLASSNAME_REGISTER( plRelevanceMgr );
     GETINTERFACE_ANY( plRelevanceMgr, hsKeyedObject );
     
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
 
     bool GetEnabled() { return fEnabled; }
     void SetEnabled(bool val) { fEnabled = val; }

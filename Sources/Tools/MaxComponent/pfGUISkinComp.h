@@ -52,16 +52,16 @@ class plGUISkinComp : public plComponent
 {
 public:
     plGUISkinComp();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
 
-    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
-    bool DeInit(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool DeInit(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
     plLayerTex  *GetSkinBitmap();
 
@@ -120,7 +120,7 @@ class pfGUISkinEditProc
 
         bool            fDragging;
         uint8_t           fDragType;
-        int             fDragTimer;
+        UINT_PTR        fDragTimer;
         int             fDragOffsetX, fDragOffsetY;
         HCURSOR         fOrigCursor;
 

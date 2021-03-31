@@ -43,7 +43,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <Python.h>
 #include "pyGeometry3.h"
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "pyCritterBrain.h"
 #include "pySceneObject.h"
@@ -51,7 +50,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAvatar/plAvBrainCritter.h"
 #include "pnSceneObject/plSceneObject.h"
 
-pyCritterBrain::pyCritterBrain(): fBrain(nil) {}
+pyCritterBrain::pyCritterBrain() : fBrain() { }
 
 bool pyCritterBrain::operator==(const pyCritterBrain& other) const
 {
@@ -106,14 +105,14 @@ bool pyCritterBrain::RunningBehavior(const std::string& behaviorName) const
 std::string pyCritterBrain::BehaviorName(int behavior) const
 {
     if (!fBrain)
-        return nil;
+        return nullptr;
     return fBrain->BehaviorName(behavior);
 }
 
 ST::string pyCritterBrain::AnimationName(int behavior) const
 {
     if (!fBrain)
-        return ST::null;
+        return ST::string();
     return fBrain->AnimationName(behavior);
 }
 
@@ -134,14 +133,14 @@ int pyCritterBrain::NextBehavior() const
 std::string pyCritterBrain::IdleBehaviorName() const
 {
     if (!fBrain)
-        return nil;
+        return nullptr;
     return fBrain->IdleBehaviorName();
 }
 
 std::string pyCritterBrain::RunBehaviorName() const
 {
     if (!fBrain)
-        return nil;
+        return nullptr;
     return fBrain->RunBehaviorName();
 }
 

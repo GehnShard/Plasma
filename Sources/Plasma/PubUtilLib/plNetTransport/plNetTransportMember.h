@@ -46,6 +46,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plNetCommon/plNetMember.h"
 #include "pnKeyedObject/plKey.h"
 
+#include <string_theory/string>
+#include <vector>
+
 //
 // This represents a participant in the game, ie. another 
 // remote user.
@@ -73,19 +76,19 @@ public:
     CLASSNAME_REGISTER( plNetTransportMember);
     GETINTERFACE_ANY( plNetTransportMember, plNetMember);
 
-    plNetTransportMember() : fAvatarKey(nil),
-        fTransportFlags(0),fPlayerID(0),fDistSq(-1),fCCRLevel(0) {}
+    plNetTransportMember() :
+        fTransportFlags(), fPlayerID(), fDistSq(-1), fCCRLevel() { }
     plNetTransportMember(plNetApp* na) : plNetMember(na),
-        fAvatarKey(nil),fTransportFlags(0),fPlayerID(0),fDistSq(-1),fCCRLevel(0) {}
+        fTransportFlags(), fPlayerID(), fDistSq(-1), fCCRLevel() { }
     ~plNetTransportMember() {}
 
     void SetDistSq(float s) { fDistSq=s; }
     float GetDistSq() const { return fDistSq; }
 
-    plKey GetAvatarKey() { return fAvatarKey; }
+    plKey GetAvatarKey() const { return fAvatarKey; }
     void SetAvatarKey(plKey k)
         {
-            fAvatarKey=k;
+            fAvatarKey=std::move(k);
         }
     void SetPlayerName(const ST::string & value) { fPlayerName=value;}
     ST::string GetPlayerName() const { return fPlayerName;}
@@ -107,8 +110,8 @@ public:
     uint32_t GetTransportFlags() const { return fTransportFlags; }
 
     bool IsPeerToPeer() const { return hsCheckBits(fFlags, kRequestP2P); }
-    ST::string AsString() const HS_OVERRIDE;
-    bool IsEqualTo(const plNetMember * other) const
+    ST::string AsString() const override;
+    bool IsEqualTo(const plNetMember * other) const override
     {
         const plNetTransportMember * o = plNetTransportMember::ConvertNoRef(other);
         if (!o) return false;

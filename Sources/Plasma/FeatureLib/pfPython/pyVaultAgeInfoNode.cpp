@@ -47,7 +47,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include <string_theory/string_stream>
-#pragma hdrstop
 
 #include "pyVaultAgeInfoNode.h"
 
@@ -71,7 +70,7 @@ pyVaultAgeInfoNode::pyVaultAgeInfoNode()
 //============================================================================
 /*
 static PyObject * GetChildFolder (RelVaultNode * node, unsigned type) {
-    PyObject * result = nil;
+    PyObject * result = nullptr;
     if (RelVaultNode * rvn = node->GetChildFolderNodeIncRef(type, 1)) {
         result = pyVaultFolderNode::New(rvn);
         rvn->UnRef();
@@ -81,16 +80,16 @@ static PyObject * GetChildFolder (RelVaultNode * node, unsigned type) {
 */
 
 //============================================================================
-static PyObject * GetChildPlayerInfoList (RelVaultNode * node, unsigned type) {
-    PyObject * result = nil;
+static PyObject * GetChildPlayerInfoList(hsWeakRef<RelVaultNode> node, unsigned type) {
+    PyObject * result = nullptr;
     if (hsRef<RelVaultNode> rvn = node->GetChildPlayerInfoListNode(type, 1))
         result = pyVaultPlayerInfoListNode::New(rvn);
     return result;
 }
 
 //============================================================================
-static PyObject * GetChildAgeInfoList (RelVaultNode * node, unsigned type) {
-    PyObject * result = nil;
+static PyObject * GetChildAgeInfoList(hsWeakRef<RelVaultNode> node, unsigned type) {
+    PyObject * result = nullptr;
     if (hsRef<RelVaultNode> rvn = node->GetChildAgeInfoListNode(type, 1))
         result = pyVaultAgeInfoListNode::New(rvn);
     return result;
@@ -177,7 +176,7 @@ ST::string pyVaultAgeInfoNode::GetAgeFilename() const
         VaultAgeInfoNode access(fNode);
         return access.GetAgeFilename();
     }
-    return ST::null;
+    return ST::string();
 }
 
 void pyVaultAgeInfoNode::SetAgeFilename(const ST::string& v)
@@ -190,7 +189,7 @@ ST::string pyVaultAgeInfoNode::GetAgeInstanceName() const
         VaultAgeInfoNode access(fNode);
         return access.GetAgeInstanceName();
     }
-    return ST::null;
+    return ST::string();
 }
 
 void pyVaultAgeInfoNode::SetAgeInstanceName(const ST::string& v)
@@ -203,7 +202,7 @@ ST::string pyVaultAgeInfoNode::GetAgeUserDefinedName() const
         VaultAgeInfoNode access(fNode);
         return access.GetAgeUserDefinedName();
     }
-    return ST::null;
+    return ST::string();
 }
 
 void pyVaultAgeInfoNode::SetAgeUserDefinedName(const ST::string& v)
@@ -230,7 +229,7 @@ ST::string pyVaultAgeInfoNode::GetAgeDescription() const
         VaultAgeInfoNode access(fNode);
         return access.GetAgeDescription();
     }
-    return ST::null;
+    return ST::string();
 }
 
 void pyVaultAgeInfoNode::SetAgeDescription(const ST::string& v)
@@ -308,7 +307,7 @@ ST::string pyVaultAgeInfoNode::GetDisplayName() const
         }
         return ss.to_string();
     }
-    return ST::null;
+    return ST::string();
 }
 
 PyObject * pyVaultAgeInfoNode::AsAgeInfoStruct() const

@@ -50,7 +50,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <mutex>
 #include "hsRefCnt.h"
 #include "hsLockGuard.h"
-#pragma hdrstop
 
 
 namespace pnNetCli {
@@ -83,15 +82,15 @@ private:
 };
 
 struct NetMsgChannel : hsRefCnt {
-    NetMsgChannel() : hsRefCnt(0) { }
+    NetMsgChannel() : hsRefCnt(0), m_protocol(), m_server(), m_largestRecv(), m_dh_g() { }
 
     uint32_t                m_protocol;
     bool                    m_server;
 
     // Message definitions
     uint32_t                m_largestRecv;
-    TArray<NetMsgInitSend>  m_sendMsgs;
-    TArray<NetMsgInitRecv>  m_recvMsgs;
+    std::vector<NetMsgInitSend>  m_sendMsgs;
+    std::vector<NetMsgInitRecv>  m_recvMsgs;
 
     // Diffie-Hellman constants
     uint32_t                m_dh_g;
@@ -121,7 +120,7 @@ ChannelCrit::~ChannelCrit () {
         }
 
         delete s_channels;
-        s_channels = nil;
+        s_channels = nullptr;
     }
 }
 
@@ -217,7 +216,9 @@ static void AddSendMsgs_CS (
     const NetMsgInitSend    src[],
     unsigned                count
 ) {
-    channel->m_sendMsgs.GrowToFit(MaxMsgId(src, count), true);
+    const size_t reqSize = MaxMsgId(src, count) + 1;
+    if (channel->m_sendMsgs.size() < reqSize)
+        channel->m_sendMsgs.resize(reqSize);
 
     for (const NetMsgInitSend * term = src + count; src < term; ++src) {
         NetMsgInitSend * const dst = &channel->m_sendMsgs[src[0].msg->messageId];
@@ -236,7 +237,9 @@ static void AddRecvMsgs_CS (
     const NetMsgInitRecv    src[],
     unsigned                count
 ) {
-    channel->m_recvMsgs.GrowToFit(MaxMsgId(src, count), true);
+    const size_t reqSize = MaxMsgId(src, count) + 1;
+    if (channel->m_recvMsgs.size() < reqSize)
+        channel->m_recvMsgs.resize(reqSize);
 
     for (const NetMsgInitRecv * term = src + count; src < term; ++src) {
         ASSERT(src->recv);
@@ -256,7 +259,7 @@ static void AddRecvMsgs_CS (
 //===========================================================================
 static NetMsgChannel* FindChannel_CS (uint32_t protocol, bool server) {
     if (!s_channels)
-        return nil;
+        return nullptr;
 
     std::list<NetMsgChannel*>::iterator it = s_channels->begin();
     for (; it != s_channels->end(); ++it) {
@@ -264,7 +267,7 @@ static NetMsgChannel* FindChannel_CS (uint32_t protocol, bool server) {
             return *it;
     }
 
-    return nil;
+    return nullptr;
 }
 
 //===========================================================================
@@ -328,13 +331,13 @@ const NetMsgInitRecv * NetMsgChannelFindRecvMessage (
     unsigned        messageId
 ) {
     // Is message in range?
-    if (messageId >= channel->m_recvMsgs.Count())
-        return nil;
+    if (messageId >= channel->m_recvMsgs.size())
+        return nullptr;
 
     // Is message defined?
     const NetMsgInitRecv * recvMsg = &channel->m_recvMsgs[messageId];
     if (!recvMsg->msg->count)
-        return nil;
+        return nullptr;
 
     // Success!
     return recvMsg;
@@ -343,10 +346,10 @@ const NetMsgInitRecv * NetMsgChannelFindRecvMessage (
 //============================================================================
 const NetMsgInitSend * NetMsgChannelFindSendMessage (
     NetMsgChannel * channel,
-    unsigned        messageId
+    uintptr_t       messageId
 ) {
     // Is message in range?
-    ASSERT(messageId < channel->m_sendMsgs.Count());
+    ASSERT(messageId < channel->m_sendMsgs.size());
 
     // Is message defined?
     const NetMsgInitSend * sendMsg = &channel->m_sendMsgs[messageId];

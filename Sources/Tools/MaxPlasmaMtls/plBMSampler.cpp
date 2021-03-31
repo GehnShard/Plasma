@@ -40,13 +40,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "HeadSpin.h"
-#include "hsWindows.h"
-#include <commdlg.h>
 
-#include <bmmlib.h>
-#include <max.h>
-#include <iparamb2.h>
-#pragma hdrstop
+#include "MaxMain/MaxAPI.h"
 
 #include <cmath>
 
@@ -68,7 +63,7 @@ plBMSampler::plBMSampler(plPlasmaMAXLayer *layer, Bitmap *bm) : fBM(bm), fInitia
         clipy = int(fData.fClipV*fbmh);
         fclipw = fData.fClipW*fbmw;
         fcliph = fData.fClipH*fbmh;
-        cliph = fcliph;
+        cliph = int(fcliph);
 
         fInitialized = true;
     }

@@ -40,16 +40,18 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
-#include <Python.h>
-#pragma hdrstop
-
 #include "pySDL.h"
+
+#include <Python.h>
+
+#include "pnKeyedObject/plKey.h"
+
 #include "plSDL/plSDL.h"
 
 ///////////////////////////////////////////////////////////////////////////
 
 pySDLStateDataRecord::pySDLStateDataRecord()
-: fRec( nil )
+: fRec()
 {
 }
 
@@ -82,7 +84,7 @@ PyObject * pySDLStateDataRecord::FindVar( const ST::string & name ) const
 ST::string pySDLStateDataRecord::GetName() const
 {
     if (!fRec)
-        return ST::null;
+        return ST::string();
     const plStateDescriptor *stateDesc = fRec->GetDescriptor();
     return stateDesc->GetName();
 }
@@ -114,7 +116,7 @@ void pySDLStateDataRecord::SetFromDefaults(bool timeStampNow)
 ///////////////////////////////////////////////////////////////////////////
 
 pySimpleStateVariable::pySimpleStateVariable()
-: fVar( nil )
+: fVar()
 {
 }
 
@@ -238,7 +240,7 @@ ST::string pySimpleStateVariable::GetString( int idx ) const
 
 plKey pySimpleStateVariable::GetKey( int idx ) const
 {
-    plKey theKey = nil;
+    plKey theKey;
     if (fVar)
         fVar->Get(&theKey, idx);
     return theKey;
@@ -255,7 +257,7 @@ int pySimpleStateVariable::GetType() const
 ST::string pySimpleStateVariable::GetDisplayOptions() const
 {
     if (!fVar)
-        return ST::null;
+        return ST::string();
     plVarDescriptor *varDesc = fVar->GetVarDescriptor();
     return varDesc->GetDisplayOptions();
 }
@@ -263,7 +265,7 @@ ST::string pySimpleStateVariable::GetDisplayOptions() const
 ST::string pySimpleStateVariable::GetDefault() const
 {
     if (!fVar)
-        return ST::null;
+        return ST::string();
     plVarDescriptor *varDesc = fVar->GetVarDescriptor();
     return varDesc->GetDefault();
 }

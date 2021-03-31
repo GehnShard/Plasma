@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include <Python.h>
-#pragma hdrstop
 
 #include "pyVaultPlayerNode.h"
 #include "pyAgeInfoStruct.h"
@@ -125,7 +124,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVaultPlayerNode, getLinkToCity)
 
 PYTHON_METHOD_DEFINITION(ptVaultPlayerNode, getOwnedAgeLink, args)
 {
-    PyObject* infoObj = NULL;
+    PyObject* infoObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &infoObj))
     {
         PyErr_SetString(PyExc_TypeError, "getOwnedAgeLink expects a ptAgeInfoStruct");
@@ -154,7 +153,7 @@ PYTHON_METHOD_DEFINITION(ptVaultPlayerNode, removeOwnedAgeLink, args)
 
 PYTHON_METHOD_DEFINITION(ptVaultPlayerNode, getVisitAgeLink, args)
 {
-    PyObject* infoObj = NULL;
+    PyObject* infoObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &infoObj))
     {
         PyErr_SetString(PyExc_TypeError, "getVisitAgeLink expects a ptAgeInfoStruct");
@@ -206,7 +205,7 @@ PYTHON_METHOD_DEFINITION(ptVaultPlayerNode, setPlayerName, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultPlayerNode, getPlayerName)
 {
-    return PyString_FromString(self->fThis->GetPlayerName().c_str());
+    return PyUnicode_FromSTString(self->fThis->GetPlayerName());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultPlayerNode, setAvatarShapeName, args)
@@ -223,7 +222,7 @@ PYTHON_METHOD_DEFINITION(ptVaultPlayerNode, setAvatarShapeName, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultPlayerNode, getAvatarShapeName)
 {
-    return PyString_FromString(self->fThis->GetAvatarShapeName().c_str());
+    return PyUnicode_FromSTString(self->fThis->GetAvatarShapeName());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultPlayerNode, setDisabled, args)

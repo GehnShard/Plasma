@@ -40,7 +40,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
-#pragma once
 #ifndef plClient_inc
 #define plClient_inc
 
@@ -48,13 +47,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //#define NEW_CAMERA_CODE
 
 #include "HeadSpin.h"
-#include <list>
-
 #include "hsBitVector.h"
-#include "hsTemplates.h"
+#include "plFileSystem.h"
+
+#include <list>
 
 #include "pnKeyedObject/hsKeyedObject.h"
 #include "pnKeyedObject/plUoid.h"
+
 #include "plScene/plRenderRequest.h"
 
 class plSceneNode;
@@ -74,7 +74,7 @@ class plLinkEffectsMgr;
 class plOperationProgress;
 class pfGameGUIMgr;
 class pfKI;
-class plAnimDebugList;
+struct plAnimDebugList;
 class plFontCache;
 class plClientMsg;
 class plLocation;
@@ -97,7 +97,7 @@ protected:
             plSceneNode *fNode;
             uint32_t      fFlags;
 
-            plRoomRec() { fNode = nil; fFlags = 0; }
+            plRoomRec() : fNode(), fFlags() { }
             plRoomRec( plSceneNode *n, uint32_t f ) : fNode( n ), fFlags( f ) {}
 
             enum Flags
@@ -111,7 +111,7 @@ protected:
     plInputManager*         fInputManager;
 
     plPageTreeMgr*          fPageMgr;
-    hsTArray<plRoomRec>     fRooms;
+    std::vector<plRoomRec>  fRooms;
     plSceneNode*            fCurrentNode;
 
     plPipeline*             fPipeline;
@@ -140,7 +140,7 @@ protected:
     plVirtualCam1*          fNewCamera;
 
     static plClient*        fInstance;
-    char *                  fpAuxInitDir;
+    plFileName              fpAuxInitDir;
     static bool             fDelayMS;
 
     int                     fClampCap;
@@ -155,8 +155,8 @@ protected:
     bool                    bPythonDebugConnected;
 #endif
 
-    hsTArray<plRenderRequest*>      fPreRenderRequests;
-    hsTArray<plRenderRequest*>      fPostRenderRequests;
+    std::vector<plRenderRequest*>   fPreRenderRequests;
+    std::vector<plRenderRequest*>   fPostRenderRequests;
 
     bool fHoldLoadRequests;
     class LoadRequest
@@ -166,8 +166,7 @@ protected:
         plLocation loc;
         bool hold;
     };
-    typedef std::list<LoadRequest*> LoadList;
-    LoadList fLoadRooms;
+    std::list<LoadRequest*> fLoadRooms;
     int fNumLoadingRooms;   // Number of rooms we're waiting for load callbacks on
     std::vector<plLocation> fRoomsLoading; // the locations we are currently in the middle of loading
 
@@ -182,7 +181,7 @@ protected:
     bool                    IFlushRenderRequests();
     void                    IProcessPreRenderRequests();
     void                    IProcessPostRenderRequests();
-    void                    IProcessRenderRequests(hsTArray<plRenderRequest*>& reqs);
+    void                    IProcessRenderRequests(std::vector<plRenderRequest*>& reqs);
     void                    IAddRenderRequest(plRenderRequest* req);
 
     bool                    IPlayIntroMovie(const char* movieName, float endDelay, float posX, float posY, float scaleX, float scaleY, float volume = 1.0);
@@ -200,7 +199,7 @@ protected:
 
     void    IPatchGlobalAgeFiles();
 
-    int IFindRoomByLoc(const plLocation& loc);
+    hsSsize_t IFindRoomByLoc(const plLocation& loc);
     bool IIsRoomLoading(const plLocation& loc);
     void IQueueRoomLoad(const std::vector<plLocation>& locs, bool hold);
     void ILoadNextRoom();
@@ -222,7 +221,7 @@ public:
     static plClient*    GetInstance() { return fInstance; }
     static void         SetInstance(plClient* v) { fInstance=v; }
     
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
     
     bool        InitPipeline();
 
@@ -266,7 +265,7 @@ public:
 
     pfConsoleEngine *GetConsoleEngine() { return fConsoleEngine; }
 
-    void SetAuxInitDir(const char *p) { delete [] fpAuxInitDir; fpAuxInitDir = hsStrcpy(p); }
+    void SetAuxInitDir(plFileName dir) { fpAuxInitDir = std::move(dir); }
 
     static void EnableClientDelay() { plClient::fDelayMS = true; }
 

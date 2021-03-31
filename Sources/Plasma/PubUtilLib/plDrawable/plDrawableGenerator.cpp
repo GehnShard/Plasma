@@ -112,16 +112,16 @@ void plDrawableGenerator::IFillSpan( uint32_t vertCount, hsPoint3 *positions, hs
                                                             hsGMaterial *material, const hsMatrix44 &localToWorld, bool blended,
                                                             plGeometrySpan* span )
 {
-    hsTArray<hsVector3>         myNormals;
+    std::vector<hsVector3>      myNormals;
 
 
     /// Calculate normals if we don't have them
-    if( normals == nil )
+    if (normals == nullptr)
     {
         int         i;
         hsVector3   normal, v1, v2;
 
-        myNormals.SetCount( vertCount );
+        myNormals.resize(vertCount);
         for( i = 0; i < vertCount; i++ )
             myNormals[ i ].Set( 0, 0, 0 );
 
@@ -139,25 +139,25 @@ void plDrawableGenerator::IFillSpan( uint32_t vertCount, hsPoint3 *positions, hs
         for( i = 0; i < vertCount; i++ )
             myNormals[ i ].Normalize();
 
-        normals = myNormals.AcquireArray();
+        normals = myNormals.data();
     }
 
-    if( uvws == nil )
+    if (uvws == nullptr)
         uvwsPerVtx = 0;
     span->BeginCreate( material, localToWorld, plGeometrySpan::UVCountToFormat( (uint8_t)uvwsPerVtx ) );
 
     if( !origColors && !fauxShade )
-        span->AddVertexArray( vertCount, positions, normals, nil, uvws, uvwsPerVtx );
+        span->AddVertexArray(vertCount, positions, normals, nullptr, uvws, uvwsPerVtx);
     else
     {
-        hsTArray<hsColorRGBA> colArray;
+        std::vector<hsColorRGBA> colArray;
 
         hsColorRGBA* colors;
         if( fauxShade )
         {
-            colArray.SetCount(vertCount);
-            IQuickShadeVerts( vertCount, normals, colArray.AcquireArray(), origColors, multColor );
-            colors = colArray.AcquireArray();
+            colArray.resize(vertCount);
+            IQuickShadeVerts(vertCount, normals, colArray.data(), origColors, multColor);
+            colors = colArray.data();
         }
         else // just use the origColors
         {
@@ -165,12 +165,12 @@ void plDrawableGenerator::IFillSpan( uint32_t vertCount, hsPoint3 *positions, hs
         }
 
 
-        hsTArray<uint32_t>    tempColors;
+        std::vector<uint32_t> tempColors;
         int                 i;
         uint8_t               a, r, g, b;
 
 
-        tempColors.SetCount( vertCount );
+        tempColors.resize(vertCount);
         for( i = 0; i < vertCount; i++ )
         {
             hsColorRGBA *color = &colors[ i ];
@@ -182,7 +182,7 @@ void plDrawableGenerator::IFillSpan( uint32_t vertCount, hsPoint3 *positions, hs
             tempColors[ i ] = ( a << 24 ) | ( r << 16 ) | ( g << 8 ) | ( b );
         }
 
-        span->AddVertexArray( vertCount, positions, normals, tempColors.AcquireArray(), uvws, uvwsPerVtx );
+        span->AddVertexArray(vertCount, positions, normals, tempColors.data(), uvws, uvwsPerVtx);
     }
 
     span->AddIndexArray( numIndices, indices );
@@ -239,14 +239,12 @@ plDrawableSpans *plDrawableGenerator::GenerateDrawable( uint32_t vertCount, hsPo
                                                             hsColorRGBA *origColors, bool fauxShade, const hsColorRGBA* multColor,
                                                             uint32_t numIndices, uint16_t *indices, 
                                                             hsGMaterial *material, const hsMatrix44 &localToWorld, bool blended,
-                                                            hsTArray<uint32_t> *retIndex, plDrawableSpans *toAddTo )
+                                                            std::vector<uint32_t> *retIndex, plDrawableSpans *toAddTo )
 {
     plDrawableSpans             *newDraw;
-    hsTArray<plGeometrySpan *>  spanArray;
-    plGeometrySpan              *span;
 
     // Set up props on the new drawable
-    if( toAddTo != nil )
+    if (toAddTo != nullptr)
         newDraw = toAddTo;
     else
     {
@@ -264,8 +262,8 @@ plDrawableSpans *plDrawableGenerator::GenerateDrawable( uint32_t vertCount, hsPo
     }
 
     // Create a temp plGeometrySpan
-    spanArray.SetCount( 1 );
-    span = spanArray[ 0 ] = new plGeometrySpan;
+    std::vector<plGeometrySpan *> spanArray { new plGeometrySpan };
+    plGeometrySpan* span = spanArray[0];
 
     IFillSpan( vertCount, positions, normals, 
                                 uvws, uvwsPerVtx, 
@@ -277,8 +275,8 @@ plDrawableSpans *plDrawableGenerator::GenerateDrawable( uint32_t vertCount, hsPo
     /// Now add the span to the new drawable, clear up the span's buffers and return!
     uint32_t trash = uint32_t(-1);
     uint32_t idx = newDraw->AppendDISpans( spanArray, trash, false );
-    if( retIndex != nil )
-        retIndex->Append(idx);
+    if (retIndex != nullptr)
+        retIndex->emplace_back(idx);
 
     return newDraw;
 }
@@ -288,15 +286,13 @@ plDrawableSpans *plDrawableGenerator::GenerateDrawable( uint32_t vertCount, hsPo
 plDrawableSpans     *plDrawableGenerator::GenerateSphericalDrawable( const hsPoint3& pos, float radius, hsGMaterial *material, 
                                                                     const hsMatrix44 &localToWorld, bool blended,
                                                                     const hsColorRGBA* multColor,
-                                                                    hsTArray<uint32_t> *retIndex, plDrawableSpans *toAddTo, 
+                                                                    std::vector<uint32_t> *retIndex, plDrawableSpans *toAddTo, 
                                                                     float qualityScalar )
 {
-    hsTArray<hsPoint3>      points;
-    hsTArray<hsVector3>     normals;
-    hsTArray<uint16_t>        indices;
-    hsTArray<hsColorRGBA>   colors;
-    hsPoint3                point;
-    hsVector3               normal;
+    std::vector<hsPoint3>   points;
+    std::vector<hsVector3>  normals;
+    std::vector<uint16_t>   indices;
+    std::vector<hsColorRGBA> colors;
 
     int                 i, j, numDivisions, start;
     float               angle, z, x, y, internRad;
@@ -313,21 +309,21 @@ plDrawableSpans     *plDrawableGenerator::GenerateSphericalDrawable( const hsPoi
     /// Generate points
     for( i = 0; i <= numDivisions; i++ )
     {
-        angle = (float)i * ( M_PI ) / (float)numDivisions;
+        angle = float(i) * hsConstants::pi<float> / float(numDivisions);
         hsFastMath::SinCosInRange( angle, internRad, z );
         internRad *= radius;
                 
         for( j = 0; j < numDivisions; j++ )
         {
-            angle = (float)j * ( 2 * M_PI ) / (float)numDivisions;
+            angle = float(j) * hsConstants::two_pi<float> / float(numDivisions);
             hsFastMath::SinCosInRange( angle, x, y );
 
-            point.Set( pos.fX + x * internRad, pos.fY + y * internRad, pos.fZ + z * radius );
-            normal.Set( x * internRad, y * internRad, z * radius );
+            hsPoint3 point(pos.fX + x * internRad, pos.fY + y * internRad, pos.fZ + z * radius);
+            hsVector3 normal(x * internRad, y * internRad, z * radius);
             normal.Normalize();
 
-            points.Append( point );
-            normals.Append( normal );
+            points.emplace_back(point);
+            normals.emplace_back(normal);
         }
     }
 
@@ -336,29 +332,29 @@ plDrawableSpans     *plDrawableGenerator::GenerateSphericalDrawable( const hsPoi
     {
         for( j = 0; j < numDivisions - 1; j++ )
         {
-            indices.Append( start + j );
-            indices.Append( start + j + 1 );
-            indices.Append( start + j + numDivisions + 1 );
+            indices.emplace_back(start + j);
+            indices.emplace_back(start + j + 1);
+            indices.emplace_back(start + j + numDivisions + 1);
 
-            indices.Append( start + j );
-            indices.Append( start + j + numDivisions + 1 );
-            indices.Append( start + j + numDivisions );
+            indices.emplace_back(start + j);
+            indices.emplace_back(start + j + numDivisions + 1);
+            indices.emplace_back(start + j + numDivisions);
         }
 
-        indices.Append( start + j );
-        indices.Append( start );
-        indices.Append( start + numDivisions );
+        indices.emplace_back(start + j);
+        indices.emplace_back(start);
+        indices.emplace_back(start + numDivisions);
 
-        indices.Append( start + j );
-        indices.Append( start + numDivisions );
-        indices.Append( start + j + numDivisions );
+        indices.emplace_back(start + j);
+        indices.emplace_back(start + numDivisions);
+        indices.emplace_back(start + j + numDivisions);
     }
 
     /// Create a drawable for it
-    drawable = plDrawableGenerator::GenerateDrawable( points.GetCount(), points.AcquireArray(), normals.AcquireArray(),
-                                                        nil, 0,
-                                                        nil, true, multColor,
-                                                        indices.GetCount(), indices.AcquireArray(),
+    drawable = plDrawableGenerator::GenerateDrawable(points.size(), points.data(), normals.data(),
+                                                        nullptr, 0,
+                                                        nullptr, true, multColor,
+                                                        indices.size(), indices.data(),
                                                         material, localToWorld, blended, retIndex, toAddTo );
 
     return drawable;
@@ -369,17 +365,12 @@ plDrawableSpans     *plDrawableGenerator::GenerateSphericalDrawable( const hsPoi
 plDrawableSpans     *plDrawableGenerator::GenerateBoxDrawable( float width, float height, float depth, 
                                                                 hsGMaterial *material, const hsMatrix44 &localToWorld, bool blended,
                                                                 const hsColorRGBA* multColor,
-                                                                hsTArray<uint32_t> *retIndex, plDrawableSpans *toAddTo )
+                                                                std::vector<uint32_t> *retIndex, plDrawableSpans *toAddTo )
 {
-    hsVector3       xVec, yVec, zVec;
-    hsPoint3        pt;
-
-
-    xVec.Set( width, 0, 0 );
-    yVec.Set( 0, height, 0 );
-    zVec.Set( 0, 0, depth );
-
-    pt.Set( -width / 2.f, -height / 2.f, -depth / 2.f );
+    hsVector3 xVec(width, 0.f, 0.f);
+    hsVector3 yVec(0.f, height, 0.f);
+    hsVector3 zVec(0.f, 0.f, depth);
+    hsPoint3 pt(-width / 2.f, -height / 2.f, -depth / 2.f);
 
     return GenerateBoxDrawable( pt, xVec, yVec, zVec, material, localToWorld, blended, multColor, retIndex, toAddTo );
 }
@@ -387,38 +378,35 @@ plDrawableSpans     *plDrawableGenerator::GenerateBoxDrawable( float width, floa
 //// GenerateBoxDrawable /////////////////////////////////////////////////////
 //  Version that takes a corner and three vectors, for x, y and z edges.
 
-#define CALC_NORMAL( nA, xVec, yVec, zVec ) { hsVector3 n = (xVec) + (yVec) + (zVec); n = -n; n.Normalize(); nA.Append( n ); }
+#define CALC_NORMAL(nA, xVec, yVec, zVec) { hsVector3 n = (xVec) + (yVec) + (zVec); n = -n; n.Normalize(); nA.emplace_back(n); }
 
 plDrawableSpans     *plDrawableGenerator::GenerateBoxDrawable( const hsPoint3 &corner, const hsVector3 &xVec, const hsVector3 &yVec, const hsVector3 &zVec, 
                                                                 hsGMaterial *material, const hsMatrix44 &localToWorld, bool blended,
                                                                 const hsColorRGBA* multColor,
-                                                                hsTArray<uint32_t> *retIndex, plDrawableSpans *toAddTo )
+                                                                std::vector<uint32_t> *retIndex, plDrawableSpans *toAddTo )
 {
-    hsTArray<hsPoint3>      points;
-    hsTArray<hsVector3>     normals;
-    hsTArray<uint16_t>        indices;
-    hsTArray<hsColorRGBA>   colors;
-    hsTArray<hsPoint3>      uvws;
+    std::vector<hsPoint3>   points;
+    std::vector<hsVector3>  normals;
+    std::vector<uint16_t>   indices;
+    std::vector<hsColorRGBA> colors;
+    std::vector<hsPoint3>   uvws;
     hsPoint3                point;
 
     plDrawableSpans     *drawable;
-    float               mults[ 8 ][ 3 ] = { { -1, -1, -1 }, { 1, -1, -1 }, { 1, 1, -1 }, { -1, 1, -1 },
-                                            { -1, -1,  1 }, { 1, -1,  1 }, { 1, 1,  1 }, { -1, 1,  1 } };
-
 
 
     /// Generate points and normals
-    points.Expand( 8 );
-    normals.Expand( 8 );
+    points.reserve(8);
+    normals.reserve(8);
 
-    point = corner;                 points.Append( point );
-    point += xVec;                  points.Append( point );
-    point += yVec;                  points.Append( point );
-    point = corner + yVec;          points.Append( point );
-    point = corner + zVec;          points.Append( point );
-    point += xVec;                  points.Append( point );
-    point += yVec;                  points.Append( point );
-    point = corner + zVec + yVec;   points.Append( point );
+    point = corner;                 points.emplace_back(point);
+    point += xVec;                  points.emplace_back(point);
+    point += yVec;                  points.emplace_back(point);
+    point = corner + yVec;          points.emplace_back(point);
+    point = corner + zVec;          points.emplace_back(point);
+    point += xVec;                  points.emplace_back(point);
+    point += yVec;                  points.emplace_back(point);
+    point = corner + zVec + yVec;   points.emplace_back(point);
 
     CALC_NORMAL( normals, xVec, yVec, zVec );
     CALC_NORMAL( normals, -xVec, yVec, zVec );
@@ -429,41 +417,41 @@ plDrawableSpans     *plDrawableGenerator::GenerateBoxDrawable( const hsPoint3 &c
     CALC_NORMAL( normals, -xVec, -yVec, -zVec );
     CALC_NORMAL( normals, xVec, -yVec, -zVec );
 
-    uvws.Expand( 8 );
-    uvws.Append( hsPoint3( 0.f, 1.f, 0.f ) );
-    uvws.Append( hsPoint3( 1.f, 1.f, 0.f ) );
-    uvws.Append( hsPoint3( 1.f, 0.f, 0.f ) );
-    uvws.Append( hsPoint3( 0.f, 0.f, 0.f ) );
-    uvws.Append( hsPoint3( 1.f, 1.f, 0.f ) );
-    uvws.Append( hsPoint3( 1.f, 0.f, 0.f ) );
-    uvws.Append( hsPoint3( 0.f, 0.f, 0.f ) );
-    uvws.Append( hsPoint3( 0.f, 1.f, 0.f ) );
+    uvws.reserve(8);
+    uvws.emplace_back(0.f, 1.f, 0.f);
+    uvws.emplace_back(1.f, 1.f, 0.f);
+    uvws.emplace_back(1.f, 0.f, 0.f);
+    uvws.emplace_back(0.f, 0.f, 0.f);
+    uvws.emplace_back(1.f, 1.f, 0.f);
+    uvws.emplace_back(1.f, 0.f, 0.f);
+    uvws.emplace_back(0.f, 0.f, 0.f);
+    uvws.emplace_back(0.f, 1.f, 0.f);
 
     /// Generate indices
-    indices.Expand( 36 );
-    indices.Append( 0 ); indices.Append( 1 ); indices.Append( 2 );
-    indices.Append( 0 ); indices.Append( 2 ); indices.Append( 3 );
+    indices.reserve(36);
+    indices.emplace_back(0); indices.emplace_back(1); indices.emplace_back(2);
+    indices.emplace_back(0); indices.emplace_back(2); indices.emplace_back(3);
 
-    indices.Append( 1 ); indices.Append( 0 ); indices.Append( 4 );
-    indices.Append( 1 ); indices.Append( 4 ); indices.Append( 5 );
+    indices.emplace_back(1); indices.emplace_back(0); indices.emplace_back(4);
+    indices.emplace_back(1); indices.emplace_back(4); indices.emplace_back(5);
 
-    indices.Append( 2 ); indices.Append( 1 ); indices.Append( 5 );
-    indices.Append( 2 ); indices.Append( 5 ); indices.Append( 6 );
+    indices.emplace_back(2); indices.emplace_back(1); indices.emplace_back(5);
+    indices.emplace_back(2); indices.emplace_back(5); indices.emplace_back(6);
 
-    indices.Append( 3 ); indices.Append( 2 ); indices.Append( 6 );
-    indices.Append( 3 ); indices.Append( 6 ); indices.Append( 7 );
+    indices.emplace_back(3); indices.emplace_back(2); indices.emplace_back(6);
+    indices.emplace_back(3); indices.emplace_back(6); indices.emplace_back(7);
 
-    indices.Append( 0 ); indices.Append( 3 ); indices.Append( 7 );
-    indices.Append( 0 ); indices.Append( 7 ); indices.Append( 4 );
+    indices.emplace_back(0); indices.emplace_back(3); indices.emplace_back(7);
+    indices.emplace_back(0); indices.emplace_back(7); indices.emplace_back(4);
 
-    indices.Append( 7 ); indices.Append( 6 ); indices.Append( 5 );
-    indices.Append( 7 ); indices.Append( 5 ); indices.Append( 4 );
+    indices.emplace_back(7); indices.emplace_back(6); indices.emplace_back(5);
+    indices.emplace_back(7); indices.emplace_back(5); indices.emplace_back(4);
 
     /// Create a drawable for it
-    drawable = plDrawableGenerator::GenerateDrawable( points.GetCount(), points.AcquireArray(), normals.AcquireArray(),
-                                                        uvws.AcquireArray(), 1,
-                                                        nil, true, multColor,
-                                                        indices.GetCount(), indices.AcquireArray(),
+    drawable = plDrawableGenerator::GenerateDrawable(points.size(), points.data(), normals.data(),
+                                                        uvws.data(), 1,
+                                                        nullptr, true, multColor,
+                                                        indices.size(), indices.data(),
                                                         material, localToWorld, blended, retIndex, toAddTo );
 
     return drawable;
@@ -475,14 +463,12 @@ plDrawableSpans     *plDrawableGenerator::GenerateBoxDrawable( const hsPoint3 &c
 plDrawableSpans     *plDrawableGenerator::GenerateBoundsDrawable( hsBounds3Ext *bounds,
                                                                     hsGMaterial *material, const hsMatrix44 &localToWorld, bool blended,
                                                                     const hsColorRGBA* multColor,
-                                                                    hsTArray<uint32_t> *retIndex, plDrawableSpans *toAddTo )
+                                                                    std::vector<uint32_t> *retIndex, plDrawableSpans *toAddTo )
 {
-    hsTArray<hsPoint3>      points;
-    hsTArray<hsVector3>     normals;
-    hsTArray<uint16_t>        indices;
-    hsTArray<hsColorRGBA>   colors;
-    hsPoint3                point;
-    hsVector3               normal;
+    std::vector<hsPoint3>   points;
+    std::vector<hsVector3>  normals;
+    std::vector<uint16_t>   indices;
+    std::vector<hsColorRGBA> colors;
 
     int                 i;
     plDrawableSpans     *drawable;
@@ -491,44 +477,44 @@ plDrawableSpans     *plDrawableGenerator::GenerateBoundsDrawable( hsBounds3Ext *
 
 
     /// Generate points and normals
-    points.Expand( 8 );
-    normals.Expand( 8 );
+    points.reserve(8);
+    normals.reserve(8);
     hsPoint3 min = bounds->GetMins();
     hsPoint3 max = bounds->GetMaxs();
 
     for( i = 0; i < 8; i++ )
     {
-        points.Append( hsPoint3( mults[ i ][ 0 ] > 0 ? max.fX : min.fX,
-                                 mults[ i ][ 1 ] > 0 ? max.fY : min.fY,
-                                 mults[ i ][ 2 ] > 0 ? max.fZ : min.fZ ) );
-        normals.Append( hsVector3( mults[ i ][ 0 ], mults[ i ][ 1 ], mults[ i ][ 2 ] ) );
+        points.emplace_back(mults[i][0] > 0 ? max.fX : min.fX,
+                            mults[i][1] > 0 ? max.fY : min.fY,
+                            mults[i][2] > 0 ? max.fZ : min.fZ);
+        normals.emplace_back(mults[i][0], mults[i][1], mults[i][2]);
     }
 
     /// Generate indices
-    indices.Expand( 36 );
-    indices.Append( 0 ); indices.Append( 1 ); indices.Append( 2 );
-    indices.Append( 0 ); indices.Append( 2 ); indices.Append( 3 );
+    indices.reserve(36);
+    indices.emplace_back(0); indices.emplace_back(1); indices.emplace_back(2);
+    indices.emplace_back(0); indices.emplace_back(2); indices.emplace_back(3);
 
-    indices.Append( 1 ); indices.Append( 0 ); indices.Append( 4 );
-    indices.Append( 1 ); indices.Append( 4 ); indices.Append( 5 );
+    indices.emplace_back(1); indices.emplace_back(0); indices.emplace_back(4);
+    indices.emplace_back(1); indices.emplace_back(4); indices.emplace_back(5);
 
-    indices.Append( 2 ); indices.Append( 1 ); indices.Append( 5 );
-    indices.Append( 2 ); indices.Append( 5 ); indices.Append( 6 );
+    indices.emplace_back(2); indices.emplace_back(1); indices.emplace_back(5);
+    indices.emplace_back(2); indices.emplace_back(5); indices.emplace_back(6);
 
-    indices.Append( 3 ); indices.Append( 2 ); indices.Append( 6 );
-    indices.Append( 3 ); indices.Append( 6 ); indices.Append( 7 );
+    indices.emplace_back(3); indices.emplace_back(2); indices.emplace_back(6);
+    indices.emplace_back(3); indices.emplace_back(6); indices.emplace_back(7);
 
-    indices.Append( 0 ); indices.Append( 3 ); indices.Append( 7 );
-    indices.Append( 0 ); indices.Append( 7 ); indices.Append( 4 );
+    indices.emplace_back(0); indices.emplace_back(3); indices.emplace_back(7);
+    indices.emplace_back(0); indices.emplace_back(7); indices.emplace_back(4);
 
-    indices.Append( 7 ); indices.Append( 6 ); indices.Append( 5 );
-    indices.Append( 7 ); indices.Append( 5 ); indices.Append( 4 );
+    indices.emplace_back(7); indices.emplace_back(6); indices.emplace_back(5);
+    indices.emplace_back(7); indices.emplace_back(5); indices.emplace_back(4);
 
     /// Create a drawable for it
-    drawable = plDrawableGenerator::GenerateDrawable( points.GetCount(), points.AcquireArray(), normals.AcquireArray(),
-                                                        nil, 0,
-                                                        nil, true, multColor,
-                                                        indices.GetCount(), indices.AcquireArray(),
+    drawable = plDrawableGenerator::GenerateDrawable(points.size(), points.data(), normals.data(),
+                                                        nullptr, 0,
+                                                        nullptr, true, multColor,
+                                                        indices.size(), indices.data(),
                                                         material, localToWorld, blended, retIndex, toAddTo );
 
     return drawable;
@@ -539,16 +525,12 @@ plDrawableSpans     *plDrawableGenerator::GenerateBoundsDrawable( hsBounds3Ext *
 plDrawableSpans     *plDrawableGenerator::GenerateConicalDrawable( float radius, float height, hsGMaterial *material, 
                                                                     const hsMatrix44 &localToWorld, bool blended,
                                                                     const hsColorRGBA* multColor,
-                                                                    hsTArray<uint32_t> *retIndex, plDrawableSpans *toAddTo )
+                                                                    std::vector<uint32_t> *retIndex, plDrawableSpans *toAddTo )
 {
-    hsVector3   direction;
-
-
-    direction.Set( 0, 0, height );
-
-    hsPoint3 zero(0, 0, 0);
+    hsVector3 direction(0.f, 0.f, height);
+    hsPoint3 zero;
     return GenerateConicalDrawable(zero, direction, radius, material, localToWorld, blended,
-                                    multColor, retIndex, toAddTo );
+                                   multColor, retIndex, toAddTo);
 }
 
 
@@ -557,14 +539,12 @@ plDrawableSpans     *plDrawableGenerator::GenerateConicalDrawable( float radius,
 plDrawableSpans     *plDrawableGenerator::GenerateConicalDrawable( hsPoint3 &apex, hsVector3 &direction, float radius, hsGMaterial *material, 
                                                                     const hsMatrix44 &localToWorld, bool blended,
                                                                     const hsColorRGBA* multColor,
-                                                                    hsTArray<uint32_t> *retIndex, plDrawableSpans *toAddTo )
+                                                                    std::vector<uint32_t> *retIndex, plDrawableSpans *toAddTo )
 {
-    hsTArray<hsPoint3>      points;
-    hsTArray<hsVector3>     normals;
-    hsTArray<uint16_t>        indices;
-    hsTArray<hsColorRGBA>   colors;
-    hsPoint3                point;
-    hsVector3               normal;
+    std::vector<hsPoint3>   points;
+    std::vector<hsVector3>  normals;
+    std::vector<uint16_t>   indices;
+    std::vector<hsColorRGBA> colors;
 
     int                 i, numDivisions;
     float               angle, x, y;
@@ -596,44 +576,44 @@ plDrawableSpans     *plDrawableGenerator::GenerateConicalDrawable( hsPoint3 &ape
     yVec.Normalize();
 
     /// Now generate points based on those
-    points.Expand( numDivisions + 2 );
-    normals.Expand( numDivisions + 2 );
+    points.reserve(numDivisions + 2);
+    normals.reserve(numDivisions + 2);
 
-    points.Append( apex );
-    normals.Append( -direction );
+    points.emplace_back(apex);
+    normals.emplace_back(-direction);
     for( i = 0; i < numDivisions; i++ )
     {
-        angle = (float)i * ( M_PI * 2.f ) / (float)numDivisions;
+        angle = float(i) * hsConstants::two_pi<float> / float(numDivisions);
         hsFastMath::SinCosInRange( angle, x, y );
 
-        points.Append( baseCenter + ( xVec * x * radius ) + ( yVec * y * radius ) );
-        normals.Append( ( xVec * x ) + ( yVec * y ) );
+        points.emplace_back(baseCenter + (xVec * x * radius) + (yVec * y * radius));
+        normals.emplace_back((xVec * x) + (yVec * y));
     }
 
     /// Generate indices
-    indices.Expand( ( numDivisions + 1 + numDivisions - 2 ) * 3 );
+    indices.reserve((numDivisions + 1 + numDivisions - 2) * 3);
     for( i = 0; i < numDivisions - 1; i++ )
     {
-        indices.Append( 0 );
-        indices.Append( i + 2 );
-        indices.Append( i + 1 );
+        indices.emplace_back(0);
+        indices.emplace_back(i + 2);
+        indices.emplace_back(i + 1);
     }
-    indices.Append( 0 );
-    indices.Append( 1 );
-    indices.Append( numDivisions );
+    indices.emplace_back(0);
+    indices.emplace_back(1);
+    indices.emplace_back(numDivisions);
     // Bottom cap
     for( i = 3; i < numDivisions + 1; i++ )
     {
-        indices.Append( i - 1 );
-        indices.Append( i );
-        indices.Append( 1 );
+        indices.emplace_back(i - 1);
+        indices.emplace_back(i);
+        indices.emplace_back(1);
     }
 
     /// Create a drawable for it
-    drawable = plDrawableGenerator::GenerateDrawable( points.GetCount(), points.AcquireArray(), normals.AcquireArray(),
-                                                        nil, 0,
-                                                        nil, true, multColor,
-                                                        indices.GetCount(), indices.AcquireArray(),
+    drawable = plDrawableGenerator::GenerateDrawable(points.size(), points.data(), normals.data(),
+                                                        nullptr, 0,
+                                                        nullptr, true, multColor,
+                                                        indices.size(), indices.data(),
                                                         material, localToWorld, blended, retIndex, toAddTo );
 
     return drawable;
@@ -644,12 +624,12 @@ plDrawableSpans     *plDrawableGenerator::GenerateConicalDrawable( hsPoint3 &ape
 plDrawableSpans     *plDrawableGenerator::GenerateAxesDrawable( hsGMaterial *material, 
                                                                 const hsMatrix44 &localToWorld, bool blended,
                                                                 const hsColorRGBA* multColor,
-                                                                hsTArray<uint32_t> *retIndex, plDrawableSpans *toAddTo )
+                                                                std::vector<uint32_t> *retIndex, plDrawableSpans *toAddTo )
 {
-    hsTArray<hsPoint3>      points;
-    hsTArray<hsVector3>     normals;
-    hsTArray<hsColorRGBA>   colors;
-    hsTArray<uint16_t>        indices;
+    std::vector<hsPoint3>   points(6 * 3);
+    std::vector<hsVector3>  normals(6 * 3);
+    std::vector<hsColorRGBA> colors(6 * 3);
+    std::vector<uint16_t>   indices(6 * 3);
 
     int                 i;
     float               size = 15;
@@ -657,10 +637,6 @@ plDrawableSpans     *plDrawableGenerator::GenerateAxesDrawable( hsGMaterial *mat
 
 
     /// Generate points
-    points.SetCount( 6 * 3 );
-    normals.SetCount( 6 * 3 );
-    colors.SetCount( 6 * 3 );
-
     points[ 0 ].Set( 0, 0, 0 );
     points[ 1 ].Set( size, -size * 0.1f, 0 );
     points[ 2 ].Set( size, -size * 0.3f, 0 );
@@ -686,7 +662,6 @@ plDrawableSpans     *plDrawableGenerator::GenerateAxesDrawable( hsGMaterial *mat
     }
 
     /// Generate indices
-    indices.SetCount( 6 * 3 );
     for( i = 0; i < 18; i += 6 )
     {
         indices[ i ] = i + 0;
@@ -698,10 +673,10 @@ plDrawableSpans     *plDrawableGenerator::GenerateAxesDrawable( hsGMaterial *mat
     }
 
     /// Create a drawable for it
-    drawable = plDrawableGenerator::GenerateDrawable( points.GetCount(), points.AcquireArray(), normals.AcquireArray(),
-                                                        nil, 0,
-                                                        nil, true, multColor,
-                                                        indices.GetCount(), indices.AcquireArray(),
+    drawable = plDrawableGenerator::GenerateDrawable(points.size(), points.data(), normals.data(),
+                                                        nullptr, 0,
+                                                        nullptr, true, multColor,
+                                                        indices.size(), indices.data(),
                                                         material, localToWorld, blended, retIndex, toAddTo );
 
     return drawable;
@@ -710,53 +685,52 @@ plDrawableSpans     *plDrawableGenerator::GenerateAxesDrawable( hsGMaterial *mat
 //// GeneratePlanarDrawable //////////////////////////////////////////////////
 //  Version that takes a corner and two vectors, for x and y edges.
 
-#define CALC_PNORMAL( nA, xVec, yVec ) { hsVector3 n = (xVec) % (yVec); n.Normalize(); nA.Append( n ); }
+#define CALC_PNORMAL(nA, xVec, yVec) { hsVector3 n = (xVec) % (yVec); n.Normalize(); nA.emplace_back(n); }
 
 plDrawableSpans     *plDrawableGenerator::GeneratePlanarDrawable( const hsPoint3 &corner, const hsVector3 &xVec, const hsVector3 &yVec,
                                                                 hsGMaterial *material, const hsMatrix44 &localToWorld, bool blended,
                                                                 const hsColorRGBA* multColor,
-                                                                hsTArray<uint32_t> *retIndex, plDrawableSpans *toAddTo )
+                                                                std::vector<uint32_t> *retIndex, plDrawableSpans *toAddTo )
 {
-    hsTArray<hsPoint3>      points;
-    hsTArray<hsVector3>     normals;
-    hsTArray<uint16_t>        indices;
-    hsTArray<hsColorRGBA>   colors;
-    hsTArray<hsPoint3>      uvws;
-    hsPoint3                point;
+    std::vector<hsPoint3>   points;
+    std::vector<hsVector3>  normals;
+    std::vector<uint16_t>   indices;
+    std::vector<hsColorRGBA> colors;
+    std::vector<hsPoint3>   uvws;
 
     plDrawableSpans     *drawable;
 
 
     /// Generate points and normals
-    points.Expand( 4 );
-    normals.Expand( 4 );
+    points.reserve(4);
+    normals.reserve(4);
 
-    point = corner;                 points.Append( point );
-    point += xVec;                  points.Append( point );
-    point += yVec;                  points.Append( point );
-    point = corner + yVec;          points.Append( point );
+    points.emplace_back(corner);
+    points.emplace_back(corner + xVec);
+    points.emplace_back(corner + xVec + yVec);
+    points.emplace_back(corner + yVec);
 
     CALC_PNORMAL( normals, xVec, yVec );
     CALC_PNORMAL( normals, xVec, yVec );
     CALC_PNORMAL( normals, xVec, yVec );
     CALC_PNORMAL( normals, xVec, yVec );
 
-    uvws.Expand( 4 );
-    uvws.Append( hsPoint3( 0.f, 1.f, 0.f ) );
-    uvws.Append( hsPoint3( 1.f, 1.f, 0.f ) );
-    uvws.Append( hsPoint3( 1.f, 0.f, 0.f ) );
-    uvws.Append( hsPoint3( 0.f, 0.f, 0.f ) );
+    uvws.reserve(4);
+    uvws.emplace_back(0.f, 1.f, 0.f);
+    uvws.emplace_back(1.f, 1.f, 0.f);
+    uvws.emplace_back(1.f, 0.f, 0.f);
+    uvws.emplace_back(0.f, 0.f, 0.f);
 
     /// Generate indices
-    indices.Expand( 6 );
-    indices.Append( 0 ); indices.Append( 1 ); indices.Append( 2 );
-    indices.Append( 0 ); indices.Append( 2 ); indices.Append( 3 );
+    indices.reserve(6);
+    indices.emplace_back(0); indices.emplace_back(1); indices.emplace_back(2);
+    indices.emplace_back(0); indices.emplace_back(2); indices.emplace_back(3);
 
     /// Create a drawable for it
-    drawable = plDrawableGenerator::GenerateDrawable( points.GetCount(), points.AcquireArray(), normals.AcquireArray(),
-                                                        uvws.AcquireArray(), 1,
-                                                        nil, true, multColor,
-                                                        indices.GetCount(), indices.AcquireArray(),
+    drawable = plDrawableGenerator::GenerateDrawable(points.size(), points.data(), normals.data(),
+                                                        uvws.data(), 1,
+                                                        nullptr, true, multColor,
+                                                        indices.size(), indices.data(),
                                                         material, localToWorld, blended, retIndex, toAddTo );
 
     return drawable;

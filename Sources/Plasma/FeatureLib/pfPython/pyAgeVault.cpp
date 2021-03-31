@@ -47,7 +47,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include "pnNetCommon/plNetApp.h"
-#pragma hdrstop
 
 #include "pyAgeVault.h"
 #include "pyVault.h"
@@ -264,7 +263,8 @@ void pyAgeVault::UpdateAgeSDL( pySDLStateDataRecord & pyrec )
 PyObject* pyAgeVault::FindNode( pyVaultNode* templateNode ) const
 {
     if (hsRef<RelVaultNode> rvn = VaultGetAgeNode()) {
-        hsRef<RelVaultNode> find = rvn->GetChildNode(templateNode->fNode, 1);
+        hsWeakRef<NetVaultNode> node(templateNode->fNode);
+        hsRef<RelVaultNode> find = rvn->GetChildNode(node, 1);
         if (find)
             return pyVaultNode::New(find);
     }

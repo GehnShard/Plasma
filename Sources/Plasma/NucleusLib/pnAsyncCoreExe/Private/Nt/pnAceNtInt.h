@@ -50,8 +50,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #endif
 #define PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNASYNCCOREEXE_PRIVATE_NT_PNACENTINT_H
 
-#include "hsRefCnt.h"
-
 namespace Nt {
 
 /****************************************************************************
@@ -83,37 +81,19 @@ enum EOpType {
     kNumOpTypes
 };
 
-class CNtWaitHandle : public hsRefCnt {
-    HANDLE  m_event;
-
-public:
-    CNtWaitHandle ();
-    ~CNtWaitHandle ();
-    bool WaitForObject (unsigned timeMs) const;
-    void SignalObject () const;
-};
-
 struct Operation {
     OVERLAPPED      overlapped;
     EOpType         opType;
     AsyncId         asyncId;
     bool            notify;
     unsigned        pending;
-    CNtWaitHandle * signalComplete;
     LINK(Operation) link;
 
     Operation()
-        : opType((EOpType)0), asyncId(nil), notify(false), pending(0),
-          signalComplete(nil)
+        : opType(), asyncId(), notify(), pending()
     {
         memset(&overlapped, 0, sizeof(overlapped));
     }
-
-    #ifdef HS_DEBUGGING
-    ~Operation () {
-        ASSERT(!signalComplete);
-    }
-    #endif
 };
 
 struct NtObject {
@@ -128,9 +108,9 @@ struct NtObject {
     bool                        closed;
 
     NtObject()
-        : ioType((EIoType)0), handle(nil), userState(nil),
-          nextCompleteSequence(0), nextStartSequence(0),
-          ioCount(0), closed(false) { }
+        : ioType(), handle(), userState(),
+          nextCompleteSequence(), nextStartSequence(),
+          ioCount(), closed() { }
 };
 
 
@@ -140,7 +120,6 @@ struct NtObject {
 *
 ***/
 
-void INtWakeupMainIoThreads ();
 void INtConnPostOperation (NtObject * ntObj, Operation * op, unsigned bytes);
 AsyncId INtConnSequenceStart (NtObject * ntObj);
 bool INtConnInitialize (NtObject * ntObj);
@@ -191,58 +170,5 @@ bool INtSocketOpCompleteQueuedSocketWrite (
 
 void NtInitialize ();
 void NtDestroy (unsigned exitThreadWaitMs);
-void NtSignalShutdown ();
-void NtWaitForShutdown ();
-void NtSleep (unsigned sleepMs);
-void NtSocketConnect (
-    AsyncCancelId *         cancelId,
-    const plNetAddress&     netAddr,
-    FAsyncNotifySocketProc  notifyProc,
-    void *                  param,
-    const void *            sendData,
-    unsigned                sendBytes,
-    unsigned                connectMs,
-    unsigned                localPort
-);
-void NtSocketConnectCancel (
-    FAsyncNotifySocketProc  notifyProc,
-    AsyncCancelId           cancelId
-);
-void NtSocketDisconnect (
-    AsyncSocket     sock,
-    bool            hardClose
-);
-void NtSocketDelete (AsyncSocket sock);
-bool NtSocketSend (
-    AsyncSocket     sock,
-    const void *    data,
-    unsigned        bytes
-);
-bool NtSocketWrite (
-    AsyncSocket     sock,
-    const void *    buffer,
-    unsigned        bytes,
-    void *          param
-);
-void NtSocketSetNotifyProc (
-    AsyncSocket             sock,
-    FAsyncNotifySocketProc  notifyProc
-);
-void NtSocketSetBacklogAlloc (
-    AsyncSocket     sock,
-    unsigned        bufferSize
-);
-unsigned NtSocketStartListening (
-    const plNetAddress&     listenAddr,
-    FAsyncNotifySocketProc  notifyProc
-);
-void NtSocketStopListening (
-    const plNetAddress&     listenAddr,
-    FAsyncNotifySocketProc  notifyProc
-);
-void NtSocketEnableNagling (
-    AsyncSocket             conn,
-    bool                    enable
-);
 
 }   // namespace Nt

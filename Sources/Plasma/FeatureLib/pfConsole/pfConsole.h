@@ -56,16 +56,15 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define _pfConsole_h
 
 #include "HeadSpin.h"
+
 #include "pnKeyedObject/hsKeyedObject.h"
 
-
+class pfConsoleEngine;
+class pfConsoleInputInterface;
+class plKeyEventMsg;
 class plPipeline;
 
 //// Class Definition ////////////////////////////////////////////////////////
-
-class pfConsoleEngine;
-class plKeyEventMsg;
-class pfConsoleInputInterface;
 
 class pfConsole : public hsKeyedObject 
 {
@@ -142,7 +141,7 @@ class pfConsole : public hsKeyedObject
         
         static pfConsole * GetInstance ();
 
-        virtual bool    MsgReceive( plMessage *msg );
+        bool    MsgReceive(plMessage *msg) override;
     
         void    Init( pfConsoleEngine *engine );
         void    Draw( plPipeline *p );

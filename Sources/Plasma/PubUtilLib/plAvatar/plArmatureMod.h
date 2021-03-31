@@ -56,17 +56,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plArmatureMod_inc
 #define plArmatureMod_inc
 
+#include "HeadSpin.h"
+#include "hsBitVector.h"
+
+#include <vector>
+
 #include "plAnimation/plAGMasterMod.h"
-
-// other local
-#include "plAvDefs.h"
-
-#include "pnSceneObject/plSimulationInterface.h"
-
-#include "hsMatrix44.h"
-#include "plNetCommon/plNetCommon.h"
-
-#include <cfloat>
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -74,28 +69,31 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
-class hsQuat;
-class plMatrixChannel;
+class plAGAnim;
 class plAGModifier;
-class plAGMasterMod;
-class plAGChannel;
-class plClothingOutfit;
-class plClothingSDLModifier;
+class plAnimTimeConvert;
+class plArmatureBrain;
+class plArmatureEffectsMgr;
+class plArmatureUpdateMsg;
+class plATCAnim;
+class plAvBoneMap;
+class plAvatarInputStateMsg;
 class plAvatarSDLModifier;
 class plAvatarPhysicalSDLModifier;
+class plClothingOutfit;
+class plClothingSDLModifier;
+class plControlEventMsg;
+class plCoordinateInterface;
+class plDebugText;
+class plDrawable;
+class plLayerLinkAnimation;
 class plMatrixDelayedCorrectionApplicator;
 class plMatrixDifferenceApp;
-class plDebugText;
-class plArmatureEffectsMgr;
-class plAvBoneMap;      // below
-class plDrawable;
-class plControlEventMsg;
-class plAvatarInputStateMsg;
-class plLayerLinkAnimation;
-class plPipeline;
-class plArmatureBrain;
-class plArmatureUpdateMsg;
+class hsQuat;
 class plPhysicalControllerCore;
+struct hsPoint3;
+class plSceneObject;
+
 
 typedef std::vector<plKey> plKeyVector;
 typedef std::vector<plArmatureBrain*> plBrainStack;
@@ -109,12 +107,12 @@ public:
     CLASSNAME_REGISTER( plArmatureModBase );
     GETINTERFACE_ANY( plArmatureModBase, plAGMasterMod );   
     
-    virtual bool    MsgReceive(plMessage* msg);
-    virtual void    AddTarget(plSceneObject* so);   
-    virtual void    RemoveTarget(plSceneObject* so);
-    virtual bool    IEval(double secs, float del, uint32_t dirty);
-    virtual void    Read(hsStream *stream, hsResMgr *mgr);
-    virtual void    Write(hsStream *stream, hsResMgr *mgr);
+    bool    MsgReceive(plMessage* msg) override;
+    void    AddTarget(plSceneObject* so) override;
+    void    RemoveTarget(plSceneObject* so) override;
+    bool    IEval(double secs, float del, uint32_t dirty) override;
+    void    Read(hsStream *stream, hsResMgr *mgr) override;
+    void    Write(hsStream *stream, hsResMgr *mgr) override;
     
     plMatrixDifferenceApp *GetRootAnimator() { return fRootAnimator; }
     plPhysicalControllerCore* GetController() const { return fController; }
@@ -126,7 +124,7 @@ public:
     plArmatureBrain *GetCurrentBrain() const;
     plDrawable *FindDrawable() const;
     virtual void LeaveAge();
-    virtual bool IsFinal();
+    bool IsFinal() override;
 
     // LOD stuff
     void    AdjustLOD();                // see if we need to switch to a different resolution
@@ -205,15 +203,15 @@ public:
     CLASSNAME_REGISTER( plArmatureMod );
     GETINTERFACE_ANY( plArmatureMod, plArmatureModBase );
     
-    virtual bool    MsgReceive(plMessage* msg);
-    virtual void    AddTarget(plSceneObject* so);
-    virtual void    RemoveTarget(plSceneObject* so);
-    virtual bool    IEval(double secs, float del, uint32_t dirty);
-    virtual void    Read(hsStream *stream, hsResMgr *mgr);
-    virtual void    Write(hsStream *stream, hsResMgr *mgr);
+    bool    MsgReceive(plMessage* msg) override;
+    void    AddTarget(plSceneObject* so) override;
+    void    RemoveTarget(plSceneObject* so) override;
+    bool    IEval(double secs, float del, uint32_t dirty) override;
+    void    Read(hsStream *stream, hsResMgr *mgr) override;
+    void    Write(hsStream *stream, hsResMgr *mgr) override;
 
-    virtual bool ValidatePhysics();
-    virtual bool ValidateMesh();
+    bool ValidatePhysics() override;
+    bool ValidateMesh() override;
 
     // Get or set the position of the avatar in simulation space.  Set any
     // arguments you don't care about to nil.
@@ -231,15 +229,15 @@ public:
     virtual void Spawn(double timeNow);
     virtual void SpawnAt(int which, double timeNow);
     virtual void EnterAge(bool reSpawn);
-    virtual void LeaveAge();
+    void LeaveAge() override;
     virtual void PanicLink(bool playLinkOutAnim = true);
     virtual void PersonalLink();
 
     virtual bool ToggleDontPanicLinkFlag() { fDontPanicLink = fDontPanicLink ? false : true; return fDontPanicLink; }
 
-    int GetBrainCount();
+    size_t GetBrainCount() const { return fBrains.size(); }
     plArmatureBrain *GetNextBrain(plArmatureBrain *brain);
-    plArmatureBrain *GetBrain(int index) { if(index <= fBrains.size()) return fBrains.at(index); else return nil; }
+    plArmatureBrain *GetBrain(size_t index) const { if (index <= fBrains.size()) return fBrains.at(index); else return nullptr; }
     plArmatureBrain *FindBrainByClass(uint32_t classID) const;
 
     void TurnToPoint(hsPoint3 &point);
@@ -282,8 +280,8 @@ public:
     ST::string GetMoveKeyString() const;
 
     void SynchIfLocal(double timeNow, int force); // Just physical state
-    void SynchInputState(uint32_t rcvID = kInvalidPlayerID);  
-    bool DirtySynchState(const ST::string& SDLStateName, uint32_t synchFlags );
+    void SynchInputState() const;
+    bool DirtySynchState(const ST::string& SDLStateName, uint32_t synchFlags) override;
     bool DirtyPhysicalSynchState(uint32_t synchFlags);
     plClothingOutfit *GetClothingOutfit() const { return fClothingOutfit; }
     plClothingSDLModifier *GetClothingSDLMod() const { return fClothingSDLMod; }
@@ -338,8 +336,6 @@ public:
     const hsBitVector& GetRelRegionCareAbout() const    { return fRegionsICareAbout; }
     const hsBitVector& GetRelRegionImIn() const         { return fRegionsImIn; }
 
-    bool    IsKILowestLevel();
-    int     GetKILevel();
     void    SetLinkInAnim(const ST::string &animName);
     plKey   GetLinkInAnimKey() const;
 
@@ -376,10 +372,9 @@ public:
     ST::string GetUserStr() const { return fUserStr; }
 
 protected:
-    void IInitDefaults();
-    virtual void IFinalize();   
-    virtual void ICustomizeApplicator();
-    virtual void ISetupMarkerCallbacks(plATCAnim *anim, plAnimTimeConvert *atc);
+    void IFinalize() override;
+    void ICustomizeApplicator() override;
+    void ISetupMarkerCallbacks(plATCAnim *anim, plAnimTimeConvert *atc) override;
     
     void    NetworkSynch(double timeNow, int force = 0);
     bool    IHandleControlMsg(plControlEventMsg* pMsg);
@@ -423,7 +418,7 @@ protected:
     plClothingSDLModifier *fClothingSDLMod;
     plAvatarSDLModifier *fAvatarSDLMod;
     plAvatarPhysicalSDLModifier *fAvatarPhysicalSDLMod;
-    hsTArray<const plSceneObject*> fClothToSOMap;
+    std::vector<const plSceneObject*> fClothToSOMap;
     plArmatureEffectsMgr *fEffects;
     plSceneObject *fFollowerParticleSystemSO;
     static ST::string fSpawnPointOverride;
@@ -434,7 +429,7 @@ protected:
     hsBitVector fOldRegionsImIn;
     hsBitVector fOldRegionsICareAbout;
     
-    hsTArray<plKey> fNotifyKeys;
+    std::vector<plKey> fNotifyKeys;
 
     // Extra info for creating our special physical at runtime
     float fPhysHeight;
@@ -465,8 +460,8 @@ public:
     CLASSNAME_REGISTER( plArmatureLODMod );
     GETINTERFACE_ANY( plArmatureLODMod, plArmatureMod );
 
-    virtual void    Read(hsStream *stream, hsResMgr *mgr);
-    virtual void    Write(hsStream *stream, hsResMgr *mgr);
+    void    Read(hsStream *stream, hsResMgr *mgr) override;
+    void    Write(hsStream *stream, hsResMgr *mgr) override;
 };
 
 class plAvBoneMap
@@ -482,7 +477,5 @@ protected:
     class BoneMapImp;       // forward declaration to keep the header clean: see .cpp for implementation
     BoneMapImp *fImp;       // the thing that actually holds our map
 };
-
-#define TWO_PI (M_PI * 2)
 
 #endif //plArmatureMod_inc

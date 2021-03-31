@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 #include "plgDispatch.h"
-#include "hsTemplates.h"
 
 #include "plActivatorBaseComponent.h"
 #include "plComponent.h"
@@ -51,7 +50,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plPhysicalComponents.h"
 #include "MaxMain/plMaxNode.h"
 #include "resource.h"
-#pragma hdrstop
 
 #include "plNavigableComponents.h"
 #include "MaxMain/plPhysicalProps.h"
@@ -93,7 +91,7 @@ public:
         kTwoFeet,
     };
 
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -136,7 +134,7 @@ public:
         return FALSE;
     }
 
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plAvLadderComponentProc gAvLadderComponentProc;
 
@@ -201,7 +199,7 @@ void plAvLadderComponent::CollectNonDrawables(INodeTab& nonDrawables)
 
 bool plAvLadderComponent::SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg)
 {
-    fKeys.Reset();
+    fKeys.clear();
 
     //
     // Create an invisible blocker for the ladder shape, so the avatar won't fall over the side
@@ -273,8 +271,7 @@ bool plAvLadderComponent::PreConvert(plMaxNode *node, plErrorMsg *pErrMsg)
     bool enabled = (fCompPB->GetInt(kEnabled) != 0);
 
     plAvLadderMod* ladMod = new plAvLadderMod(goingUp, ladderType, loops, enabled, ladderView);
-    plKey modKey = node->AddModifier(ladMod, IGetUniqueName(node));
-    fKeys.Append(modKey);
+    fKeys.emplace_back(node->AddModifier(ladMod, IGetUniqueName(node)));
 
     return true;
 }
@@ -286,6 +283,6 @@ bool plAvLadderComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
 
 bool plAvLadderComponent::DeInit(plMaxNode *node, plErrorMsg *pErrMsg)
 {
-    fKeys.Reset();
+    fKeys.clear();
     return true;
 }

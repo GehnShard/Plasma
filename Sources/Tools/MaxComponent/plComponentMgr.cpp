@@ -46,18 +46,17 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plComponent.h"
 #include "plComponentMgr.h"
 #include "plComponentReg.h"
-#pragma hdrstop
 
 /////////
 class ComponentMgrClassDesc : public ClassDesc
 {
 public:
-    int             IsPublic()              { return FALSE; }
-    void*           Create(BOOL loading)    { return &plComponentMgr::Inst(); }
-    const TCHAR*    ClassName()             { return _T("Component Mgr"); }
-    SClass_ID       SuperClassID()          { return UTILITY_CLASS_ID; }
-    Class_ID        ClassID()               { return COMPONENT_MGR_CID; }
-    const TCHAR*    Category()              { return _T(""); }
+    int             IsPublic() override             { return FALSE; }
+    void*           Create(BOOL loading) override   { return &plComponentMgr::Inst(); }
+    const TCHAR*    ClassName() override            { return _T("Component Mgr"); }
+    SClass_ID       SuperClassID() override         { return UTILITY_CLASS_ID; }
+    Class_ID        ClassID() override              { return COMPONENT_MGR_CID; }
+    const TCHAR*    Category() override             { return _T(""); }
 };
 
 static ComponentMgrClassDesc theComponentMgrCD;
@@ -83,7 +82,7 @@ ClassDesc *plComponentMgr::Get(uint32_t i)
     else
     {
         hsAssert(0, "Component index out of range");
-        return nil;
+        return nullptr;
     }
 }
 

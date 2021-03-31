@@ -44,14 +44,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 
-#include "pnUtils/pnUtils.h"
-#include "pnNetBase/pnNetBase.h"
 #include "pnKeyedObject/hsKeyedObject.h"
-#include "pnKeyedObject/plKey.h"
-
 #include "plAgeDescription/plAgeDescription.h"
 
-#include "pnUUID/pnUUID.h"
 
 //
 // A singleton class which manages loading and unloading ages and operations associated with that
@@ -106,7 +101,7 @@ public:
 
     void Init();
     void Shutdown();
-    bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
     bool LoadAge(const ST::string& ageName);
     bool UnloadAge()                              { return IUnloadAge(); }
     void UpdateAge(const ST::string& ageName);
@@ -119,15 +114,15 @@ public:
 
     void AddPendingPageInRoomKey(plKey r);
     bool RemovePendingPageInRoomKey(plKey r);
-    bool IsPendingPageInRoomKey(plKey p, int* idx=nil);
+    bool IsPendingPageInRoomKey(plKey p, int* idx=nullptr);
 
     void ExecPendingAgeFniFiles();
     void ExecPendingAgeCsvFiles();
 
     // Fun debugging exclude commands (to prevent certain pages from loading)
     void    ClearPageExcludeList();
-    void    AddExcludedPage( const ST::string& pageName, const ST::string& ageName = ST::null );
-    bool    IsPageExcluded( const plAgePage *page, const ST::string& ageName = ST::null );
+    void    AddExcludedPage(const ST::string& pageName, const ST::string& ageName = {});
+    bool    IsPageExcluded(const plAgePage *page, const ST::string& ageName = {});
 
     const plAgeDescription  &GetCurrAgeDesc() const { return fCurAgeDescription; }
 

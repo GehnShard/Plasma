@@ -47,10 +47,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <vector>
 
 #include "MaxMain/plMaxNode.h"
-#include "resource.h"
+#include "MaxMain/MaxAPI.h"
 
-#include <iparamm2.h>
-#pragma hdrstop
+#include "resource.h"
 
 #include "plResponderMtl.h"
 #include "plResponderComponentPriv.h"
@@ -100,19 +99,19 @@ public:
     plResponderMtlProc();
 
 protected:
-    virtual void IOnInitDlg(HWND hWnd, IParamBlock2* pb);
-    virtual void ILoadUser(HWND hWnd, IParamBlock2* pb);
-    virtual bool IUserCommand(HWND hWnd, IParamBlock2* pb, int cmd, int resID);
+    void IOnInitDlg(HWND hWnd, IParamBlock2* pb) override;
+    void ILoadUser(HWND hWnd, IParamBlock2* pb) override;
+    bool IUserCommand(HWND hWnd, IParamBlock2* pb, int cmd, int resID) override;
 
-    virtual void IPickNode(IParamBlock2* pb);
+    void IPickNode(IParamBlock2* pb) override;
 
-    virtual void ISetNodeButtonText(HWND hWnd, IParamBlock2* pb);
+    void ISetNodeButtonText(HWND hWnd, IParamBlock2* pb) override;
 };
 static plResponderMtlProc gResponderMtlProc;
 
 ParamBlockDesc2 gResponderMtlBlock
 (
-    kResponderMtlBlk, _T("mtlCmd"), 0, NULL, P_AUTO_UI,
+    kResponderMtlBlk, _T("mtlCmd"), 0, nullptr, P_AUTO_UI,
 
     IDD_COMP_RESPOND_MTL, IDS_COMP_CMD_PARAMS, 0, 0, &gResponderMtlProc,
 
@@ -207,7 +206,7 @@ const char *plResponderCmdMtl::GetName(int idx)
     case kRespondRewindMat: return "Rewind";
     }
 
-    return nil;
+    return nullptr;
 }
 
 static const char *GetShortName(int type)
@@ -224,7 +223,7 @@ static const char *GetShortName(int type)
     case kRespondRewindMat: return "Mat Rewind";
     }
 
-    return nil;
+    return nullptr;
 }
 const char *plResponderCmdMtl::GetInstanceName(IParamBlock2 *pb)
 {
@@ -243,7 +242,7 @@ IParamBlock2 *plResponderCmdMtl::CreatePB(int idx)
     int type = IndexToOldType(idx);
 
     // Create the paramblock and save it's type
-    IParamBlock2 *pb = CreateParameterBlock2(&gResponderMtlBlock, nil);
+    IParamBlock2 *pb = CreateParameterBlock2(&gResponderMtlBlock, nullptr);
     pb->SetValue(kMtlType, 0, type);
 
     return pb;
@@ -259,7 +258,7 @@ ST::string plResponderCmdMtl::GetAnim(IParamBlock2 *pb)
     return ST::string::from_utf8(pb->GetStr(kMtlAnim));
 }
 
-void ISearchLayerRecur(plLayerInterface *layer, const ST::string &segName, hsTArray<plKey>& keys)
+void ISearchLayerRecur(plLayerInterface *layer, const ST::string &segName, std::vector<plKey>& keys)
 {
     if (!layer)
         return;
@@ -270,23 +269,23 @@ void ISearchLayerRecur(plLayerInterface *layer, const ST::string &segName, hsTAr
         ST::string ID = animLayer->GetSegmentID();
         if (!segName.compare(ID))
         {
-            if( keys.kMissingIndex == keys.Find(animLayer->GetKey()) )
-                keys.Append(animLayer->GetKey());
+            const auto idx = std::find(keys.begin(), keys.end(), animLayer->GetKey());
+            if (idx == keys.end())
+                keys.emplace_back(animLayer->GetKey());
         }
     }
 
     ISearchLayerRecur(layer->GetAttached(), segName, keys);
 }
 
-int ISearchLayerRecur(hsGMaterial* mat, const ST::string &segName, hsTArray<plKey>& keys)
+size_t ISearchLayerRecur(hsGMaterial* mat, const ST::string &segName, std::vector<plKey>& keys)
 {
-    int i;
-    for( i = 0; i < mat->GetNumLayers(); i++ )
+    for (size_t i = 0; i < mat->GetNumLayers(); i++)
         ISearchLayerRecur(mat->GetLayer(i), segName, keys);
-    return keys.GetCount();
+    return keys.size();
 }
 
-int GetMatAnimModKey(Mtl* mtl, plMaxNodeBase* node, const ST::string& segName, hsTArray<plKey>& keys)
+int GetMatAnimModKey(Mtl* mtl, plMaxNodeBase* node, const ST::string& segName, std::vector<plKey>& keys)
 {
     int retVal = 0;
 
@@ -302,16 +301,16 @@ int GetMatAnimModKey(Mtl* mtl, plMaxNodeBase* node, const ST::string& segName, h
     }
     else
     {
-        hsTArray<hsGMaterial*> matList;
+        std::vector<hsGMaterial*> matList;
 
         if (node)
             hsMaterialConverter::Instance().GetMaterialArray(mtl, (plMaxNode*)node, matList);
         else
             hsMaterialConverter::Instance().CollectConvertedMaterials(mtl, matList);
 
-        for( i = 0; i < matList.GetCount(); i++ )
+        for (hsGMaterial* mat : matList)
         {
-            retVal += ISearchLayerRecur(matList[i], segName, keys);
+            retVal += ISearchLayerRecur(mat, segName, keys);
         }
     }
 
@@ -342,8 +341,6 @@ plMessage *plResponderCmdMtl::CreateMsg(plMaxNode* node, plErrorMsg *pErrMsg, IP
 
     SegmentMap *segMap = GetAnimSegmentMap(maxMtl, pErrMsg);
 
-    hsTArray<plKey> keys;
-
     if( segMap )
     {
         GetSegMapAnimTime(animName, segMap, SegmentSpec::kAnim, begin, end);
@@ -355,6 +352,7 @@ plMessage *plResponderCmdMtl::CreateMsg(plMaxNode* node, plErrorMsg *pErrMsg, IP
     else
         mtlNode = (plMaxNode*)pb->GetINode(kMtlNode);
 
+    std::vector<plKey> keys;
     GetMatAnimModKey(maxMtl, mtlNode, animName, keys);
 
     ST::string loopName = ST::string::from_utf8(pb->GetStr(kMtlLoop));
@@ -363,12 +361,12 @@ plMessage *plResponderCmdMtl::CreateMsg(plMaxNode* node, plErrorMsg *pErrMsg, IP
 
     DeleteSegmentMap(segMap);
 
-    if (!keys.GetCount())
+    if (keys.empty())
     {
         // We need the check here because "physicals only" export mode means that
         // most of the materials won't be there, so we should ignore this warning. -Colin
         if (plConvert::Instance().GetConvertSettings()->fPhysicalsOnly)
-            return nil;
+            return nullptr;
         else
             throw "Material animation key(s) not found";
     }
@@ -448,7 +446,7 @@ void plResponderCmdMtl::GetWaitPoints(IParamBlock2 *pb, WaitPoints& waitPoints)
 
     if (mtl)
     {
-        plNotetrackAnim notetrackAnim(mtl, nil);
+        plNotetrackAnim notetrackAnim(mtl, nullptr);
         plAnimInfo info = notetrackAnim.GetAnimInfo(animName);
         ST::string marker;
         while (!(marker = info.GetNextMarkerName()).empty())
@@ -474,7 +472,7 @@ void plResponderCmdMtl::CreateWait(plMaxNode* node, plErrorMsg* pErrMsg, IParamB
         Mtl *mtl = GetMtl(pb);
         ST::string animName = GetAnim(pb);
 
-        plNotetrackAnim notetrackAnim(mtl, nil);
+        plNotetrackAnim notetrackAnim(mtl, nullptr);
         plAnimInfo info = notetrackAnim.GetAnimInfo(animName);
 
         eventMsg->fEvent = kTime;
@@ -517,7 +515,7 @@ void plResponderMtlProc::IOnInitDlg(HWND hWnd, IParamBlock2* pb)
         RECT itemRect, clientRect;
         GetWindowRect(GetDlgItem(hWnd, IDC_LOOP_TEXT), &itemRect);
         GetWindowRect(hWnd, &clientRect);
-        SetWindowPos(hWnd, NULL, 0, 0, clientRect.right-clientRect.left,
+        SetWindowPos(hWnd, nullptr, 0, 0, clientRect.right-clientRect.left,
             itemRect.top-clientRect.top, SWP_NOMOVE | SWP_NOZORDER);
     }
 }
@@ -544,7 +542,7 @@ void plResponderMtlProc::ILoadUser(HWND hWnd, IParamBlock2 *pb)
 
     ComboBox_Enable(hLoop, TRUE);
 
-    plNotetrackAnim anim(mtl, nil);
+    plNotetrackAnim anim(mtl, nullptr);
     ST::string animName = ST::string::from_utf8(pb->GetStr(kMtlAnim));
     plAnimInfo info = anim.GetAnimInfo(animName);
 
@@ -594,7 +592,7 @@ class plPickRespMtlNode : public plPickMtlNode
 protected:
     int fTypeID;
 
-    void IAddUserType(HWND hList)
+    void IAddUserType(HWND hList) override
     {
         int type = fPB->GetInt(fTypeID);
 
@@ -608,16 +606,16 @@ protected:
             ListBox_SetCurSel(hList, idx);
     }
 
-    void ISetUserType(plMaxNode* node, const char* userType)
+    void ISetUserType(plMaxNode* node, const char* userType) override
     {
         if (strcmp(userType, kUserTypeAll) == 0)
         {
-            ISetNodeValue(nil);
+            ISetNodeValue(nullptr);
             fPB->SetValue(fTypeID, 0, kNodePB);
         }
         else if (strcmp(userType, kResponderNodeName) == 0)
         {
-            ISetNodeValue(nil);
+            ISetNodeValue(nullptr);
             fPB->SetValue(fTypeID, 0, kNodeResponder);
         }
         else

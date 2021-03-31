@@ -41,33 +41,35 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "plResBrowser.h"
-#include "ui_ResBrowser.h"
+#include "res/ui_ResBrowser.h"
 
 #if HS_BUILD_FOR_WIN32
 #   include "plWinRegistryTools.h"
 #endif
 
 #include "pnAllCreatables.h"
+
+#include "pnKeyedObject/plKey.h"
+#include "pnKeyedObject/plKeyImp.h"
+#include "pnKeyedObject/plUoid.h"
+
+#include "plResMgr/plPageInfo.h"
+#include "plResMgr/plRegistryHelpers.h"
+#include "plResMgr/plRegistryNode.h"
 #include "plResMgr/plResMgrCreatable.h"
 #include "plResMgr/plResManager.h"
 #include "plResMgr/plResMgrSettings.h"
 #include "plMessage/plResMgrHelperMsg.h"
-REGISTER_CREATABLE(plResMgrHelperMsg);
 
-#include "plResMgr/plRegistryHelpers.h"
-#include "plResMgr/plRegistryNode.h"
-#include "plResMgr/plPageInfo.h"
-#include "pnKeyedObject/plUoid.h"
-#include "pnKeyedObject/plKey.h"
-#include "pnKeyedObject/plKeyImp.h"
-
+#include <functional>
 #include <QApplication>
 #include <QDialog>
-#include <QMessageBox>
-#include <QFileDialog>
 #include <QDragEnterEvent>
+#include <QFileDialog>
+#include <QMessageBox>
 #include <QMimeData>
-#include <functional>
+
+REGISTER_CREATABLE(plResMgrHelperMsg);
 
 static void IAboutDialog(QWidget *parent)
 {

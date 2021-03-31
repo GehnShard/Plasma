@@ -198,16 +198,12 @@ class minkSymbols(ptResponder):
     def OnNotify(self,state,id,events):
         PtDebugPrint("minkSymbols.OnNotify(): state=%s id=%d events=" % (state, id), events)
 
-        if id in RegionToResponder.viewkeys():
+        if id in RegionToResponder.keys():
             PtDebugPrint("minkSymbols.OnNotify(): Region %d triggered" % (id))
-            code = "regCave0" + str(id) + ".disable()"
-            exec(code)
+            globals()["regCave0{}".format(id)].disable()
 
             ageSDL = PtGetAgeSDL()
-            code = "ageSDL[\"minkSymbolPart0" + str(id) + "\"] = (1,)"
-            exec(code)
-
-            code = "ageSDL[\"minkSymbolTouch0" + str(id) + "\"] = (1,)"
-            exec(code)
+            ageSDL["minkSymbolPart0{}".format(id)] = (1,)
+            ageSDL["minkSymbolTouch0{}".format(id)] = (1,)
 
             RegionToResponder[id].run(self.key)

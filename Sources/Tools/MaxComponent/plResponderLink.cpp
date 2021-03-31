@@ -48,10 +48,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plCameraComponents.h"
 #include "plMiscComponents.h"
 #include "MaxMain/plMaxNode.h"
-#include "resource.h"
+#include "MaxMain/MaxAPI.h"
 
-#include <iparamm2.h>
-#pragma hdrstop
+#include "resource.h"
 
 #include "plResponderLink.h"
 #include "plResponderComponentPriv.h"
@@ -98,7 +97,7 @@ protected:
     void ILoadParentAgeFilenamesCombo(HWND hWnd, IParamBlock2 *pb);
 
 public:
-    virtual BOOL DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -116,7 +115,7 @@ public:
                 {
                     if (LOWORD(wParam) == IDC_LINKINGRULE)
                     {
-                        int data = ComboBox_GetItemData((HWND)lParam, sel);
+                        int data = (int)ComboBox_GetItemData((HWND)lParam, sel);
                         pm->GetParamBlock()->SetValue(kLinkingRule, 0, data);
                         return TRUE;
                     }
@@ -140,13 +139,13 @@ public:
         }
         return FALSE;
     }
-    virtual void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plResponderLinkProc gResponderLinkProc;
 
 ParamBlockDesc2 gResponderLinkBlock
 (
-    kResponderLnkBlk, _T("linkCmd"), 0, NULL, P_AUTO_UI,
+    kResponderLnkBlk, _T("linkCmd"), 0, nullptr, P_AUTO_UI,
 
     IDD_COMP_RESPOND_LINK, IDS_COMP_CMD_PARAMS, 0, 0, &gResponderLinkProc,
 
@@ -331,7 +330,7 @@ void plResponderLinkProc::ILoadAgeFilenamesCombo(HWND hWnd, IParamBlock2 *pb)
     std::vector<plFileName> ages = plFileSystem::ListDir(agePath, "*.age");
     for (auto iter = ages.begin(); iter != ages.end(); ++iter)
     {
-        int idx = SendMessage(hAge, CB_ADDSTRING, 0, (LPARAM)iter->GetFileNameNoExt().c_str());
+        int idx = (int)SendMessage(hAge, CB_ADDSTRING, 0, (LPARAM)iter->GetFileNameNoExt().c_str());
 
         if (iter->GetFileNameNoExt() == savedName)
             SendMessage(hAge, CB_SETCURSEL, idx, 0);
@@ -360,7 +359,7 @@ void plResponderLinkProc::ILoadParentAgeFilenamesCombo(HWND hWnd, IParamBlock2 *
     std::vector<plFileName> ages = plFileSystem::ListDir(agePath, "*.age");
     for (auto iter = ages.begin(); iter != ages.end(); ++iter)
     {
-        int idx = SendMessage(hAge, CB_ADDSTRING, 0, (LPARAM)iter->GetFileNameNoExt().c_str());
+        int idx = (int)SendMessage(hAge, CB_ADDSTRING, 0, (LPARAM)iter->GetFileNameNoExt().c_str());
 
         if (iter->GetFileNameNoExt() == savedName)
             SendMessage(hAge, CB_SETCURSEL, idx, 0);
@@ -395,7 +394,7 @@ protected:
     }
 
 public:
-    virtual BOOL DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -415,7 +414,7 @@ public:
                 // If the responder component is hosed, remove it so the plResponderGetComp won't get bogus info
                 if (!plResponderGetComp::Instance().GetSavedComp(pb, kEnableNode, kEnableResponder))
                 {
-                    ReferenceTarget *empty = nil;
+                    ReferenceTarget *empty = nullptr;
                     pb->SetValue(kEnableResponder, 0, empty);
                 }
 
@@ -428,13 +427,13 @@ public:
         }
         return FALSE;
     }
-    virtual void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plResponderEnableProc gResponderEnableProc;
 
 ParamBlockDesc2 gResponderEnableBlock
 (
-    kResponderEnableMsgBlk, _T("enableCmd"), 0, NULL, P_AUTO_UI,
+    kResponderEnableMsgBlk, _T("enableCmd"), 0, nullptr, P_AUTO_UI,
 
     IDD_COMP_RESPOND_ENABLE, IDS_COMP_CMD_PARAMS, 0, 0, &gResponderEnableProc,
 
@@ -504,9 +503,9 @@ enum
 
 ParamBlockDesc2 gPhysicalEnableBlock
 (
-    kResponderPhysEnableBlk, _T("physEnableCmd"), 0, NULL, P_AUTO_UI,
+    kResponderPhysEnableBlk, _T("physEnableCmd"), 0, nullptr, P_AUTO_UI,
 
-    IDD_COMP_RESPOND_ENABLE_PHYS, IDS_COMP_CMD_PARAMS, 0, 0, NULL,
+    IDD_COMP_RESPOND_ENABLE_PHYS, IDS_COMP_CMD_PARAMS, 0, 0, nullptr,
 
     kEnablePhys,    _T("enable"),       TYPE_BOOL,      0, 0,
         p_ui,       TYPE_SINGLECHEKBOX, IDC_ENABLE_CHECK,
@@ -576,7 +575,7 @@ protected:
     plResponderCompNode fCompNode;
 
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -608,13 +607,13 @@ public:
 
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plResponderOneShotProc gResponderOneShotProc;
 
 ParamBlockDesc2 gResponderOneShotBlock
 (
-    kResponderOneShotMsgBlk, _T("oneShotCmd"), 0, NULL, P_AUTO_UI,
+    kResponderOneShotMsgBlk, _T("oneShotCmd"), 0, nullptr, P_AUTO_UI,
 
     IDD_COMP_RESPOND_ONESHOT, IDS_COMP_CMD_PARAMS, 0, 0, &gResponderOneShotProc,
 
@@ -686,7 +685,7 @@ void plResponderCmdOneShot::CreateWait(plMaxNode* node, plErrorMsg* pErrMsg, IPa
 
 ParamBlockDesc2 gResponderNotifyBlock
 (
-    kResponderNotifyMsgBlk, _T("notifyCmd"), 0, NULL, 0,
+    kResponderNotifyMsgBlk, _T("notifyCmd"), 0, nullptr, 0,
 
     end
 );
@@ -733,7 +732,7 @@ protected:
     }
 
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -753,13 +752,13 @@ public:
 
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plResponderActivatorEnableProc gResponderActivatorEnableProc;
 
 ParamBlockDesc2 gResponderActivatorEnableBlock
 (
-    kResponderActivatorEnableBlk, _T("detectorEnable"), 0, NULL, P_AUTO_UI,
+    kResponderActivatorEnableBlk, _T("detectorEnable"), 0, nullptr, P_AUTO_UI,
 
     IDD_COMP_RESPOND_ENABLE, IDS_COMP_CMD_PARAMS, 0, 0, &gResponderActivatorEnableProc,
 
@@ -827,7 +826,7 @@ plMessage *plResponderCmdDetectorEnable::CreateMsg(plMaxNode* node, plErrorMsg *
     plEnableMsg *msg = new plEnableMsg;
     msg->SetCmd(enable ? plEnableMsg::kEnable : plEnableMsg::kDisable);
 
-    hsTArray<plKey> keys;
+    std::vector<plKey> keys;
 
     if (comp->CanConvertToType(ACTIVATOR_BASE_CID))
     {
@@ -836,10 +835,8 @@ plMessage *plResponderCmdDetectorEnable::CreateMsg(plMaxNode* node, plErrorMsg *
         const plActivatorBaseComponent::LogicKeys& logicKeys = activatorComp->GetLogicKeys();
         plActivatorBaseComponent::LogicKeys::const_iterator it;
         for (it = logicKeys.begin(); it != logicKeys.end(); it++)
-        {
-            plKey key = it->second;
-            keys.Append(key);
-        }
+            keys.emplace_back(it->second);
+
         // check to see if this is a region sensor and if so if it has exit and / or enter activators
         if (activatorComp->HasLogicOut())
         {
@@ -847,10 +844,7 @@ plMessage *plResponderCmdDetectorEnable::CreateMsg(plMaxNode* node, plErrorMsg *
             const plActivatorBaseComponent::LogicKeys& logicKeys = volComp->GetLogicOutKeys();
             plActivatorBaseComponent::LogicKeys::const_iterator it;
             for (it = logicKeys.begin(); it != logicKeys.end(); it++)
-            {
-                plKey key = it->second;
-                keys.Append(key);
-            }
+                keys.emplace_back(it->second);
         }
     }
     else if (comp->ClassID() == NAV_LADDER_CID)
@@ -878,7 +872,7 @@ protected:
     plResponderCompNode fCompNode;
 
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -909,13 +903,13 @@ public:
 
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plResponderXRegionProc gResponderXRegionProc;
 
 ParamBlockDesc2 gResponderXRegionBlock
 (
-    kResponderXRegionBlk, _T("xRegion"), 0, NULL, P_AUTO_UI,
+    kResponderXRegionBlk, _T("xRegion"), 0, nullptr, P_AUTO_UI,
 
     IDD_COMP_RESPOND_ONESHOT, IDS_COMP_CMD_PARAMS, 0, 0, &gResponderXRegionProc,
 
@@ -951,7 +945,7 @@ ParamBlockDesc2 *plResponderCmdXRegion::GetDesc()
 
 IParamBlock2 *plResponderCmdXRegion::CreatePB(int idx)
 {
-    IParamBlock2 *pb = CreateParameterBlock2(&gResponderXRegionBlock, nil);
+    IParamBlock2 *pb = CreateParameterBlock2(&gResponderXRegionBlock, nullptr);
 
     int type = kRespondXRegionClear;
     if (idx == 1)
@@ -1038,9 +1032,9 @@ enum
 
 ParamBlockDesc2 gResponderCameraTransitionBlock
 (
-    kResponderCameraTransitionBlk, _T("camera"), 0, NULL, P_AUTO_UI,
+    kResponderCameraTransitionBlk, _T("camera"), 0, nullptr, P_AUTO_UI,
 
-    IDD_COMP_RESPOND_CAMERA, IDS_COMP_CMD_PARAMS, 0, 0, NULL,
+    IDD_COMP_RESPOND_CAMERA, IDS_COMP_CMD_PARAMS, 0, 0, nullptr,
 
     kCameraObj, _T("CameraObj"),    TYPE_INODE,     0, 0,
         p_ui,   TYPE_PICKNODEBUTTON, IDC_COMP_CAMERARGN_PICKSTATE_BASE,
@@ -1139,9 +1133,9 @@ enum
 
 ParamBlockDesc2 gResponderCameraForceBlock
 (
-    kResponderCameraForceBlk, _T("cameraForce"), 0, NULL, P_AUTO_UI,
+    kResponderCameraForceBlk, _T("cameraForce"), 0, nullptr, P_AUTO_UI,
 
-    IDD_COMP_RESPOND_CAM_FORCE, IDS_COMP_CMD_PARAMS, 0, 0, NULL,
+    IDD_COMP_RESPOND_CAM_FORCE, IDS_COMP_CMD_PARAMS, 0, 0, nullptr,
 
     kCamForce,  _T("force"),    TYPE_INT,       0, 0,
         p_ui,       TYPE_RADIO, 2,  IDC_RADIO_THIRD, IDC_RADIO_FIRST,   
@@ -1192,9 +1186,9 @@ enum { kDelayTime };
 
 ParamBlockDesc2 gResponderDelayBlock
 (
-    kResponderDelayBlk, _T("delay"), 0, NULL, P_AUTO_UI,
+    kResponderDelayBlk, _T("delay"), 0, nullptr, P_AUTO_UI,
 
-    IDD_COMP_RESPOND_DELAY, IDS_COMP_CMD_PARAMS, 0, 0, NULL,
+    IDD_COMP_RESPOND_DELAY, IDS_COMP_CMD_PARAMS, 0, 0, nullptr,
 
     kDelayTime, _T("delay"),    TYPE_FLOAT,     0, 0,
         p_default,  1.0f,
@@ -1231,7 +1225,7 @@ plMessage *plResponderCmdDelay::CreateMsg(plMaxNode* node, plErrorMsg *pErrMsg, 
 
     plTimerCallbackMsg *msg = new plTimerCallbackMsg;
     msg->fTime = time;
-    msg->fID = uint32_t(-1);
+    msg->fID = -1;
 
     return msg;
 }
@@ -1241,7 +1235,7 @@ void plResponderCmdDelay::CreateWait(plMaxNode* node, plErrorMsg* pErrMsg, IPara
     plTimerCallbackMsg *timerMsg = plTimerCallbackMsg::ConvertNoRef(waitInfo.msg);
     hsAssert(timerMsg, "Somebody is crazy");
 
-    if (timerMsg->fID != uint32_t(-1))
+    if (timerMsg->fID >= 0)
     {
         pErrMsg->Set(true,
                     "Responder Delay",
@@ -1267,9 +1261,9 @@ enum { kVisibilityNode, kVisibilityType, kVisibilityChildren };
 
 ParamBlockDesc2 gResponderVisibilityBlock
 (
-    kResponderVisibilityBlk, _T("Visibility"), 0, NULL, P_AUTO_UI,
+    kResponderVisibilityBlk, _T("Visibility"), 0, nullptr, P_AUTO_UI,
 
-    IDD_COMP_RESPOND_VISIBILITY, IDS_COMP_CMD_PARAMS, 0, 0, NULL,
+    IDD_COMP_RESPOND_VISIBILITY, IDS_COMP_CMD_PARAMS, 0, 0, nullptr,
 
     kVisibilityNode,    _T("VisibilityNode"),   TYPE_INODE,     0, 0,
         p_ui, TYPE_PICKNODEBUTTON, IDC_NODE_BUTTON,
@@ -1305,7 +1299,7 @@ ParamBlockDesc2 *plResponderCmdVisibility::GetDesc()
 
 IParamBlock2 *plResponderCmdVisibility::CreatePB(int idx)
 {
-    IParamBlock2 *pb = CreateParameterBlock2(&gResponderVisibilityBlock, nil);
+    IParamBlock2 *pb = CreateParameterBlock2(&gResponderVisibilityBlock, nullptr);
 
     int type = kRespondVisibilityOn;
     if (idx == 1)
@@ -1409,7 +1403,7 @@ enum
 class plResponderSubWorldProc : public ParamMap2UserDlgProc
 {
 public:
-    virtual BOOL DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -1436,14 +1430,14 @@ public:
 
         return FALSE;
     }
-    virtual void DeleteThis() {}
+    void DeleteThis() override { }
 };
 
 static plResponderSubWorldProc gResponderSubWorldProc;
 
 ParamBlockDesc2 gResponderSubWorldBlock
 (
-    kResponderSubWorldBlk, _T("SubWorld"), 0, NULL, P_AUTO_UI,
+    kResponderSubWorldBlk, _T("SubWorld"), 0, nullptr, P_AUTO_UI,
 
     IDD_COMP_RESPOND_SUBWORLD, IDS_COMP_CMD_PARAMS, 0, 0, &gResponderSubWorldProc,
 
@@ -1470,7 +1464,7 @@ ParamBlockDesc2 *plResponderCmdSubWorld::GetDesc()
 
 IParamBlock2 *plResponderCmdSubWorld::CreatePB(int idx)
 {
-    IParamBlock2 *pb = CreateParameterBlock2(&gResponderSubWorldBlock, nil);
+    IParamBlock2 *pb = CreateParameterBlock2(&gResponderSubWorldBlock, nullptr);
 
     int type = kRespondSubWorldEnter;
     if (idx == 1)
@@ -1557,7 +1551,7 @@ enum
 class plResponderFootSurfaceProc : public ParamMap2UserDlgProc
 {
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         IParamBlock2 *pb = pm->GetParamBlock();
         HWND hCB = GetDlgItem(hWnd, IDC_COMP_RESPOND_FOOT_SURFACE);
@@ -1579,13 +1573,13 @@ public:
         }
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plResponderFootSurfaceProc gResponderFootSurfaceProc;
 
 ParamBlockDesc2 gResponderFootSurfaceBlock
 (
-    kResponderFootSurfaceBlk, _T("FootSurface"), 0, NULL, P_AUTO_UI,
+    kResponderFootSurfaceBlk, _T("FootSurface"), 0, nullptr, P_AUTO_UI,
 
     IDD_COMP_RESPOND_FOOT_SURFACE, IDS_COMP_CMD_PARAMS, 0, 0, &gResponderFootSurfaceProc,
 
@@ -1637,7 +1631,7 @@ protected:
     plResponderCompNode fCompNode;
 
 public:
-    virtual BOOL DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -1668,13 +1662,13 @@ public:
 
         return FALSE;
     }
-    virtual void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plResponderMultistageProc gResponderMultistageProc;
 
 ParamBlockDesc2 gResponderMultistageBlock
 (
-    kResponderMultistageBlk, _T("multistage"), 0, NULL, P_AUTO_UI,
+    kResponderMultistageBlk, _T("multistage"), 0, nullptr, P_AUTO_UI,
 
     IDD_COMP_RESPOND_ONESHOT, IDS_COMP_CMD_PARAMS, 0, 0, &gResponderMultistageProc,
 

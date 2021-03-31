@@ -46,23 +46,17 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <list>
 
-#include "plNetTransport/plNetTransportMember.h"        // OfferLinkToPlayer()
-
-#include "plgDispatch.h"
-#include "pnMessage/plClientMsg.h"
-#include "pnMessage/plTimeMsg.h"
-#include "plMessage/plLinkToAgeMsg.h"
 #include "pnKeyedObject/plKey.h"
-#include "pnKeyedObject/plUoid.h"
-#include "pnKeyedObject/hsKeyedObject.h"
-#include "pnSceneObject/plSceneObject.h"
-#include "plNetCommon/plNetCommon.h"
-#include "plVault/plVault.h"
+#include "pnMessage/plClientMsg.h"
 #include "pnNetCommon/pnNetCommon.h"
-#include "plMessage/plVaultNotifyMsg.h"
-#include "plNetMessage/plNetMessage.h"
+#include "pnSceneObject/plSceneObject.h"
+
 #include "plAvatar/plAvatarMgr.h"
 #include "plAvatar/plArmatureMod.h"
+#include "plMessage/plLinkToAgeMsg.h"
+#include "plMessage/plVaultNotifyMsg.h"
+#include "plNetTransport/plNetTransportMember.h"        // OfferLinkToPlayer()
+#include "plVault/plVault.h"
 
 
 /*****************************************************************************
@@ -82,7 +76,7 @@ enum ENlmOp {
 struct NlmOp {
     ENlmOp  opcode;
     NlmOp (const ENlmOp & op)
-    : opcode(op)
+        : opcode(op)
     { }
 
     virtual ~NlmOp() = default;
@@ -90,13 +84,13 @@ struct NlmOp {
 
 struct NlmNoOpOp : NlmOp {
     NlmNoOpOp ()
-    : NlmOp(kNlmOpNoOp)
+        : NlmOp(kNlmOpNoOp)
     { }
 };
 
 struct NlmOpWaitOp : NlmOp {
     NlmOpWaitOp ()
-    : NlmOp(kNlmOpWaitOp)
+        : NlmOp(kNlmOpWaitOp)
     { }
 };
 
@@ -104,7 +98,7 @@ struct NlmJoinAgeOp : NlmOp {
     NetCommAge  age;
     bool muteSfx;
     NlmJoinAgeOp ()
-    : NlmOp(kNlmOpJoinAgeOp)
+        : NlmOp(kNlmOpJoinAgeOp), muteSfx()
     { }
 };
 
@@ -112,7 +106,7 @@ struct NlmLeaveAgeOp : NlmOp {
     bool    quitting;
     bool    muteSfx;
     NlmLeaveAgeOp ()
-    : NlmOp(kNlmOpLeaveAgeOp), quitting(false)
+        : NlmOp(kNlmOpLeaveAgeOp), quitting(), muteSfx()
     { }
 };
 
@@ -170,7 +164,7 @@ void plNetLinkingMgr::NCAgeJoinerCallback (
     switch (type) {
         case kAgeJoinerComplete: {
             ASSERT(joiner == s_ageJoiner);
-            s_ageJoiner = nil;
+            s_ageJoiner = nullptr;
             
             lm->IPostProcessLink();
 
@@ -199,7 +193,7 @@ void plNetLinkingMgr::NCAgeLeaverCallback (
     switch (type) {
         case kAgeLeaveComplete: {
             ASSERT(leaver == s_ageLeaver);
-            s_ageLeaver = nil;
+            s_ageLeaver = nullptr;
 
             // Pull our wait op off exec queue
             if (NlmOpWaitOp * waitOp = (NlmOpWaitOp *) userState) {
@@ -280,12 +274,6 @@ void plNetLinkingMgr::ExecNextOp () {
 
 
 ////////////////////////////////////////////////////////////////////
-
-plNetLinkingMgr::plNetLinkingMgr()
-:   fLinkingEnabled(true)
-,   fLinkedIn (false)
-{
-}
 
 plNetLinkingMgr::~plNetLinkingMgr()
 {
@@ -440,7 +428,7 @@ void plNetLinkingMgr::IDoLink(plLinkToAgeMsg* msg)
     StrCopy(
         joinAgeOp->age.spawnPtName,
         GetAgeLink()->SpawnPoint().GetName().c_str(),
-        arrsize(joinAgeOp->age.spawnPtName)
+        std::size(joinAgeOp->age.spawnPtName)
         );
     QueueOp(joinAgeOp);
 
@@ -507,7 +495,7 @@ bool plNetLinkingMgr::IProcessLinkingMgrMsg( plLinkingMgrMsg * msg )
 bool plNetLinkingMgr::IProcessVaultNotifyMsg(plVaultNotifyMsg* msg) 
 {
     // No deferred link? Bye bye.
-    if (fDeferredLink == nil)
+    if (fDeferredLink == nullptr)
         return false;
 
     plAgeLinkStruct* cur = GetAgeLink();
@@ -523,7 +511,7 @@ bool plNetLinkingMgr::IProcessVaultNotifyMsg(plVaultNotifyMsg* msg)
             return false;
     }
 
-    if (cVaultLink != nil)
+    if (cVaultLink != nullptr)
     {
         // This is something that Cyan does... >.<
         // It's very useful though...
@@ -536,7 +524,7 @@ bool plNetLinkingMgr::IProcessVaultNotifyMsg(plVaultNotifyMsg* msg)
         }
 
         IDoLink(fDeferredLink);
-        fDeferredLink = nil;
+        fDeferredLink = nullptr;
         return true;
     }
 
@@ -568,7 +556,7 @@ bool plNetLinkingMgr::IDispatchMsg( plMessage* msg, uint32_t playerID )
 
 void plNetLinkingMgr::LinkToAge( plAgeLinkStruct * link, bool linkInSfx, bool linkOutSfx, uint32_t playerID )
 {
-    LinkToAge(link, nil, linkInSfx, linkOutSfx, playerID);
+    LinkToAge(link, nullptr, linkInSfx, linkOutSfx, playerID);
 }
 
 void plNetLinkingMgr::LinkToAge( plAgeLinkStruct * link, const char* linkAnim, bool linkInSfx, bool linkOutSfx, uint32_t playerID )
@@ -719,8 +707,7 @@ void plNetLinkingMgr::OfferLinkToPlayer( const plAgeLinkStruct * inInfo, uint32_
 
     plNetClientMgr* mgr = plNetClientMgr::GetInstance();
     plNetTransport& transport = mgr->TransportMgr();
-    int guestIdx = transport.FindMember(playerID);
-    plNetTransportMember* guestMem = transport.GetMember(guestIdx);         // -1 ?
+    plNetTransportMember* guestMem = transport.GetMemberByID(playerID);
 
     if (guestMem) {
         plLinkToAgeMsg* linkM = new plLinkToAgeMsg(inInfo);
@@ -737,8 +724,7 @@ void plNetLinkingMgr::OfferLinkToPlayer( const plAgeLinkStruct * inInfo, uint32_
     plNetClientMgr *mgr = plNetClientMgr::GetInstance();
 
     plNetTransport &transport = mgr->TransportMgr();
-    int guestIdx = transport.FindMember(playerID);
-    plNetTransportMember *guestMem = transport.GetMember(guestIdx);         // -1 ?
+    plNetTransportMember* guestMem = transport.GetMemberByID(playerID);
     if (guestMem)
     {
         plLinkToAgeMsg* linkM = new plLinkToAgeMsg(inInfo);
@@ -769,8 +755,6 @@ void plNetLinkingMgr::IPostProcessLink()
     plAgeInfoStruct* info = link->GetAgeInfo();
 
     bool city = (info->GetAgeFilename().compare_i(kCityAgeFilename) == 0);
-    bool hood = (info->GetAgeFilename().compare_i(kNeighborhoodAgeFilename) == 0);
-    bool psnl = (info->GetAgeFilename().compare_i(kPersonalAgeFilename) == 0);
 
     // Update our online status 
     if (hsRef<RelVaultNode> rvnInfo = VaultGetPlayerInfoNode()) {
@@ -798,8 +782,8 @@ void plNetLinkingMgr::IPostProcessLink()
                             fldr->GetNodeId(),
                             info->GetNodeId(),
                             NetCommGetPlayer()->playerInt,
-                            nil,
-                            nil
+                            nullptr,
+                            nullptr
                         );
             }
         }
@@ -820,8 +804,8 @@ void plNetLinkingMgr::IPostProcessLink()
                             fldr->GetNodeId(),
                             info->GetNodeId(),
                             NetCommGetPlayer()->playerInt,
-                            nil,
-                            nil
+                            nullptr,
+                            nullptr
                         );
             }
         }
@@ -857,7 +841,7 @@ uint8_t plNetLinkingMgr::IPreProcessLink()
     // Appear offline until we're done linking
     if (hsRef<RelVaultNode> rvnInfo = VaultGetPlayerInfoNode()) {
         VaultPlayerInfoNode accInfo(rvnInfo);
-        accInfo.SetAgeInstName(nil);
+        accInfo.SetAgeInstName(nullptr);
         accInfo.SetAgeInstUuid(kNilUuid);
         accInfo.SetOnline(false);
     }

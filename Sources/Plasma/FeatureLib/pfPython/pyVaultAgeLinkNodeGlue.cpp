@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include <Python.h>
-#pragma hdrstop
 
 #include "pyVaultAgeLinkNode.h"
 #include "pySpawnPointInfo.h"
@@ -107,7 +106,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVaultAgeLinkNode, getVolatile)
 
 PYTHON_METHOD_DEFINITION(ptVaultAgeLinkNode, addSpawnPoint, args)
 {
-    PyObject* spawnPtObj = NULL;
+    PyObject* spawnPtObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &spawnPtObj))
     {
         PyErr_SetString(PyExc_TypeError, "addSpawnPoint expects a ptSpawnPointInfo or a ptSpawnPointInfoRef");
@@ -131,7 +130,7 @@ PYTHON_METHOD_DEFINITION(ptVaultAgeLinkNode, addSpawnPoint, args)
 
 PYTHON_METHOD_DEFINITION(ptVaultAgeLinkNode, removeSpawnPoint, args)
 {
-    PyObject* spawnPtObj = NULL;
+    PyObject* spawnPtObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &spawnPtObj))
     {
         PyErr_SetString(PyExc_TypeError, "removeSpawnPoint expects a ptSpawnPointInfo, a ptSpawnPointInfoRef, or a string");
@@ -149,10 +148,9 @@ PYTHON_METHOD_DEFINITION(ptVaultAgeLinkNode, removeSpawnPoint, args)
         self->fThis->RemoveSpawnPointRef(*spawnPt);
         PYTHON_RETURN_NONE;
     }
-    else if (PyString_Check(spawnPtObj))
+    else if (PyUnicode_Check(spawnPtObj))
     {
-        char* spawnPt = PyString_AsString(spawnPtObj);
-        self->fThis->RemoveSpawnPointByName(spawnPt);
+        self->fThis->RemoveSpawnPointByName(PyUnicode_AsSTString(spawnPtObj));
         PYTHON_RETURN_NONE;
     }
     PyErr_SetString(PyExc_TypeError, "removeSpawnPoint expects a ptSpawnPointInfo, a ptSpawnPointInfoRef, or a string");

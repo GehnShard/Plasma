@@ -52,9 +52,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _plInputInterfaceMgr_h
 #define _plInputInterfaceMgr_h
 
-#include "pnModifier/plSingleModifier.h"
-#include "hsTemplates.h"
 #include "hsGeometry3.h"
+#include <vector>
+
+#include "pnModifier/plSingleModifier.h"
 #include "pnInputCore/plKeyMap.h"
 
 //// Class Definition ////////////////////////////////////////////////////////
@@ -77,14 +78,9 @@ class plInputInterfaceMgr : public plSingleModifier
 
         static plInputInterfaceMgr  *fInstance;
 
-        hsTArray<plInputInterface *>    fInterfaces;
-        hsTArray<plCtrlCmd *>           fMessageQueue;
-        hsTArray<plKey>                 fReceivers;
-
-#ifdef MCN_DISABLE_OLD_WITH_NEW_HACK
-        hsTArray<ControlEventCode>      fDisabledCodes;
-        hsTArray<uint32_t>                fDisabledKeys;
-#endif
+        std::vector<plInputInterface *> fInterfaces;
+        std::vector<plCtrlCmd *>        fMessageQueue;
+        std::vector<plKey>              fReceivers;
 
         bool        fClickEnabled;
         int32_t       fCurrentCursor;
@@ -95,7 +91,7 @@ class plInputInterfaceMgr : public plSingleModifier
         plDefaultKeyCatcher     *fDefaultCatcher;
 
         
-        virtual bool IEval( double secs, float del, uint32_t dirty );
+        bool IEval(double secs, float del, uint32_t dirty) override;
 
         void    IAddInterface( plInputInterface *iface );
         void    IRemoveInterface( plInputInterface *iface );
@@ -119,9 +115,9 @@ class plInputInterfaceMgr : public plSingleModifier
         CLASSNAME_REGISTER( plInputInterfaceMgr );
         GETINTERFACE_ANY( plInputInterfaceMgr, plSingleModifier );
 
-        virtual bool    MsgReceive( plMessage *msg );
-        virtual void    Read( hsStream* s, hsResMgr* mgr );
-        virtual void    Write( hsStream* s, hsResMgr* mgr );
+        bool    MsgReceive(plMessage *msg) override;
+        void    Read(hsStream* s, hsResMgr* mgr) override;
+        void    Write(hsStream* s, hsResMgr* mgr) override;
 
         void    Init();
         void    Shutdown();
@@ -161,7 +157,10 @@ class plCtrlCmd
         plInputInterface    *fSource;
 
     public:
-        plCtrlCmd( plInputInterface *source ) : fCmd(nil),fPct(1.0f), fSource(source) { }
+        plCtrlCmd(plInputInterface* source)
+            : fCmd(), fPct(1.f), fSource(source),
+              fControlCode(), fControlActivated(), fNetPropagateToPlayers()
+        { }
         ~plCtrlCmd() { delete [] fCmd; }
 
         const char* GetCmdString()          { return fCmd; }

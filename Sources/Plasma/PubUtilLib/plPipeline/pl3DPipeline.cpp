@@ -41,29 +41,30 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "pl3DPipeline.h"
-#include "plPipeDebugFlags.h"
-
-#include "plProfile.h"
-
-#include "hsGMatState.inl"
 
 #include "hsGDeviceRef.h"
+#include "hsGMatState.inl"
+#include "plPipeDebugFlags.h"
+#include "plProfile.h"
+#include "plTweak.h"
+
 #include "plRenderTarget.h"
 #include "plCubicRenderTarget.h"
 
-#include "plTweak.h"
+#include "pnSceneObject/plDrawInterface.h"
+#include "pnSceneObject/plSceneObject.h"
 
-#include "plSurface/hsGMaterial.h"
 #include "plDrawable/plDrawableSpans.h"
 #include "plDrawable/plSpaceTree.h"
 #include "plDrawable/plSpanTypes.h"
 #include "plGLight/plLightInfo.h"
 #include "plGLight/plShadowSlave.h"
 #include "plGLight/plShadowCaster.h"
-#include "pnSceneObject/plDrawInterface.h"
-#include "pnSceneObject/plSceneObject.h"
+#include "plIntersect/plVolumeIsect.h"
 #include "plScene/plRenderRequest.h"
 #include "plScene/plVisMgr.h"
+#include "plSurface/hsGMaterial.h"
+#include "plSurface/plLayerInterface.h"
 
 plProfile_CreateTimer("RenderScene",            "PipeT", RenderScene);
 plProfile_CreateTimer("VisEval",                "PipeT", VisEval);
@@ -120,8 +121,8 @@ pl3DPipeline::pl3DPipeline(const hsG3DDeviceModeRecord* devModeRec)
     fFrame(0)
 {
 
-    fOverLayerStack.Reset();
-    fPiggyBackStack.Reset();
+    fOverLayerStack.clear();
+    fPiggyBackStack.clear();
 
     fMatOverOn.Reset();
     fMatOverOff.Reset();
@@ -137,7 +138,6 @@ pl3DPipeline::pl3DPipeline(const hsG3DDeviceModeRecord* devModeRec)
 
 
     // Get the requested mode and setup
-    const hsG3DDeviceRecord *devRec = devModeRec->GetDevice();
     const hsG3DDeviceMode *devMode = devModeRec->GetMode();
 
     if(!fInitialPipeParams.Windowed)
@@ -174,7 +174,7 @@ pl3DPipeline::~pl3DPipeline()
 }
 
 
-void pl3DPipeline::Render(plDrawable* d, const hsTArray<int16_t>& visList)
+void pl3DPipeline::Render(plDrawable* d, const std::vector<int16_t>& visList)
 {
     // Reset here, since we can push/pop renderTargets after BeginRender() but
     // before this function, which necessitates this being called
@@ -199,7 +199,7 @@ void pl3DPipeline::Draw(plDrawable* d)
         if (( ds->GetType() & fView.GetDrawableTypeMask()) == 0)
             return;
 
-        static hsTArray<int16_t>visList;
+        static std::vector<int16_t> visList;
 
         PreRender(ds, visList);
         PrepForRender(ds, visList);
@@ -237,16 +237,17 @@ void pl3DPipeline::PushRenderTarget(plRenderTarget* target)
         target = target->GetParent();
     }
 
-    fRenderTargets.Push(fCurrRenderTarget);
+    fRenderTargets.push_back(fCurrRenderTarget);
     fDevice.SetRenderTarget(fCurrRenderTarget);
 }
 
 
 plRenderTarget* pl3DPipeline::PopRenderTarget()
 {
-    plRenderTarget* old = fRenderTargets.Pop();
+    plRenderTarget* old = fRenderTargets.back();
+    fRenderTargets.pop_back();
     plRenderTarget* temp;
-    size_t i = fRenderTargets.GetCount();
+    size_t i = fRenderTargets.size();
 
     if (i == 0)
     {
@@ -295,8 +296,8 @@ void pl3DPipeline::BeginVisMgr(plVisMgr* visMgr)
     // multiple times
 
     plProfile_BeginTiming(FindSceneLights);
-    fCharLights.SetCount(0);
-    fVisLights.SetCount(0);
+    fCharLights.clear();
+    fVisLights.clear();
     if (visMgr)
     {
         const hsBitVector& visSet = visMgr->GetVisSet();
@@ -312,12 +313,12 @@ void pl3DPipeline::BeginVisMgr(plVisMgr* visMgr)
                 if (light->GetProperty(plLightInfo::kLPHasIncludes))
                 {
                     if (light->GetProperty(plLightInfo::kLPIncludesChars))
-                        fCharLights.Append(light);
+                        fCharLights.emplace_back(light);
                 }
                 else
                 {
-                    fVisLights.Append(light);
-                    fCharLights.Append(light);
+                    fVisLights.emplace_back(light);
+                    fCharLights.emplace_back(light);
                 }
             }
         }
@@ -334,18 +335,18 @@ void pl3DPipeline::BeginVisMgr(plVisMgr* visMgr)
                 if (light->GetProperty(plLightInfo::kLPHasIncludes))
                 {
                     if (light->GetProperty(plLightInfo::kLPIncludesChars))
-                        fCharLights.Append(light);
+                        fCharLights.emplace_back(light);
                 }
                 else
                 {
-                    fVisLights.Append(light);
-                    fCharLights.Append(light);
+                    fVisLights.emplace_back(light);
+                    fCharLights.emplace_back(light);
                 }
             }
         }
     }
-    plProfile_IncCount(LightVis, fVisLights.GetCount());
-    plProfile_IncCount(LightChar, fCharLights.GetCount());
+    plProfile_IncCount(LightVis, fVisLights.size());
+    plProfile_IncCount(LightChar, fCharLights.size());
 
     plProfile_EndTiming(FindSceneLights);
 }
@@ -353,8 +354,8 @@ void pl3DPipeline::BeginVisMgr(plVisMgr* visMgr)
 
 void pl3DPipeline::EndVisMgr(plVisMgr* visMgr)
 {
-    fCharLights.SetCount(0);
-    fVisLights.SetCount(0);
+    fCharLights.clear();
+    fVisLights.clear();
 }
 
 
@@ -407,7 +408,7 @@ hsGMaterial* pl3DPipeline::PushOverrideMaterial(hsGMaterial* mat)
 {
     hsGMaterial* ret = GetOverrideMaterial();
     hsRefCnt_SafeRef(mat);
-    fOverrideMat.Push(mat);
+    fOverrideMat.push_back(mat);
     fForceMatHandle = true;
 
     return ret;
@@ -416,7 +417,8 @@ hsGMaterial* pl3DPipeline::PushOverrideMaterial(hsGMaterial* mat)
 
 void pl3DPipeline::PopOverrideMaterial(hsGMaterial* restore)
 {
-    hsGMaterial *pop = fOverrideMat.Pop();
+    hsGMaterial *pop = fOverrideMat.back();
+    fOverrideMat.pop_back();
     hsRefCnt_SafeUnRef(pop);
 
     if (fCurrMaterial == pop)
@@ -518,8 +520,8 @@ void pl3DPipeline::SubmitShadowSlave(plShadowSlave* slave)
 
     // Keep the shadow slaves in a priority sorted list. For performance reasons,
     // we may want only the strongest N or those of a minimum priority.
-    int i;
-    for (i = 0; i < fShadows.GetCount(); i++)
+    size_t i;
+    for (i = 0; i < fShadows.size(); i++)
     {
         if (slave->fPriority <= fShadows[i]->fPriority)
             break;
@@ -527,16 +529,16 @@ void pl3DPipeline::SubmitShadowSlave(plShadowSlave* slave)
 
     // Note that fIndex is no longer the index in the fShadows list, but
     // is still used as a unique identifier for this slave.
-    slave->fIndex = fShadows.GetCount();
-    fShadows.Insert(i, slave);
+    slave->fIndex = fShadows.size();
+    fShadows.insert(fShadows.begin() + i, slave);
 }
 
 
 plLayerInterface* pl3DPipeline::PushPiggyBackLayer(plLayerInterface* li)
 {
-    fPiggyBackStack.Push(li);
+    fPiggyBackStack.push_back(li);
 
-    fActivePiggyBacks = std::min(static_cast<int>(fMaxPiggyBacks), fPiggyBackStack.GetCount());
+    fActivePiggyBacks = std::min(static_cast<size_t>(fMaxPiggyBacks), fPiggyBackStack.size());
 
     fForceMatHandle = true;
 
@@ -546,13 +548,13 @@ plLayerInterface* pl3DPipeline::PushPiggyBackLayer(plLayerInterface* li)
 
 plLayerInterface* pl3DPipeline::PopPiggyBackLayer(plLayerInterface* li)
 {
-    int idx = fPiggyBackStack.Find(li);
-    if (fPiggyBackStack.kMissingIndex == idx)
+    auto iter = std::find(fPiggyBackStack.cbegin(), fPiggyBackStack.cend(), li);
+    if (iter == fPiggyBackStack.cend())
         return nullptr;
 
-    fPiggyBackStack.Remove(idx);
+    fPiggyBackStack.erase(iter);
 
-    fActivePiggyBacks = std::min(static_cast<int>(fMaxPiggyBacks), fPiggyBackStack.GetCount());
+    fActivePiggyBacks = std::min(static_cast<size_t>(fMaxPiggyBacks), fPiggyBackStack.size());
 
     fForceMatHandle = true;
 
@@ -580,7 +582,7 @@ void pl3DPipeline::SetViewTransform(const plViewTransform& v)
 
 /*** PROTECTED METHODS *******************************************************/
 
-void pl3DPipeline::IAttachSlaveToReceivers(int which, plDrawableSpans* drawable, const hsTArray<int16_t>& visList)
+void pl3DPipeline::IAttachSlaveToReceivers(size_t which, plDrawableSpans* drawable, const std::vector<int16_t>& visList)
 {
     plShadowSlave* slave = fShadows[which];
 
@@ -601,15 +603,15 @@ void pl3DPipeline::IAttachSlaveToReceivers(int which, plDrawableSpans* drawable,
     cache.Clear();
     space->EnableLeaves(visList, cache);
 
-    static hsTArray<int16_t> hitList;
-    hitList.SetCount(0);
+    static std::vector<int16_t> hitList;
+    hitList.clear();
     space->HarvestEnabledLeaves(slave->fIsect, cache, hitList);
 
     // For the visible spans that intercect the shadow volume, attach the shadow
     // to all appropriate for receiving this shadow map.
-    for (size_t i = 0; i < hitList.GetCount(); i++)
+    for (int16_t idx : hitList)
     {
-        const plSpan* span = drawable->GetSpan(hitList[i]);
+        const plSpan* span = drawable->GetSpan(idx);
         hsGMaterial* mat = drawable->GetMaterial(span->fMaterialIdx);
 
         // Check that the span isn't flagged as unshadowable, or has
@@ -628,9 +630,9 @@ void pl3DPipeline::IAttachSlaveToReceivers(int which, plDrawableSpans* drawable,
 }
 
 
-void pl3DPipeline::IAttachShadowsToReceivers(plDrawableSpans* drawable, const hsTArray<int16_t>& visList)
+void pl3DPipeline::IAttachShadowsToReceivers(plDrawableSpans* drawable, const std::vector<int16_t>& visList)
 {
-    for (size_t i = 0; i < fShadows.GetCount(); i++)
+    for (size_t i = 0; i < fShadows.size(); i++)
         IAttachSlaveToReceivers(i, drawable, visList);
 }
 
@@ -673,64 +675,62 @@ void pl3DPipeline::ISetShadowFromGroup(plDrawableSpans* drawable, const plSpan* 
 
     const hsBitVector& slaveBits = liInfo->GetSlaveBits();
 
-    for (size_t i = 0; i < fShadows.GetCount(); i++)
+    for (plShadowSlave* shadow : fShadows)
     {
-        if (slaveBits.IsBitSet(fShadows[i]->fIndex))
+        if (slaveBits.IsBitSet(shadow->fIndex))
         {
             // Check self shadowing.
-            if (IAcceptsShadow(span, fShadows[i]))
+            if (IAcceptsShadow(span, shadow))
             {
                 // Check for overlapping bounds.
-                if (fShadows[i]->fIsect->Test(span->fWorldBounds) != kVolumeCulled)
-                    span->AddShadowSlave(fShadows[i]->fIndex);
+                if (shadow->fIsect->Test(span->fWorldBounds) != kVolumeCulled)
+                    span->AddShadowSlave(shadow->fIndex);
             }
         }
     }
 }
 
 
-void pl3DPipeline::ICheckLighting(plDrawableSpans* drawable, hsTArray<int16_t>& visList, plVisMgr* visMgr)
+void pl3DPipeline::ICheckLighting(plDrawableSpans* drawable, std::vector<int16_t>& visList, plVisMgr* visMgr)
 {
     if (fView.fRenderState & kRenderNoLights)
         return;
 
-    if (!visList.GetCount())
+    if (visList.empty())
         return;
-
-    plLightInfo* light;
 
     plProfile_BeginTiming(FindLights);
 
     // First add in the explicit lights (from LightGroups).
     // Refresh the lights as they are added (actually a lazy eval).
     plProfile_BeginTiming(FindPerm);
-    for (size_t j = 0; j < visList.GetCount(); j++)
+    for (int16_t idx : visList)
     {
-        drawable->GetSpan(visList[j])->ClearLights();
+        drawable->GetSpan(idx)->ClearLights();
 
         if (IsDebugFlagSet(plPipeDbg::kFlagNoRuntimeLights))
             continue;
 
         // Set the bits for the lights added from the permanent lists (during ClearLights()).
-        const hsTArray<plLightInfo*>& permaLights = drawable->GetSpan(visList[j])->fPermaLights;
-        for (size_t k = 0; k < permaLights.GetCount(); k++)
+        const std::vector<plLightInfo*>& permaLights = drawable->GetSpan(idx)->fPermaLights;
+        for (plLightInfo* permaLight : permaLights)
         {
-            permaLights[k]->Refresh();
-            if (permaLights[k]->GetProperty(plLightInfo::kLPShadowLightGroup) && !permaLights[k]->IsIdle())
+            permaLight->Refresh();
+            if (permaLight->GetProperty(plLightInfo::kLPShadowLightGroup) && !permaLight->IsIdle())
             {
                 // If it casts a shadow, attach the shadow now.
-                ISetShadowFromGroup(drawable, drawable->GetSpan(visList[j]), permaLights[k]);
+                ISetShadowFromGroup(drawable, drawable->GetSpan(idx), permaLight);
             }
         }
 
-        const hsTArray<plLightInfo*>& permaProjs = drawable->GetSpan(visList[j])->fPermaProjs;
-        for (size_t k = 0; k < permaProjs.GetCount(); k++)
+        const std::vector<plLightInfo*>& permaProjs = drawable->GetSpan(idx)->fPermaProjs;
+        for (plLightInfo* permaProj : permaProjs)
         {
-            permaProjs[k]->Refresh();
-            if (permaProjs[k]->GetProperty(plLightInfo::kLPShadowLightGroup) && !permaProjs[k]->IsIdle())
+            permaProj->Refresh();
+            if (permaProj->GetProperty(plLightInfo::kLPShadowLightGroup) && !permaProj->IsIdle())
             {
                 // If it casts a shadow, attach the shadow now.
-                ISetShadowFromGroup(drawable, drawable->GetSpan(visList[j]), permaProjs[k]);
+                ISetShadowFromGroup(drawable, drawable->GetSpan(idx), permaProj);
             }
         }
     }
@@ -746,26 +746,26 @@ void pl3DPipeline::ICheckLighting(plDrawableSpans* drawable, hsTArray<int16_t>& 
     // A) moving - affected by all lights - moveList
     // B) specular - affected by specular lights - specList
     // C) visible - affected by moving lights - visList
-    static hsTArray<int16_t> tmpList;
-    static hsTArray<int16_t> moveList;
-    static hsTArray<int16_t> specList;
+    static std::vector<int16_t> tmpList;
+    static std::vector<int16_t> moveList;
+    static std::vector<int16_t> specList;
 
-    moveList.SetCount(0);
-    specList.SetCount(0);
+    moveList.clear();
+    specList.clear();
 
     plProfile_BeginTiming(FindSpan);
-    for (size_t k = 0; k < visList.GetCount(); k++)
+    for (int16_t idx : visList)
     {
-        const plSpan* span = drawable->GetSpan(visList[k]);
+        const plSpan* span = drawable->GetSpan(idx);
 
         if (span->fProps & plSpan::kPropRunTimeLight)
         {
-            moveList.Append(visList[k]);
-            specList.Append(visList[k]);
+            moveList.emplace_back(idx);
+            specList.emplace_back(idx);
         }
         else if (span->fProps & plSpan::kPropMatHasSpecular)
         {
-             specList.Append(visList[k]);
+            specList.emplace_back(idx);
         }
     }
     plProfile_EndTiming(FindSpan);
@@ -776,23 +776,23 @@ void pl3DPipeline::ICheckLighting(plDrawableSpans* drawable, hsTArray<int16_t>& 
     // in fCharLights, else only by the smaller list of fVisLights.
 
     plProfile_BeginTiming(FindActiveLights);
-    static hsTArray<plLightInfo*> lightList;
-    lightList.SetCount(0);
+    static std::vector<plLightInfo*> lightList;
+    lightList.clear();
 
     if (drawable->GetNativeProperty(plDrawable::kPropCharacter))
     {
-        for (size_t i = 0; i < fCharLights.GetCount(); i++)
+        for (plLightInfo* charLight : fCharLights)
         {
-            if (fCharLights[i]->AffectsBound(drawable->GetSpaceTree()->GetWorldBounds()))
-                lightList.Append(fCharLights[i]);
+            if (charLight->AffectsBound(drawable->GetSpaceTree()->GetWorldBounds()))
+                lightList.emplace_back(charLight);
         }
     }
     else
     {
-        for (size_t i = 0; i < fVisLights.GetCount(); i++)
+        for (plLightInfo* visLight : fVisLights)
         {
-            if (fVisLights[i]->AffectsBound(drawable->GetSpaceTree()->GetWorldBounds()))
-                lightList.Append(fVisLights[i]);
+            if (visLight->AffectsBound(drawable->GetSpaceTree()->GetWorldBounds()))
+                lightList.emplace_back(visLight);
         }
     }
     plProfile_EndTiming(FindActiveLights);
@@ -803,32 +803,30 @@ void pl3DPipeline::ICheckLighting(plDrawableSpans* drawable, hsTArray<int16_t>& 
     // it's not very accurate, but good enough for selecting which lights to use.
 
     plProfile_BeginTiming(ApplyActiveLights);
-    for (size_t k = 0; k < lightList.GetCount(); k++)
+    for (plLightInfo* light : lightList)
     {
-        light = lightList[k];
-
-        tmpList.SetCount(0);
+        tmpList.clear();
         if (light->GetProperty(plLightInfo::kLPMovable))
         {
             plProfile_BeginTiming(ApplyMoving);
 
-            const hsTArray<int16_t>& litList = light->GetAffected(drawable->GetSpaceTree(),
+            const std::vector<int16_t>& litList = light->GetAffected(drawable->GetSpaceTree(),
                 visList,
                 tmpList,
                 drawable->GetNativeProperty(plDrawable::kPropCharacter));
 
             // PUT OVERRIDE FOR KILLING PROJECTORS HERE!!!!
-            bool proj = nil != light->GetProjection();
+            bool proj = nullptr != light->GetProjection();
             if (fView.fRenderState & kRenderNoProjection)
                 proj = false;
 
-            for (size_t j = 0; j < litList.GetCount(); j++)
+            for (int16_t litIdx : litList)
             {
                 // Use the light IF light is enabled and
                 //      1) light is movable
                 //      2) span is movable, or
                 //      3) Both the light and the span have specular
-                const plSpan* span = drawable->GetSpan(litList[j]);
+                const plSpan* span = drawable->GetSpan(litIdx);
                 bool currProj = proj;
 
                 if (span->fProps & plSpan::kPropProjAsVtx)
@@ -854,28 +852,28 @@ void pl3DPipeline::ICheckLighting(plDrawableSpans* drawable, hsTArray<int16_t>& 
         }
         else if (light->GetProperty(plLightInfo::kLPHasSpecular))
         {
-            if (!specList.GetCount())
+            if (specList.empty())
                 continue;
 
             plProfile_BeginTiming(ApplyToSpec);
 
-            const hsTArray<int16_t>& litList = light->GetAffected(drawable->GetSpaceTree(),
+            const std::vector<int16_t>& litList = light->GetAffected(drawable->GetSpaceTree(),
                 specList,
                 tmpList,
                 drawable->GetNativeProperty(plDrawable::kPropCharacter));
 
             // PUT OVERRIDE FOR KILLING PROJECTORS HERE!!!!
-            bool proj = nil != light->GetProjection();
+            bool proj = nullptr != light->GetProjection();
             if (fView.fRenderState & kRenderNoProjection)
                 proj = false;
 
-            for (size_t j = 0; j < litList.GetCount(); j++)
+            for (int16_t litIdx : litList)
             {
                 // Use the light IF light is enabled and
                 //      1) light is movable
                 //      2) span is movable, or
                 //      3) Both the light and the span have specular
-                const plSpan* span = drawable->GetSpan(litList[j]);
+                const plSpan* span = drawable->GetSpan(litIdx);
                 bool currProj = proj;
 
                 if (span->fProps & plSpan::kPropProjAsVtx)
@@ -901,28 +899,28 @@ void pl3DPipeline::ICheckLighting(plDrawableSpans* drawable, hsTArray<int16_t>& 
         }
         else
         {
-            if (!moveList.GetCount())
+            if (moveList.empty())
                 continue;
 
             plProfile_BeginTiming(ApplyToMoving);
 
-            const hsTArray<int16_t>& litList = light->GetAffected(drawable->GetSpaceTree(),
+            const std::vector<int16_t>& litList = light->GetAffected(drawable->GetSpaceTree(),
                 moveList,
                 tmpList,
                 drawable->GetNativeProperty(plDrawable::kPropCharacter));
 
             // PUT OVERRIDE FOR KILLING PROJECTORS HERE!!!!
-            bool proj = nil != light->GetProjection();
+            bool proj = nullptr != light->GetProjection();
             if (fView.fRenderState & kRenderNoProjection)
                 proj = false;
 
-            for (size_t j = 0; j < litList.GetCount(); j++)
+            for (int16_t litIdx : litList)
             {
                 // Use the light IF light is enabled and
                 //      1) light is movable
                 //      2) span is movable, or
                 //      3) Both the light and the span have specular
-                const plSpan* span = drawable->GetSpan(litList[j]);
+                const plSpan* span = drawable->GetSpan(litIdx);
                 bool currProj = proj;
 
                 if (span->fProps & plSpan::kPropProjAsVtx)
@@ -1012,8 +1010,6 @@ void pl3DPipeline::ISetLocalToWorld(const hsMatrix44& l2w, const hsMatrix44& w2l
 
 void pl3DPipeline::ITransformsToDevice()
 {
-    bool resetCullMode = fView.fXformResetFlags & (fView.kResetCamera | fView.kResetL2W);
-
     if (fView.fXformResetFlags & fView.kResetCamera)
         IWorldToCameraToDevice();
 

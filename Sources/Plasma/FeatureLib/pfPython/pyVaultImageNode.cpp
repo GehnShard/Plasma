@@ -48,7 +48,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <Python.h>
 #include "plPipeline.h"
 #include "hsResMgr.h"
-#pragma hdrstop
 
 #include "pyVaultImageNode.h"
 #ifndef BUILDING_PYPLASMA
@@ -125,7 +124,7 @@ ST::string pyVaultImageNode::Image_GetTitle() const
         VaultImageNode image(fNode);
         return image.GetImageTitle();
     }
-    return ST::null;
+    return ST::string();
 }
 
 PyObject* pyVaultImageNode::Image_GetImage()
@@ -156,8 +155,8 @@ void pyVaultImageNode::Image_SetImage(pyImage& image)
 
     if (fMipmapKey) {
         fMipmapKey->UnRefObject();
-        fMipmapKey = nil;
-        fMipmap = nil;
+        fMipmapKey = nullptr;
+        fMipmap = nullptr;
     }
 
     fMipmap = image.GetImage();
@@ -180,13 +179,16 @@ void pyVaultImageNode::SetImageFromBuf( PyObject * pybuf )
 
     if (fMipmapKey) {
         fMipmapKey->UnRefObject();
-        fMipmapKey = nil;
-        fMipmap = nil;
+        fMipmapKey = nullptr;
+        fMipmap = nullptr;
     }
 
-    uint8_t * buffer = nil;
-    Py_ssize_t bytes;
-    PyObject_AsReadBuffer(pybuf, (const void **)&buffer, &bytes);
+    Py_buffer view;
+    PyObject_GetBuffer(pybuf, &view, PyBUF_SIMPLE);
+    uint8_t* buffer = (uint8_t*)view.buf;
+    Py_ssize_t bytes = view.len;
+    PyBuffer_Release(&view);
+
     if (buffer) {
         VaultImageNode access(fNode);
         access.SetImageData(buffer, bytes);
@@ -201,8 +203,8 @@ void pyVaultImageNode::SetImageFromScrShot()
 
     if (fMipmapKey) {
         fMipmapKey->UnRefObject();
-        fMipmapKey = nil;
-        fMipmap = nil;
+        fMipmapKey = nullptr;
+        fMipmap = nullptr;
     }
 
     if (cyMisc::GetPipeline()) {
@@ -217,10 +219,10 @@ void pyVaultImageNode::SetImageFromScrShot()
             access.StuffImage(fMipmap);
         }
         else {
-            access.SetImageData(nil, 0);
+            access.SetImageData(nullptr, 0);
             access.SetImageType(VaultImageNode::kNone);
             delete fMipmap;
-            fMipmap = nil;
+            fMipmap = nullptr;
         }
     }
 }

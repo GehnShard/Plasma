@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include <Python.h>
-#pragma hdrstop
 
 #include "pyAgeVault.h"
 #include "pyAgeInfoStruct.h"
@@ -100,7 +99,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptAgeVault, getPublicAgesFolder)
 
 PYTHON_METHOD_DEFINITION(ptAgeVault, getSubAgeLink, args)
 {
-    PyObject* ageInfoObj = NULL;
+    PyObject* ageInfoObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &ageInfoObj))
     {
         PyErr_SetString(PyExc_TypeError, "getSubAgeLink expects a ptAgeInfoStruct");
@@ -117,13 +116,13 @@ PYTHON_METHOD_DEFINITION(ptAgeVault, getSubAgeLink, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptAgeVault, getAgeGuid)
 {
-    return PyString_FromString(self->fThis->GetAgeGuid().AsString().c_str());
+    return PyUnicode_FromSTString(self->fThis->GetAgeGuid().AsString());
 }
 
 PYTHON_METHOD_DEFINITION(ptAgeVault, addDevice, args)
 {
     char* name;
-    PyObject* cbObj = NULL;
+    PyObject* cbObj = nullptr;
     unsigned long context = 0;
     if (!PyArg_ParseTuple(args, "s|Ol", &name, &cbObj, &context))
     {
@@ -172,7 +171,7 @@ PYTHON_METHOD_DEFINITION(ptAgeVault, setDeviceInbox, args)
 {
     char* name;
     char* inboxName;
-    PyObject* cb = NULL;
+    PyObject* cb = nullptr;
     unsigned long context = 0;
     if (!PyArg_ParseTuple(args, "ss|Ol", &name, &inboxName, &cb, &context))
     {
@@ -226,7 +225,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptAgeVault, getAgeSDL)
 
 PYTHON_METHOD_DEFINITION(ptAgeVault, updateAgeSDL, args)
 {
-    PyObject* recordObj = NULL;
+    PyObject* recordObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &recordObj))
     {
         PyErr_SetString(PyExc_TypeError, "updateAgeSDL expects a ptSDLStateDataRecord");

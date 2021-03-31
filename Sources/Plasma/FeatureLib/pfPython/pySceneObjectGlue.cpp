@@ -44,7 +44,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pyGeometry3.h"
 #include "pyKey.h"
 #include "pyMatrix44.h"
-#pragma hdrstop
 
 #include "pySceneObject.h"
 
@@ -56,8 +55,8 @@ PYTHON_DEFAULT_DEALLOC_DEFINITION(ptSceneobject)
 
 PYTHON_INIT_DEFINITION(ptSceneobject, args, keywords)
 {
-    PyObject *objKeyObject = NULL;
-    PyObject *selfKeyObject = NULL;
+    PyObject *objKeyObject = nullptr;
+    PyObject *selfKeyObject = nullptr;
     if (!PyArg_ParseTuple(args, "OO", &objKeyObject, &selfKeyObject))
     {
         PyErr_SetString(PyExc_TypeError, "init expects two ptKey objects");
@@ -113,7 +112,7 @@ PYTHON_RICH_COMPARE_DEFINITION(ptSceneobject, obj1, obj2, compareType)
 
 PYTHON_METHOD_DEFINITION(ptSceneobject, addKey, args)
 {
-    PyObject *keyObject = NULL;
+    PyObject *keyObject = nullptr;
     if (!PyArg_ParseTuple(args, "O", &keyObject))
     {
         PyErr_SetString(PyExc_TypeError, "addKey expects a ptKey");
@@ -148,7 +147,7 @@ PYTHON_METHOD_DEFINITION(ptSceneobject, netForce, args)
 
 PYTHON_METHOD_DEFINITION(ptSceneobject, findObject, args)
 {
-    char *name = NULL;
+    char *name = nullptr;
     if (!PyArg_ParseTuple(args, "s", &name))
     {
         PyErr_SetString(PyExc_TypeError, "findObject expects a string");
@@ -159,7 +158,7 @@ PYTHON_METHOD_DEFINITION(ptSceneobject, findObject, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptSceneobject, getName)
 {
-    return PyString_FromString(self->fThis->GetName().c_str());
+    return PyUnicode_FromSTString(self->fThis->GetName());
 }
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptSceneobject, getResponders)
@@ -207,8 +206,8 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptSceneobject, getParentToLocal)
 
 PYTHON_METHOD_DEFINITION(ptSceneobject, setTransform, args)
 {
-    PyObject *local2WorldObj = NULL;
-    PyObject *world2LocalObj = NULL;
+    PyObject *local2WorldObj = nullptr;
+    PyObject *world2LocalObj = nullptr;
     if (!PyArg_ParseTuple(args, "OO", &local2WorldObj, &world2LocalObj))
     {
         PyErr_SetString(PyExc_TypeError, "setTransform expects two ptMatrix44 objects");
@@ -263,7 +262,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptSceneobject, isHuman)
 PYTHON_METHOD_DEFINITION(ptSceneobject, pushCutsceneCamera, args)
 {
     char cutFlag;
-    PyObject *avKeyObject = NULL;
+    PyObject *avKeyObject = nullptr;
     if (!PyArg_ParseTuple(args, "bO", &cutFlag, &avKeyObject))
     {
         PyErr_SetString(PyExc_TypeError, "pushCutseneCamera expects a boolean and a ptKey");
@@ -281,7 +280,7 @@ PYTHON_METHOD_DEFINITION(ptSceneobject, pushCutsceneCamera, args)
 
 PYTHON_METHOD_DEFINITION(ptSceneobject, popCutsceneCamera, args)
 {
-    PyObject *avKeyObject = NULL;
+    PyObject *avKeyObject = nullptr;
     if (!PyArg_ParseTuple(args, "O", &avKeyObject))
     {
         PyErr_SetString(PyExc_TypeError, "popCutsceneCamera expects a ptKey");
@@ -299,7 +298,7 @@ PYTHON_METHOD_DEFINITION(ptSceneobject, popCutsceneCamera, args)
 
 PYTHON_METHOD_DEFINITION(ptSceneobject, pushCamera, args)
 {
-    PyObject *avKeyObject = NULL;
+    PyObject *avKeyObject = nullptr;
     if (!PyArg_ParseTuple(args, "O", &avKeyObject))
     {
         PyErr_SetString(PyExc_TypeError, "pushCamera expects a ptKey");
@@ -317,7 +316,7 @@ PYTHON_METHOD_DEFINITION(ptSceneobject, pushCamera, args)
 
 PYTHON_METHOD_DEFINITION(ptSceneobject, pushCameraCut, args)
 {
-    PyObject *avKeyObject = NULL;
+    PyObject *avKeyObject = nullptr;
     if (!PyArg_ParseTuple(args, "O", &avKeyObject))
     {
         PyErr_SetString(PyExc_TypeError, "pushCameraCut expects a ptKey");
@@ -335,7 +334,7 @@ PYTHON_METHOD_DEFINITION(ptSceneobject, pushCameraCut, args)
 
 PYTHON_METHOD_DEFINITION(ptSceneobject, popCamera, args)
 {
-    PyObject *avKeyObject = NULL;
+    PyObject *avKeyObject = nullptr;
     if (!PyArg_ParseTuple(args, "O", &avKeyObject))
     {
         PyErr_SetString(PyExc_TypeError, "popCamera expects a ptKey");
@@ -353,14 +352,14 @@ PYTHON_METHOD_DEFINITION(ptSceneobject, popCamera, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptSceneobject, getResponderState)
 {
-    return PyInt_FromLong((long)self->fThis->GetResponderState());
+    return PyLong_FromLong((long)self->fThis->GetResponderState());
 }
 
 PYTHON_BASIC_METHOD_DEFINITION(ptSceneobject, animate, Animate)
 
 PYTHON_METHOD_DEFINITION(ptSceneobject, rewindAnimNamed, args)
 {
-    char *name = NULL;
+    char *name = nullptr;
     if (!PyArg_ParseTuple(args, "s", &name))
     {
         PyErr_SetString(PyExc_TypeError, "rewindAnimNamed expects a string");
@@ -372,7 +371,7 @@ PYTHON_METHOD_DEFINITION(ptSceneobject, rewindAnimNamed, args)
 
 PYTHON_METHOD_DEFINITION(ptSceneobject, playAnimNamed, args)
 {
-    char *name = NULL;
+    char *name = nullptr;
     if (!PyArg_ParseTuple(args, "s", &name))
     {
         PyErr_SetString(PyExc_TypeError, "playAnimNamed expects a string");
@@ -384,7 +383,7 @@ PYTHON_METHOD_DEFINITION(ptSceneobject, playAnimNamed, args)
 
 PYTHON_METHOD_DEFINITION(ptSceneobject, stopAnimNamed, args)
 {
-    char *name = NULL;
+    char *name = nullptr;
     if (!PyArg_ParseTuple(args, "s", &name))
     {
         PyErr_SetString(PyExc_TypeError, "stopAnimNamed expects a string");
@@ -421,7 +420,7 @@ PYTHON_METHOD_DEFINITION(ptSceneobject, fastForwardAttachedResponder, args)
 PYTHON_METHOD_DEFINITION(ptSceneobject, setSoundFilename, args)
 {
     int index;
-    char *filename = NULL;
+    char *filename = nullptr;
     char isCompressed;
     if (!PyArg_ParseTuple(args, "isb", &index, &filename, &isCompressed))
     {
@@ -434,13 +433,13 @@ PYTHON_METHOD_DEFINITION(ptSceneobject, setSoundFilename, args)
 
 PYTHON_METHOD_DEFINITION(ptSceneobject, getSoundIndex, args)
 {
-    char *sndComponentName = NULL;
+    char *sndComponentName = nullptr;
     if (!PyArg_ParseTuple(args, "s", &sndComponentName))
     {
         PyErr_SetString(PyExc_TypeError, "getSoundIndex expects a string");
         PYTHON_RETURN_ERROR;
     }
-    return PyInt_FromLong((long)self->fThis->GetSoundObjectIndex(sndComponentName));
+    return PyLong_FromLong((long)self->fThis->GetSoundObjectIndex(sndComponentName));
 }
 
 PYTHON_METHOD_DEFINITION(ptSceneobject, volumeSensorIgnoreExtraEnters, args)
@@ -567,11 +566,12 @@ PYTHON_START_GETSET_TABLE(ptSceneobject)
 PYTHON_END_GETSET_TABLE;
 
 // Type structure definition
-#define ptSceneobject_COMPARE           PYTHON_NO_COMPARE
 #define ptSceneobject_AS_NUMBER         PYTHON_NO_AS_NUMBER
 #define ptSceneobject_AS_SEQUENCE       PYTHON_NO_AS_SEQUENCE
 #define ptSceneobject_AS_MAPPING        PYTHON_NO_AS_MAPPING
 #define ptSceneobject_STR               PYTHON_NO_STR
+#define ptSceneobject_GETATTRO          PYTHON_NO_GETATTRO
+#define ptSceneobject_SETATTRO          PYTHON_NO_SETATTRO
 #define ptSceneobject_RICH_COMPARE      PYTHON_DEFAULT_RICH_COMPARE(ptSceneobject)
 #define ptSceneobject_GETSET            PYTHON_DEFAULT_GETSET(ptSceneobject)
 #define ptSceneobject_BASE              PYTHON_NO_BASE
@@ -581,10 +581,10 @@ PLASMA_CUSTOM_TYPE(ptSceneobject, "Params: objKey, selfKey\nPlasma Sceneobject c
 PyObject *pySceneObject::New(plKey objKey, PyObject *selfKeyObj)
 {
     if (!pyKey::Check(selfKeyObj))
-        return NULL;
+        return nullptr;
     pyKey *selfKey = pyKey::ConvertFrom(selfKeyObj);
 
-    ptSceneobject *newObj = (ptSceneobject*)ptSceneobject_type.tp_new(&ptSceneobject_type, NULL, NULL);
+    ptSceneobject *newObj = (ptSceneobject*)ptSceneobject_type.tp_new(&ptSceneobject_type, nullptr, nullptr);
     newObj->fThis->addObjKey(objKey);
     newObj->fThis->setSenderKey(selfKey->getKey());
     newObj->fThis->setPyMod(*selfKey);
@@ -594,7 +594,7 @@ PyObject *pySceneObject::New(plKey objKey, PyObject *selfKeyObj)
 
 PyObject *pySceneObject::New(plKey objKey, pyKey &selfKey)
 {
-    ptSceneobject *newObj = (ptSceneobject*)ptSceneobject_type.tp_new(&ptSceneobject_type, NULL, NULL);
+    ptSceneobject *newObj = (ptSceneobject*)ptSceneobject_type.tp_new(&ptSceneobject_type, nullptr, nullptr);
     newObj->fThis->addObjKey(objKey);
     newObj->fThis->setSenderKey(selfKey.getKey());
     newObj->fThis->setPyMod(selfKey);
@@ -604,7 +604,7 @@ PyObject *pySceneObject::New(plKey objKey, pyKey &selfKey)
 
 PyObject *pySceneObject::New(plKey objKey, plKey selfKey)
 {
-    ptSceneobject *newObj = (ptSceneobject*)ptSceneobject_type.tp_new(&ptSceneobject_type, NULL, NULL);
+    ptSceneobject *newObj = (ptSceneobject*)ptSceneobject_type.tp_new(&ptSceneobject_type, nullptr, nullptr);
     newObj->fThis->addObjKey(objKey);
     newObj->fThis->setSenderKey(selfKey);
     newObj->fThis->setPyMod(selfKey);
@@ -614,7 +614,7 @@ PyObject *pySceneObject::New(plKey objKey, plKey selfKey)
 
 PyObject *pySceneObject::New(plKey objKey)
 {
-    ptSceneobject *newObj = (ptSceneobject*)ptSceneobject_type.tp_new(&ptSceneobject_type, NULL, NULL);
+    ptSceneobject *newObj = (ptSceneobject*)ptSceneobject_type.tp_new(&ptSceneobject_type, nullptr, nullptr);
     newObj->fThis->addObjKey(objKey);
     newObj->fThis->setSenderKey(objKey);
     newObj->fThis->SetNetForce(false);

@@ -45,7 +45,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "pnFactory/plCreatable.h"
 #include "hsGMatState.h"
-#include "hsTemplates.h"
 
 #define MIN_WIDTH 640
 #define MIN_HEIGHT 480
@@ -151,12 +150,12 @@ public:
     // visList is write only. On output, visList is UNSORTED visible spans.
     // Called once per scene render (maybe multiple times per frame).
     // Returns true if rendering should proceed.
-    virtual bool                        PreRender(plDrawable* drawable, hsTArray<int16_t>& visList, plVisMgr* visMgr=nil) = 0;
+    virtual bool                        PreRender(plDrawable* drawable, std::vector<int16_t>& visList, plVisMgr* visMgr=nullptr) = 0;
     // PrepForRender - perform any processing on the drawable data nessecary before rendering.
     // visList is read only. On input, visList is SORTED visible spans, and is ALL spans which will be drawn this render.
     // Called once per scene render. 
     // Returns true if rendering should proceed.
-    virtual bool                        PrepForRender(plDrawable* drawable, hsTArray<int16_t>& visList, plVisMgr* visMgr=nil) = 0;
+    virtual bool                        PrepForRender(plDrawable* drawable, std::vector<int16_t>& visList, plVisMgr* visMgr=nullptr) = 0;
     // Render - draw the drawable to the current render target.
     // visList is read only. On input, visList is SORTED visible spans. May not be the complete list of visible spans
     // for this drawable.
@@ -164,7 +163,7 @@ public:
     //      Render(drawable0, visList0) // visList0 contains furthest spans in drawable0
     //      Render(drawable1, visList1) // visList1 contains spans from drawable1 between drawable0's visList0 and visList2
     //      Render(drawable0, visList2) // visList2 contains closest spans in drawable0.
-    virtual void                        Render(plDrawable* d, const hsTArray<int16_t>& visList) = 0;
+    virtual void                        Render(plDrawable* d, const std::vector<int16_t>& visList) = 0;
     // Draw - Convenience wrapper for standalone renders. Calls PreRender, PrepForRender, Render. Currently for internal
     // use only, but may prove useful for procedurals (render to texture).
     virtual void                        Draw(plDrawable* d) = 0;
@@ -215,9 +214,9 @@ public:
     virtual void                        PushRenderRequest(plRenderRequest* req) = 0;
     virtual void                        PopRenderRequest(plRenderRequest* req) = 0;
 
-    virtual void                        ClearRenderTarget( plDrawable* d ) = 0; // nil d reverts to ClearRenderTarget(nil, nil).
-    virtual void                        ClearRenderTarget(const hsColorRGBA* col = nil, const float* depth = nil) = 0; // col/depth are overrides for current default.
-    virtual void                        SetClear(const hsColorRGBA* col=nil, const float* depth=nil) = 0; // sets the default clear for current render target.
+    virtual void                        ClearRenderTarget(plDrawable* d) = 0; // nil d reverts to ClearRenderTarget(nullptr, nullptr).
+    virtual void                        ClearRenderTarget(const hsColorRGBA* col = nullptr, const float* depth = nullptr) = 0; // col/depth are overrides for current default.
+    virtual void                        SetClear(const hsColorRGBA* col=nullptr, const float* depth=nullptr) = 0; // sets the default clear for current render target.
     virtual hsColorRGBA                 GetClearColor() const = 0;
     virtual float                       GetClearDepth() const = 0;
     virtual hsGDeviceRef                *MakeRenderTargetRef( plRenderTarget *owner ) = 0;
@@ -240,8 +239,8 @@ public:
     // Culling. Might be used in Update before bothering to do any serious computation.
     virtual bool                        TestVisibleWorld(const hsBounds3Ext& wBnd) = 0;
     virtual bool                        TestVisibleWorld(const plSceneObject* sObj) = 0;
-    virtual bool                        HarvestVisible(plSpaceTree* space, hsTArray<int16_t>& visList) = 0;
-    virtual bool                        SubmitOccluders(const hsTArray<const plCullPoly*>& polyList) = 0;
+    virtual bool                        HarvestVisible(plSpaceTree* space, std::vector<int16_t>& visList) = 0;
+    virtual bool                        SubmitOccluders(const std::vector<const plCullPoly*>& polyList) = 0;
     
     virtual void                        SetDebugFlag( uint32_t flag, bool on ) = 0;
     virtual bool                        IsDebugFlagSet( uint32_t flag ) const = 0;
@@ -330,7 +329,7 @@ public:
     // flipVertical is for the AVI writer, which wants it's frames upside down
     virtual bool                        CaptureScreen( plMipmap *dest, bool flipVertical = false, uint16_t desiredWidth = 0, uint16_t desiredHeight = 0 ) = 0;
 
-    // Returns an un-named (GetKey()==nil) mipmap same dimensions as targ. You are responsible for deleting said mipMap.
+    // Returns an un-named (GetKey()==nullptr) mipmap same dimensions as targ. You are responsible for deleting said mipMap.
     virtual plMipmap*                   ExtractMipMap(plRenderTarget* targ) = 0;
 
     /// Error handling

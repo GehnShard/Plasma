@@ -44,9 +44,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define plAnimCmdMsg_inc
 
 #include "pnMessage/plMessageWithCallbacks.h"
+
 #include "hsBitVector.h"
+#include <string_theory/string>
 
 class plAGAnimInstance;
+class plKey;
 
 class plAnimCmdMsg : public plMessageWithCallbacks
 {
@@ -55,10 +58,16 @@ protected:
     ST::string fLoopName;
 
 private:
-    void IInit() { fBegin=fEnd=fLoopBegin=fLoopEnd=fSpeed=fSpeedChangeRate=fTime=0; fAnimName=fLoopName=ST::null;}
+    void IInit()
+    {
+        fBegin = fEnd = fLoopBegin = fLoopEnd = fSpeed = fSpeedChangeRate = fTime = 0;
+        fAnimName = ST::string();
+        fLoopName = ST::string();
+    }
+
 public:
     plAnimCmdMsg()
-        : plMessageWithCallbacks(nil, nil, nil) { IInit(); }
+        : plMessageWithCallbacks(nullptr, nullptr, nullptr) { IInit(); }
     plAnimCmdMsg(const plKey &s, 
                 const plKey &r, 
                 const double* t)
@@ -122,8 +131,8 @@ public:
     float fTime;
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr);
-    void Write(hsStream* stream, hsResMgr* mgr);
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 // plAnimCmdMsg is intented for animation commands sent to a plAnimTimeConvert. Commands that only apply to the
@@ -135,11 +144,15 @@ protected:
     ST::string fAnimName;
 
 private:
-    void IInit() { fBlend = fAmp = 0;
-                   fAnimName=ST::null;}
+    void IInit()
+    {
+        fBlend = fAmp = 0;
+        fAnimName = ST::string();
+    }
+
 public:
     plAGCmdMsg()
-        : plMessage(nil, nil, nil) { IInit(); }
+        : plMessage(nullptr, nullptr, nullptr) { IInit(); }
     plAGCmdMsg(const plKey &s, 
                const plKey &r, 
                const double* t)
@@ -171,23 +184,23 @@ public:
     float fAnimTime;
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr);
-    void Write(hsStream* stream, hsResMgr* mgr);
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 class plAGInstanceCallbackMsg : public plEventCallbackMsg
 {
 public:
-    plAGInstanceCallbackMsg() : plEventCallbackMsg(), fInstance(nil) {}
+    plAGInstanceCallbackMsg() : plEventCallbackMsg(), fInstance() { }
     plAGInstanceCallbackMsg(plKey receiver, CallbackEvent e, int idx=0, float t=0, int16_t repeats=-1, uint16_t user=0) :
-      plEventCallbackMsg(receiver, e, idx, t, repeats, user), fInstance(nil) {}
+      plEventCallbackMsg(receiver, e, idx, t, repeats, user), fInstance() { }
 
     CLASSNAME_REGISTER( plAGInstanceCallbackMsg );
     GETINTERFACE_ANY( plAGInstanceCallbackMsg, plEventCallbackMsg );
 
     // These aren't meant to go across the net, so no IO necessary.
-    void Read(hsStream* stream, hsResMgr* mgr) {}
-    void Write(hsStream* stream, hsResMgr* mgr) {}
+    void Read(hsStream* stream, hsResMgr* mgr) override { }
+    void Write(hsStream* stream, hsResMgr* mgr) override { }
 
     plAGAnimInstance *fInstance;
 };
@@ -206,8 +219,8 @@ public:
     GETINTERFACE_ANY( plAGDetachCallbackMsg, plEventCallbackMsg );
 
     // These aren't meant to go across the net, so no IO necessary.
-    void Read(hsStream* stream, hsResMgr* mgr) {}
-    void Write(hsStream* stream, hsResMgr* mgr) {}
+    void Read(hsStream* stream, hsResMgr* mgr) override { }
+    void Write(hsStream* stream, hsResMgr* mgr) override { }
 
     void SetAnimName(const ST::string& name) { fAnimName = name; }
     ST::string GetAnimName() const { return fAnimName; }

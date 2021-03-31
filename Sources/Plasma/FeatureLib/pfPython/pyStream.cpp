@@ -45,13 +45,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 //////////////////////////////////////////////////////////////////////
 
-#pragma hdrstop
 
 #include "pyStream.h"
 #include "plFile/plEncryptedStream.h"
 
 pyStream::pyStream()
-: fStream( nil )
+: fStream()
 {
 }
 
@@ -148,5 +147,5 @@ void pyStream::Close()
         fStream->Close();
         delete fStream;
     }
-    fStream = nil;
+    fStream = nullptr;
 }

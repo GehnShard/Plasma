@@ -41,17 +41,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
-#include "plSoundBuffer.h"
-
+#include "plFileSystem.h"
 #include "hsStream.h"
 
-
-#include "plgDispatch.h"
-#include "hsResMgr.h"
-#include "pnMessage/plRefMsg.h"
-#include "plUnifiedTime/plUnifiedTime.h"
-#include "plStatusLog/plStatusLog.h"
-#include "hsTimer.h"
+#include "plSoundBuffer.h"
 
 #include <thread>
 #include <chrono>
@@ -78,10 +71,10 @@ static plAudioFileReader *CreateReader( bool fullpath, const plFileName &filenam
 
     plAudioFileReader* reader = plAudioFileReader::CreateReader(path, channel, type);
 
-    if( reader == nil || !reader->IsValid() )
+    if (reader == nullptr || !reader->IsValid())
     {
         delete reader;
-        return nil;
+        return nullptr;
     }
 
     return reader;
@@ -89,28 +82,27 @@ static plAudioFileReader *CreateReader( bool fullpath, const plFileName &filenam
 
 void plSoundPreloader::Run()
 {
-    hsTArray<plSoundBuffer*> templist;
+    std::vector<plSoundBuffer*> templist;
 
     while (fRunning)
     {
         {
             hsLockGuard(fCritSect);
-            while (fBuffers.GetCount())
-            {
-                templist.Append(fBuffers.Pop());
-            }
+            templist.insert(templist.end(), fBuffers.rbegin(), fBuffers.rend());
+            fBuffers.clear();
         }
 
-        if (templist.GetCount() == 0)
+        if (templist.empty())
         {
             fEvent.Wait();
         }
         else
         {
-            plAudioFileReader *reader = nil;
-            while (templist.GetCount())
+            plAudioFileReader *reader = nullptr;
+            while (!templist.empty())
             {
-                plSoundBuffer* buf = templist.Pop();
+                plSoundBuffer* buf = templist.back();
+                templist.pop_back();
 
                 if (buf->GetData())
                 {
@@ -137,9 +129,10 @@ void plSoundPreloader::Run()
     // since the sound buffer will wait to be destroyed until it is marked as loaded
     {
         hsLockGuard(fCritSect);
-        while (fBuffers.GetCount())
+        while (!fBuffers.empty())
         {
-            plSoundBuffer* buf = fBuffers.Pop();
+            plSoundBuffer* buf = fBuffers.back();
+            fBuffers.pop_back();
             buf->SetLoaded(true);
         }
     }
@@ -159,16 +152,19 @@ void plSoundBuffer::Shutdown()
 
 //// Constructor/Destructor //////////////////////////////////////////////////
 
-plSoundBuffer::plSoundBuffer() 
-{   
-    IInitBuffer();
-}
+plSoundBuffer::plSoundBuffer()
+    : fAsyncLoadLength(), fStreamType(plAudioFileReader::StreamType::kStreamRAM),
+      fError(), fValid(), fFileName(), fData(), fDataLength(),
+      fFlags(), fDataRead(), fReader(), fLoaded(), fLoading(),
+      fHeader()
+{ }
 
-plSoundBuffer::plSoundBuffer( const plFileName &fileName, uint32_t flags )
+plSoundBuffer::plSoundBuffer(const plFileName &fileName, uint32_t flags)
+    : fAsyncLoadLength(), fStreamType(plAudioFileReader::StreamType::kStreamRAM),
+      fError(), fValid(), fFileName(fileName), fData(), fDataLength(),
+      fFlags(flags), fDataRead(), fReader(), fLoaded(), fLoading(),
+      fHeader()
 {
-    IInitBuffer();
-    SetFileName( fileName );
-    fFlags = flags;
     fValid = IGrabHeaderInfo();
 }
 
@@ -187,26 +183,6 @@ plSoundBuffer::~plSoundBuffer()
     UnLoad();
 }
 
-void plSoundBuffer::IInitBuffer()
-{
-    fError = false;
-    fValid = false;
-    fFileName = "";
-    fData = nil;
-    fDataLength = 0;
-    fFlags = 0;
-    fDataRead = 0;
-    fReader = nil;
-    fLoaded = 0;
-    fLoading = false;
-    fHeader.fFormatTag = 0;
-    fHeader.fNumChannels = 0;
-    fHeader.fNumSamplesPerSec = 0;
-    fHeader.fAvgBytesPerSec = 0;
-    fHeader.fBlockAlign = 0;
-    fHeader.fBitsPerSample = 0;
-}
-
 //// GetDataLengthInSecs /////////////////////////////////////////////////////
 
 float    plSoundBuffer::GetDataLengthInSecs() const
@@ -220,22 +196,22 @@ void    plSoundBuffer::Read( hsStream *s, hsResMgr *mgr )
 {
     hsKeyedObject::Read( s, mgr );
 
-    s->ReadLE( &fFlags );
-    s->ReadLE( &fDataLength );
+    s->ReadLE32(&fFlags);
+    s->ReadLE32(&fDataLength);
     fFileName = s->ReadSafeString();
 
-    s->ReadLE( &fHeader.fFormatTag );
-    s->ReadLE( &fHeader.fNumChannels );
-    s->ReadLE( &fHeader.fNumSamplesPerSec );
-    s->ReadLE( &fHeader.fAvgBytesPerSec );
-    s->ReadLE( &fHeader.fBlockAlign );
-    s->ReadLE( &fHeader.fBitsPerSample );
+    s->ReadLE16(&fHeader.fFormatTag);
+    s->ReadLE16(&fHeader.fNumChannels);
+    s->ReadLE32(&fHeader.fNumSamplesPerSec);
+    s->ReadLE32(&fHeader.fAvgBytesPerSec);
+    s->ReadLE16(&fHeader.fBlockAlign);
+    s->ReadLE16(&fHeader.fBitsPerSample);
 
     fValid = false;
     if( !( fFlags & kIsExternal ) )
     {
         fData = new uint8_t[ fDataLength ];
-        if( fData == nil )
+        if (fData == nullptr)
             fFlags |= kIsExternal;
         else
         {
@@ -246,7 +222,7 @@ void    plSoundBuffer::Read( hsStream *s, hsResMgr *mgr )
     }
     else
     {
-        fData = nil;
+        fData = nullptr;
 //      fValid = EnsureInternal();
         fValid = true;
     }
@@ -256,11 +232,11 @@ void    plSoundBuffer::Write( hsStream *s, hsResMgr *mgr )
 {
     hsKeyedObject::Write( s, mgr );
 
-    if( fData == nil )
+    if (fData == nullptr)
         fFlags |= kIsExternal;
 
-    s->WriteLE( fFlags );
-    s->WriteLE( fDataLength );
+    s->WriteLE32(fFlags);
+    s->WriteLE32(fDataLength);
     
     // Truncate the path to just a file name on write
     if (fFileName.IsValid())
@@ -268,12 +244,12 @@ void    plSoundBuffer::Write( hsStream *s, hsResMgr *mgr )
     else
         s->WriteSafeString("");
 
-    s->WriteLE( fHeader.fFormatTag );
-    s->WriteLE( fHeader.fNumChannels );
-    s->WriteLE( fHeader.fNumSamplesPerSec );
-    s->WriteLE( fHeader.fAvgBytesPerSec );
-    s->WriteLE( fHeader.fBlockAlign );
-    s->WriteLE( fHeader.fBitsPerSample );
+    s->WriteLE16(fHeader.fFormatTag);
+    s->WriteLE16(fHeader.fNumChannels);
+    s->WriteLE32(fHeader.fNumSamplesPerSec);
+    s->WriteLE32(fHeader.fAvgBytesPerSec);
+    s->WriteLE16(fHeader.fBlockAlign);
+    s->WriteLE16(fHeader.fBitsPerSample);
 
     if( !( fFlags & kIsExternal ) )
         s->Write( fDataLength, fData );
@@ -340,10 +316,10 @@ plSoundBuffer::ELoadReturnVal plSoundBuffer::AsyncLoad(plAudioFileReader::Stream
     {
         fAsyncLoadLength = length;
         fStreamType = type;
-        if(fData == nil )
+        if (fData == nullptr)
         {
             fData = new uint8_t[ fAsyncLoadLength ? fAsyncLoadLength : fDataLength ];
-            if( fData == nil )
+            if (fData == nullptr)
                 return kError;
         }
 
@@ -380,8 +356,6 @@ plSoundBuffer::ELoadReturnVal plSoundBuffer::AsyncLoad(plAudioFileReader::Stream
 // destroys loaded, and frees data
 void    plSoundBuffer::UnLoad()
 {
-    if(fLoaded)
-        int i = 0;
     if(fLoading) 
         return;
 
@@ -389,10 +363,10 @@ void    plSoundBuffer::UnLoad()
         fReader->Close();
 
     delete fReader;
-    fReader = nil;
+    fReader = nullptr;
 
     delete [] fData;
-    fData = nil;
+    fData = nullptr;
     SetLoaded(false);
     fFlags |= kIsExternal;
     
@@ -410,7 +384,7 @@ void    plSoundBuffer::RoundDataPos( uint32_t &pos )
 plAudioFileReader *plSoundBuffer::GetAudioReader() 
 { 
     plAudioFileReader * reader = fReader;
-    fReader = nil; 
+    fReader = nullptr;
     return reader; 
 }       
     
@@ -458,10 +432,10 @@ void    plSoundBuffer::SetInternalData( plWAVHeader &header, uint32_t length, ui
 // for plugins only
 plSoundBuffer::ELoadReturnVal plSoundBuffer::EnsureInternal()
 {   
-    if( fData == nil )
+    if (fData == nullptr)
     {
         fData = new uint8_t[fDataLength ];
-        if( fData == nil )
+        if (fData == nullptr)
             return kError;
     }
     if(!fReader)
@@ -469,14 +443,14 @@ plSoundBuffer::ELoadReturnVal plSoundBuffer::EnsureInternal()
     //else
     //  fReader->Open();
 
-    if( fReader == nil )
+    if (fReader == nullptr)
         return kError;
     
     unsigned readLen = fDataLength; 
     if( !fReader->Read( readLen, fData ) )
     {
         delete [] fData;
-        fData = nil;
+        fData = nullptr;
         return kError;
     }
     
@@ -484,7 +458,7 @@ plSoundBuffer::ELoadReturnVal plSoundBuffer::EnsureInternal()
     {
         fReader->Close();
         delete fReader;
-        fReader = nil;
+        fReader = nullptr;
     }
     return kSuccess;
 }
@@ -500,10 +474,10 @@ bool    plSoundBuffer::IGrabHeaderInfo()
         if(!fReader)
         {
             fReader = plAudioFileReader::CreateReader(path, GetReaderSelect(), plAudioFileReader::kStreamNative);
-            if( fReader == nil || !fReader->IsValid() )
+            if (fReader == nullptr || !fReader->IsValid())
             {
                 delete fReader;
-                fReader = nil;
+                fReader = nullptr;
                 return false;
             }
         }
@@ -514,7 +488,7 @@ bool    plSoundBuffer::IGrabHeaderInfo()
 
         fReader->Close();
         delete fReader;
-        fReader = nil;
+        fReader = nullptr;
     }
 
     return true;
@@ -539,10 +513,10 @@ plAudioFileReader   *plSoundBuffer::IGetReader( bool fullpath )
     
     plAudioFileReader* reader = plAudioFileReader::CreateReader(path, GetReaderSelect(), type);
 
-    if( reader == nil || !reader->IsValid() )
+    if (reader == nullptr || !reader->IsValid())
     {
         delete reader;
-        return nil;
+        return nullptr;
     }
 
     fHeader = reader->GetHeader();

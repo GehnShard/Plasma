@@ -40,11 +40,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
-#include "HeadSpin.h"
 #include "plLayerMovie.h"
-#include "hsStream.h"
-#include "hsResMgr.h"
+
+#include "HeadSpin.h"
 #include "hsGDeviceRef.h"
+#include "hsResMgr.h"
+#include "hsStream.h"
+
 
 #include "plMessage/plAnimCmdMsg.h"
 #include "plGImage/plMipmap.h"
@@ -57,9 +59,7 @@ plLayerMovie::plLayerMovie()
 {
     fOwnedChannels |= kTexture;
     fTexture = new plBitmap*;
-    *fTexture = nil;
-    
-//  fTimeConvert.SetOwner(this);
+    *fTexture = nullptr;
 }
 
 plLayerMovie::~plLayerMovie()
@@ -198,7 +198,7 @@ void plLayerMovie::Write(hsStream* s, hsResMgr* mgr)
 {
     plLayerAnimation::Write(s, mgr);
 
-    s->WriteLE32(fMovieName.GetSize());
+    s->WriteLE32((uint32_t)fMovieName.GetSize());
     s->Write(fMovieName.GetSize(), fMovieName.AsString().c_str());
 }
 

@@ -40,21 +40,21 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
-#include <algorithm>
-#include <cfloat>
-#include "hsMatrix44.h"
-#include "hsGeometry3.h"
 #include "plNetClientMgr.h"
 
-#include "plNetMessage/plNetMessage.h"
-#include "pnNetCommon/plNetServers.h"
-#include "pnSceneObject/plSceneObject.h"
-#include "pnSceneObject/plCoordinateInterface.h"
-#include "pnKeyedObject/plKey.h"
+#include "hsMatrix44.h"
+#include "hsGeometry3.h"
 
-#include "plNetTransport/plNetTransportMember.h"
+#include <algorithm>
+
+#include "pnKeyedObject/plKey.h"
+#include "pnSceneObject/plCoordinateInterface.h"
+#include "pnSceneObject/plSceneObject.h"
+
 #include "plMessage/plMemberUpdateMsg.h"
 #include "plMessage/plNetVoiceListMsg.h"
+#include "plNetMessage/plNetMessage.h"
+#include "plNetTransport/plNetTransportMember.h"
 #include "plStatusLog/plStatusLog.h"
 #include "plVault/plVault.h"
 
@@ -243,8 +243,7 @@ bool plNetClientMgr::IUpdateListenList(double secs)
                 hsMatrix44 l2w=locPlayer->GetCoordinateInterface()->GetLocalToWorld();
                 hsPoint3 locPlayerPos=l2w.GetTranslate();
 
-                int i;
-                for(i=0;i<fTransport.GetNumMembers();i++)
+                for (size_t i = 0; i < fTransport.GetNumMembers(); i++)
                 {
                     fTransport.GetMember(i)->SetDistSq(FLT_MAX);
 
@@ -262,7 +261,7 @@ bool plNetClientMgr::IUpdateListenList(double secs)
                             fTransport.GetMember(i)->AsStdString());
                     }
 #endif
-                    plSceneObject* obj=plSceneObject::ConvertNoRef(k ? k->ObjectIsLoaded() : nil);
+                    plSceneObject* obj=plSceneObject::ConvertNoRef(k ? k->ObjectIsLoaded() : nullptr);
                     if (obj && obj->GetCoordinateInterface())
                     {
 #if 1
@@ -367,37 +366,22 @@ void plNetClientMgr::IHandleNetVoiceListMsg(plNetVoiceListMsg* msg)
     if (msg->GetCmd() == plNetVoiceListMsg::kForcedListenerMode)
     {
         // first make sure this message applies to us:
-        int i;
-        bool included = false;
-        for (i = 0; i < msg->GetClientList()->Count(); i++)
-        {   
-            if (msg->GetClientList()->AcquireArray()[i] == NetCommGetPlayer()->playerInt)
-            {   
-                included = true;
-                break;
-            }
-        }
-        if (!included)
+        const std::vector<uint32_t>& clientList = msg->GetClientList();
+        if (std::find(clientList.cbegin(), clientList.cend(), NetCommGetPlayer()->playerInt) == clientList.cend())
             return;
         SetListenListMode(kListenList_Forced);
         // add in the members we receive from python
-        for (i = 0; i < msg->GetClientList()->Count(); i++)
+        for (uint32_t clientId : clientList)
         {
-            plNetTransportMember **members = nil;
-            plNetClientMgr::GetInstance()->TransportMgr().GetMemberListDistSorted( members );
-                    
-            if( members != nil)
+            std::vector<plNetTransportMember*> members = plNetClientMgr::GetInstance()->TransportMgr().GetMemberListDistSorted();
+
+            for (plNetTransportMember* mbr : members)
             {
-                for(int j= 0; j < plNetClientMgr::GetInstance()->TransportMgr().GetNumMembers(); j++ )
+                if (mbr != nullptr && mbr->GetAvatarKey() != nullptr && mbr->GetPlayerID() == clientId)
                 {
-                    plNetTransportMember *mbr = members[ j ];
-                    if( mbr != nil && mbr->GetAvatarKey() != nil && mbr->GetPlayerID() == msg->GetClientList()->AcquireArray()[i])
-                    {
-                        plNetClientMgr::GetInstance()->GetListenList()->AddMember(mbr);
-                    }
+                    plNetClientMgr::GetInstance()->GetListenList()->AddMember(mbr);
                 }
             }
-            delete [] members;
         }
     }
     else

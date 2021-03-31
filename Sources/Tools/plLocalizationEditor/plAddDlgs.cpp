@@ -48,8 +48,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pfLocalizationMgr/pfLocalizationDataMgr.h"
 
 #include <QPushButton>
-#include "ui_AddElement.h"
-#include "ui_AddLocalization.h"
+#include "res/ui_AddElement.h"
+#include "res/ui_AddLocalization.h"
 
 #include <vector>
 
@@ -59,7 +59,7 @@ class AlphaNumericValidator : public QValidator
 public:
     AlphaNumericValidator(QObject *parent = nullptr) : QValidator(parent) { }
 
-    State validate(QString &input, int &pos) const HS_OVERRIDE
+    State validate(QString &input, int &pos) const override
     {
         for (int ch = 0; ch < input.size(); ++ch)
         {

@@ -41,18 +41,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "pyPlayer.h"
 
 pyPlayer::pyPlayer() // only used by python glue, do NOT call
+    : fPlayerID(), fDistSq(-1), fIsCCR(), fIsServer()
 {
-    fAvatarKey = nil;
-    fPlayerName = ST::null;
-    fPlayerID = 0;
-    fDistSq = -1;
-    fIsCCR = false;
-    fIsServer = false;
 }
 
 pyPlayer::pyPlayer(pyKey& avKey, const ST::string& pname, uint32_t pid, float distsq)
@@ -77,13 +71,8 @@ pyPlayer::pyPlayer(plKey avKey, const ST::string& pname, uint32_t pid, float dis
 
 // another way to create a player with just a name and number
 pyPlayer::pyPlayer(const ST::string& pname, uint32_t pid)
+    : fPlayerName(pname), fPlayerID(pid), fDistSq(-1), fIsCCR(), fIsServer()
 {
-    fAvatarKey = nil;
-    fPlayerName = pname;
-    fPlayerID = pid;
-    fDistSq = -1;
-    fIsCCR = false;
-    fIsServer = false;
 }
 
 void pyPlayer::Init(plKey avKey, const ST::string& pname, uint32_t pid, float distsq) // used by python glue, do NOT call

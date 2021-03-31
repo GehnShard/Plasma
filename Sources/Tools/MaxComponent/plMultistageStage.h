@@ -40,6 +40,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
+#ifndef plMultistageStage_inc
+#define plMultistageStage_inc
+
 #include <string_theory/string>
 
 class plAnimStage;
@@ -60,8 +63,8 @@ class plBaseStage
 protected:
     ST::string fName;
 
-    static BOOL CALLBACK IStaticDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
-    virtual BOOL IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+    static INT_PTR CALLBACK IStaticDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+    virtual INT_PTR IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
     HWND ICreateDlg(int dialogID, char* title);
     void IDestroyDlg(HWND hDlg);
@@ -109,7 +112,7 @@ protected:
     bool fDoRegressTo;
     uint32_t fRegressTo;
 
-    BOOL IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+    INT_PTR IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
     void IInitDlg();
 
     void IGetAnimName();
@@ -131,3 +134,4 @@ public:
     plBaseStage* Clone();
 };
 
+#endif

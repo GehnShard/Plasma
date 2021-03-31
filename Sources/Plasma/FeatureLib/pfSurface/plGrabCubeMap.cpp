@@ -40,25 +40,23 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
-#include "HeadSpin.h"
-
 #include "plGrabCubeMap.h"
 
-#include "plPipeline.h"
-#include "plDrawable.h"
-
-#include "hsMatrix44.h"
-#include "hsGeometry3.h"
-#include "hsColorRGBA.h"
+#include "HeadSpin.h"
 #include "hsBounds.h"
+#include "hsColorRGBA.h"
+#include "plDrawable.h"
+#include "hsGeometry3.h"
+#include "hsMatrix44.h"
+#include "plPipeline.h"
 
-#include "pnSceneObject/plSceneObject.h"
 #include "pnSceneObject/plDrawInterface.h"
+#include "pnSceneObject/plSceneObject.h"
 
 #include "plGImage/plMipmap.h"
 #include "plGImage/plPNG.h"
-
 #include "plMessage/plRenderRequestMsg.h"
+#include "plScene/plRenderRequest.h"
 
 class plGrabCubeRenderRequest : public plRenderRequest
 {
@@ -66,7 +64,7 @@ public:
     plFileName fFileName;
 
     // This function is called after the render request is processed by the client
-    void Render(plPipeline* pipe, plPageTreeMgr* pageMgr) HS_OVERRIDE
+    void Render(plPipeline* pipe, plPageTreeMgr* pageMgr) override
     {
         if (!fFileName.IsValid())
             return;
@@ -142,14 +140,14 @@ void plGrabCubeMap::ISetupRenderRequests(plPipeline* pipe, const hsPoint3& cente
         req->SetClearColor(clearColor);
         req->SetClearDepth(1.f);
 
-        req->SetClearDrawable(nil);
-        req->SetRenderTarget(nil);
+        req->SetClearDrawable(nullptr);
+        req->SetRenderTarget(nullptr);
 
         req->SetCameraTransform(worldToCameras[i], cameraToWorlds[i]);
 
         req->fFileName = plFileName::Join(cubedir, ST::format("{}_{}.png", pref, suff[i]));
 
-        plRenderRequestMsg* reqMsg = new plRenderRequestMsg(nil, req);
+        plRenderRequestMsg* reqMsg = new plRenderRequestMsg(nullptr, req);
         reqMsg->Send();
         hsRefCnt_SafeUnRef(req);
     }

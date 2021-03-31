@@ -46,6 +46,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnKeyedObject/plUoid.h"
 #include "pnNetCommon/plNetApp.h"
 
+#include <string>
+#include <vector>
+
 class hsKeyedObject;
 class plStatusLog;
 class plNetObjectDebugger : public plNetObjectDebuggerBase
@@ -82,18 +85,18 @@ public:
 
     static plNetObjectDebugger* GetInstance();
 
-    bool GetDebugging() const { return fDebugging;  }
-    void SetDebugging(bool b) { fDebugging=b;   }
+    bool GetDebugging() const override { return fDebugging; }
+    void SetDebugging(bool b) override { fDebugging = b; }
 
     // object fxns
-    bool AddDebugObject(const char* objName, const char* pageName=nil);
-    bool RemoveDebugObject(const char* objName, const char* pageName=nil);
+    bool AddDebugObject(const char* objName, const char* pageName=nullptr);
+    bool RemoveDebugObject(const char* objName, const char* pageName=nullptr);
     void ClearAllDebugObjects();
     int GetNumDebugObjects() const { return fDebugObjects.size(); }
-    bool IsDebugObject(const hsKeyedObject* obj) const;
+    bool IsDebugObject(const hsKeyedObject* obj) const override;
 
-    void LogMsgIfMatch(const char* msg) const;      // write to status log if there's a string match
-    void LogMsg(const char* msg) const;
+    void LogMsgIfMatch(const char* msg) const override;      // write to status log if there's a string match
+    void LogMsg(const char* msg) const override;
 };
 
 #endif      // plNetObjectDebugger_inc

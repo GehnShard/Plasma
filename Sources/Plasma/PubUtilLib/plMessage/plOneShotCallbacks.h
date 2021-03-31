@@ -39,10 +39,16 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+
+#ifndef plOneShotCallbacks_inc
+#define plOneShotCallbacks_inc
+
 #include "HeadSpin.h"
 #include "hsRefCnt.h"
 
 #include "pnKeyedObject/plKey.h"
+
+#include <vector>
 
 class hsStream;
 class hsResMgr;
@@ -81,3 +87,5 @@ public:
     void Read(hsStream* stream, hsResMgr* mgr);
     void Write(hsStream* stream, hsResMgr* mgr);
 };
+
+#endif

@@ -47,10 +47,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsExceptionStack.h"
 #include "hsStream.h"
 
-#include <bitmap.h>
-#include <notify.h>
-#include <max.h>
-#pragma hdrstop
+#include "MaxMain/MaxAPI.h"
 
 #include "SimpleExport.h"
 #include "plExportErrorMsg.h"
@@ -201,10 +198,10 @@ protected:
 public:
     plTextureLoggerCBack(plTextureExportLog* teLog) { fTELog = teLog; }
 
-    virtual bool EatKey(const plKey& key)
+    bool EatKey(const plKey& key) override
     {
         plBitmap* bmap = plBitmap::ConvertNoRef(key->ObjectIsLoaded());
-        if (bmap != nil)
+        if (bmap != nullptr)
             fTELog->AddTexture(bmap);
         return true;    // Always continue
     }
@@ -214,12 +211,12 @@ public:
 class plOptimizeIterator : public plRegistryKeyIterator
 {
 public:
-    virtual bool EatKey(const plKey& key)
+    bool EatKey(const plKey& key) override
     {
         if (key->GetUoid().GetClassType() == plSceneNode::Index())
         {
             plSceneNode* sn = plSceneNode::ConvertNoRef(key->ObjectIsLoaded());
-            if (sn != nil)
+            if (sn != nullptr)
                 sn->OptimizeDrawables();
         }
         return true;    // Always continue
@@ -306,7 +303,7 @@ int HSExport2::DoExport(const TCHAR *name,ExpInterface *ei,Interface *gi, BOOL s
 
     // Add disk source for writing
     plFileName datPath = plFileName::Join(out_path, "dat");
-    CreateDirectoryW(datPath.WideString().data(), NULL);
+    CreateDirectoryW(datPath.WideString().data(), nullptr);
     plPluginResManager::ResMgr()->SetDataPath(datPath);
 
     if (hsgResMgr::Reset())
@@ -368,7 +365,7 @@ int HSExport2::DoExport(const TCHAR *name,ExpInterface *ei,Interface *gi, BOOL s
     dbLog.Open(name,"at");
     char str[256];
     exportTime = (timeGetTime() - exportTime) / 1000;
-    snprintf(str, arrsize(str), "Export from Max File \"%s\" on %02d/%02d/%4d took %d:%02d\n",
+    snprintf(str, std::size(str), "Export from Max File \"%s\" on %02d/%02d/%4d took %d:%02d\n",
              (const char *)filename, tm.wMonth, tm.wDay, tm.wYear, exportTime/60, exportTime%60);
     dbLog.WriteString(str);
     dbLog.Close();

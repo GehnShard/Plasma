@@ -44,7 +44,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plgDispatch.h"
 #include "hsResMgr.h"
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "cyMisc.h"
 
@@ -58,6 +57,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plMessage/plExcludeRegionMsg.h"
 #include "plMessage/plInputEventMsg.h"
 #include "plMessage/plInputIfaceMgrMsg.h"
+#include "plMessage/plLoadCloneMsg.h"
 #include "pnMessage/plCmdIfaceModMsg.h"
 #include "pnMessage/plAttachMsg.h"
 #include "plMessage/plTimerCallbackMsg.h"
@@ -67,6 +67,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plTimerCallbackManager.h"
 #include "plVault/plVault.h"
 #include "pnNetCommon/plCreatableUuid.h"
+#include "pnNetCommon/pnNetCommon.h"
 #include "plNetClient/plNetClientMgr.h"
 #include "plNetClient/plNetLinkingMgr.h"
 #include "plNetTransport/plNetTransport.h"
@@ -89,7 +90,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pyAlarm.h"
 #include "pyGeometry3.h"
 #include "pfMessage/pfKIMsg.h"
-#include "plNetMessage/plNetMessage.h"
 #include "pfCamera/plVirtualCamNeu.h"
 #include "plPipeline/plDynamicEnvMap.h"
 
@@ -100,7 +100,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnSceneObject/plCoordinateInterface.h"
 
 #include "plMessage/plCCRMsg.h"
-#include "plAgeLoader/plAgeLoader.h"
 
 #include "plResMgr/plLocalization.h"
 #include "plGLight/plLightInfo.h"
@@ -111,10 +110,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plVault/plAgeInfoSource.h"
 
 #include "pfLocalizationMgr/pfLocalizationMgr.h"
-#include "pnUtils/pnUtils.h"
 
 //// Static Class Stuff //////////////////////////////////////////////////////
-plPipeline* cyMisc::fPipeline = nil;
+plPipeline* cyMisc::fPipeline = nullptr;
 uint32_t  cyMisc::fUniqueNumber = 0;
 
 #ifdef PLASMA_EXTERNAL_RELEASE
@@ -161,7 +159,7 @@ void cyMisc::SetPythonLoggingLevel(uint32_t new_level)
 //
 void cyMisc::Console(const char* command)
 {
-    if ( command != nil )
+    if (command != nullptr)
     {
         // create message to send to the console
         plControlEventMsg* pMsg = new plControlEventMsg;
@@ -175,7 +173,7 @@ void cyMisc::Console(const char* command)
 
 void cyMisc::ConsoleNet(const char* command, bool netForce)
 {
-    if ( command != nil )
+    if (command != nullptr)
     {
         // create message to send to the console
         plControlEventMsg* pMsg = new plControlEventMsg;
@@ -203,21 +201,21 @@ void cyMisc::ConsoleNet(const char* command, bool netForce)
 PyObject* cyMisc::FindSceneObject(const ST::string& name, const char* ageName)
 {
     // assume that we won't find the sceneobject (key is equal to nil)
-    plKey key=nil;
+    plKey key;
 
     if ( !name.empty() )
     {
         const char* theAge = ageName;
         if ( ageName[0] == 0 )
-            theAge = nil;
+            theAge = nullptr;
         key=plKeyFinder::Instance().StupidSearch(theAge, "", plSceneObject::Index(), name, false);
     }
 
-    if ( key == nil )
+    if (key == nullptr)
     {
         ST::string errmsg = ST::format("Sceneobject {} not found", name);
         PyErr_SetString(PyExc_NameError, errmsg.c_str());
-        return nil; // return nil cause we errored
+        return nullptr; // return nullptr cause we errored
     }
     return pySceneObject::New(key);
 }
@@ -241,7 +239,7 @@ PyObject* cyMisc::FindSceneObjects(const ST::string& name)
 
 PyObject* cyMisc::FindActivator(const ST::string& name)
 {
-    plKey key = nil;
+    plKey key;
     if (!name.empty())
     {
         std::vector<plKey> keylist;
@@ -251,7 +249,7 @@ PyObject* cyMisc::FindActivator(const ST::string& name)
             key = keylist[0];
     }
 
-    if (key == nil)
+    if (key == nullptr)
     {
         PYTHON_RETURN_NONE;
     }
@@ -269,7 +267,7 @@ PyObject* cyMisc::FindActivator(const ST::string& name)
 //
 void cyMisc::PopUpConsole(const char* command)
 {
-    if ( command != nil )
+    if (command != nullptr)
     {
         // create message to send to the console
         plControlEventMsg* pMsg1 = new plControlEventMsg;
@@ -294,7 +292,7 @@ void cyMisc::PopUpConsole(const char* command)
 //
 //  PURPOSE    : Execute a console command from a python script
 //
-void cyMisc::TimerCallback(pyKey& selfkey, float time, uint32_t id)
+void cyMisc::TimerCallback(pyKey& selfkey, float time, int32_t id)
 {
     // setup the message to come back to whoever the pyKey is pointing to
     plTimerCallbackMsg* pTimerMsg = new plTimerCallbackMsg(selfkey.getKey(),id);
@@ -506,66 +504,43 @@ ST::string cyMisc::GetClientName(pyKey &avKey)
 
 PyObject* cyMisc::GetAvatarKeyFromClientID(int clientID)
 {
-    PyObject* keyObj = NULL;
-
     if (clientID == plNetClientMgr::GetInstance()->GetPlayerID())
     {
-        keyObj = pyKey::New(plNetClientMgr::GetInstance()->GetLocalPlayerKey());
+        return pyKey::New(plNetClientMgr::GetInstance()->GetLocalPlayerKey());
     }
     else
     {
-        plNetTransportMember **members = nil;
-        plNetClientMgr::GetInstance()->TransportMgr().GetMemberListDistSorted( members );
+        std::vector<plNetTransportMember*> members = plNetClientMgr::GetInstance()->TransportMgr().GetMemberListDistSorted();
 
-        if( members != nil)
+        for (plNetTransportMember* mbr : members)
         {
-            for(int i = 0; i < plNetClientMgr::GetInstance()->TransportMgr().GetNumMembers(); i++ )
+            if (mbr != nullptr && mbr->GetAvatarKey() != nullptr && mbr->GetPlayerID() == clientID)
             {
-                plNetTransportMember *mbr = members[ i ];
-                if( mbr != nil && mbr->GetAvatarKey() != nil && mbr->GetPlayerID() == clientID)
-                {   
-                    keyObj = pyKey::New(mbr->GetAvatarKey());
-                    break;
-                }
+                return pyKey::New(mbr->GetAvatarKey());
             }
         }
-
-        delete [] members;
     }
 
-    if (keyObj)
-        return keyObj;
-    else
-        PYTHON_RETURN_NONE;
+    PYTHON_RETURN_NONE;
 }
 
 
 int cyMisc::GetClientIDFromAvatarKey(pyKey& avatar)
 {
-    int ret = -1;
-
     if (plNetClientMgr::GetInstance()->GetLocalPlayerKey() == avatar.getKey())
     {
         return (plNetClientMgr::GetInstance()->GetPlayerID());
     }
-    plNetTransportMember **members = nil;
-    plNetClientMgr::GetInstance()->TransportMgr().GetMemberListDistSorted( members );
-    if( members != nil)
-    {
-        for(int i = 0; i < plNetClientMgr::GetInstance()->TransportMgr().GetNumMembers(); i++ )
-        {
-            plNetTransportMember *mbr = members[ i ];
 
-            if( mbr != nil && mbr->GetAvatarKey() == avatar.getKey())
-            {   
-                ret = mbr->GetPlayerID();
-                break;
-            }
+    for (plNetTransportMember* mbr : plNetClientMgr::GetInstance()->TransportMgr().GetMemberList())
+    {
+        if (mbr != nullptr && mbr->GetAvatarKey() == avatar.getKey())
+        {
+            return mbr->GetPlayerID();
         }
     }
 
-    delete [] members;
-    return ret;
+    return -1;
 }
 
 int cyMisc::GetLocalClientID()
@@ -628,7 +603,7 @@ PyObject* cyMisc::GetAgeInfo()
         if (als)
             return pyAgeInfoStruct::New(als->GetAgeInfo());
     }
-    PYTHON_RETURN_NONE; // return none, not nil (cause it isn't really an error... or is it?)
+    PYTHON_RETURN_NONE; // return none, not nullptr (cause it isn't really an error... or is it?)
 }
 
 
@@ -641,7 +616,7 @@ ST::string cyMisc::GetPrevAgeName()
         if (als)
             return als->GetAgeInfo()->GetAgeFilename();
     }
-    return ST::null;
+    return ST::string();
 }
 
 PyObject* cyMisc::GetPrevAgeInfo()
@@ -653,7 +628,7 @@ PyObject* cyMisc::GetPrevAgeInfo()
         if (als)
             return pyAgeInfoStruct::New(als->GetAgeInfo());
     }
-    PYTHON_RETURN_NONE; // return none, not nil (cause it isn't really an error... or is it?)
+    PYTHON_RETURN_NONE; // return none, not nullptr (cause it isn't really an error... or is it?)
 }
 
 // current time in current age
@@ -937,7 +912,7 @@ PyObject* cyMisc::GetDialogFromTagID(uint32_t tag)
 
     ST::string errmsg = ST::format("GUIDialog TagID {} not found", tag);
     PyErr_SetString(PyExc_KeyError, errmsg.c_str());
-    return nil; // return nil, cause we threw an error
+    return nullptr; // return nullptr, cause we threw an error
 }
 
 PyObject* cyMisc::GetDialogFromString(const char* name)
@@ -953,7 +928,7 @@ PyObject* cyMisc::GetDialogFromString(const char* name)
 
     ST::string errmsg = ST::format("GUIDialog {} not found", name);
     PyErr_SetString(PyExc_KeyError, errmsg.c_str());
-    return nil; // return nil, cause we threw an error
+    return nullptr; // return nullptr, cause we threw an error
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -988,7 +963,7 @@ PyObject* cyMisc::GetLocalAvatar()
         return pySceneObject::New(so->GetKey());
 
     PyErr_SetString(PyExc_NameError, "Local avatar not found");
-    return nil; // returns nil, cause we threw an error
+    return nullptr; // returns nullptr, cause we threw an error
 }
 
 PyObject* cyMisc::GetLocalPlayer()
@@ -1018,7 +993,7 @@ PyObject* cyMisc::GetNPC(int npcID)
 
 PyObject* cyMisc::GetNPCCount()
 {
-    return PyInt_FromLong(plNetClientMgr::GetInstance()->NPCKeys().size());
+    return PyLong_FromLong(plNetClientMgr::GetInstance()->NPCKeys().size());
 }
 
 #if 1
@@ -1028,8 +1003,8 @@ PyObject* cyMisc::GetNPCCount()
 //
 void cyMisc::PrintToScreen(const char* msg)
 {
-    static plStatusLog* gStatusLog=nil;
-    if (gStatusLog==nil)
+    static plStatusLog* gStatusLog = nullptr;
+    if (gStatusLog == nullptr)
     {
         gStatusLog = plStatusLogMgr::GetInstance().CreateStatusLog( 32, "", 
             plStatusLog::kDontWriteFile | plStatusLog::kDeleteForMe | plStatusLog::kFilledBackground );
@@ -1061,8 +1036,7 @@ std::vector<PyObject*> cyMisc::GetPlayerList()
     if (!nc) // only ever really happens if they try to call us in max... I hope
         return pyPL;
 
-    int i;
-    for( i = 0; i < nc->TransportMgr().GetNumMembers(); i++ )
+    for (size_t i = 0; i < nc->TransportMgr().GetNumMembers(); i++)
     {
         plNetTransportMember *mbr = nc->TransportMgr().GetMember(i);
         plKey avkey = mbr->GetAvatarKey();
@@ -1092,34 +1066,27 @@ std::vector<PyObject*> cyMisc::GetPlayerListDistanceSorted()
     std::vector<PyObject*> pyPL;
 
     // get the sorted member list from the Net transport manager
-    plNetTransportMember **members = nil;
-    plNetClientMgr::GetInstance()->TransportMgr().GetMemberListDistSorted( members );
-    if( members != nil )
+    std::vector<plNetTransportMember*> members = plNetClientMgr::GetInstance()->TransportMgr().GetMemberListDistSorted();
+    for (plNetTransportMember* mbr : members)
     {
-        int i;
-        for( i = 0; i < plNetClientMgr::GetInstance()->TransportMgr().GetNumMembers(); i++ )
+        plKey avkey = mbr->GetAvatarKey();
+        if (avkey)
         {
-            plNetTransportMember *mbr = members[ i ];
-            plKey avkey = mbr->GetAvatarKey();
-            if (avkey)
+            // only non-ignored people in list and not in ignore list
+            if (!VaultAmIgnoringPlayer(mbr->GetPlayerID()))
             {
-                // only non-ignored people in list and not in ignore list
-                if ( !VaultAmIgnoringPlayer ( mbr->GetPlayerID()) )
-                {
-                    PyObject* playerObj = pyPlayer::New(avkey, mbr->GetPlayerName().c_str(), mbr->GetPlayerID(), mbr->GetDistSq());
-                    pyPlayer* player = pyPlayer::ConvertFrom(playerObj); // accesses internal pyPlayer object
+                PyObject* playerObj = pyPlayer::New(avkey, mbr->GetPlayerName(), mbr->GetPlayerID(), mbr->GetDistSq());
+                pyPlayer* player = pyPlayer::ConvertFrom(playerObj); // accesses internal pyPlayer object
 
-                    // modifies playerObj
-                    if ( mbr->IsCCR() )
-                        player->SetCCRFlag(true);
-                    if ( mbr->IsServer() )
-                        player->SetServerFlag(true);
+                // modifies playerObj
+                if (mbr->IsCCR())
+                    player->SetCCRFlag(true);
+                if (mbr->IsServer())
+                    player->SetServerFlag(true);
 
-                    pyPL.push_back(playerObj);
-                }
+                pyPL.push_back(playerObj);
             }
         }
-        delete [] members;
     }
     return pyPL;
 }
@@ -1339,8 +1306,8 @@ void cyMisc::SetPrivateChatList(const std::vector<pyPlayer*> & tolist)
     if (tolist.size() > 0)
     {
         plNetVoiceListMsg* pMsg = new plNetVoiceListMsg(plNetVoiceListMsg::kForcedListenerMode);
-        for (int i=0 ; i<tolist.size() ; i++ )
-            pMsg->GetClientList()->Append(tolist[i]->GetPlayerID());
+        for (pyPlayer* toPlayer : tolist)
+            pMsg->GetClientList().emplace_back(toPlayer->GetPlayerID());
         
         plKey k = plNetClientMgr::GetInstance()->GetLocalPlayerKey();
         pMsg->SetRemovedKey(k);
@@ -1391,7 +1358,7 @@ bool cyMisc::IsFirstPerson()
 //
 void cyMisc::SendPetitionToCCR(const char* message)
 {
-    SendPetitionToCCRI(message,plNetCommon::PetitionTypes::kGeneralHelp,nil);
+    SendPetitionToCCRI(message, plNetCommon::PetitionTypes::kGeneralHelp, nullptr);
 }
 void cyMisc::SendPetitionToCCRI(const char* message, uint8_t reason,const char* title)
 {
@@ -1691,7 +1658,7 @@ void cyMisc::NotifyOffererPublicLinkAccepted(uint32_t offerer)
 
 void cyMisc::ToggleAvatarClickability(bool on)
 {
-    plInputIfaceMgrMsg* pMsg = 0;
+    plInputIfaceMgrMsg* pMsg = nullptr;
     if (on)
         pMsg = new plInputIfaceMgrMsg(plInputIfaceMgrMsg::kGUIEnableAvatarClickable);
     else
@@ -1811,12 +1778,12 @@ void cyMisc::TransferParticlesToKey(pyKey& fromKey, pyKey& toKey, int numParticl
 {
     plKey frKey = fromKey.getKey();
     plSceneObject* so = plSceneObject::ConvertNoRef(toKey.getKey()->ObjectIsLoaded());
-    if (so == nil) 
+    if (so == nullptr)
         return;
     
     plArmatureMod *avMod = plAvatarMgr::GetInstance()->GetLocalAvatar();
     
-    plParticleTransferMsg* pMsg = new plParticleTransferMsg(nil, avMod->GetKey(), 0, frKey, numParticles);
+    plParticleTransferMsg* pMsg = new plParticleTransferMsg(nullptr, avMod->GetKey(), nullptr, frKey, numParticles);
     pMsg->SetBCastFlag(plMessage::kNetPropagate);
     pMsg->SetBCastFlag(plMessage::kNetForce);
     pMsg->Send();
@@ -1829,7 +1796,7 @@ void cyMisc::SetParticleDissentPoint(float x, float y, float z, pyKey& particles
     if (!pObj)
         return;
     const plParticleSystem *sys = plParticleSystem::ConvertNoRef(pObj->GetModifierByType(plParticleSystem::Index()));
-    if (sys == nil) 
+    if (sys == nullptr)
     {
         const plModifier* pArm = pObj->GetModifierByType(plArmatureMod::Index());
         if (pArm)
@@ -1844,14 +1811,14 @@ void cyMisc::SetParticleDissentPoint(float x, float y, float z, pyKey& particles
                 sys = plParticleSystem::ConvertNoRef(pObj->GetModifierByType(plParticleSystem::Index()));
 
         }
-        if (sys == nil)
+        if (sys == nullptr)
             return;
         
     }
     plParticleEffect *flock = sys->GetEffect(plParticleFlockEffect::Index());
     if (flock)
     {
-        (new plParticleFlockMsg(nil, flock->GetKey(), 0, plParticleFlockMsg::kFlockCmdSetDissentPoint, x, y, z))->Send();
+        (new plParticleFlockMsg(nullptr, flock->GetKey(), nullptr, plParticleFlockMsg::kFlockCmdSetDissentPoint, x, y, z))->Send();
     }
 }
 
@@ -1862,7 +1829,7 @@ void cyMisc::SetParticleOffset(float x, float y, float z, pyKey& particles)
     if (!pObj)
         return;
     const plParticleSystem *sys = plParticleSystem::ConvertNoRef(pObj->GetModifierByType(plParticleSystem::Index()));
-    if (sys == nil) 
+    if (sys == nullptr)
     {
         const plModifier* pArm = pObj->GetModifierByType(plArmatureMod::Index());
         if (pArm)
@@ -1877,7 +1844,7 @@ void cyMisc::SetParticleOffset(float x, float y, float z, pyKey& particles)
                 sys = plParticleSystem::ConvertNoRef(pObj->GetModifierByType(plParticleSystem::Index()));
 
         }
-        if (sys == nil)
+        if (sys == nullptr)
             return;
         
     }
@@ -1885,7 +1852,7 @@ void cyMisc::SetParticleOffset(float x, float y, float z, pyKey& particles)
     plParticleEffect *flock = sys->GetEffect(plParticleFlockEffect::Index());
     if (flock)
     {
-        (new plParticleFlockMsg(nil, flock->GetKey(), 0, plParticleFlockMsg::kFlockCmdSetOffset, x, y, z))->Send();
+        (new plParticleFlockMsg(nullptr, flock->GetKey(), nullptr, plParticleFlockMsg::kFlockCmdSetOffset, x, y, z))->Send();
     }
 }
 
@@ -1896,7 +1863,7 @@ void cyMisc::KillParticles(float time, float pct, pyKey& particles)
     if (!pObj)
         return;
     const plParticleSystem *sys = plParticleSystem::ConvertNoRef(pObj->GetModifierByType(plParticleSystem::Index()));
-    if (sys == nil) 
+    if (sys == nullptr)
     {
         const plModifier* pArm = pObj->GetModifierByType(plArmatureMod::Index());
         if (pArm)
@@ -1911,14 +1878,15 @@ void cyMisc::KillParticles(float time, float pct, pyKey& particles)
                 sys = plParticleSystem::ConvertNoRef(pObj->GetModifierByType(plParticleSystem::Index()));
 
         }
-        if (sys == nil)
+        if (sys == nullptr)
             return;
         
     }
     plParticleEffect *flock = sys->GetEffect(plParticleFlockEffect::Index());
     if (flock)
     {
-        plParticleKillMsg* pMsg = new plParticleKillMsg(nil, frKey, 0, pct, time, plParticleKillMsg::kParticleKillPercentage | plParticleKillMsg::kParticleKillImmortalOnly);
+        plParticleKillMsg* pMsg = new plParticleKillMsg(nullptr, frKey, nullptr, pct, time,
+                                            plParticleKillMsg::kParticleKillPercentage | plParticleKillMsg::kParticleKillImmortalOnly);
         pMsg->SetBCastFlag(plMessage::kNetPropagate);
         pMsg->SetBCastFlag(plMessage::kNetForce);
         pMsg->SetBCastFlag(plMessage::kPropagateToChildren);
@@ -1962,13 +1930,13 @@ void cyMisc::SetLightColorValue(pyKey& light, const ST::string& lightName, float
     {
         // we are a light ourselves... are we the one they are looking for?
         if (lightName != pObj->GetKeyName())
-            pIface = nil; // not the one they want, check our children
+            pIface = nullptr; // not the one they want, check our children
     }
 
     if (!pIface)
     {
         // recurse through our children...
-        for (int i = 0; i < pObj->GetCoordinateInterface()->GetNumChildren(); i++)
+        for (size_t i = 0; i < pObj->GetCoordinateInterface()->GetNumChildren(); i++)
         {
             const plSceneObject* child = pObj->GetCoordinateInterface()->GetChild(i)->GetOwner();
             if (child)
@@ -1978,7 +1946,7 @@ void cyMisc::SetLightColorValue(pyKey& light, const ST::string& lightName, float
                 {
                     // found a child... is it the one we want?
                     if (lightName != child->GetKeyName())
-                        pIface = nil; // not the child we want, keep looking
+                        pIface = nullptr; // not the child we want, keep looking
                 }
             }
             if (pIface)
@@ -2010,13 +1978,13 @@ void cyMisc::SetLightAnimationOn(pyKey& light, const ST::string& lightName, bool
     {
         // we are a light ourselves... are we the one they are looking for?
         if (lightName != pObj->GetKeyName())
-            pIface = nil; // not the one they want, check our children
+            pIface = nullptr; // not the one they want, check our children
     }
 
     if (!pIface)
     {
         // recurse through our children...
-        for (int i = 0; i < pObj->GetCoordinateInterface()->GetNumChildren(); i++)
+        for (size_t i = 0; i < pObj->GetCoordinateInterface()->GetNumChildren(); i++)
         {
             const plSceneObject* child = pObj->GetCoordinateInterface()->GetChild(i)->GetOwner();
             if (child)
@@ -2026,7 +1994,7 @@ void cyMisc::SetLightAnimationOn(pyKey& light, const ST::string& lightName, bool
                 {
                     // found a child... is it the one we want?
                     if (lightName != child->GetKeyName())
-                        pIface = nil; // not the child we want, keep looking
+                        pIface = nullptr; // not the child we want, keep looking
                 }
             }
             if (pIface)
@@ -2098,31 +2066,35 @@ bool cyMisc::RequestLOSScreen(pyKey &selfkey, int32_t ID, float xPos, float yPos
         int32_t x=(int32_t) ( xPos * pipe->Width() );
         int32_t y=(int32_t) ( yPos * pipe->Height() );
 
-        hsPoint3 endPos, startPos;
+        hsPoint3 endPos;
         
         pipe->ScreenToWorldPoint( 1,0, &x, &y, distance, 0, &endPos );
-        startPos = pipe->GetViewPositionWorld();
+        hsPoint3 startPos = pipe->GetViewPositionWorld();
 
         // move the start pos out a little to avoid backing up against physical objects...
         hsVector3 view(endPos - startPos);
         view.Normalize();
         startPos = startPos + (view * 1.5f);
 
-        plLOSRequestMsg* pMsg = nil;
+        plLOSRequestMsg* pMsg = nullptr;
         switch (what)
         {
             case kClickables:
                 pMsg = new plLOSRequestMsg( selfkey.getKey(), startPos, endPos, plSimDefs::kLOSDBUIItems, plLOSRequestMsg::kTestClosest );
+                pMsg->SetRequestName(ST::format("Python [{}]: Clickables", selfkey.getName()));
                 pMsg->SetCullDB(plSimDefs::kLOSDBUIBlockers);
                 break;
             case kCameraBlockers:
                 pMsg = new plLOSRequestMsg( selfkey.getKey(), startPos, endPos, plSimDefs::kLOSDBCameraBlockers, plLOSRequestMsg::kTestClosest );
+                pMsg->SetRequestName(ST::format("Python [{}]: Camera Blockers", selfkey.getName()));
                 break;
             case kCustom:
                 pMsg = new plLOSRequestMsg( selfkey.getKey(), startPos, endPos, plSimDefs::kLOSDBCustom, plLOSRequestMsg::kTestClosest );
+                pMsg->SetRequestName(ST::format("Python [{}]: Custom", selfkey.getName()));
                 break;
             case kShootable:
                 pMsg = new plLOSRequestMsg( selfkey.getKey(), startPos, endPos, plSimDefs::kLOSDBShootableItems, plLOSRequestMsg::kTestClosest );
+                pMsg->SetRequestName(ST::format("Python [{}]: Shootables", selfkey.getName()));
                 break;
         }
 
@@ -2249,17 +2221,17 @@ void cyMisc::ShootBulletFromScreen(pyKey &selfkey, float xPos, float yPos, float
         int32_t x=(int32_t) ( xPos * pipe->Width() );
         int32_t y=(int32_t) ( yPos * pipe->Height() );
 
-        hsPoint3 endPos, startPos;
+        hsPoint3 endPos;
         
         pipe->ScreenToWorldPoint( 1,0, &x, &y, range, 0, &endPos );
-        startPos = pipe->GetViewPositionWorld();
+        hsPoint3 startPos = pipe->GetViewPositionWorld();
 
         // move the start pos out a little to avoid backing up against physical objects...
         hsVector3 view(endPos - startPos);
         view.Normalize();
         startPos = startPos + (view * 1.5f);
 
-        plBulletMsg* bull = new plBulletMsg( selfkey.getKey(), nil, nil );
+        plBulletMsg* bull = new plBulletMsg(selfkey.getKey(), nullptr, nullptr);
         bull->FireShot(startPos, view, radius, range);
         bull->Send();
     }
@@ -2284,7 +2256,7 @@ void cyMisc::ShootBulletFromObject(pyKey &selfkey, pySceneObject* sobj, float ra
         dir.Normalize();
         hsPoint3 pos = l2w.GetTranslate();
 
-        plBulletMsg* bull = new plBulletMsg(selfkey.getKey(), nil, nil);
+        plBulletMsg* bull = new plBulletMsg(selfkey.getKey(), nullptr, nullptr);
         bull->FireShot(pos, dir, radius, range);
 
         bull->Send();
@@ -2314,16 +2286,16 @@ public:
     {
         Py_XDECREF( fPyObject );
     }
-    void OperationStarted( uint32_t context )
+    void OperationStarted(uint32_t context) override
     {}
-    void OperationComplete( uint32_t context, int resultCode )
+    void OperationComplete(uint32_t context, int resultCode) override
     {
         if ( !fPyObject )
             return;
 
 
 
-        PyObject* func = nil;
+        PyObject* func = nullptr;
 
         switch ( context )
         {
@@ -2339,11 +2311,8 @@ public:
 
                     if ( ageInfoStream && nPlayersStream )
                     {
-                        uint16_t nAgeInfoEntries;
-                        ageInfoStream->GetStream()->ReadLE( &nAgeInfoEntries );
-
-                        uint16_t nPlayerCountEntries;
-                        nPlayersStream->GetStream()->ReadLE( &nPlayerCountEntries );
+                        uint16_t nAgeInfoEntries = ageInfoStream->GetStream()->ReadLE16();
+                        uint16_t nPlayerCountEntries = nPlayersStream->GetStream()->ReadLE16();
 
                         hsAssert( nAgeInfoEntries==nPlayerCountEntries, "huh?" );
 
@@ -2353,9 +2322,8 @@ public:
                         for ( int i=0; i<nAgeInfoEntries; i++ )
                         {
                             plAgeInfoStruct ageInfo;
-                            uint32_t nPlayers;
-                            ageInfo.Read( ageInfoStream->GetStream(), nil );
-                            nPlayersStream->GetStream()->ReadLE( &nPlayers );
+                            ageInfo.Read(ageInfoStream->GetStream(), nullptr);
+                            uint32_t nPlayers = nPlayersStream->GetStream()->ReadLE32();
                             PyObject* t = PyTuple_New(2);
                             PyTuple_SetItem(t, 0, pyAgeInfoStruct::New(&ageInfo));
                             PyTuple_SetItem(t, 1, PyLong_FromUnsignedLong(nPlayers));
@@ -2452,7 +2420,7 @@ void cyMisc::CreatePublicAge( pyAgeInfoStruct * ageInfo, PyObject * cbObject )
 //
 // PURPOSE    : Remove a public age from the list of available ones.
 //
-void cyMisc::RemovePublicAge( const char * ageInstanceGuid, PyObject * cbObject/*=nil */)
+void cyMisc::RemovePublicAge(const char * ageInstanceGuid, PyObject * cbObject/*=nullptr */)
 {
     plAgeInfoStruct info;
     plUUID uuid(ageInstanceGuid);
@@ -2500,7 +2468,7 @@ ST::string cyMisc::GetCameraNumber(int number)
 
 void cyMisc::RebuildCameraStack(const ST::string& name, const char* ageName)
 {
-    plKey key=nil;
+    plKey key;
     ST::string str = ST::format("attempting to restore camera named {} from chronicle\n", name);
     plVirtualCam1::Instance()->AddMsgToLog(str.c_str());
 
@@ -2511,7 +2479,7 @@ void cyMisc::RebuildCameraStack(const ST::string& name, const char* ageName)
     {
         key=plKeyFinder::Instance().StupidSearch("", "", plSceneObject::Index(), name, false);
     }
-    if ( key == nil )
+    if (key == nullptr)
     {
         // try and use this new hack method to find it
         if (!plVirtualCam1::Instance()->RestoreFromName(name))
@@ -2525,11 +2493,11 @@ void cyMisc::RebuildCameraStack(const ST::string& name, const char* ageName)
     else
     {
         // now we have the scene object, look for it's camera modifier
-        const plCameraModifier1* pMod = nil;
+        const plCameraModifier1* pMod = nullptr;
         plSceneObject* pObj = plSceneObject::ConvertNoRef(key->ObjectIsLoaded());
         if (pObj)
         {
-            for (int i = 1; i < pObj->GetNumModifiers(); i++)
+            for (size_t i = 1; i < pObj->GetNumModifiers(); i++)
             {
                 pMod = plCameraModifier1::ConvertNoRef(pObj->GetModifier(i));
                 if (pMod)
@@ -2734,7 +2702,7 @@ void cyMisc::FakeLinkToObject(pyKey& avatar, pyKey& object)
 
 void cyMisc::FakeLinkToObjectNamed(const ST::string& name)
 {
-    plKey key = nil;
+    plKey key;
     if ( !name.empty() )
     {
         key = plKeyFinder::Instance().StupidSearch("", "", plSceneObject::Index(), name, false);
@@ -2750,7 +2718,7 @@ void cyMisc::FakeLinkToObjectNamed(const ST::string& name)
 
 PyObject* cyMisc::LoadAvatarModel(const char* modelName, pyKey& spawnPoint, const ST::string& userStr)
 {
-    plKey SpawnedKey = plAvatarMgr::GetInstance()->LoadAvatar(modelName, "", false, spawnPoint.getKey(), nil, userStr);
+    plKey SpawnedKey = plAvatarMgr::GetInstance()->LoadAvatar(modelName, "", false, spawnPoint.getKey(), nullptr, userStr);
     return pyKey::New(SpawnedKey);
 }
 
@@ -2890,7 +2858,7 @@ PyObject* cyMisc::PyGuidGenerate()
 {
     plUUID newGuid = plUUID::Generate();
 
-    return PyString_FromString(newGuid.AsString().c_str());
+    return PyUnicode_FromSTString(newGuid.AsString());
 }
 
 PyObject* cyMisc::GetAIAvatarsByModelName(const char* name)
@@ -2908,7 +2876,7 @@ PyObject* cyMisc::GetAIAvatarsByModelName(const char* name)
         {
             PyObject* tuple = PyTuple_New(2);
             PyTuple_SetItem(tuple, 0, pyCritterBrain::New(critterBrain));
-            PyTuple_SetItem(tuple, 1, PyString_FromSTString(armMod->GetUserStr()));
+            PyTuple_SetItem(tuple, 1, PyUnicode_FromSTString(armMod->GetUserStr()));
 
             PyList_Append(avList, tuple);
             Py_DECREF(tuple);
@@ -2927,8 +2895,8 @@ void cyMisc::VaultDownload(unsigned nodeId)
     VaultDownloadAndWait(
         "PyVaultDownload",
         nodeId,
-        nil,
-        nil
+        nullptr,
+        nullptr
     );
 }
 
@@ -2955,10 +2923,10 @@ PyObject* cyMisc::FindClones(pyKey* object) {
     plUoid uoid = obj->GetUoid();
 
     plKeyImp* imp = ((plKeyImp*)obj);
-    uint32_t cloneNum = imp->GetNumClones();
+    size_t cloneNum = imp->GetNumClones();
     PyObject* keyList = PyList_New(cloneNum);
 
-    for (int i=0; i < cloneNum; i++) {
+    for (size_t i = 0; i < cloneNum; i++) {
         PyObject* key = pyKey::New(imp->GetCloneByIdx(i));
         PyList_SET_ITEM(keyList, i, key);
     }

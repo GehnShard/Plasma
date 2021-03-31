@@ -40,16 +40,17 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
+#include <vector>
+
 #include "HeadSpin.h"
 #include "hsResMgr.h"
 
 #include "plComponent.h"
 #include "plComponentReg.h"
 #include "MaxMain/plMaxNode.h"
-#include "resource.h"
+#include "MaxMain/MaxAPI.h"
 
-#include <iparamm2.h>
-#pragma hdrstop
+#include "resource.h"
 
 #include "MaxMain/plPlasmaRefMsgs.h"
 #include "plPickNode.h"
@@ -59,6 +60,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnSceneObject/plSceneObject.h"
 #include "plDrawable/plMorphSequence.h"
 #include "plDrawable/plSharedMesh.h"
+#include "pnMessage/plRefMsg.h"
 
 const Class_ID MORPHSEQ_COMP_CID(0x37100f0a, 0x2d1f6b87);
 const Class_ID MORPHLAY_COMP_CID(0x138b1d44, 0x6c0a7417);
@@ -77,15 +79,15 @@ public:
     };
     
     plMorphLayComp();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
     
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    virtual bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
-    bool SetupLayer(plMorphArray& morphArr, plMaxNode* baseNode, hsTArray<plGeometrySpan*>* baseSpans, plErrorMsg* pErrMsg);
+    bool SetupLayer(plMorphArray& morphArr, plMaxNode* baseNode, std::vector<plGeometrySpan*>* baseSpans, plErrorMsg* pErrMsg);
 };
 
 CLASS_DESC(plMorphLayComp, gMorphLayCompDesc, "Morph Layer",  "MorphLay", COMP_TYPE_AVATAR, MORPHLAY_COMP_CID)
@@ -94,7 +96,7 @@ ParamBlockDesc2 gMorphLayBk
 (   
     plComponent::kBlkComp, _T("MorphLay"), 0, &gMorphLayCompDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_MORPHLAY, IDS_COMP_MORPHLAY, 0, 0, nil,
+    IDD_COMP_MORPHLAY, IDS_COMP_MORPHLAY, 0, 0, nullptr,
 
     plMorphLayComp::kDeltas,    _T("Deltas"),   TYPE_INODE_TAB, 0,      P_CAN_CONVERT, 0,
         p_ui,           TYPE_NODELISTBOX, IDC_LIST_TARGS, IDC_ADD_TARGS, 0, IDC_DEL_TARGS,
@@ -141,7 +143,7 @@ bool plMorphLayComp::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     return true;
 }
 
-bool plMorphLayComp::SetupLayer(plMorphArray& morphArr, plMaxNode* baseNode, hsTArray<plGeometrySpan*>* baseSpans, plErrorMsg* pErrMsg)
+bool plMorphLayComp::SetupLayer(plMorphArray& morphArr, plMaxNode* baseNode, std::vector<plGeometrySpan*>* baseSpans, plErrorMsg* pErrMsg)
 {
     const int num = fCompPB->Count(kDeltas);
     int i;
@@ -156,7 +158,7 @@ bool plMorphLayComp::SetupLayer(plMorphArray& morphArr, plMaxNode* baseNode, hsT
         // Get the GeometrySpans. We ensured they would
         // be generated in it's SetupProperties, and they were created
         // in the MakeMesh pass.
-        hsTArray<plGeometrySpan*>* movedSpans = &deltaNode->GetSwappableGeom()->fSpans;
+        std::vector<plGeometrySpan*>* movedSpans = &deltaNode->GetSwappableGeom()->fSpans;
 
         // We want to move the deltas into the same space as the base mesh verts.
         // So the first question is, which space do we want to move them from?
@@ -178,8 +180,8 @@ bool plMorphLayComp::SetupLayer(plMorphArray& morphArr, plMaxNode* baseNode, hsT
         hsMatrix44 d2bTInv;
         d2b.GetInverse(&d2bTInv);
         d2bTInv.GetTranspose(&d2bTInv);
-        // Error check - movedSpans->GetCount() == baseSpans->GetCount();
-        if( movedSpans->GetCount() != baseSpans->GetCount() )
+        // Error check
+        if (movedSpans->size() != baseSpans->size())
         {
             pErrMsg->Set(true, deltaNode->GetName(), "Delta mesh mismatch with base").CheckAndAsk();
             pErrMsg->Set(false);
@@ -209,14 +211,14 @@ public:
     };
     
     plMorphSeqComp();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
     
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    virtual bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool DeInit(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool DeInit(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 
@@ -226,14 +228,12 @@ CLASS_DESC(plMorphSeqComp, gMorphSeqCompDesc, "Morph Sequence",  "MorphSeq", COM
 class plMorphSeqProc : public ParamMap2UserDlgProc
 {
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
         case WM_INITDIALOG:
-            {
-            }
-            return true;
+            return TRUE;
 
         case WM_COMMAND:
             if (HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == IDC_ADD_TARGS)
@@ -249,9 +249,9 @@ public:
             break;
         }
 
-        return false;
+        return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plMorphSeqProc gMorphSeqProc;
 
@@ -313,7 +313,7 @@ bool plMorphSeqComp::Convert(plMaxNode* node, plErrorMsg* pErrMsg)
     // Get our base geometry.
     plMaxNode* baseNode = (plMaxNode*)fCompPB->GetINode(kBaseNode);
     plSharedMesh* mesh = baseNode->GetSwappableGeom();
-    hsTArray<plGeometrySpan*>* baseSpans = &mesh->fSpans;
+    std::vector<plGeometrySpan*>* baseSpans = &mesh->fSpans;
     //morphSeq->AddSharedMesh(mesh);
 
     // Error check we have some base geometry.
@@ -338,7 +338,7 @@ bool plMorphSeqComp::Convert(plMaxNode* node, plErrorMsg* pErrMsg)
         if( layComp->SetupLayer(morphArr, baseNode, baseSpans, pErrMsg) )
         {
             //morphSeq->AddLayer(morphArr);
-            set->fMorphs.Append(morphArr);
+            set->fMorphs.emplace_back(morphArr);
         }
     }
 
@@ -357,18 +357,18 @@ plMorphLayComp* plMorphSeqComp::IGetLayerComp(int i)
 {
     plMaxNode* node = (plMaxNode*)fCompPB->GetINode(kLayers, TimeValue(0), i);
     if( !node )
-        return nil;
+        return nullptr;
 
     plComponentBase *comp = ((plMaxNodeBase*)node)->ConvertToComponent();
     if( !comp )
-        return nil;
+        return nullptr;
 
     if( comp->ClassID() == MORPHLAY_COMP_CID )
     {
         return (plMorphLayComp*)comp;
     }
 
-    return nil;
+    return nullptr;
 }
 
 plMorphSeqComp::plMorphSeqComp()

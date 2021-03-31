@@ -41,6 +41,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
+#include "hsResMgr.h"
+
 #include <map>
 
 #include "plComponent.h"
@@ -48,7 +50,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plActivatorBaseComponent.h"
 #include "MaxMain/plMaxNode.h"
 #include "resource.h"
-#pragma hdrstop
 
 #include "plNPCSpawnComp.h"
 #include "plAvatar/plNPCSpawnMod.h"
@@ -77,9 +78,9 @@ public:
 
     plKey GetNPCSpawnKey(plMaxNode *node);
 
-    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg);
-    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode* node,plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode* node,plErrorMsg *pErrMsg) override;
 
 private:
     // per-instance registry of all the modifiers that were created by this component
@@ -102,7 +103,7 @@ plKey GetNPCSpawnModKey(plComponentBase *npcSpawnComp, plMaxNodeBase *target)
         return comp->GetNPCSpawnKey((plMaxNode*)target);
     }
 
-    return nil;
+    return nullptr;
 }
 
 // GNPCSPAWNBLOCK
@@ -111,7 +112,7 @@ ParamBlockDesc2 gNPCSpawnBlock
     plComponent::kBlkComp, _T("(ex)One Shot Comp"), 0, &gNPCSpawnDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
     //Rollout data
-    IDD_COMP_NPC_SPAWN, IDS_COMP_NPC_SPAWNER, 0, 0, NULL,
+    IDD_COMP_NPC_SPAWN, IDS_COMP_NPC_SPAWNER, 0, 0, nullptr,
 
     //params
     kModelName, _T("ModelName"),    TYPE_STRING,    0, 0,
@@ -143,7 +144,7 @@ plKey plNPCSpawnComp::GetNPCSpawnKey(plMaxNode *node)
     if (fMods.find(node) != fMods.end())
         return fMods[node]->GetKey();
 
-    return nil;
+    return nullptr;
 }
 
 // ISVALID
@@ -210,12 +211,12 @@ bool plNPCSpawnComp::Convert(plMaxNode* node, plErrorMsg *pErrMsg)
         // let's make a notification message that we'll use to notify interested parties
         // when we actually do our spawn.
         plNotifyMsg *notify = new plNotifyMsg();
-        hsTArray<plKey> receivers;
+        std::vector<plKey> receivers;
         IGetReceivers(node, receivers);
         notify->SetSender(mod->GetKey());
         notify->SetState(1.0f);
-        for (int i = 0; i < receivers.Count(); i++)
-            notify->AddReceiver(receivers[i]);
+        for (const plKey& receiver : receivers)
+            notify->AddReceiver(receiver);
 
         mod->SetNotify(notify);
 

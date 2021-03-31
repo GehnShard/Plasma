@@ -41,12 +41,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 #include "plSeekPointMod.h"
 
-// local
-#include "plAvatarMgr.h"
+#include "hsStream.h"
 
 // CTOR()
 plSeekPointMod::plSeekPointMod()
-: fName(nil), plMultiModifier()
+: fName(), plMultiModifier()
 {
     // this constructor is called from the loader. 
 }
@@ -64,7 +63,7 @@ plSeekPointMod::~plSeekPointMod()
 {
     if(fName) {
         delete[] fName;
-        fName = nil;
+        fName = nullptr;
     }
 }
 
@@ -79,7 +78,6 @@ bool plSeekPointMod::MsgReceive(plMessage* msg)
 void plSeekPointMod::AddTarget(plSceneObject* so)
 {
     plMultiModifier::AddTarget(so);
-//  plAvatarMgr::GetInstance()->AddSeekPoint(this);
 }
 
 void plSeekPointMod::Read(hsStream *stream, hsResMgr *mgr)

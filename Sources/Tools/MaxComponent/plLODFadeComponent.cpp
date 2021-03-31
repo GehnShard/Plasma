@@ -46,7 +46,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plComponentReg.h"
 #include "MaxMain/plMaxNode.h"
 #include "resource.h"
-#pragma hdrstop
 
 #include "MaxMain/plPlasmaRefMsgs.h"
 
@@ -69,7 +68,7 @@ ParamBlockDesc2 gLODFadeBk
 (   
     plComponent::kBlkComp, _T("LODFade"), 0, &gLODFadeCompDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_LODFADE, IDS_COMP_LODFADE, 0, 0, NULL,
+    IDD_COMP_LODFADE, IDS_COMP_LODFADE, 0, 0, nullptr,
 
     plLODFadeComponent::kHasBase,   _T("HasBase"),  TYPE_BOOL, 0, 0,
         p_default,  FALSE,
@@ -184,7 +183,7 @@ ParamBlockDesc2 gBlendOntoBk
 (   
     plComponent::kBlkComp, _T("BlendOnto"), 0, &gBlendOntoCompDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_BLENDONTO, IDS_COMP_BLENDONTO, 0, 0, NULL,
+    IDD_COMP_BLENDONTO, IDS_COMP_BLENDONTO, 0, 0, nullptr,
 
     plBlendOntoComponent::kBaseNodes,   _T("BaseNodes"),    TYPE_INODE_TAB, 0,      P_CAN_CONVERT, 0,
         p_ui,           TYPE_NODELISTBOX, IDC_LIST_TARGS, IDC_ADD_TARGS, 0, IDC_DEL_TARGS,
@@ -251,7 +250,7 @@ ParamBlockDesc2 gBlendOntoAdvBk
 (   
     plComponent::kBlkComp, _T("BlendOntoAdv"), 0, &gBlendOntoAdvCompDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_BLENDONTOADV, IDS_COMP_BLENDONTOADV, 0, 0, NULL,
+    IDD_COMP_BLENDONTOADV, IDS_COMP_BLENDONTOADV, 0, 0, nullptr,
 
     plBlendOntoAdvComponent::kBaseNodes,    _T("BaseNodes"),    TYPE_INODE_TAB, 0,      P_CAN_CONVERT, 0,
         p_ui,           TYPE_NODELISTBOX, IDC_LIST_TARGS, IDC_ADD_TARGS, 0, IDC_DEL_TARGS,
@@ -330,13 +329,13 @@ class plB4AvComponent : public plComponent
 {
 public:
     plB4AvComponent();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    virtual bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 
@@ -346,7 +345,7 @@ ParamBlockDesc2 gB4AvBk
 (   
     plComponent::kBlkComp, _T("B4Av"), 0, &gB4AvCompDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_SORT_AS_OPAQUE, IDS_COMP_SORT_AS_OPAQUE, 0, 0, NULL,
+    IDD_COMP_SORT_AS_OPAQUE, IDS_COMP_SORT_AS_OPAQUE, 0, 0, nullptr,
 
     end
 );
@@ -382,7 +381,7 @@ ParamBlockDesc2 gDistFadeBk
 (   
     plComponent::kBlkComp, _T("DistFade"), 0, &gDistFadeCompDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_DISTFADE, IDS_COMP_DISTFADE, 0, 0, NULL,
+    IDD_COMP_DISTFADE, IDS_COMP_DISTFADE, 0, 0, nullptr,
 
     plDistFadeComponent::kFadeInActive, _T("FadeInActive"), TYPE_BOOL, 0, 0,
         p_default,  FALSE,
@@ -573,13 +572,13 @@ public:
 
 public:
     plLOSFadeComponent();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    virtual bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 
@@ -589,7 +588,7 @@ ParamBlockDesc2 gLOSFadeBk
 (   
     plComponent::kBlkComp, _T("LOSFade"), 0, &gLOSFadeCompDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_LOSFADE, IDS_COMP_LOSFADE, 0, 0, NULL,
+    IDD_COMP_LOSFADE, IDS_COMP_LOSFADE, 0, 0, nullptr,
 
     plLOSFadeComponent::kBoundsCenter,  _T("BoundsCenter"), TYPE_BOOL, 0, 0,
         p_default,  FALSE,
@@ -667,13 +666,13 @@ public:
 
 public:
     plGZFadeComponent();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    virtual bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 
@@ -683,7 +682,7 @@ ParamBlockDesc2 gGZFadeBk
 (   
     plComponent::kBlkComp, _T("GZFade"), 0, &gGZFadeCompDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_GZFADE, IDS_COMP_GZ_FADE, 0, 0, NULL,
+    IDD_COMP_GZFADE, IDS_COMP_GZ_FADE, 0, 0, nullptr,
 
     plGZFadeComponent::kOpaque, _T("kOpaque"), TYPE_FLOAT,  0, 0,   
         p_default, 15.0,
@@ -759,13 +758,13 @@ public:
 
 public:
     plDynMatComponent();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    virtual bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 
@@ -775,7 +774,7 @@ ParamBlockDesc2 gDynMatBk
 (   
     plComponent::kBlkComp, _T("DynMat"), 0, &gDynMatCompDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_DYNMAT, IDS_COMP_DYNMAT, 0, 0, NULL,
+    IDD_COMP_DYNMAT, IDS_COMP_DYNMAT, 0, 0, nullptr,
 
     end
 );

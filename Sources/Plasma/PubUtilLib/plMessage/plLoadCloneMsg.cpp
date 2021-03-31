@@ -39,21 +39,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#ifndef NO_AV_MSGS
-#ifndef SERVER
+
+#include "plLoadCloneMsg.h"
 
 #include "HeadSpin.h"
 #include "hsResMgr.h"
-#include "pnNetCommon/plNetApp.h"
-#pragma hdrstop
+#include "hsStream.h"
 
-#include "plLoadAvatarMsg.h"
+#include "pnNetCommon/plNetApp.h"
 
 // CTOR / default
 plLoadCloneMsg::plLoadCloneMsg()
-: fValidMsg(false),
-  fOriginatingPlayerID(0),
-  fTriggerMsg(nil)
+: fValidMsg(),
+  fOriginatingPlayerID(),
+  fTriggerMsg()
 {
     SetBCastFlag(plMessage::kNetPropagate);
 };
@@ -63,8 +62,8 @@ plLoadCloneMsg::plLoadCloneMsg()
 plLoadCloneMsg::plLoadCloneMsg(const plUoid &uoidToClone, const plKey &requestorKey, uint32_t userData)
     : fRequestorKey(requestorKey),
       fUserData(userData),
-      fValidMsg(false),
-      fTriggerMsg(nil),
+      fValidMsg(),
+      fTriggerMsg(),
       fIsLoading(true)      // this constructor form is only used for loading
 {
     SetBCastFlag(plMessage::kNetPropagate);
@@ -99,7 +98,7 @@ plLoadCloneMsg::plLoadCloneMsg(const plKey &existing, const plKey &requestor, ui
   fRequestorKey(requestor),
   fUserData(userData),
   fValidMsg(true),
-  fTriggerMsg(nil),
+  fTriggerMsg(),
   fIsLoading(isLoading)
 {
     if (plNetApp::GetInstance())
@@ -255,7 +254,7 @@ bool plLoadCloneMsg::GetIsLoading()
 
 void plLoadCloneMsg::SetTriggerMsg(plMessage *msg)
 {
-    if (fTriggerMsg != nil)
+    if (fTriggerMsg != nullptr)
         hsRefCnt_SafeUnRef(fTriggerMsg);
 
     hsRefCnt_SafeRef(msg);
@@ -266,6 +265,3 @@ plMessage *plLoadCloneMsg::GetTriggerMsg()
 {
     return fTriggerMsg;
 }
-
-#endif // ndef SERVER
-#endif // ndef NO_AV_MSGS

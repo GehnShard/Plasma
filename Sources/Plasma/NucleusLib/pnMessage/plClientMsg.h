@@ -42,10 +42,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plClientMsg_inc
 #define plClientMsg_inc
 
-#include "pnMessage/plMessage.h"
-#include "pnMessage/plRefMsg.h"
-#include "hsStream.h"
-#include "hsResMgr.h"
+#include "plRefMsg.h"
 
 #include "pnKeyedObject/plUoid.h"
 
@@ -122,8 +119,8 @@ public:
     const std::vector<plLocation>& GetRoomLocs() { return fRoomLocs; }
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 class plClientRefMsg : public plRefMsg
@@ -149,17 +146,8 @@ public:
     int8_t                    fWhich;
 
     // IO - not really applicable to ref msgs, but anyway
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
-        plRefMsg::Read(stream, mgr);
-        stream->ReadLE(&fType);
-        stream->ReadLE(&fWhich);
-    }
-
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
-        plRefMsg::Write(stream, mgr);
-        stream->WriteLE(fType);
-        stream->WriteLE(fWhich);
-    }
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 #endif // plClientMsg

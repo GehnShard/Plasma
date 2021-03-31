@@ -46,12 +46,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plComponentReg.h"
 #include "plPhysicalComponents.h"
 #include "MaxMain/plMaxNode.h"
+#include "MaxMain/MaxAPI.h"
 
-#include <iparamm2.h>
 #include <map>
 
 #include "resource.h"
-#pragma hdrstop
 
 #include "plPickNode.h"
 
@@ -240,9 +239,9 @@ bool plClimbTriggerComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
         break;
     }
 
-    plKey nilKey = nil;
+    plKey nilKey;
     plKey target = node->GetSceneObject()->GetKey();
-    plClimbMsg *enterMsg = nil;
+    plClimbMsg *enterMsg = nullptr;
     if (enterCommand != plClimbMsg::kNoCommand)
     {
         enterMsg = new plClimbMsg(nilKey, nilKey, enterCommand, direction, enterStatus, target);
@@ -251,7 +250,7 @@ bool plClimbTriggerComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
         enterMsg->SetBCastFlag(plMessage::kNetForce);
     }
 
-    plClimbMsg *exitMsg = nil;
+    plClimbMsg *exitMsg = nullptr;
     if (exitCommand != plClimbMsg::kNoCommand)
     {
         exitMsg = new plClimbMsg(nilKey, nilKey, exitCommand, direction, exitStatus, target);
@@ -292,13 +291,13 @@ bool plClimbTriggerComponent::SetupProperties(plMaxNode *node, plErrorMsg *pErrM
 // DIALOG PROC IMPLEMENTATION
 //
 /////////////////////////////////////////////////////////////////
-BOOL plClimbTriggerComponentProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plClimbTriggerComponentProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     IParamBlock2 *pb = pm->GetParamBlock();
     HWND hCommandMenu = GetDlgItem(hWnd, IDC_COMP_CLIMB_COMMAND);
     HWND hDirectionMenu = GetDlgItem(hWnd, IDC_COMP_CLIMB_DIRECTION);
     HWND hPick = GetDlgItem(hWnd, IDC_COMP_WALL_PICK);
-    INode *curPick = nil;
+    INode *curPick = nullptr;
     int curSurface = 0;
 
     switch (msg)
@@ -320,7 +319,7 @@ BOOL plClimbTriggerComponentProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd
 
             // show the name of the currently picked item
             curPick = pb->GetINode(ParamID(plClimbTriggerComponent::kWallPicker));
-            Button_SetText(hPick, (curPick == nil ? "None" : curPick->GetName()));
+            Button_SetText(hPick, (curPick == nullptr ? "None" : curPick->GetName()));
         }
         return TRUE;
         break;
@@ -338,7 +337,7 @@ BOOL plClimbTriggerComponentProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd
                 if (plPick::NodeRefKludge(pb, plClimbTriggerComponent::kWallPicker, &pickableClasses, true, false))         
                 {
                     curPick = pb->GetINode(ParamID(plClimbTriggerComponent::kWallPicker));
-                    Button_SetText(hPick, (curPick == nil ? "None" : curPick->GetName()));
+                    Button_SetText(hPick, (curPick == nullptr ? "None" : curPick->GetName()));
                 }
             
                 return TRUE;
@@ -378,8 +377,8 @@ public:
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 //Max desc stuff necessary below.
@@ -389,7 +388,7 @@ ParamBlockDesc2 gClimbBlockBk
 (
     plComponent::kBlkComp, _T("Climb Blocker"), 0, &gClimbBlockDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_CLIMB_BLOCK, IDS_COMP_CLIMB_BLOCKER, 0, 0, NULL,
+    IDD_COMP_CLIMB_BLOCK, IDS_COMP_CLIMB_BLOCKER, 0, 0, nullptr,
 
     end
 );

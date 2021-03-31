@@ -45,7 +45,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 //////////////////////////////////////////////////////////////////////
 
-#pragma hdrstop
 
 #include "pyVaultFolderNode.h"
 #include "plVault/plVault.h"
@@ -100,5 +99,5 @@ ST::string pyVaultFolderNode::Folder_GetName() const
         VaultFolderNode folder(fNode);
         return folder.GetFolderName();
     }
-    return ST::null;
+    return ST::string();
 }

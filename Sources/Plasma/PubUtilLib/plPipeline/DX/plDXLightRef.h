@@ -55,7 +55,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "hsMatrix44.h"
 #include "hsGeometry3.h"
-#include "hsTemplates.h"
 #include "plDXDeviceRef.h"
 
 
@@ -79,16 +78,12 @@ class plDXLightRef : public plDXDeviceRef
         plDXLightRef    *GetNext() { return (plDXLightRef *)fNext; }
 
         plDXLightRef()
-        {
-            fOwner = nil;
-            fParentSettings = nil;
-            fD3DDevice = nil;
-            fD3DIndex = -1;
-            fScale = 1.f;
-        }
+            : fOwner(), fParentSettings(), fD3DDevice(),
+              fD3DIndex(-1), fScale(1.f), fD3DInfo()
+        { }
 
         virtual ~plDXLightRef();
-        void    Release();
+        void    Release() override;
 
         void    UpdateD3DInfo( IDirect3DDevice9 *dev, plDXLightSettings *settings );
 };

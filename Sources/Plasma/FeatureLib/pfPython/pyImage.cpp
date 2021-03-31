@@ -43,7 +43,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <Python.h>
 #include "pyKey.h"
 #include "hsResMgr.h"
-#pragma hdrstop
 
 #include "pyImage.h"
 #include "pyGeometry3.h"
@@ -56,7 +55,7 @@ void pyImage::setKey(pyKey& mipmapKey) // only for python glue, do NOT call
 #ifndef BUILDING_PYPLASMA
     if (fMipmap && fMipMapKey)
         fMipMapKey->UnRefObject();
-    fMipmap = nil;
+    fMipmap = nullptr;
 #endif
     fMipMapKey = mipmapKey.getKey();
 }
@@ -130,7 +129,7 @@ PyObject* pyImage::GetColorLoc(const pyColor &color)
                     float fX, fY;
                     fX = (float)x / (float)width;
                     fY = (float)y / (float)height;
-                    return pyPoint3::New(hsPoint3(fX, fY, 0));
+                    return pyPoint3::New(hsPoint3(fX, fY, 0.f));
                 }
                 double dist = pow((imgColor->getRed() - color.getRed()),2) + pow((imgColor->getGreen() - color.getGreen()),2) + pow((imgColor->getBlue() - color.getBlue()),2);
                 if (dist < minSqrDist)

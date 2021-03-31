@@ -39,23 +39,26 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+
 #include "pfMarkerMgr.h"
-#include "pfMessage/pfMarkerMsg.h"
 #include "pfMarkerInfo.h"
 
+#include "plgDispatch.h"
+#include "hsTimer.h"
+
+#include "pnMessage/plNotifyMsg.h"
+#include "pnMessage/plTimeMsg.h"
+
 #include "plModifier/plCloneSpawnModifier.h"
+#include "plMessage/plLoadCloneMsg.h"
+#include "plNetClient/plNetClientMgr.h"
 #include "plStatusLog/plStatusLog.h"
 
-#include "plMessage/plLoadCloneMsg.h"
-#include "pnMessage/plTimeMsg.h"
-#include "pnMessage/plNotifyMsg.h"
-
-#include "plNetClient/plNetClientMgr.h"
-#include "plgDispatch.h"
+#include "pfMessage/pfMarkerMsg.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
-pfMarkerMgr* pfMarkerMgr::fInstance = nil;
+pfMarkerMgr* pfMarkerMgr::fInstance = nullptr;
 const uint32_t pfMarkerMgr::kNoMarkerSelected = (uint32_t)(-1);
 
 pfMarkerMgr* pfMarkerMgr::Instance()
@@ -74,7 +77,7 @@ void pfMarkerMgr::Shutdown()
     if (pfMarkerMgr::fInstance)
     {
         pfMarkerMgr::fInstance->IShutdown();
-        pfMarkerMgr::fInstance = nil;
+        pfMarkerMgr::fInstance = nullptr;
     }
 }
 
@@ -125,7 +128,7 @@ pfMarkerInfo* pfMarkerMgr::IFindMarker(plKey markerKey, uint32_t& id)
         ++curMarker;
     }
     id = kNoMarkerSelected;
-    return nil;
+    return nullptr;
 }
 
 void pfMarkerMgr::IUpdate()

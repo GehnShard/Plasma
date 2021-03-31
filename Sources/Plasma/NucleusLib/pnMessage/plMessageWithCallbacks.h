@@ -43,7 +43,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define plMessageWithCB_inc
 
 #include "plMessage.h"
-#include "hsTemplates.h"
 #include "plEventCallbackMsg.h"
 //
 // Base class for messages which contain callbacks
@@ -56,7 +55,7 @@ class hsResMgr;
 class plMessageWithCallbacks : public plMessage
 {
 private:
-    hsTArray<plMessage*>        fCallbacks;
+    std::vector<plMessage*> fCallbacks;
 public:
     plMessageWithCallbacks() {}
     plMessageWithCallbacks(const plKey &s, const plKey &r, const double* t) : plMessage(s,r,t) {}
@@ -68,9 +67,9 @@ public:
     void Clear();
 
     void                AddCallback(plMessage* e); // will RefCnt the message e.
-    int                 GetNumCallbacks() const { return fCallbacks.GetCount(); }
-    plMessage*          GetCallback(int i) const { return fCallbacks[i]; }
-    plEventCallbackMsg* GetEventCallback(int i) const { return plEventCallbackMsg::ConvertNoRef(fCallbacks[i]); }
+    size_t              GetNumCallbacks() const { return fCallbacks.size(); }
+    plMessage*          GetCallback(size_t i) const { return fCallbacks[i]; }
+    plEventCallbackMsg* GetEventCallback(size_t i) const { return plEventCallbackMsg::ConvertNoRef(fCallbacks[i]); }
     void SendCallbacks();
 
 #if 0
@@ -79,11 +78,11 @@ public:
 #endif
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 
-    void ReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void WriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void ReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void WriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 #endif  // plMessageWithCB_inc

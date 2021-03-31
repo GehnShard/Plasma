@@ -48,8 +48,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _pfGUIDialogNotifyProc_h
 #define _pfGUIDialogNotifyProc_h
 
-#include "pfGUIDialogHandlers.h"
 #include "pnKeyedObject/plKey.h"
+
+#include "pfGUIDialogHandlers.h"
+
 
 class plGUIControlMod;
 
@@ -69,15 +71,15 @@ class pfGUIDialogNotifyProc : public pfGUIDialogProc
 
         pfGUIDialogNotifyProc( plKey &r );
 
-        virtual void    DoSomething( pfGUIControlMod *ctrl );
-        virtual void    HandleExtendedEvent( pfGUIControlMod *ctrl, uint32_t event );
-        virtual void    OnInit();
-        virtual void    OnShow();
-        virtual void    OnHide();
-        virtual void    OnDestroy();
-        virtual void    OnCtrlFocusChange( pfGUIControlMod *oldCtrl, pfGUIControlMod *newCtrl );
-        virtual void    OnControlEvent( ControlEvt event );
-        virtual void    OnInterestingEvent( pfGUIControlMod *ctrl );
+        void    DoSomething(pfGUIControlMod *ctrl) override;
+        void    HandleExtendedEvent(pfGUIControlMod *ctrl, uint32_t event) override;
+        void    OnInit() override;
+        void    OnShow() override;
+        void    OnHide() override;
+        void    OnDestroy() override;
+        void    OnCtrlFocusChange(pfGUIControlMod *oldCtrl, pfGUIControlMod *newCtrl) override;
+        void    OnControlEvent(ControlEvt event) override;
+        void    OnInterestingEvent(pfGUIControlMod *ctrl) override;
 };
 
 #endif // _pfGUIDialogNotifyProc_h

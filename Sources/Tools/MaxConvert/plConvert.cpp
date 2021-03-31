@@ -47,19 +47,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plgDispatch.h"
 #include "hsResMgr.h"
 #include "hsStringTokenizer.h"
-#include "hsTemplates.h"
 #include "hsWindows.h"
 
-#include <max.h>
-#include <istdplug.h>
-#include <Notify.h>
-#include <commdlg.h>
-#include <bmmlib.h>
-#include <INode.h>
-#include <stdmat.h>
-
-#include <vector>
-#pragma hdrstop
+#include "MaxMain/MaxAPI.h"
 
 #include "plConvert.h"
 
@@ -83,7 +73,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "plPhysX/plSimulationMgr.h"
 #include "MaxMain/plMaxMeshExtractor.h"
-#include "MaxMain/plPhysXCooking.h"
 #include "MaxExport/plExportProgressBar.h"
 
 
@@ -120,8 +109,8 @@ bool plConvert::Convert()
     fInterface->SetIncludeXRefsInHierarchy(TRUE);
 
     plMaxNode *pNode = (plMaxNode *)fInterface->GetRootNode();
-    AddMessageToQueue(new plTransformMsg(nil, nil, nil, nil));
-    AddMessageToQueue(new plDelayedTransformMsg(nil, nil, nil, nil));
+    AddMessageToQueue(new plTransformMsg(nullptr, nullptr, nullptr, nullptr));
+    AddMessageToQueue(new plDelayedTransformMsg(nullptr, nullptr, nullptr, nullptr));
 
     IFindDuplicateNames();
 
@@ -161,9 +150,7 @@ bool plConvert::Convert()
     if(IOK())
     {
         bar.Start("Make Physical");
-        plPhysXCooking::Init();
         retVal = pNode->DoRecur( &plMaxNode::MakePhysical, fpErrorMsg, fSettings, &bar );
-        plPhysXCooking::Shutdown();
     }
     if(IOK())
     {
@@ -274,11 +261,11 @@ bool plConvert::Convert()
 //#include "MaxMain/plMaxNodeData.h"
 //#include <set>
 
-bool ConvertList(hsTArray<plMaxNode*>& nodes, PMaxNodeFunc p, plErrorMsg *errMsg, plConvertSettings *settings)
+bool ConvertList(std::vector<plMaxNode*>& nodes, PMaxNodeFunc p, plErrorMsg *errMsg, plConvertSettings *settings)
 {
-    for (int i = 0; i < nodes.Count(); i++)
+    for (plMaxNode* node : nodes)
     {
-        (nodes[i]->*p)(errMsg, settings);
+        (node->*p)(errMsg, settings);
         
         if (errMsg && errMsg->IsBogus())
             return false;
@@ -287,7 +274,7 @@ bool ConvertList(hsTArray<plMaxNode*>& nodes, PMaxNodeFunc p, plErrorMsg *errMsg
     return true;
 }
 
-bool plConvert::Convert(hsTArray<plMaxNode*>& nodes)
+bool plConvert::Convert(std::vector<plMaxNode*>& nodes)
 {
 #ifndef HS_NO_TRY
     try
@@ -339,8 +326,8 @@ bool plConvert::Convert(hsTArray<plMaxNode*>& nodes)
     plLightMapGen::Instance().Close();
     hsVertexShader::Instance().Close();
 
-    plgDispatch::MsgSend(new plTransformMsg(nil, nil, nil, nil));
-    plgDispatch::MsgSend(new plDelayedTransformMsg(nil, nil, nil, nil));
+    plgDispatch::MsgSend(new plTransformMsg(nullptr, nullptr, nullptr, nullptr));
+    plgDispatch::MsgSend(new plDelayedTransformMsg(nullptr, nullptr, nullptr, nullptr));
     DeInit();
 
     return IOK();   
@@ -389,10 +376,10 @@ void plConvert::DeInit()
     IAutoUnClusterRecur(fInterface->GetRootNode());
 
     // clear out the message queue
-    for (int i = 0; i < fMsgQueue.Count(); i++)
-        plgDispatch::MsgSend(fMsgQueue[i]);
+    for (plMessage* msg : fMsgQueue)
+        plgDispatch::MsgSend(msg);
 
-    fMsgQueue.Reset();
+    fMsgQueue.clear();
 
     hsControlConverter::Instance().DeInit();
     plMeshConverter::Instance().DeInit();
@@ -408,7 +395,7 @@ void plConvert::DeInit()
 
 void plConvert::AddMessageToQueue(plMessage* msg)
 {
-    fMsgQueue.Append(msg);
+    fMsgQueue.emplace_back(msg);
 }
 
 void plConvert::SendEnvironmentMessage(plMaxNode* pNode, plMaxNode* efxRegion, plMessage* msg, bool ignorePhysicals )
@@ -503,7 +490,7 @@ const char *plConvert::ISearchNames(INode *node, INode *root)
             return name;
     }
 
-    return nil;
+    return nullptr;
 }
 
 // Recursivly search nodes for this name, and return the number of times found

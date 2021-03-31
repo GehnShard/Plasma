@@ -43,13 +43,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define PL_AV_BRAIN_CRITTER_H
 
 #include <map>
-#include "plAvBrain.h"
-#include "hsTemplates.h"
-#include "pnKeyedObject/plKey.h"
+#include <string>
+#include <vector>
 
-class plArmatureMod;
-class plWalkingStrategy;
+#include "plAvBrain.h"
+
+#include "hsGeometry3.h"
+
 class plAIMsg;
+class plArmatureMod;
+class plKey;
+class plMessage;
+class plRandom;
+class plSceneObject;
+class plWalkingStrategy;
 
 class plAvBrainCritter : public plArmatureBrain
 {
@@ -76,13 +83,13 @@ public:
     CLASSNAME_REGISTER(plAvBrainCritter);
     GETINTERFACE_ANY(plAvBrainCritter, plArmatureBrain);
 
-    bool Apply(double time, float elapsed);
-    bool MsgReceive(plMessage* msg);
+    bool Apply(double time, float elapsed) override;
+    bool MsgReceive(plMessage* msg) override;
 
-    virtual void Activate(plArmatureModBase* avMod);
-    virtual void Deactivate();
-    virtual void Suspend();
-    virtual void Resume();
+    void Activate(plArmatureModBase* avMod) override;
+    void Deactivate() override;
+    void Suspend() override;
+    void Resume() override;
 
     /**
      * Gets the SceneObject root for this avatar
@@ -133,7 +140,7 @@ public:
     void AddReceiver(const plKey key);
     void RemoveReceiver(const plKey key);
 
-    virtual void DumpToDebugDisplay(int& x, int& y, int lineHeight, plDebugText& debugTxt);
+    void DumpToDebugDisplay(int& x, int& y, int lineHeight, plDebugText& debugTxt) override;
 
     // For the console
     static bool fDrawDebug;
@@ -183,6 +190,9 @@ protected:
     std::map<std::string, std::vector<int> > fUserBehaviors; // string is behavior name, internal vector is the list of behaviors that are randomly picked from
 
     std::vector<plKey> fReceivers; // list of people that want messages from us
+
+private:
+    static plRandom sRandom;
 };
 
 #endif // PL_AV_BRAIN_CRITTER_H

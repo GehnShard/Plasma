@@ -62,7 +62,6 @@ from Plasma import *
 from PlasmaTypes import *
 from PlasmaKITypes import *
 from PlasmaNetConstants import *
-import string
 import xLinkingBookDefs
 from xPsnlVaultSDL import *
 import time
@@ -188,7 +187,7 @@ class xLinkingBookGUIPopup(ptModifier):
                         TargetAge.value = stringAgeRequested  #Save this for later identification (i.e. visitor age checking)
                         
                         try:
-                            BookNumber = string.atoi(event[1].split(",")[1])
+                            BookNumber = int(event[1].split(",")[1])
                             CurrentPage = ageSDL["CurrentPage"][BookNumber]
                             PtDebugPrint("xLinkingBookGUIPopup: The book was previously bookmarked on page #%d" % (CurrentPage),level=kDebugDumpLevel)
                         except:
@@ -332,7 +331,7 @@ class xLinkingBookGUIPopup(ptModifier):
                                         #PtDebugPrint("agePanel = ",agePanel)
                                         if agePanel in xLinkingBookDefs.CityBookLinks:
                                             self.IDoCityLinksChron(agePanel)
-                                        respLinkResponder.run(self.key,avatar=PtGetLocalAvatar(),netPropagate=0)
+                                        respLinkResponder.run(self.key,avatar=PtGetLocalAvatar())
 
                                 else:  #Bookshelf Book
                                     if ptVault().amOwnerOfCurrentAge():
@@ -577,10 +576,10 @@ class xLinkingBookGUIPopup(ptModifier):
                         sharable, width, height, stampdef, gui = (0, 1.0, 1.0, xLinkingBookDefs.NoDRCStamp, "BkBook")
                         bookdef = xLinkingBookDefs.BookStart1 + xLinkingBookDefs.DRCStampHolder + xLinkingBookDefs.NoShare + xLinkingBookDefs.LinkStart + params + xLinkingBookDefs.LinkEnd
 
-                if 'NotPossible' in SpawnPointTitle_Dict.viewvalues():
+                if 'NotPossible' in SpawnPointTitle_Dict.values():
                    bookdef = xLinkingBookDefs.BookStart1 + xLinkingBookDefs.DRCStampHolder + xLinkingBookDefs.NoShare + xLinkingBookDefs.LinkStart + 'xLinkPanelBlackVoid' + xLinkingBookDefs.LinkEndNoLink
                    sharable = 0
-                if 'DisabledDesert' in SpawnPointTitle_Dict.viewvalues():
+                if 'DisabledDesert' in SpawnPointTitle_Dict.values():
                    bookdef = xLinkingBookDefs.BookStart1 + xLinkingBookDefs.DRCStampHolder + xLinkingBookDefs.NoShare + xLinkingBookDefs.LinkStart + 'xLinkPanelCleftDesertDisabled' + xLinkingBookDefs.LinkEndNoLink
                    sharable = 0
                 
@@ -591,7 +590,7 @@ class xLinkingBookGUIPopup(ptModifier):
                 return
 
             # bookmark link
-            if fromBookshelf and xLinkingBookDefs.kBookMarkID in SpawnPointTitle_Dict.viewkeys():
+            if fromBookshelf and xLinkingBookDefs.kBookMarkID in SpawnPointTitle_Dict.keys():
                 if SpawnPointTitle_Dict[xLinkingBookDefs.kBookMarkID] == 'JCSavePoint':
                     bookmark = xLinkingBookDefs.JCBookMark
                 elif SpawnPointTitle_Dict[xLinkingBookDefs.kBookMarkID] == 'SCSavePoint':
@@ -615,7 +614,7 @@ class xLinkingBookGUIPopup(ptModifier):
             # build the rest of the pages into the book
             #linkID = xLinkingBookDefs.kFirstLinkPanelID + 1
             if agePanel != "CleftWithTomahna":
-                for linkID in SpawnPointTitle_Dict.viewkeys():
+                for linkID in SpawnPointTitle_Dict.keys():
                     if linkID == xLinkingBookDefs.kFirstLinkPanelID or linkID == xLinkingBookDefs.kBookMarkID:
                         continue
                     try:
@@ -745,7 +744,7 @@ class xLinkingBookGUIPopup(ptModifier):
                     SpawnPointName_Dict[x] = sp.getName()
                 x += 1
 
-        if CurrentPage > len(SpawnPointName_Dict.viewkeys()):
+        if CurrentPage > len(SpawnPointName_Dict.keys()):
             CurrentPage = 1
 
 
@@ -908,7 +907,7 @@ class xLinkingBookGUIPopup(ptModifier):
                 SpawnPointName_Dict[xLinkingBookDefs.kFirstLinkPanelID] = "NotPossible"
                 SpawnPointTitle_Dict[xLinkingBookDefs.kFirstLinkPanelID] = "NotPossible"
 
-        if CurrentPage > len(SpawnPointName_Dict.viewkeys()):
+        if CurrentPage > len(SpawnPointName_Dict.keys()):
             CurrentPage = 1
 
     def HideBook(self, islinking = 0):
@@ -990,7 +989,7 @@ class xLinkingBookGUIPopup(ptModifier):
 
 
     def DoErcanaAndAhnonayStuff(self):
-    	agePanel = TargetAge.value
+        agePanel = TargetAge.value
         if agePanel == "Ercana" or agePanel == "AhnonayCathedral" or agePanel == "Ahnonay":
             if agePanel == "Ercana":
                 ageFileName = "Ercana"

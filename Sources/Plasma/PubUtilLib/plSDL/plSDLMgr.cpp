@@ -39,11 +39,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "hsStream.h"
+
 #include "plSDL.h"
+
+#include "hsStream.h"
+
 #include "pnNetCommon/plNetApp.h"
 #include "pnNetCommon/pnNetCommon.h"
-#include <algorithm>
 
 /////////////////////////////////////////////////////////////////////////////////
 // SDL MGR
@@ -52,7 +54,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 //
 //
-plSDLMgr::plSDLMgr() : fSDLDir("SDL"), fNetApp(nil), fBehaviorFlags(0)
+plSDLMgr::plSDLMgr() : fSDLDir("SDL"), fNetApp(), fBehaviorFlags()
 {
 
 }
@@ -82,9 +84,8 @@ void plSDLMgr::DeInit()
 //
 void plSDLMgr::IDeleteDescriptors(plSDL::DescriptorList* dl)
 {
-    std::for_each( dl->begin(), dl->end(),
-        [](plStateDescriptor* sd) { delete sd; }
-    );
+    for (plStateDescriptor* sd : *dl)
+        delete sd;
     dl->clear();
 }
 
@@ -105,12 +106,12 @@ plSDLMgr* plSDLMgr::GetInstance()
 plStateDescriptor* plSDLMgr::FindDescriptor(const ST::string& name, int version, const plSDL::DescriptorList * dl) const
 {
     if (name.empty())
-        return nil;
+        return nullptr;
 
     if ( !dl )
         dl = &fDescriptors;
 
-    plStateDescriptor* sd = nil;
+    plStateDescriptor* sd = nullptr;
 
     plSDL::DescriptorList::const_iterator it;
 
@@ -143,15 +144,16 @@ int plSDLMgr::Write(hsStream* s, const plSDL::DescriptorList* dl)
 {
     int pos=s->GetPosition();
 
-    if (dl==nil)
+    if (dl == nullptr)
         dl=&fDescriptors;
 
-    uint16_t num=dl->size();
-    s->WriteLE(num);
+    size_t num = dl->size();
+    hsAssert(num < std::numeric_limits<uint16_t>::max(), "Too many descriptors");
+    s->WriteLE16(uint16_t(num));
 
     plSDL::DescriptorList::const_iterator it;
-    for(it=dl->begin(); it!= dl->end(); it++)
-        (*it)->Write(s);    
+    for (const plStateDescriptor* desc : *dl)
+        desc->Write(s);
 
     int bytes=s->GetPosition()-pos;
     if (fNetApp)
@@ -169,7 +171,7 @@ int plSDLMgr::Read(hsStream* s, plSDL::DescriptorList* dl)
 {
     int pos=s->GetPosition();
 
-    if (dl==nil)
+    if (dl == nullptr)
         dl=&fDescriptors;
 
     // clear dl
@@ -179,7 +181,7 @@ int plSDLMgr::Read(hsStream* s, plSDL::DescriptorList* dl)
     try
     {       
         // read dtor list
-        s->ReadLE(&num);
+        s->ReadLE16(&num);
 
         int i;
         for(i=0;i<num;i++)
@@ -219,4 +221,3 @@ int plSDLMgr::Read(hsStream* s, plSDL::DescriptorList* dl)
     }
     return bytes;
 }
-

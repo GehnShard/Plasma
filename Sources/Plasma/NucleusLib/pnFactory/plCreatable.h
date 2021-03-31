@@ -94,7 +94,7 @@ public:
 //      static  uint16_t Index() - returns the index for that class.
 //      virtual uint16_t ClassIndex() - returns index for this object's class.
 //      static plClassName* Convert(plCreatable* c) - if c exposes an interface
-//          as plClassName, return that, else nil. Incs the ref count of the object.
+//          as plClassName, return that, else nullptr. Incs the ref count of the object.
 //      static plClassName* ConvertNoRef(plCreatable* c) - Same as Convert(), but
 //          doesn't inc the ref count.
 //      static plClassName* Create() - returns a new object of type plClassName
@@ -114,7 +114,7 @@ public:
 //  REGISTER_CREATABLE( plClassName ) - normal creatable type, any you can instantiate.
 //  or
 //  REGISTER_NONCREATABLE( plClassName ) - can't be created either because it's pure virtual
-//      or just doesn't want to be creatable. It's Create member returns nil. But Convert
+//      or just doesn't want to be creatable. It's Create member returns nullptr. But Convert
 //      may return an interface, depending on the GETINTERFACE above.
 //  - This line is the only exposure to the plCreator.
 //  This will define a Creator for class plClassName, instantiate it as a static, and register
@@ -142,11 +142,11 @@ public:
 //      fred* f = fred::Create();  more likely f was passed in.
 //      wilma* w = wilma::Convert(f)
 //  NOTE that two strange things may be true here:
-//      1) f != nil, w == nil
+//      1) f != nullptr, w == nullptr
 //          either fred's not really derived from wilma, 
 //          or fred doesn't like to be cast down,
 //          or wilma just doesn't want to expose an interface.
-//      2) f != nil, w != nil, and f != w
+//      2) f != nullptr, w != nullptr, and f != w
 //          fred has pulled a sneaky and created a wilma to return.
 //          so unrelated classes can still "Convert" as one another.
 //
@@ -166,7 +166,7 @@ public:
 
 #define CLASSNAME_REGISTER(plClassName)                                     \
 public:                                                                     \
-    const char* ClassName() const HS_OVERRIDE {                             \
+    const char* ClassName() const override {                                \
         return #plClassName;                                                \
     }                                                                       \
 private:                                                                    \
@@ -175,7 +175,7 @@ private:                                                                    \
         plClassName##ClassIndex = hClass;                                   \
     }                                                                       \
 public:                                                                     \
-    uint16_t ClassIndex() const HS_OVERRIDE {                               \
+    uint16_t ClassIndex() const override {                                  \
         return plClassName::Index();                                        \
     }                                                                       \
     static uint16_t Index() {                                               \
@@ -218,13 +218,13 @@ public:                                                                     \
         else                                                                \
             return plBaseName::HasBaseClass(hBaseClass);                    \
     }                                                                       \
-    plCreatable* GetInterface(uint16_t hClass) HS_OVERRIDE {                \
+    plCreatable* GetInterface(uint16_t hClass) override {                   \
         if (hClass == plClassName##ClassIndex)                              \
             return this;                                                    \
         else                                                                \
             return plBaseName::GetInterface(hClass);                        \
     }                                                                       \
-    const plCreatable* GetConstInterface(uint16_t hClass) const HS_OVERRIDE {\
+    const plCreatable* GetConstInterface(uint16_t hClass) const override {  \
         if (hClass == plClassName##ClassIndex)                              \
             return this;                                                    \
         else                                                                \
@@ -237,10 +237,10 @@ public:                                                                     \
     static bool HasBaseClass(uint16_t hBaseClass) {                         \
         return hBaseClass == plClassName##ClassIndex;                       \
     }                                                                       \
-    plCreatable* GetInterface(uint16_t hClass) HS_OVERRIDE {                \
+    plCreatable* GetInterface(uint16_t hClass) override {                   \
         return hClass == plClassName##ClassIndex ? this : nullptr;          \
     }                                                                       \
-    const plCreatable* GetConstInterface(uint16_t hClass) const HS_OVERRIDE {\
+    const plCreatable* GetConstInterface(uint16_t hClass) const override {  \
         return hClass == plClassName##ClassIndex ? this : nullptr;          \
     }
 
@@ -248,10 +248,10 @@ public:                                                                     \
 
 #define GETINTERFACE_NONE(plClassName)                                      \
     static bool HasBaseClass(uint16_t hBaseClass) { return false; }         \
-    plCreatable* GetInterface(uint16_t hClass) HS_OVERRIDE {                \
+    plCreatable* GetInterface(uint16_t hClass) override {                   \
         return nullptr;                                                     \
     }                                                                       \
-    const plCreatable* GetConstInterface(uint16_t hClass) const HS_OVERRIDE {\
+    const plCreatable* GetConstInterface(uint16_t hClass) const override {  \
         return nullptr;                                                     \
     }
 
@@ -266,7 +266,7 @@ public:                                                                     \
         else                                                                \
             return plBaseName::HasBaseClass(hBaseClass);                    \
     }                                                                       \
-    plCreatable* GetInterface(uint16_t hClass) HS_OVERRIDE {                \
+    plCreatable* GetInterface(uint16_t hClass) override {                   \
         if (hClass == plClassName##ClassIndex)                              \
             return this;                                                    \
         else if (hClass == plAuxClassName::Index())                         \
@@ -274,7 +274,7 @@ public:                                                                     \
         else                                                                \
             return plBaseName::GetInterface(hClass);                        \
     }                                                                       \
-    const plCreatable* GetConstInterface(uint16_t hClass) const HS_OVERRIDE {\
+    const plCreatable* GetConstInterface(uint16_t hClass) const override {  \
         if (hClass == plClassName##ClassIndex)                              \
             return this;                                                    \
         else if (hClass == plAuxClassName::Index())                         \
@@ -290,11 +290,11 @@ public:                                                                     \
         else                                                                \
             return plBaseName::HasBaseClass(hBaseClass);                    \
     }                                                                       \
-    plCreatable* GetInterface(uint16_t hClass) HS_OVERRIDE {                \
+    plCreatable* GetInterface(uint16_t hClass) override {                   \
         /* NOTE: pulling const off the ptr should be ok, right? */          \
         return const_cast<plCreatable*>(GetConstInterface(hClass));         \
     }                                                                       \
-    const plCreatable* GetConstInterface(uint16_t hClass) const HS_OVERRIDE {\
+    const plCreatable* GetConstInterface(uint16_t hClass) const override {  \
         typedef plBaseName MyBaseClass;                                     \
         if (hClass == plClassName##ClassIndex)                              \
             return this

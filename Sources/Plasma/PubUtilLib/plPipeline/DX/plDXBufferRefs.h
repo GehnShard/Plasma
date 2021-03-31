@@ -56,7 +56,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "hsMatrix44.h"
 #include "hsGeometry3.h"
-#include "hsTemplates.h"
 #include "plDXDeviceRef.h"
 #include "plDrawable/plGBufferGroup.h"
 
@@ -108,21 +107,21 @@ class plDXVertexBufferRef : public plDXDeviceRef
         plDXVertexBufferRef*    GetNext() { return (plDXVertexBufferRef *)fNext; }
 
         plDXVertexBufferRef() :
-            fD3DBuffer(nil),
-            fCount(0),
-            fIndex(0),
-            fVertexSize(0),
-            fOffset(0),
-            fOwner(nil),
-            fData(nil),
-            fFormat(0),
-            fRefTime(0),
-            fDevice(nil)
+            fD3DBuffer(),
+            fCount(),
+            fIndex(),
+            fVertexSize(),
+            fOffset(),
+            fOwner(),
+            fData(),
+            fFormat(),
+            fRefTime(),
+            fDevice()
         {
         }
 
         virtual ~plDXVertexBufferRef();
-        void    Release();
+        void    Release() override;
 };
 
 class plDXIndexBufferRef : public plDXDeviceRef
@@ -157,18 +156,18 @@ class plDXIndexBufferRef : public plDXDeviceRef
         plDXIndexBufferRef* GetNext() { return (plDXIndexBufferRef *)fNext; }
 
         plDXIndexBufferRef() :
-            fD3DBuffer(nil),
-            fCount(0),
-            fIndex(0),
-            fOffset(0),
-            fOwner(nil),
-            fRefTime(0),
+            fD3DBuffer(),
+            fCount(),
+            fIndex(),
+            fOffset(),
+            fOwner(),
+            fRefTime(),
             fPoolType(D3DPOOL_MANAGED)
         {
         }
 
         virtual ~plDXIndexBufferRef();
-        void    Release();
+        void    Release() override;
 };
 
 

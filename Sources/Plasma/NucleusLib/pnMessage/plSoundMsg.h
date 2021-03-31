@@ -43,7 +43,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define plSoundMsg_h
 
 #include "plMessageWithCallbacks.h"
-#include "hsTemplates.h"
 #include "hsBitVector.h"
 
 class plSoundMsg : public plMessageWithCallbacks
@@ -127,8 +126,8 @@ public:
     } fFadeType;
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 

@@ -49,11 +49,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define plNetCommMsgs_inc
 
 
-#include "pnUtils/pnUtils.h"
 #include "pnNetBase/pnNbError.h"
-#include "pnNetProtocol/pnNetProtocol.h"
 #include "pnMessage/plMessage.h"
-#include "plNetGameLib/plNetGameLib.h"
+
+struct NetAgeInfo;
+struct NetCliAuthFileInfo;
 
 class plNetCommReplyMsg : public plMessage {
 public:
@@ -68,8 +68,8 @@ public:
 
     plNetCommReplyMsg () { SetBCastFlag(kBCastByExactType); }
 
-    void Read (hsStream * s, hsResMgr * mgr) { plMessage::IMsgRead(s, mgr); }
-    void Write (hsStream * s, hsResMgr * mgr) { plMessage::IMsgWrite(s, mgr); }
+    void Read(hsStream * s, hsResMgr * mgr) override { plMessage::IMsgRead(s, mgr); }
+    void Write(hsStream * s, hsResMgr * mgr) override { plMessage::IMsgWrite(s, mgr); }
 };
 
 class plNetCommAuthMsg : public plNetCommReplyMsg {
@@ -85,25 +85,22 @@ public:
     CLASSNAME_REGISTER(plNetCommAuthConnectedMsg);
     GETINTERFACE_ANY(plNetCommAuthConnectedMsg, plMessage);
 
-    void Read (hsStream * s, hsResMgr * mgr) { plMessage::IMsgRead(s, mgr); }
-    void Write (hsStream * s, hsResMgr * mgr) { plMessage::IMsgWrite(s, mgr); }
+    void Read(hsStream * s, hsResMgr * mgr) override { plMessage::IMsgRead(s, mgr); }
+    void Write(hsStream * s, hsResMgr * mgr) override { plMessage::IMsgWrite(s, mgr); }
 };
 
 class plNetCommFileListMsg : public plNetCommReplyMsg {
 public:
-    TFArray<NetCliAuthFileInfo>  fileInfoArr;
+    std::vector<NetCliAuthFileInfo>  fileInfoArr;
 
     CLASSNAME_REGISTER(plNetCommFileListMsg);
     GETINTERFACE_ANY(plNetCommFileListMsg, plMessage);
-};
 
-class plNetCommFileDownloadMsg : public plNetCommReplyMsg {
-public:
-    wchar_t       filename[MAX_PATH];
-    hsStream *  writer;
+    plNetCommFileListMsg();
+    plNetCommFileListMsg(const plNetCommFileListMsg&) = delete;
+    plNetCommFileListMsg(plNetCommFileListMsg&&) = delete;
 
-    CLASSNAME_REGISTER(plNetCommFileDownloadMsg);
-    GETINTERFACE_ANY(plNetCommFileDownloadMsg, plMessage);
+    ~plNetCommFileListMsg();
 };
 
 class plNetCommLinkToAgeMsg : public plNetCommReplyMsg {
@@ -141,7 +138,13 @@ public:
     CLASSNAME_REGISTER(plNetCommPublicAgeListMsg);
     GETINTERFACE_ANY(plNetCommPublicAgeListMsg, plMessage);
     
-    TArray<NetAgeInfo>    ages;
+    std::vector<NetAgeInfo>    ages;
+
+    plNetCommPublicAgeListMsg();
+    plNetCommPublicAgeListMsg(const plNetCommPublicAgeListMsg&) = delete;
+    plNetCommPublicAgeListMsg(plNetCommPublicAgeListMsg&&) = delete;
+
+    ~plNetCommPublicAgeListMsg();
 };
 
 class plNetCommPublicAgeMsg : public plNetCommReplyMsg {

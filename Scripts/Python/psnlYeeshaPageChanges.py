@@ -53,7 +53,6 @@ from PlasmaTypes import *
 from PlasmaVaultConstants import *
 from PlasmaNetConstants import *
 from xPsnlVaultSDL import *
-import string
 
 PageNumber = ptAttribInt(1, "Yeesha Page Number")
 stringShowStates = ptAttribString(2,"States in which shown")
@@ -260,7 +259,7 @@ class psnlYeeshaPageChanges(ptMultiModifier):
             #sizes = timeDelta / (dayLength * 30)
 
             # grows every day
-            sizes = timeDelta / (dayLength * 15)
+            sizes = timeDelta // (dayLength * 15)
 
         if sizes > 0:
             sdl["YP10LastTreeGrowth"] = (currentTime,)

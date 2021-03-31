@@ -46,12 +46,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plComponent.h"
 #include "plComponentReg.h"
 #include "MaxMain/plMaxNode.h"
-#include "resource.h"
+#include "MaxMain/MaxAPI.h"
 
-#include <dummy.h>
-#include <iparamm2.h>
-#include <meshdlib.h> 
-#pragma hdrstop
+#include "resource.h"
 
 #include "MaxMain/plPlasmaRefMsgs.h"
 
@@ -73,8 +70,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "plScene/plVisRegion.h"
 
-static const float kPercentToFrac(1.e-2f);
-static const float kDegreeToRad(M_PI/180.f);
+static constexpr float kPercentToFrac(1.e-2f);
 
 
 // Preliminary setup bookkeeping
@@ -371,7 +367,7 @@ public:
 
     plWaterCompPostLoadCallback(plWaterComponent* wc) : fWaterComp(wc) {}
 
-    void proc(ILoad *iload) 
+    void proc(ILoad *iload) override
     {
         fWaterComp->CheckForObsoleteParams();
 
@@ -464,7 +460,7 @@ void plWaterComponent::CheckForObsoleteParams()
 
 // Component implementation
 plWaterComponent::plWaterComponent()
-:   fWaveSet(nil)
+:   fWaveSet()
 {
     fClassDesc = &gWaterCompDesc;
     fClassDesc->MakeAutoParamBlocks(this);
@@ -525,7 +521,7 @@ bool plWaterComponent::DeInit(plMaxNode* node, plErrorMsg* pErrMsg)
 { 
     if( fWaveSet )
         fWaveSet->GetKey()->UnRefObject();
-    fWaveSet = nil;
+    fWaveSet = nullptr;
 
     return true; 
 }
@@ -544,7 +540,7 @@ bool plWaterComponent::IReadRefObject(plMaxNodeBase* node, plFixedWaterState7& w
     ws.fWaterHeight = xfm.GetTrans().z;
 
     Point3 y = xfm.GetRow(1);
-    hsVector3 dir(-y.x, -y.y, 0);
+    hsVector3 dir(-y.x, -y.y, 0.f);
     dir.Normalize();
     ws.fWindDir = dir;
 
@@ -635,14 +631,14 @@ bool plWaterComponent::IMakeWaveSet(plMaxNode* node, plErrorMsg* pErrMsg)
     geoState.fMinLength = fCompPB->GetFloat(kGeoMinLen);
     geoState.fAmpOverLen = fCompPB->GetFloat(kGeoAmpOverLen) * kPercentToFrac;
     geoState.fChop = fCompPB->GetFloat(kGeoChop) * kPercentToFrac;
-    geoState.fAngleDev = fCompPB->GetFloat(kGeoAngleDev) * kDegreeToRad;
+    geoState.fAngleDev = hsDegreesToRadians(fCompPB->GetFloat(kGeoAngleDev));
 
     plFixedWaterState7::WaveState& texState = ws.fTexState;
     texState.fMaxLength = fCompPB->GetFloat(kTexMaxLen);
     texState.fMinLength = fCompPB->GetFloat(kTexMinLen);
     texState.fAmpOverLen = fCompPB->GetFloat(kTexAmpOverLen) * kPercentToFrac;
     texState.fChop = fCompPB->GetFloat(kTexChop) * kPercentToFrac;
-    texState.fAngleDev = fCompPB->GetFloat(kTexAngleDev) * kDegreeToRad;
+    texState.fAngleDev = hsDegreesToRadians(fCompPB->GetFloat(kTexAngleDev));
 
     hsVector3 specVec;
     specVec[ws.kNoise] = fCompPB->GetFloat(kNoise) * kPercentToFrac;
@@ -658,7 +654,7 @@ bool plWaterComponent::IMakeWaveSet(plMaxNode* node, plErrorMsg* pErrMsg)
     ws.fDepthFalloff = hsVector3(fCompPB->GetFloat(kDepthOpac), fCompPB->GetFloat(kDepthRefl), fCompPB->GetFloat(kDepthWave));
     ws. fWaterOffset = hsVector3(-fCompPB->GetFloat(kZeroOpac), -fCompPB->GetFloat(kZeroRefl), -fCompPB->GetFloat(kZeroWave));
     ws.fMaxAtten = hsVector3(1.f, 1.f, 1.f);
-    ws.fMinAtten = hsVector3(0, 0, 0);
+    ws.fMinAtten = {};
 
     IReadEnvObject(node, pErrMsg, ws);
 
@@ -690,7 +686,7 @@ bool plWaterComponent::IMakeWaveSet(plMaxNode* node, plErrorMsg* pErrMsg)
 
 float plWaterComponent::IGetWaterHeight()
 {
-    plMaxNodeBase* node = nil;
+    plMaxNodeBase* node = nullptr;
     
     int i;
     for( i = 0; i < NumTargets(); i++ )
@@ -726,14 +722,14 @@ float plWaterComponent::GetWaterHeight(INode* node)
 plWaveSetBase* plWaterComponent::GetWaveSet(INode* node)
 {
     if( !node )
-        return nil;
+        return nullptr;
 
     plComponentBase *comp = ((plMaxNodeBase*)node)->ConvertToComponent();
     if( !comp )
-        return nil;
+        return nullptr;
 
     if( comp->ClassID() != WATER_COMP_CID )
-        return nil;
+        return nullptr;
 
     plWaterComponent* water = (plWaterComponent*)comp;
     return water->IGetWaveSet();
@@ -742,7 +738,7 @@ plWaveSetBase* plWaterComponent::GetWaveSet(INode* node)
 plWaveSetBase* plWaterComponent::GetWaveSetFromNode(plMaxNode* node)
 {
     if( !node )
-        return nil;
+        return nullptr;
 
     int n = node->NumAttachedComponents();
     int i;
@@ -755,7 +751,7 @@ plWaveSetBase* plWaterComponent::GetWaveSetFromNode(plMaxNode* node)
             return water->IGetWaveSet();
         }
     }
-    return nil;
+    return nullptr;
 }
 
 static void ISetWaterDependencies(plMaxNode* node, INode* waterNode)
@@ -790,11 +786,11 @@ static void ISetWaterDependencies(plMaxNode* node, INode* waterNode)
 class plShoreCompSelProc : public ParamMap2UserDlgProc
 {
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-    void DeleteThis() { }
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+    void DeleteThis() override { }
 };
 
-BOOL plShoreCompSelProc::DlgProc(TimeValue t, IParamMap2 *paramMap, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plShoreCompSelProc::DlgProc(TimeValue t, IParamMap2 *paramMap, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -805,7 +801,7 @@ BOOL plShoreCompSelProc::DlgProc(TimeValue t, IParamMap2 *paramMap, HWND hWnd, U
             TSTR newName(node ? node->GetName() : "Pick");
             ::SetWindowText(::GetDlgItem(hWnd, IDC_COMP_SHORE_CHOSE), newName);
         }
-        return true;
+        return TRUE;
 
     case WM_COMMAND:
         if( (HIWORD(wParam) == BN_CLICKED) && (LOWORD(wParam) == IDC_COMP_SHORE_CHOSE) )
@@ -823,12 +819,12 @@ BOOL plShoreCompSelProc::DlgProc(TimeValue t, IParamMap2 *paramMap, HWND hWnd, U
                 ShowWindow(hWnd, SW_SHOW);
             }
 
-            return false;
+            return FALSE;
         }
-        return true;
+        return TRUE;
     }
 
-    return false;
+    return FALSE;
 }
 
 plShoreCompSelProc gShoreCompSelProc;
@@ -928,11 +924,11 @@ bool plShoreComponent::Convert(plMaxNode* node, plErrorMsg* pErrMsg)
 class plWDecalCompSelProc : public ParamMap2UserDlgProc
 {
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-    void DeleteThis() { }
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+    void DeleteThis() override { }
 };
 
-BOOL plWDecalCompSelProc::DlgProc(TimeValue t, IParamMap2 *paramMap, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plWDecalCompSelProc::DlgProc(TimeValue t, IParamMap2 *paramMap, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -943,7 +939,7 @@ BOOL plWDecalCompSelProc::DlgProc(TimeValue t, IParamMap2 *paramMap, HWND hWnd, 
             TSTR newName(node ? node->GetName() : "Pick");
             ::SetWindowText(::GetDlgItem(hWnd, IDC_COMP_WDECAL_CHOSE), newName);
         }
-        return true;
+        return TRUE;
 
     case WM_COMMAND:
         if( (HIWORD(wParam) == BN_CLICKED) && (LOWORD(wParam) == IDC_COMP_WDECAL_CHOSE) )
@@ -961,12 +957,12 @@ BOOL plWDecalCompSelProc::DlgProc(TimeValue t, IParamMap2 *paramMap, HWND hWnd, 
                 ShowWindow(hWnd, SW_SHOW);
             }
 
-            return false;
+            return FALSE;
         }
-        return true;
+        return TRUE;
     }
 
-    return false;
+    return FALSE;
 }
 
 plWDecalCompSelProc gWDecalCompSelProc;
@@ -1075,7 +1071,7 @@ bool plWDecalComponent::Convert(plMaxNode* node, plErrorMsg* pErrMsg)
 class plEnvMapCompSelProc : public ParamMap2UserDlgProc
 {
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -1087,7 +1083,7 @@ public:
                     ListBox_AddString(hList, map->GetParamBlock()->GetStr(plEnvMapComponent::kVisSetNames, 0, i));
                 }
             }
-            return true;
+            return TRUE;
 
         case WM_COMMAND:
             if (HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == IDC_ADD_TARGS)
@@ -1129,9 +1125,9 @@ public:
             break;
         }
 
-        return false;
+        return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plEnvMapCompSelProc gEnvMapCompSelProc;
 
@@ -1223,7 +1219,7 @@ plEnvMapComponent::plEnvMapComponent()
 // of properties on the MaxNode, as it's still indeterminant.
 bool plEnvMapComponent::SetupProperties(plMaxNode* node, plErrorMsg* pErrMsg)
 {
-    fMap = nil;
+    fMap = nullptr;
 
     node->SetForceLocal(true);
 
@@ -1256,7 +1252,7 @@ plDynamicCamMap* plEnvMapComponent::GetCamMap()
 
 plRenderTarget* plEnvMapComponent::IGetMap()
 {
-    plMaxNode* firstTarg = nil;
+    plMaxNode* firstTarg = nullptr;
     int numTarg = NumTargets();
     int i;
     for( i = 0; i < numTarg; i++ )
@@ -1268,7 +1264,7 @@ plRenderTarget* plEnvMapComponent::IGetMap()
         }
     }
     if( !firstTarg )
-        return nil;
+        return nullptr;
 
     if( !fMap )
     {
@@ -1280,9 +1276,9 @@ plRenderTarget* plEnvMapComponent::IGetMap()
         }
         size = 1 << uint32_t(i);
 
-        plDynamicEnvMap* env = nil;
-        plDynamicCamMap* cam = nil;
-        fMap = nil;
+        plDynamicEnvMap* env = nullptr;
+        plDynamicCamMap* cam = nullptr;
+        fMap = nullptr;
         if (fCompPB->GetInt((ParamID(kMapType))) == kMapCubic)
             fMap = env = new plDynamicEnvMap(size, size, 32);
         else if (fCompPB->GetInt((ParamID(kMapType))) == kMapSingle)
@@ -1313,7 +1309,7 @@ plRenderTarget* plEnvMapComponent::IGetMap()
             cam->fColor.Set(fogColor.r, fogColor.g, fogColor.b, 1.f);
         }
         if (!fMap)
-            return nil;
+            return nullptr;
 
         int visGot = 0;
         int numVis = fCompPB->Count(kVisSets);
@@ -1338,7 +1334,7 @@ plRenderTarget* plEnvMapComponent::IGetMap()
         int numVisNames = fCompPB->Count(kVisSetNames);
         for( i = 0; i < numVisNames; i++)
         {
-            fMap->SetVisRegionName((char*)fCompPB->GetStr(kVisSetNames, 0, i));
+            fMap->SetVisRegionName(fCompPB->GetStr(kVisSetNames, 0, i));
         }
 
         if (visGot)
@@ -1363,7 +1359,7 @@ plDynamicEnvMap* plEnvMapComponent::GetEnvMap(plMaxNode* node)
     if (envComp)
         return envComp->GetEnvMap();
 
-    return nil;
+    return nullptr;
 }
 
 plDynamicCamMap* plEnvMapComponent::GetCamMap(plMaxNode *node)
@@ -1372,13 +1368,13 @@ plDynamicCamMap* plEnvMapComponent::GetCamMap(plMaxNode *node)
     if (envComp)
         return envComp->GetCamMap();
 
-    return nil;
+    return nullptr;
 }
 
 plEnvMapComponent *plEnvMapComponent::GetEnvMapComponent(plMaxNode *node)
 {
     if (!node)
-        return nil;
+        return nullptr;
 
     int n = node->NumAttachedComponents();
     int i;
@@ -1390,5 +1386,5 @@ plEnvMapComponent *plEnvMapComponent::GetEnvMapComponent(plMaxNode *node)
             return (plEnvMapComponent*)comp;
         }
     }
-    return nil;
+    return nullptr;
 }

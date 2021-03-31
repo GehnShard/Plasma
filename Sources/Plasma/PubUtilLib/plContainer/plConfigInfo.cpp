@@ -499,7 +499,7 @@ bool plConfigSource::ReadPair(ST::string & key, ST::string & value)
 
 bool plConfigSource::ReadList(char ** l)
 {
-    while(*l != NULL)
+    while (*l != nullptr)
     {
         ReadString(*l);
         l++;
@@ -577,7 +577,7 @@ bool plEnvConfigSource::ReadInto(plConfigInfo & configInfo, KAddValueMode mode)
     if (!plConfigSource::ReadInto(configInfo, mode))
         return false;
     
-    if (fEnvp != NULL)
+    if (fEnvp != nullptr)
     {
         fCurrSection = fMySection;
         fEffectiveSection = fCurrSection;
@@ -1089,7 +1089,7 @@ void plConfigAggregateValue::AddItem(plConfigValueBase * item)
 plWWWAuthenticateConfigSource::plWWWAuthenticateConfigSource(const ST::string& auth)
 :   fAuth(auth)
 {
-    fEffectiveSection = fCurrSection = ST::null;
+    fEffectiveSection = fCurrSection = ST::string();
 }
 
 bool plWWWAuthenticateConfigSource::ReadInto(plConfigInfo & configInfo, KAddValueMode mode)

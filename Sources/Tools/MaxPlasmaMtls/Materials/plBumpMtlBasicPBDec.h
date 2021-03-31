@@ -53,26 +53,24 @@ public:
 #endif
 
 public:
-    virtual BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         IParamBlock2 *pb = map->GetParamBlock();
 
         switch (msg)
         {
         case WM_INITDIALOG:
-            {
-            }
             return TRUE;
         }
         return FALSE;
     }
-    virtual void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static BumpBasicDlgProc gBumpBasicDlgProc;
 
 static ParamBlockDesc2 gBumpBasicPB
 (
-    plBumpMtl::kBlkBasic, _T("basic"), IDS_PASS_BASIC, GetBumpMtlDesc(),//NULL,
+    plBumpMtl::kBlkBasic, _T("basic"), IDS_PASS_BASIC, GetBumpMtlDesc(),//nullptr,
     P_AUTO_CONSTRUCT + P_AUTO_UI, plBumpMtl::kRefBasic,
 
     // UI

@@ -165,10 +165,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //////////////////////////////////////////////////////////////////////////////
 
 #include "HeadSpin.h"
+
 #include <map>
 #include <string>
+#include <string_theory/string>
 
-#include "hsTemplates.h"
 #include "hsColorRGBA.h"
 
 #include "pnKeyedObject/hsKeyedObject.h"
@@ -212,16 +213,25 @@ public:
         kTurnFrontPage,
         kTurnBackPage
     };
-    
-    pfBookData(const ST::string &guiName = ST::null);
-    virtual ~pfBookData();
+
+    pfBookData(const ST::string& guiName = {})
+        : fCurrBook(), fDialog(), fCoverButton(), fTurnPageButton(),
+        fLeftPageMap(), fRightPageMap(), fCoverLayer(), fCoverMaterial(),
+        fLeftCorner(), fRightCorner(), fWidthCtrl(), fHeightCtrl(),
+        fRightEditCtrl(), fLeftEditCtrl(), fTurnFrontEditCtrl(), fTurnBackEditCtrl(),
+        fDefaultCover(), fCurrentlyOpen(), fStartedOpen(),
+        fResetSFXFlag(), fSFXUpdateFlip(), fCurrentlyTurning(), fEditable(),
+        fCurrSFXPages(kNoSides), fBaseSFXTime(), fAdjustCursorTo(-1), fPageMaterials(),
+        fGUIName(!guiName.empty() ? guiName : ST_LITERAL("BkBook"))
+    { }
+    virtual ~pfBookData() { RegisterForSFX(kNoSides); }
 
     void LoadGUI(); // need this seperate because the plKey isn't setup until the constructor is done
 
     CLASSNAME_REGISTER(pfBookData);
     GETINTERFACE_ANY(pfBookData, hsKeyedObject);
 
-    virtual bool MsgReceive(plMessage *pMsg);
+    bool MsgReceive(plMessage *pMsg) override;
 
     pfGUIDialogMod *Dialog() const {return fDialog;}
     pfGUICheckBoxCtrl *CoverButton() const {return fCoverButton;}
@@ -230,7 +240,7 @@ public:
     pfGUIClickMapCtrl *RightPageMap() const {return fRightPageMap;}
     plLayerInterface *CoverLayer() const {return fCoverLayer;}
     hsGMaterial *CoverMaterial() const {return fCoverMaterial;}
-    hsGMaterial *PageMaterial(int index) const {if ((index<0)||(index>3)) return nil; else return fPageMaterials[index];}
+    hsGMaterial *PageMaterial(int index) const { if ((index < 0) || (index > 3)) return nullptr; else return fPageMaterials[index]; }
     pfGUIButtonMod *LeftCorner() const {return fLeftCorner;}
     pfGUIButtonMod *RightCorner() const {return fRightCorner;}
     pfGUIProgressCtrl *WidthCtrl() const {return fWidthCtrl;}
@@ -364,8 +374,8 @@ class pfJournalBook : public hsKeyedObject
         // The constructor takes in the esHTML source for the journal, along with
         // the name of the mipmap to use as the cover of the book. The callback
         // key is the keyed object to send event messages to (see <img> tag).
-        pfJournalBook( const char *esHTMLSource, plKey coverImageKey = nil, plKey callbackKey = nil, const plLocation &hintLoc = plLocation::kGlobalFixedLoc, const ST::string &guiName = ST::null );
-        pfJournalBook( const wchar_t *esHTMLSource, plKey coverImageKey = nil, plKey callbackKey = nil, const plLocation &hintLoc = plLocation::kGlobalFixedLoc, const ST::string &guiName = ST::null );
+        pfJournalBook(const char *esHTMLSource, plKey coverImageKey = {}, plKey callbackKey = {}, const plLocation &hintLoc = plLocation::kGlobalFixedLoc, const ST::string &guiName = {});
+        pfJournalBook(const wchar_t *esHTMLSource, plKey coverImageKey = {}, plKey callbackKey = {}, const plLocation &hintLoc = plLocation::kGlobalFixedLoc, const ST::string &guiName = {});
 
         virtual ~pfJournalBook();
 
@@ -373,7 +383,7 @@ class pfJournalBook : public hsKeyedObject
         GETINTERFACE_ANY( pfJournalBook, hsKeyedObject );
 
         // Our required virtual
-        virtual bool    MsgReceive( plMessage *pMsg );
+        bool    MsgReceive(plMessage *pMsg) override;
 
         // Init the singleton, for client startup
         static void SingletonInit();
@@ -447,8 +457,8 @@ class pfJournalBook : public hsKeyedObject
         std::string GetEditableText();
 
         void    SetEditableText(std::string text);
-        
-    protected:
+
+    private:
 
         struct loadedMovie
         {
@@ -462,10 +472,10 @@ class pfJournalBook : public hsKeyedObject
         // Our compiled esHTML source
         std::wstring                fUncompiledSource;
         plLocation                  fDefLoc;
-        hsTArray<pfEsHTMLChunk *>   fHTMLSource;
-        hsTArray<pfEsHTMLChunk *>   fCoverDecals; // stored in a separate location so we can draw them all immediately
+        std::vector<pfEsHTMLChunk *> fHTMLSource;
+        std::vector<pfEsHTMLChunk *> fCoverDecals; // stored in a separate location so we can draw them all immediately
 
-        hsTArray<loadedMovie *> fLoadedMovies;
+        std::vector<loadedMovie *> fLoadedMovies;
 
         // The key of the mipmap to use as the cover image
         plKey   fCoverMipKey;
@@ -478,7 +488,7 @@ class pfJournalBook : public hsKeyedObject
         bool    fCoverFromHTML;
         // Cached array of page starts in the esHTML source. Generated as we flip through
         // the book, so that going backwards can be done efficiently.
-        hsTArray<uint32_t>    fPageStarts;
+        std::vector<uint32_t> fPageStarts;
 
         // is the book done showing and ready for more page calculations
         bool    fAreWeShowing;
@@ -505,7 +515,7 @@ class pfJournalBook : public hsKeyedObject
         plKey   fPageTurnAnimKey;
 
         // Current list of linkable image chunks we have visible on the screen, for quick hit testing
-        hsTArray<pfEsHTMLChunk *>   fVisibleLinks;
+        std::vector<pfEsHTMLChunk *> fVisibleLinks;
 
         static std::map<ST::string,pfBookData*> fBookGUIs;
         ST::string fCurBookGUI;
@@ -554,7 +564,7 @@ class pfJournalBook : public hsKeyedObject
         void    IFinishShow( bool startOpened );
 
         // Find the current moused link, if any
-        int32_t   IFindCurrVisibleLink( bool rightNotLeft, bool hoverNotUp );
+        hsSsize_t IFindCurrVisibleLink(bool rightNotLeft, bool hoverNotUp);
 
         // Ensures that all the page starts are calced up to the given page (but not including it)
         void    IRecalcPageStarts( uint32_t upToPage );
@@ -579,7 +589,7 @@ class pfJournalBook : public hsKeyedObject
         // Cover functions
         plLayerInterface    *IMakeBaseLayer(plMipmap *image);
         plLayerInterface    *IMakeDecalLayer(pfEsHTMLChunk *decalChunk, plMipmap *decal, plMipmap *baseMipmap);
-        void    ISetDecalLayers(hsGMaterial *material,hsTArray<plLayerInterface*> layers);
+        void    ISetDecalLayers(hsGMaterial *material, const std::vector<plLayerInterface*> &layers);
 };
 
 

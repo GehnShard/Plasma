@@ -46,8 +46,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plComponentReg.h"
 #include "resource.h"
 
-#include <iparamm2.h>
-#pragma hdrstop
+#include "MaxMain/MaxAPI.h"
 
 #include "pnEncryption/plRandom.h"
 #include "plObjectFlockerComponent.h"
@@ -80,7 +79,7 @@ public:
             SetWindowText(hButton, "<none>");
     }
 
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         int id = LOWORD(wParam);
 
@@ -104,7 +103,7 @@ public:
         }
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static ObjectFlockerDlgProc gObjectFlockerDlgProc;
 
@@ -212,7 +211,7 @@ ParamBlockDesc2 gObjectFlockerBk
 
 plObjectFlockerComponent::plObjectFlockerComponent()
 {
-    fFlocker = nil;
+    fFlocker = nullptr;
     fClassDesc = &gObjectFlockerDesc;
     fClassDesc->MakeAutoParamBlocks(this);
 }
@@ -255,7 +254,7 @@ bool plObjectFlockerComponent::PreConvert(plMaxNode *node, plErrorMsg *pErrMsg)
 
     fFlocker->SetNumBoids(fCompPB->GetInt(ParamID(kNumBoids)));
 
-    plKey boidKey = nil;
+    plKey boidKey;
     plMaxNode* targNode = (plMaxNode*)fCompPB->GetINode(kBoidObject);
 
     if( targNode->CanConvert() )
@@ -276,7 +275,7 @@ bool plObjectFlockerComponent::PreConvert(plMaxNode *node, plErrorMsg *pErrMsg)
 
 bool plObjectFlockerComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
 {
-    node->AddModifier(fFlocker, ST::null);
+    node->AddModifier(fFlocker, ST::string());
 
     return true;
 }
@@ -285,7 +284,7 @@ bool plObjectFlockerComponent::DeInit(plMaxNode* node, plErrorMsg* pErrMsg)
 {
     if( fFlocker )
         fFlocker->GetKey()->UnRefObject();
-    fFlocker = nil;
+    fFlocker = nullptr;
 
     return true;
 }

@@ -42,15 +42,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "hsWindows.h"
 #include <process.h>
-#pragma hdrstop
 
 #include "hsThread.h"
 #include "hsExceptions.h"
 
 hsGlobalSemaphore::hsGlobalSemaphore(int initialValue, const char *name)
 {
-    fSemaH = ::CreateSemaphore(nil, initialValue, kPosInfinity32, name);
-    if (fSemaH == nil)
+    fSemaH = ::CreateSemaphore(nullptr, initialValue, kPosInfinity32, name);
+    if (fSemaH == nullptr)
         throw hsOSException(-1);
 }
 
@@ -76,5 +75,5 @@ bool hsGlobalSemaphore::Wait(hsMilliseconds timeToWait)
 
 void hsGlobalSemaphore::Signal()
 {
-    ::ReleaseSemaphore(fSemaH, 1, nil);
+    ::ReleaseSemaphore(fSemaH, 1, nullptr);
 }

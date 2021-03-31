@@ -46,7 +46,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //////////////////////////////////////////////////////////////////////
 
 #include <Python.h>
-#pragma hdrstop
 
 #include "pyVaultPlayerNode.h"
 #include "pyAgeInfoStruct.h"
@@ -241,7 +240,7 @@ ST::string pyVaultPlayerNode::GetPlayerName() const
         VaultPlayerNode player(fNode);
         return player.GetPlayerName();
     }
-    return ST::null;
+    return ST::string();
 }
 
 void pyVaultPlayerNode::SetAvatarShapeName(const char *value)
@@ -255,7 +254,7 @@ ST::string pyVaultPlayerNode::GetAvatarShapeName() const
         VaultPlayerNode player(fNode);
         return player.GetAvatarShapeName();
     }
-    return ST::null;
+    return ST::string();
 }
 
 void pyVaultPlayerNode::SetDisabled(bool value)

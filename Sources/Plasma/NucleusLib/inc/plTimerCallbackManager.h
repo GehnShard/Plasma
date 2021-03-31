@@ -44,7 +44,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 
 #include "pnKeyedObject/hsKeyedObject.h"
-#include "hsTemplates.h"
 
 class plMessage;
 
@@ -76,13 +75,13 @@ public:
     bool CancelCallbacksToKey(const plKey& key);
 
 
-    bool MsgReceive(plMessage* msg) HS_OVERRIDE;
+    bool MsgReceive(plMessage* msg) override;
 
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 
 private:
-    hsTArray<plTimerCallback*>  fCallbacks;
+    std::vector<plTimerCallback*>  fCallbacks;
 };
 
 class plgTimerCallbackMgr

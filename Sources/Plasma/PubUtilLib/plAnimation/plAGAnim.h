@@ -48,7 +48,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
     \ingroup Avatar
     \ingroup AniGraph
 */
-#pragma warning(disable: 4786)      // don't care if mangled names are longer than 255 characters
 
 #include <map>
 #include "pnNetCommon/plSynchedObject.h"
@@ -88,10 +87,11 @@ public:
         kForceSize = 0xff
     };
 
-    plAGAnim();
+    plAGAnim() : plSynchedObject(), fBlend(), fStart(), fEnd() { }
     /** Construct with name, start time, and end time (within the max note track)
      */
-    plAGAnim(const ST::string &name, double begin, double end);
+    plAGAnim(ST::string name, double start, double end)
+        : fStart((float)start), fEnd((float)end), fName(std::move(name)), fBlend() { }
     /** Destruct, freeing the underlying animation data. */
     virtual ~plAGAnim();
 
@@ -190,8 +190,8 @@ public:
     static void DumpAnimationRegistry();
 
     // persistance
-    virtual void Read(hsStream* stream, hsResMgr* mgr);
-    virtual void Write(hsStream* stream, hsResMgr* mgr);
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 
 protected:
     typedef std::vector<plAGApplicator*> ApplicatorVec;
@@ -342,8 +342,8 @@ public:
     GETINTERFACE_ANY( plATCAnim, plAGAnim );
 
     // persistance
-    virtual void Read(hsStream* stream, hsResMgr* mgr);
-    virtual void Write(hsStream* stream, hsResMgr* mgr);
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 
 protected:
     float fInitial;          /// the position of the playback head 
@@ -392,8 +392,8 @@ public:
     CLASSNAME_REGISTER( plEmoteAnim );
     GETINTERFACE_ANY( plEmoteAnim, plATCAnim );
 
-    virtual void Read(hsStream *stream, hsResMgr *mgr);
-    virtual void Write(hsStream *stream, hsResMgr *mgr);
+    void Read(hsStream *stream, hsResMgr *mgr) override;
+    void Write(hsStream *stream, hsResMgr *mgr) override;
 
 protected:
     BodyUsage   fBodyUsage;     // how much of the body is used by this emote?
@@ -427,8 +427,8 @@ public:
     GETINTERFACE_ANY( plAgeGlobalAnim, plAGAnim );
 
     // persistance
-    virtual void Read(hsStream* stream, hsResMgr* mgr);
-    virtual void Write(hsStream* stream, hsResMgr* mgr);
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 
 protected:
     ST::string fGlobalVarName;   // Name of the SDL variable we animate on.

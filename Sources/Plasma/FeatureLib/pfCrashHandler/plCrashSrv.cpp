@@ -51,7 +51,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <shlobj.h>
 
 plCrashSrv::plCrashSrv(const char* file)
-    : fLink(nil), fLinkH(nil)
+    : fLink(), fLinkH()
 {
     // Init semas
     IInit(file);
@@ -81,17 +81,17 @@ void plCrashSrv::IHandleCrash()
     HANDLE file = CreateFileW(dumpPath.WideString().data(),
                               GENERIC_WRITE,
                               0,
-                              NULL,
+                              nullptr,
                               CREATE_ALWAYS,
                               FILE_ATTRIBUTE_NORMAL,
-                              NULL
+                              nullptr
     );
 
     MINIDUMP_EXCEPTION_INFORMATION e;
     e.ClientPointers = TRUE;
     e.ExceptionPointers = fLink->fExceptionPtrs;
     e.ThreadId = fLink->fClientThreadID;
-    MiniDumpWriteDump(fLink->fClientProcess, fLink->fClientProcessID, file, MiniDumpNormal, &e, NULL, NULL);
+    MiniDumpWriteDump(fLink->fClientProcess, fLink->fClientProcessID, file, MiniDumpNormal, &e, nullptr, nullptr);
     CloseHandle(file);
 }
 
@@ -109,7 +109,7 @@ void plCrashSrv::HandleCrash()
     // In Win32 land we have to hackily handle the client process exiting, so we'll wait on both
     // the crashed semaphore and the client process...
     HANDLE hack[2] = { fLink->fClientProcess, fCrashed->GetHandle() };
-    DWORD result = WaitForMultipleObjects(arrsize(hack), hack, FALSE, INFINITE);
+    DWORD result = WaitForMultipleObjects(std::size(hack), hack, FALSE, INFINITE);
     hsAssert(result != WAIT_FAILED, "WaitForMultipleObjects failed");
 #else
     fCrashed->Wait();

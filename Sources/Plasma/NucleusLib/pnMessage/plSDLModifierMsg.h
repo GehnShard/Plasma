@@ -42,14 +42,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plSDLModifierMsg_INC
 #define plSDLModifierMsg_INC
 
-#include "pnMessage/plMessage.h"
+#include "plMessage.h"
 
 
 //
 // A msg sent to an SDL modifier to tell it send or recv state.
 //
-class hsStream;
-class hsResMgr;
 class plStateDataRecord;
 class plSDLModifierMsg : public plMessage
 {
@@ -71,7 +69,7 @@ protected:
     uint32_t fFlags;
 
 public:
-    plSDLModifierMsg(const ST::string& sdlName=ST::null, Action a=kActionNone);
+    plSDLModifierMsg(const ST::string& sdlName={}, Action a=kActionNone);
     ~plSDLModifierMsg();
 
     CLASSNAME_REGISTER(plSDLModifierMsg);
@@ -93,10 +91,10 @@ public:
     void SetPlayerID(uint32_t p) { fPlayerID=p;   }
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+    void Read(hsStream* stream, hsResMgr* mgr) override {
         hsAssert(false, "local only msg");
     }
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+    void Write(hsStream* stream, hsResMgr* mgr) override {
         hsAssert(false, "local only msg");
     }
 };

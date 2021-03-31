@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "pyGUIControlMultiLineEdit.h"
 #include "pyEnum.h"
@@ -58,7 +57,7 @@ PYTHON_DEFAULT_DEALLOC_DEFINITION(ptGUIControlMultiLineEdit)
 
 PYTHON_INIT_DEFINITION(ptGUIControlMultiLineEdit, args, keywords)
 {
-    PyObject *keyObject = NULL;
+    PyObject *keyObject = nullptr;
     if (!PyArg_ParseTuple(args, "O", &keyObject))
     {
         PyErr_SetString(PyExc_TypeError, "__init__ expects a ptKey");
@@ -137,19 +136,9 @@ PYTHON_METHOD_DEFINITION(ptGUIControlMultiLineEdit, setStringW, args)
     }
     if (PyUnicode_Check(textObj))
     {
-        int strLen = PyUnicode_GetSize(textObj);
-        wchar_t* temp = new wchar_t[strLen + 1];
-        PyUnicode_AsWideChar((PyUnicodeObject*)textObj, temp, strLen);
-        temp[strLen] = L'\0';
+        wchar_t* temp = PyUnicode_AsWideCharString(textObj, nullptr);
         self->fThis->SetTextW(temp);
-        delete [] temp;
-        PYTHON_RETURN_NONE;
-    }
-    else if (PyString_Check(textObj))
-    {
-        // we'll allow this, just in case something goes weird
-        char* temp = PyString_AsString(textObj);
-        self->fThis->SetText(temp);
+        PyMem_Free(temp);
         PYTHON_RETURN_NONE;
     }
     else
@@ -161,7 +150,7 @@ PYTHON_METHOD_DEFINITION(ptGUIControlMultiLineEdit, setStringW, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptGUIControlMultiLineEdit, getString)
 {
-    return PyString_FromString(self->fThis->GetText());
+    return PyUnicode_FromString(self->fThis->GetText());
 }
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptGUIControlMultiLineEdit, getStringW)
@@ -172,7 +161,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptGUIControlMultiLineEdit, getStringW)
 
 PYTHON_METHOD_DEFINITION(ptGUIControlMultiLineEdit, setEncodedBuffer, args)
 {
-    PyObject* bufferObj = NULL;
+    PyObject* bufferObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &bufferObj))
     {
         PyErr_SetString(PyExc_TypeError, "setEncodedBuffer expects a python buffer object");
@@ -184,7 +173,7 @@ PYTHON_METHOD_DEFINITION(ptGUIControlMultiLineEdit, setEncodedBuffer, args)
 
 PYTHON_METHOD_DEFINITION(ptGUIControlMultiLineEdit, setEncodedBufferW, args)
 {
-    PyObject* bufferObj = NULL;
+    PyObject* bufferObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &bufferObj))
     {
         PyErr_SetString(PyExc_TypeError, "setEncodedBufferW expects a python buffer object");
@@ -197,7 +186,7 @@ PYTHON_METHOD_DEFINITION(ptGUIControlMultiLineEdit, setEncodedBufferW, args)
 PYTHON_METHOD_DEFINITION_NOARGS(ptGUIControlMultiLineEdit, getEncodedBuffer)
 {
     const char* buffer = self->fThis->GetEncodedBuffer();
-    PyObject* retVal = PyString_FromString(buffer);
+    PyObject* retVal = PyUnicode_FromString(buffer);
     delete [] buffer;
     return retVal;
 }
@@ -237,30 +226,17 @@ PYTHON_METHOD_DEFINITION(ptGUIControlMultiLineEdit, insertCharW, args)
     }
     if (PyUnicode_Check(textObj))
     {
-        int strLen = PyUnicode_GetSize(textObj);
+        Py_ssize_t strLen;
+        wchar_t* temp = PyUnicode_AsWideCharString(textObj, &strLen);
         if (strLen != 1)
         {
             PyErr_SetString(PyExc_TypeError, "insertCharW expects a single unicode character");
+            PyMem_Free(temp);
             PYTHON_RETURN_ERROR;
         }
 
-        wchar_t* temp = new wchar_t[strLen + 1];
-        PyUnicode_AsWideChar((PyUnicodeObject*)textObj, temp, strLen);
-        temp[strLen] = L'\0';
         self->fThis->InsertCharW(temp[0]);
-        delete [] temp;
-        PYTHON_RETURN_NONE;
-    }
-    else if (PyString_Check(textObj))
-    {
-        // we'll allow this, just in case something goes weird
-        char* temp = PyString_AsString(textObj);
-        if (strlen(temp) != 1)
-        {
-            PyErr_SetString(PyExc_TypeError, "insertCharW expects a single unicode character");
-            PYTHON_RETURN_ERROR;
-        }
-        self->fThis->InsertChar(temp[0]);
+        PyMem_Free(temp);
         PYTHON_RETURN_NONE;
     }
     else
@@ -292,19 +268,9 @@ PYTHON_METHOD_DEFINITION(ptGUIControlMultiLineEdit, insertStringW, args)
     }
     if (PyUnicode_Check(textObj))
     {
-        int strLen = PyUnicode_GetSize(textObj);
-        wchar_t* temp = new wchar_t[strLen + 1];
-        PyUnicode_AsWideChar((PyUnicodeObject*)textObj, temp, strLen);
-        temp[strLen] = L'\0';
+        wchar_t* temp = PyUnicode_AsWideCharString(textObj, nullptr);
         self->fThis->InsertStringW(temp);
-        delete [] temp;
-        PYTHON_RETURN_NONE;
-    }
-    else if (PyString_Check(textObj))
-    {
-        // we'll allow this, just in case something goes weird
-        char* temp = PyString_AsString(textObj);
-        self->fThis->InsertString(temp);
+        PyMem_Free(temp);
         PYTHON_RETURN_NONE;
     }
     else
@@ -316,7 +282,7 @@ PYTHON_METHOD_DEFINITION(ptGUIControlMultiLineEdit, insertStringW, args)
 
 PYTHON_METHOD_DEFINITION(ptGUIControlMultiLineEdit, insertColor, args)
 {
-    PyObject* colorObj = NULL;
+    PyObject* colorObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &colorObj))
     {
         PyErr_SetString(PyExc_TypeError, "insertColor expects a ptColor");
@@ -462,14 +428,14 @@ PLASMA_DEFAULT_TYPE_WBASE(ptGUIControlMultiLineEdit, pyGUIControl, "Params: ctrl
 // required functions for PyObject interoperability
 PyObject *pyGUIControlMultiLineEdit::New(pyKey& gckey)
 {
-    ptGUIControlMultiLineEdit *newObj = (ptGUIControlMultiLineEdit*)ptGUIControlMultiLineEdit_type.tp_new(&ptGUIControlMultiLineEdit_type, NULL, NULL);
+    ptGUIControlMultiLineEdit *newObj = (ptGUIControlMultiLineEdit*)ptGUIControlMultiLineEdit_type.tp_new(&ptGUIControlMultiLineEdit_type, nullptr, nullptr);
     newObj->fThis->fGCkey = gckey.getKey();
     return (PyObject*)newObj;
 }
 
 PyObject *pyGUIControlMultiLineEdit::New(plKey objkey)
 {
-    ptGUIControlMultiLineEdit *newObj = (ptGUIControlMultiLineEdit*)ptGUIControlMultiLineEdit_type.tp_new(&ptGUIControlMultiLineEdit_type, NULL, NULL);
+    ptGUIControlMultiLineEdit *newObj = (ptGUIControlMultiLineEdit*)ptGUIControlMultiLineEdit_type.tp_new(&ptGUIControlMultiLineEdit_type, nullptr, nullptr);
     newObj->fThis->fGCkey = objkey;
     return (PyObject*)newObj;
 }
@@ -490,18 +456,18 @@ void pyGUIControlMultiLineEdit::AddPlasmaClasses(PyObject *m)
 
 void pyGUIControlMultiLineEdit::AddPlasmaConstantsClasses(PyObject *m)
 {
-    PYTHON_ENUM_START(PtGUIMultiLineDirection);
-    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kLineStart,        pfGUIMultiLineEditCtrl::kLineStart);
-    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kLineEnd,          pfGUIMultiLineEditCtrl::kLineEnd);
-    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kBufferStart,      pfGUIMultiLineEditCtrl::kBufferStart);
-    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kBufferEnd,        pfGUIMultiLineEditCtrl::kBufferEnd);
-    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kOneBack,          pfGUIMultiLineEditCtrl::kOneBack);
-    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kOneForward,       pfGUIMultiLineEditCtrl::kOneForward);
-    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kOneWordBack,      pfGUIMultiLineEditCtrl::kOneWordBack);
-    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kOneWordForward,   pfGUIMultiLineEditCtrl::kOneWordForward);
-    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kOneLineUp,        pfGUIMultiLineEditCtrl::kOneLineUp);
-    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kOneLineDown,      pfGUIMultiLineEditCtrl::kOneLineDown);
-    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kPageUp,           pfGUIMultiLineEditCtrl::kPageUp);
-    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kPageDown,         pfGUIMultiLineEditCtrl::kPageDown);
-    PYTHON_ENUM_END(m, PtGUIMultiLineDirection);
+    PYTHON_ENUM_START(PtGUIMultiLineDirection)
+    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kLineStart,        pfGUIMultiLineEditCtrl::kLineStart)
+    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kLineEnd,          pfGUIMultiLineEditCtrl::kLineEnd)
+    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kBufferStart,      pfGUIMultiLineEditCtrl::kBufferStart)
+    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kBufferEnd,        pfGUIMultiLineEditCtrl::kBufferEnd)
+    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kOneBack,          pfGUIMultiLineEditCtrl::kOneBack)
+    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kOneForward,       pfGUIMultiLineEditCtrl::kOneForward)
+    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kOneWordBack,      pfGUIMultiLineEditCtrl::kOneWordBack)
+    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kOneWordForward,   pfGUIMultiLineEditCtrl::kOneWordForward)
+    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kOneLineUp,        pfGUIMultiLineEditCtrl::kOneLineUp)
+    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kOneLineDown,      pfGUIMultiLineEditCtrl::kOneLineDown)
+    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kPageUp,           pfGUIMultiLineEditCtrl::kPageUp)
+    PYTHON_ENUM_ELEMENT(PtGUIMultiLineDirection, kPageDown,         pfGUIMultiLineEditCtrl::kPageDown)
+    PYTHON_ENUM_END(m, PtGUIMultiLineDirection)
 }

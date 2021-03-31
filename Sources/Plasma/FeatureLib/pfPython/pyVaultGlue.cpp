@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include <Python.h>
-#pragma hdrstop
 
 #include "pyVault.h"
 #include "pyEnum.h"
@@ -149,7 +148,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVault, getLinkToCity)
 
 PYTHON_METHOD_DEFINITION(ptVault, getOwnedAgeLink, args)
 {
-    PyObject* ageInfoObj = NULL;
+    PyObject* ageInfoObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &ageInfoObj))
     {
         PyErr_SetString(PyExc_TypeError, "getOwnedAgeLink expects a ptAgeInfoStruct");
@@ -166,7 +165,7 @@ PYTHON_METHOD_DEFINITION(ptVault, getOwnedAgeLink, args)
 
 PYTHON_METHOD_DEFINITION(ptVault, getVisitAgeLink, args)
 {
-    PyObject* ageInfoObj = NULL;
+    PyObject* ageInfoObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &ageInfoObj))
     {
         PyErr_SetString(PyExc_TypeError, "getVisitAgeLink expects a ptAgeInfoStruct");
@@ -213,7 +212,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVault, getGlobalInbox)
 
 PYTHON_METHOD_DEFINITION(ptVault, findNode, args)
 {
-    PyObject* templateNodeObj = NULL;
+    PyObject* templateNodeObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &templateNodeObj))
     {
         PyErr_SetString(PyExc_TypeError, "findNode expects a ptVaultNode");
@@ -230,7 +229,7 @@ PYTHON_METHOD_DEFINITION(ptVault, findNode, args)
 
 PYTHON_METHOD_DEFINITION(ptVault, sendToDevice, args)
 {
-    PyObject* nodeObj = NULL;
+    PyObject* nodeObj = nullptr;
     char* deviceName;
     if (!PyArg_ParseTuple(args, "Os", &nodeObj, &deviceName))
     {
@@ -254,7 +253,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVault, getPsnlAgeSDL)
 
 PYTHON_METHOD_DEFINITION(ptVault, updatePsnlAgeSDL, args)
 {
-    PyObject* pyrecObj = NULL;
+    PyObject* pyrecObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &pyrecObj))
     {
         PyErr_SetString(PyExc_TypeError, "updatePsnlAgeSDL expects a ptSDLStateDataRecord");
@@ -292,7 +291,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVault, amCzarOfCurrentAge)
 
 PYTHON_METHOD_DEFINITION(ptVault, amAgeOwner, args)
 {
-    PyObject* ageInfoObj = NULL;
+    PyObject* ageInfoObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &ageInfoObj))
     {
         PyErr_SetString(PyExc_TypeError, "amAgeOwner expects a ptAgeInfoStruct");
@@ -309,7 +308,7 @@ PYTHON_METHOD_DEFINITION(ptVault, amAgeOwner, args)
 
 PYTHON_METHOD_DEFINITION(ptVault, amAgeCzar, args)
 {
-    PyObject* ageInfoObj = NULL;
+    PyObject* ageInfoObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &ageInfoObj))
     {
         PyErr_SetString(PyExc_TypeError, "amAgeCzar expects a ptAgeInfoStruct");
@@ -339,7 +338,7 @@ PYTHON_METHOD_DEFINITION(ptVault, registerMTStation, args)
 
 PYTHON_METHOD_DEFINITION(ptVault, registerOwnedAge, args)
 {
-    PyObject* ageLinkObj = NULL;
+    PyObject* ageLinkObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &ageLinkObj))
     {
         PyErr_SetString(PyExc_TypeError, "registerOwnedAge expects a ptAgeLinkStruct");
@@ -369,7 +368,7 @@ PYTHON_METHOD_DEFINITION(ptVault, unRegisterOwnedAge, args)
 
 PYTHON_METHOD_DEFINITION(ptVault, registerVisitAge, args)
 {
-    PyObject* ageLinkObj = NULL;
+    PyObject* ageLinkObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &ageLinkObj))
     {
         PyErr_SetString(PyExc_TypeError, "registerVisitAge expects a ptAgeLinkStruct");
@@ -399,7 +398,7 @@ PYTHON_METHOD_DEFINITION(ptVault, unRegisterVisitAge, args)
 
 PYTHON_METHOD_DEFINITION(ptVault, invitePlayerToAge, args)
 {
-    PyObject* ageLinkObj = NULL;
+    PyObject* ageLinkObj = nullptr;
     unsigned long playerID;
     if (!PyArg_ParseTuple(args, "Ol", &ageLinkObj, &playerID))
     {
@@ -431,7 +430,7 @@ PYTHON_METHOD_DEFINITION(ptVault, unInvitePlayerToAge, args)
 
 PYTHON_METHOD_DEFINITION(ptVault, offerLinkToPlayer, args)
 {
-    PyObject* ageLinkObj = NULL;
+    PyObject* ageLinkObj = nullptr;
     unsigned long playerID;
     if (!PyArg_ParseTuple(args, "Ol", &ageLinkObj, &playerID))
     {
@@ -452,7 +451,7 @@ PYTHON_BASIC_METHOD_DEFINITION(ptVault, createNeighborhood, CreateNeighborhood)
 
 PYTHON_METHOD_DEFINITION(ptVault, setAgePublic, args)
 {
-    PyObject* ageInfoObj = NULL;
+    PyObject* ageInfoObj = nullptr;
     char makePublic;
     if (!PyArg_ParseTuple(args, "Ob", &ageInfoObj, &makePublic))
     {
@@ -546,76 +545,76 @@ void pyVault::AddPlasmaClasses(PyObject *m)
 
 void pyVault::AddPlasmaConstantsClasses(PyObject *m)
 {
-    PYTHON_ENUM_START(PtVaultNodeTypes);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kInvalidNode,             plVault::kNodeType_Invalid);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kVNodeMgrPlayerNode,      plVault::kNodeType_VNodeMgrPlayer);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kVNodeMgrAgeNode,         plVault::kNodeType_VNodeMgrAge);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kFolderNode,              plVault::kNodeType_Folder);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kPlayerInfoNode,          plVault::kNodeType_PlayerInfo);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kImageNode,               plVault::kNodeType_Image);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kTextNoteNode,            plVault::kNodeType_TextNote);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kSDLNode,                 plVault::kNodeType_SDL);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kAgeLinkNode,             plVault::kNodeType_AgeLink);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kChronicleNode,           plVault::kNodeType_Chronicle);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kPlayerInfoListNode,      plVault::kNodeType_PlayerInfoList);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kAgeInfoNode,             plVault::kNodeType_AgeInfo);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kAgeInfoListNode,         plVault::kNodeType_AgeInfoList);
-    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kMarkerGameNode,          plVault::kNodeType_MarkerGame);
-    PYTHON_ENUM_END(m, PtVaultNodeTypes);
+    PYTHON_ENUM_START(PtVaultNodeTypes)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kInvalidNode,             plVault::kNodeType_Invalid)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kVNodeMgrPlayerNode,      plVault::kNodeType_VNodeMgrPlayer)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kVNodeMgrAgeNode,         plVault::kNodeType_VNodeMgrAge)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kFolderNode,              plVault::kNodeType_Folder)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kPlayerInfoNode,          plVault::kNodeType_PlayerInfo)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kImageNode,               plVault::kNodeType_Image)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kTextNoteNode,            plVault::kNodeType_TextNote)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kSDLNode,                 plVault::kNodeType_SDL)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kAgeLinkNode,             plVault::kNodeType_AgeLink)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kChronicleNode,           plVault::kNodeType_Chronicle)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kPlayerInfoListNode,      plVault::kNodeType_PlayerInfoList)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kAgeInfoNode,             plVault::kNodeType_AgeInfo)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kAgeInfoListNode,         plVault::kNodeType_AgeInfoList)
+    PYTHON_ENUM_ELEMENT(PtVaultNodeTypes, kMarkerGameNode,          plVault::kNodeType_MarkerGame)
+    PYTHON_ENUM_END(m, PtVaultNodeTypes)
 
-    PYTHON_ENUM_START(PtVaultStandardNodes);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kUserDefinedNode,             plVault::kUserDefinedNode);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kInboxFolder,                 plVault::kInboxFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kBuddyListFolder,             plVault::kBuddyListFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kIgnoreListFolder,            plVault::kIgnoreListFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kPeopleIKnowAboutFolder,      plVault::kPeopleIKnowAboutFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kChronicleFolder,             plVault::kChronicleFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAvatarOutfitFolder,          plVault::kAvatarOutfitFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgeTypeJournalFolder,        plVault::kAgeTypeJournalFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kSubAgesFolder,               plVault::kSubAgesFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kHoodMembersFolder,           plVault::kHoodMembersFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAllPlayersFolder,            plVault::kAllPlayersFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAllAgeGlobalSDLNodesFolder,  plVault::kAllAgeGlobalSDLNodesFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgeMembersFolder,            plVault::kAgeMembersFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgeJournalsFolder,           plVault::kAgeJournalsFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgeInstanceSDLNode,          plVault::kAgeInstanceSDLNode);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kCanVisitFolder,              plVault::kCanVisitFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgeOwnersFolder,             plVault::kAgeOwnersFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kPlayerInfoNode,              plVault::kPlayerInfoNode);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kPublicAgesFolder,            plVault::kPublicAgesFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgesIOwnFolder,              plVault::kAgesIOwnFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgesICanVisitFolder,         plVault::kAgesICanVisitFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAvatarClosetFolder,          plVault::kAvatarClosetFolder);
-    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kGlobalInboxFolder,           plVault::kGlobalInboxFolder);
-    PYTHON_ENUM_END(m, PtVaultStandardNodes);
+    PYTHON_ENUM_START(PtVaultStandardNodes)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kUserDefinedNode,             plVault::kUserDefinedNode)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kInboxFolder,                 plVault::kInboxFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kBuddyListFolder,             plVault::kBuddyListFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kIgnoreListFolder,            plVault::kIgnoreListFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kPeopleIKnowAboutFolder,      plVault::kPeopleIKnowAboutFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kChronicleFolder,             plVault::kChronicleFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAvatarOutfitFolder,          plVault::kAvatarOutfitFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgeTypeJournalFolder,        plVault::kAgeTypeJournalFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kSubAgesFolder,               plVault::kSubAgesFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kHoodMembersFolder,           plVault::kHoodMembersFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAllPlayersFolder,            plVault::kAllPlayersFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAllAgeGlobalSDLNodesFolder,  plVault::kAllAgeGlobalSDLNodesFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgeMembersFolder,            plVault::kAgeMembersFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgeJournalsFolder,           plVault::kAgeJournalsFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgeInstanceSDLNode,          plVault::kAgeInstanceSDLNode)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kCanVisitFolder,              plVault::kCanVisitFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgeOwnersFolder,             plVault::kAgeOwnersFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kPlayerInfoNode,              plVault::kPlayerInfoNode)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kPublicAgesFolder,            plVault::kPublicAgesFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgesIOwnFolder,              plVault::kAgesIOwnFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAgesICanVisitFolder,         plVault::kAgesICanVisitFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kAvatarClosetFolder,          plVault::kAvatarClosetFolder)
+    PYTHON_ENUM_ELEMENT(PtVaultStandardNodes, kGlobalInboxFolder,           plVault::kGlobalInboxFolder)
+    PYTHON_ENUM_END(m, PtVaultStandardNodes)
 
-    PYTHON_ENUM_START(PtVaultTextNoteTypes);
-    PYTHON_ENUM_ELEMENT(PtVaultTextNoteTypes, kGeneric,     plVault::kNoteType_Generic);
-    PYTHON_ENUM_ELEMENT(PtVaultTextNoteTypes, kCCRPetition, plVault::kNoteType_CCRPetition);
-    PYTHON_ENUM_END(m, PtVaultTextNoteTypes);
+    PYTHON_ENUM_START(PtVaultTextNoteTypes)
+    PYTHON_ENUM_ELEMENT(PtVaultTextNoteTypes, kGeneric,     plVault::kNoteType_Generic)
+    PYTHON_ENUM_ELEMENT(PtVaultTextNoteTypes, kCCRPetition, plVault::kNoteType_CCRPetition)
+    PYTHON_ENUM_END(m, PtVaultTextNoteTypes)
     
-    PYTHON_ENUM_START(PtVaultTextNoteSubTypes);
-    PYTHON_ENUM_ELEMENT(PtVaultTextNoteSubTypes, kGeneric, plVault::kNoteSubType_Generic);
-    PYTHON_ENUM_END(m, PtVaultTextNoteSubTypes);
+    PYTHON_ENUM_START(PtVaultTextNoteSubTypes)
+    PYTHON_ENUM_ELEMENT(PtVaultTextNoteSubTypes, kGeneric, plVault::kNoteSubType_Generic)
+    PYTHON_ENUM_END(m, PtVaultTextNoteSubTypes)
 
-    PYTHON_ENUM_START(PtVaultCallbackTypes);
-    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultConnected,          pyVault::kVaultConnected);
-    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultNodeSaved,          pyVault::kVaultNodeSaved);
-    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultNodeRefAdded,       pyVault::kVaultNodeRefAdded);
-    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultRemovingNodeRef,    pyVault::kVaultRemovingNodeRef);
-    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultNodeRefRemoved,     pyVault::kVaultNodeRefRemoved);
-    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultNodeInitialized,    pyVault::kVaultNodeInitialized);
-    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultOperationFailed,    pyVault::kVaultOperationFailed);
-    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultNodeAdded,          pyVault::kVaultNodeAdded);
-    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultDisconnected,       pyVault::kVaultDisconnected);
-    PYTHON_ENUM_END(m, PtVaultCallbackTypes);
+    PYTHON_ENUM_START(PtVaultCallbackTypes)
+    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultConnected,          pyVault::kVaultConnected)
+    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultNodeSaved,          pyVault::kVaultNodeSaved)
+    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultNodeRefAdded,       pyVault::kVaultNodeRefAdded)
+    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultRemovingNodeRef,    pyVault::kVaultRemovingNodeRef)
+    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultNodeRefRemoved,     pyVault::kVaultNodeRefRemoved)
+    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultNodeInitialized,    pyVault::kVaultNodeInitialized)
+    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultOperationFailed,    pyVault::kVaultOperationFailed)
+    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultNodeAdded,          pyVault::kVaultNodeAdded)
+    PYTHON_ENUM_ELEMENT(PtVaultCallbackTypes, kVaultDisconnected,       pyVault::kVaultDisconnected)
+    PYTHON_ENUM_END(m, PtVaultCallbackTypes)
 
-    PYTHON_ENUM_START(PtVaultNotifyTypes);
-    PYTHON_ENUM_ELEMENT(PtVaultNotifyTypes, kRegisteredOwnedAge, plVaultNotifyMsg::kRegisteredOwnedAge);
-    PYTHON_ENUM_ELEMENT(PtVaultNotifyTypes, kRegisteredVisitAge, plVaultNotifyMsg::kRegisteredVisitAge);
-    PYTHON_ENUM_ELEMENT(PtVaultNotifyTypes, kUnRegisteredOwnedAge, plVaultNotifyMsg::kUnRegisteredOwnedAge);
-    PYTHON_ENUM_ELEMENT(PtVaultNotifyTypes, kUnRegisteredVisitAge, plVaultNotifyMsg::kUnRegisteredVisitAge);
-    PYTHON_ENUM_ELEMENT(PtVaultNotifyTypes, kPublicAgeCreated, plVaultNotifyMsg::kPublicAgeCreated);
-    PYTHON_ENUM_ELEMENT(PtVaultNotifyTypes, kPublicAgeRemoved, plVaultNotifyMsg::kPublicAgeRemoved);
-    PYTHON_ENUM_END(m, PtVaultNotifyTypes);
+    PYTHON_ENUM_START(PtVaultNotifyTypes)
+    PYTHON_ENUM_ELEMENT(PtVaultNotifyTypes, kRegisteredOwnedAge, plVaultNotifyMsg::kRegisteredOwnedAge)
+    PYTHON_ENUM_ELEMENT(PtVaultNotifyTypes, kRegisteredVisitAge, plVaultNotifyMsg::kRegisteredVisitAge)
+    PYTHON_ENUM_ELEMENT(PtVaultNotifyTypes, kUnRegisteredOwnedAge, plVaultNotifyMsg::kUnRegisteredOwnedAge)
+    PYTHON_ENUM_ELEMENT(PtVaultNotifyTypes, kUnRegisteredVisitAge, plVaultNotifyMsg::kUnRegisteredVisitAge)
+    PYTHON_ENUM_ELEMENT(PtVaultNotifyTypes, kPublicAgeCreated, plVaultNotifyMsg::kPublicAgeCreated)
+    PYTHON_ENUM_ELEMENT(PtVaultNotifyTypes, kPublicAgeRemoved, plVaultNotifyMsg::kPublicAgeRemoved)
+    PYTHON_ENUM_END(m, PtVaultNotifyTypes)
 }

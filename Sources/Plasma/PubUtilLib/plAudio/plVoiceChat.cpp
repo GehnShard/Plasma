@@ -50,6 +50,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plgDispatch.h"
 #include "plAudible/plWinAudible.h"
 #include "plNetMessage/plNetMessage.h"
+#include "pnNetCommon/plNetApp.h"
 #include "plPipeline/plPlates.h"
 #include "plAvatar/plAvatarMgr.h"
 #include "plAvatar/plArmatureMod.h"
@@ -89,14 +90,14 @@ plVoiceRecorder::plVoiceRecorder()
 {
     plPlateManager::Instance().CreatePlate(&fDisabledIcon);
     fDisabledIcon->CreateFromResource(MICROPHONE);
-    fDisabledIcon->SetPosition(-0.90, -0.90);
-    fDisabledIcon->SetSize(0.064, 0.064, true);
+    fDisabledIcon->SetPosition(-0.90f, -0.90f);
+    fDisabledIcon->SetSize(0.064f, 0.064f, true);
     fDisabledIcon->SetVisible(false);
 
     plPlateManager::Instance().CreatePlate(&fTalkIcon);
     fTalkIcon->CreateFromResource(TALKING);
-    fTalkIcon->SetPosition(-0.9,-0.9);
-    fTalkIcon->SetSize(0.064, 0.064, true);
+    fTalkIcon->SetPosition(-0.9f, -0.9f);
+    fTalkIcon->SetSize(0.064f, 0.064f, true);
     fTalkIcon->SetVisible(false);
 }
 
@@ -206,10 +207,10 @@ void plVoiceRecorder::SetMicOpen(bool b)
 {
     if (fRecording) {
         if (b) {
-            plgAudioSys::Sys()->BeginCapture();
+            plgAudioSys::BeginCapture();
             fCaptureOpenSecs = hsTimer::GetSeconds<float>();
         } else {
-            plgAudioSys::Sys()->EndCapture();
+            plgAudioSys::EndCapture();
             if (fGraph)
                 fGraph->SetTitle("Voice Recorder");
         }
@@ -227,14 +228,14 @@ void plVoiceRecorder::DrawDisabledIcon(bool b)
         plPlateManager::Instance().CreatePlate(&fDisabledIcon);
         if (fDisabledIcon) {
             fDisabledIcon->CreateFromResource(MICROPHONE);
-            fDisabledIcon->SetPosition(-0.90, -0.90);
-            fDisabledIcon->SetSize(0.064, 0.064, true);
+            fDisabledIcon->SetPosition(-0.90f, -0.90f);
+            fDisabledIcon->SetSize(0.064f, 0.064f, true);
             fDisabledIcon->SetVisible(false);
         }
     }
 
     if (fDisabledIcon) {
-        fDisabledIcon->SetSize(0.064, 0.064, true);     // Re-compute plate size in case the aspect ratio has changed.
+        fDisabledIcon->SetSize(0.064f, 0.064f, true);     // Re-compute plate size in case the aspect ratio has changed.
         fDisabledIcon->SetVisible(b);
     }
 }
@@ -245,14 +246,14 @@ void plVoiceRecorder::DrawTalkIcon(bool b)
         plPlateManager::Instance().CreatePlate(&fTalkIcon);
         if (fTalkIcon) {
             fTalkIcon->CreateFromResource( TALKING );
-            fTalkIcon->SetPosition(-0.9,-0.9);
-            fTalkIcon->SetSize(0.064, 0.064, true);
+            fTalkIcon->SetPosition(-0.9f, -0.9f);
+            fTalkIcon->SetSize(0.064f, 0.064f, true);
             fTalkIcon->SetVisible(false);
         }
     }
 
     if (fTalkIcon) {
-        fTalkIcon->SetSize(0.064, 0.064, true);     // Re-compute plate size in case the aspect ratio has changed.
+        fTalkIcon->SetSize(0.064f, 0.064f, true);     // Re-compute plate size in case the aspect ratio has changed.
         fTalkIcon->SetVisible(b);
     }
 }
@@ -266,14 +267,14 @@ void plVoiceRecorder::Update(double time)
     int EncoderFrameSize = FREQUENCY / AUDIO_FPS;
     if (encoder) {
         // this is a no-op if there was no change
-        plgAudioSys::Sys()->SetCaptureSampleRate(encoder->GetSampleRate());
+        plgAudioSys::SetCaptureSampleRate(encoder->GetSampleRate());
 
         EncoderFrameSize = encoder->GetFrameSize();
         if (EncoderFrameSize == -1)
             return;
     }
 
-    uint32_t samples = plgAudioSys::Sys()->GetCaptureSampleCount();
+    uint32_t samples = plgAudioSys::GetCaptureSampleCount();
     uint32_t bytesSent = 0;
     if (samples > 0) {
         if (samples >= EncoderFrameSize) {
@@ -287,7 +288,7 @@ void plVoiceRecorder::Update(double time)
 
             // convert to correct units:
             auto buffer = std::make_unique<int16_t[]>(totalSamples);
-            plgAudioSys::Sys()->CaptureSamples(totalSamples, buffer.get());
+            plgAudioSys::CaptureSamples(totalSamples, buffer.get());
 
             if (!encoder) {
                 plNetMsgVoice pMsg;
@@ -338,6 +339,7 @@ plVoicePlayer::plVoicePlayer()
 
 plVoicePlayer::~plVoicePlayer()
 {
+    delete fOpusDecoder;
 }
 
 void plVoicePlayer::PlaybackUncompressedVoiceMessage(const void* data, size_t size, uint32_t rate)

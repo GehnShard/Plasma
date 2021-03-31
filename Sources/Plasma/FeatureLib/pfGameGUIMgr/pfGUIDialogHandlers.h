@@ -48,8 +48,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _pfGUIDialogHandlers_h
 #define _pfGUIDialogHandlers_h
 
-#include "hsStream.h"
+#include "HeadSpin.h"
+
 #include "pfGUIControlHandlers.h"
+
+class pfGUIDialogMod;
 
 //// pfGUIDialogProc Definition //////////////////////////////////////////////
 //  This works very much like the control proc objects. The idea is, if you
@@ -60,8 +63,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //  both your dialog and your control procs. (DoSomething() is overloaded here
 //  so that it's no longer pure virtual, so you can use it for only handling
 //  dialogs if you prefer).
-
-class pfGUIDialogMod;
 class pfGUIDialogProc : public pfGUICtrlProcObject
 {
     protected:
@@ -70,7 +71,7 @@ class pfGUIDialogProc : public pfGUICtrlProcObject
 
     public:
 
-        pfGUIDialogProc() { }
+        pfGUIDialogProc() : fDialog() { }
         virtual ~pfGUIDialogProc() { }
 
         // Called by the mgr--don't call yourself!
@@ -86,7 +87,7 @@ class pfGUIDialogProc : public pfGUICtrlProcObject
 
         // Overloaded here so you don't have to unless you want to. Overload
         // it if you want to use this for a control handler as well.
-        virtual void    DoSomething( pfGUIControlMod *ctrl ) { }
+        void    DoSomething(pfGUIControlMod *ctrl) override { }
 
         // Called on dialog init (i.e. first showing, before OnShow() is called), only ever called once
         virtual void    OnInit() { }

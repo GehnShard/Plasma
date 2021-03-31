@@ -56,8 +56,8 @@ private:
 public:
     pfFilePasswordStore();
 
-    ST::string GetPassword(const ST::string& username) HS_OVERRIDE;
-    bool SetPassword(const ST::string& username, const ST::string& password) HS_OVERRIDE;
+    ST::string GetPassword(const ST::string& username) override;
+    bool SetPassword(const ST::string& username, const ST::string& password) override;
 };
 
 
@@ -70,8 +70,8 @@ class pfWin32PasswordStore : public pfPasswordStore
 public:
     pfWin32PasswordStore() { }
 
-    ST::string GetPassword(const ST::string& username) HS_OVERRIDE;
-    bool SetPassword(const ST::string& username, const ST::string& password) HS_OVERRIDE;
+    ST::string GetPassword(const ST::string& username) override;
+    bool SetPassword(const ST::string& username, const ST::string& password) override;
 };
 #endif //HS_BUILD_FOR_WIN32
 
@@ -84,23 +84,23 @@ class pfUnixPasswordStore : public pfPasswordStore
 public:
     pfUnixPasswordStore() { }
 
-    ST::string GetPassword(const ST::string& username) HS_OVERRIDE;
-    bool SetPassword(const ST::string& username, const ST::string& password) HS_OVERRIDE;
+    ST::string GetPassword(const ST::string& username) override;
+    bool SetPassword(const ST::string& username, const ST::string& password) override;
 };
 #endif // HAVE_LIBSECRET
 
-#ifdef HS_BUILD_FOR_OSX
+#ifdef HAVE_SECURITY
 /**
- * An OSX Keychain password storage mechanism.
+ * An Apple Keychain password storage mechanism.
  */
-class pfMacPasswordStore : public pfPasswordStore
+class pfApplePasswordStore : public pfPasswordStore
 {
 public:
-    pfMacPasswordStore() { }
+    pfApplePasswordStore() { }
 
-    ST::string GetPassword(const ST::string& username) HS_OVERRIDE;
-    bool SetPassword(const ST::string& username, const ST::string& password) HS_OVERRIDE;
+    ST::string GetPassword(const ST::string& username) override;
+    bool SetPassword(const ST::string& username, const ST::string& password) override;
 };
-#endif //HS_BUILD_FOR_OSX
+#endif // HAVE_SECURITY
 
 #endif //pfPasswordStore_impl_inc

@@ -42,7 +42,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef PLSIMULATIONMSG_H
 #define PLSIMULATIONMSG_H
 
-#include "pnMessage/plMessage.h"
+#include "plMessage.h"
 
 // PLSIMULATIONMSG
 // Virtual base class for all messages which are specific to the simulation interface
@@ -60,8 +60,8 @@ public:
     CLASSNAME_REGISTER(plSimulationMsg);
     GETINTERFACE_ANY(plSimulationMsg, plMessage);
 
-    void Read(hsStream *stream, hsResMgr *mgr) HS_OVERRIDE;
-    void Write(hsStream *stream, hsResMgr *mgr) HS_OVERRIDE;
+    void Read(hsStream *stream, hsResMgr *mgr) override;
+    void Write(hsStream *stream, hsResMgr *mgr) override;
 };
 
 #endif // PLSIMULATIONMSG_H

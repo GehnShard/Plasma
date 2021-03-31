@@ -39,21 +39,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "HeadSpin.h"
-#include "hsWindows.h"
-
-#include <d3d9.h>
-#include <d3dx9core.h>
 
 #include "plDXPixelShader.h"
 
-#include "plSurface/plShader.h"
+#include "HeadSpin.h"
+#include "hsWindows.h"
+#include <d3d9.h>
 
 #include "plDXPipeline.h"
 
+#include "plSurface/plShader.h"
+
 
 plDXPixelShader::plDXPixelShader(plShader* owner)
-:   plDXShader(owner), fHandle(nil)
+:   plDXShader(owner), fHandle()
 {
 }
 
@@ -65,10 +64,10 @@ plDXPixelShader::~plDXPixelShader()
 void plDXPixelShader::Release()
 {
     ReleaseObject(fHandle);
-    fHandle = nil;
-    fPipe = nil;
+    fHandle = nullptr;
+    fPipe = nullptr;
 
-    ISetError(nil);
+    ISetError(nullptr);
 }
 
 bool plDXPixelShader::VerifyFormat(uint8_t format) const
@@ -82,61 +81,27 @@ IDirect3DPixelShader9 *plDXPixelShader::GetShader(plDXPipeline* pipe)
     if ( !fHandle )
     {
         if( FAILED(hr = ICreate(pipe)) )
-            return nil;
+            return nullptr;
     }
 
     if( FAILED(hr = ISetConstants(pipe)) )
-        return nil;
+        return nullptr;
 
     return fHandle;
 }
 
 HRESULT plDXPixelShader::ICreate(plDXPipeline* pipe)
 {
-    fHandle = nil; // in case something goes wrong.
-    fPipe = nil;
-    ISetError(nil);
+    fHandle = nullptr; // in case something goes wrong.
+    fPipe = nullptr;
+    ISetError(nullptr);
 
-#ifdef HS_DEBUGGING
-    DWORD   flags = D3DXSHADER_DEBUG | D3DXSHADER_SKIPOPTIMIZATION;
-#else // HS_DEBUGGING
-    DWORD   flags = 0;
-#endif // HS_DEBUGGING
+    DWORD* shaderCodes = (DWORD*)(fOwner->GetDecl()->GetCodes());
 
-    DWORD* shaderCodes = nil;
-
-    HRESULT hr = S_OK;
-    if( plShaderTable::LoadFromFile() || !fOwner->GetDecl()->GetCodes() )
-    {
-        if( fOwner->GetDecl()->GetFileName() )
-        {
-            LPD3DXBUFFER compiledShader = nil;
-            LPD3DXBUFFER compilationErrors = nil;
-
-            hr = D3DXAssembleShaderFromFile(
-                            fOwner->GetDecl()->GetFileName(),
-                            NULL, NULL, flags,
-                            &compiledShader,
-                            &compilationErrors);
-
-            if( FAILED(hr) )
-            {
-                return IOnError(hr, compilationErrors
-                        ? reinterpret_cast<const char *>(compilationErrors->GetBufferPointer())
-                        : "File not found");
-            }
-
-            shaderCodes = (DWORD*)(compiledShader->GetBufferPointer());
-        }
-    }
     if( !shaderCodes )
-    {
-        shaderCodes = (DWORD*)(fOwner->GetDecl()->GetCodes());
-    }
-    if( !shaderCodes )
-        return IOnError(-1, "No file and no compiled codes");
+        return IOnError(-1, "Shaders must be compiled into the engine.");
 
-    hr = pipe->GetD3DDevice()->CreatePixelShader(shaderCodes, &fHandle);
+    HRESULT hr = pipe->GetD3DDevice()->CreatePixelShader(shaderCodes, &fHandle);
     if( FAILED(hr) )
     {
         return IOnError(hr, "Error on CreatePixelShader");
@@ -155,7 +120,7 @@ HRESULT plDXPixelShader::ISetConstants(plDXPipeline* pipe)
     if( fOwner->GetNumConsts() )
     {
         HRESULT hr = pipe->GetD3DDevice()->SetPixelShaderConstantF(0,
-                        (float*)fOwner->GetConstBasePtr(),
+                        (const float*)fOwner->GetConstBasePtr(),
                         fOwner->GetNumConsts());
         if( FAILED(hr) )
             return IOnError(hr, "Error setting constants");

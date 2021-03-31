@@ -50,16 +50,15 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include "plDXTextFont.h"
+
 #include "HeadSpin.h"
 #include "hsWindows.h"
-
 #include <d3d9.h>
 #include <ddraw.h>
-#include <d3dx9mesh.h>
 
-#include "plPipeline/hsWinRef.h"
-#include "plDXTextFont.h"
 #include "plDXPipeline.h"
+#include "plPipeline/hsWinRef.h"
 
 
 //// Local Stuff //////////////////////////////////////////////////////////////
@@ -67,10 +66,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 static const long PLD3D_FONTFVF = D3DFVF_XYZ | D3DFVF_DIFFUSE 
                                 | D3DFVF_TEX1 | D3DFVF_TEXCOORDSIZE3(0);
 
-static D3DXMATRIX d3dIdentityMatrix( 1.0f, 0.0f, 0.0f, 0.0f,
-                                     0.0f, 1.0f, 0.0f, 0.0f,
-                                     0.0f, 0.0f, 1.0f, 0.0f,
-                                     0.0f, 0.0f, 0.0f, 1.0f );
+static D3DMATRIX d3dIdentityMatrix{ 1.0f, 0.0f, 0.0f, 0.0f,
+                                    0.0f, 1.0f, 0.0f, 0.0f,
+                                    0.0f, 0.0f, 1.0f, 0.0f,
+                                    0.0f, 0.0f, 0.0f, 1.0f };
 
 // Following number needs to be at least: 64 chars max in plTextFont drawn at any one time
 //                                      * 4 primitives per char max (for bold text)
@@ -82,7 +81,7 @@ const uint32_t    kNumVertsInBuffer(4608);
 // See the declaration for plFontVertex in plTextFont.h for info
 const DWORD plDXTextFont::kFVF = D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1 | D3DFVF_TEXCOORDSIZE3(0);
 
-IDirect3DVertexBuffer9*     plDXTextFont::fBuffer = nil;
+IDirect3DVertexBuffer9*     plDXTextFont::fBuffer = nullptr;
 uint32_t                      plDXTextFont::fBufferCursor = 0;
 
 //// Constructor & Destructor /////////////////////////////////////////////////
@@ -90,9 +89,9 @@ uint32_t                      plDXTextFont::fBufferCursor = 0;
 plDXTextFont::plDXTextFont( plPipeline *pipe, IDirect3DDevice9 *device ) : plTextFont( pipe )
 {
     fDevice = device;
-    fD3DTexture = nil;
+    fD3DTexture = nullptr;
 
-    fOldStateBlock = fTextStateBlock = 0;
+    fOldStateBlock = fTextStateBlock = nullptr;
 }
 
 plDXTextFont::~plDXTextFont()
@@ -114,11 +113,11 @@ void    plDXTextFont::ICreateTexture( uint16_t *data )
     hsAssert( fTextureWidth <= d3dCaps.MaxTextureWidth, "Cannot initialize DX font--texture size too big" );
 
     // Create our texture object
-    hr = fDevice->CreateTexture( fTextureWidth, fTextureHeight, 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, &fD3DTexture, NULL );
+    hr = fDevice->CreateTexture(fTextureWidth, fTextureHeight, 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, &fD3DTexture, nullptr);
     hsAssert( !FAILED( hr ), "Cannot create D3D texture" );
 
     // Lock the texture and write our values out
-    fD3DTexture->LockRect( 0, &lockInfo, 0, 0 );
+    fD3DTexture->LockRect(0, &lockInfo, nullptr, 0);
     memcpy( lockInfo.pBits, data, fTextureWidth * fTextureHeight * sizeof( uint16_t ) );
     fD3DTexture->UnlockRect( 0 );
 }
@@ -126,7 +125,7 @@ void    plDXTextFont::ICreateTexture( uint16_t *data )
 void plDXTextFont::CreateShared(IDirect3DDevice9* device)
 {
     if( FAILED( device->CreateVertexBuffer( sizeof( plFontVertex ) * kNumVertsInBuffer,
-        D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &fBuffer, NULL ) ) )
+        D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &fBuffer, nullptr)))
     {
         hsAssert( false, "CreateVertexBuffer() call failed!" );
     }
@@ -195,8 +194,8 @@ void    plDXTextFont::DestroyObjects()
     ReleaseObject(fTextStateBlock);
     ReleaseObject(fD3DTexture);
 
-    fOldStateBlock = fTextStateBlock = 0;
-    fD3DTexture = nil;
+    fOldStateBlock = fTextStateBlock = nullptr;
+    fD3DTexture = nullptr;
     fInitialized = false;
 }
 
@@ -237,7 +236,7 @@ void    plDXTextFont::IDrawPrimitive( uint32_t count, plFontVertex *array )
         }
     }
 
-    if( v != nil && array != nil )
+    if (v != nullptr && array != nullptr)
     {
         memcpy( v, array, count * sizeof( plFontVertex ) * 3 );
     }
@@ -252,10 +251,10 @@ void    plDXTextFont::IDrawLines( uint32_t count, plFontVertex *array )
     if( !fBuffer )
         return;
 
-    if( count == 0 || array == nil )
+    if (count == 0 || array == nullptr)
         return;
 
-    fDevice->SetVertexShader(NULL);
+    fDevice->SetVertexShader(nullptr);
     fDevice->SetFVF(kFVF);
     fDevice->SetStreamSource(0, fBuffer, 0, sizeof(plFontVertex));
     fDevice->DrawPrimitiveUP( D3DPT_LINELIST, count, (const void *)array, sizeof( plFontVertex ) );
@@ -271,7 +270,7 @@ void    plDXTextFont::FlushDraws()
 
     if( fBufferCursor > 0 )
     {
-        fDevice->SetVertexShader( NULL );
+        fDevice->SetVertexShader(nullptr);
         fDevice->SetFVF(kFVF);
         fDevice->SetStreamSource( 0, fBuffer, 0, sizeof( plFontVertex ) );
         fDevice->DrawPrimitive( D3DPT_TRIANGLELIST, 0, fBufferCursor / 3 );
@@ -297,12 +296,12 @@ void    plDXTextFont::SaveStates()
     /// Set up the transform matrices so that the vertices can range (0-screenWidth,0-screenHeight)
     fDevice->SetTransform( D3DTS_WORLD, &d3dIdentityMatrix );
     fDevice->SetTransform( D3DTS_VIEW, &d3dIdentityMatrix );
-    D3DXMATRIX  mat;
+    D3DMATRIX  mat;
     mat = d3dIdentityMatrix;
-    mat(0,0) = 2.0f / (float)fPipe->Width();
-    mat(1,1) = -2.0f / (float)fPipe->Height();
-    mat(3,0) = -1.0;
-    mat(3,1) = 1.0;
+    mat.m[0][0] = 2.0f / (float)fPipe->Width();
+    mat.m[1][1] = -2.0f / (float)fPipe->Height();
+    mat.m[3][0] = -1.0;
+    mat.m[3][1] = 1.0;
     fDevice->SetTransform( D3DTS_PROJECTION, &mat );
 }
 
@@ -313,7 +312,7 @@ void    plDXTextFont::RestoreStates()
     if (fOldStateBlock)
         fOldStateBlock->Apply();
     
-    fDevice->SetTexture( 0, nil );
+    fDevice->SetTexture(0, nullptr);
     fDevice->SetTransform( D3DTS_TEXTURE0, &d3dIdentityMatrix );
 }
 

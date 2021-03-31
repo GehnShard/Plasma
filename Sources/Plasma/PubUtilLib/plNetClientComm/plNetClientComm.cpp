@@ -47,26 +47,29 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "plNetClientComm.h"
 
-#include "pnAsyncCore/pnAsyncCore.h"
-#include "plProduct.h"
-#include "pnNetCli/pnNetCli.h"
-#include "plNetGameLib/plNetGameLib.h"
-#include "pnEncryption/plChallengeHash.h"
+#include <chrono>
+#include <thread>
 
+#include "plProduct.h"
+#include "hsResMgr.h"
+
+#include "pnAsyncCore/pnAsyncCore.h"
+#include "pnEncryption/plChallengeHash.h"
+#include "pnNetCli/pnNetCli.h"
+#include "pnNetCommon/plNetApp.h"
+
+#include "plFile/plStreamSource.h"
+#include "plMessage/plAccountUpdateMsg.h"
 #include "plMessage/plNetCommMsgs.h"
 #include "plMessage/plNetClientMgrMsg.h"
-#include "plNetMessage/plNetMessage.h"
 #include "plNetCommon/plNetCommon.h"
+#include "plNetGameLib/plNetGameLib.h"
+#include "plNetMessage/plNetMessage.h"
 #include "plVault/plVault.h"
-#include "plMessage/plAccountUpdateMsg.h"
-#include "plNetClient/plNetClientMgr.h"
-#include "plFile/plStreamSource.h"
 
 #include "pfMessage/pfKIMsg.h"
 
-#include "hsResMgr.h"
-
-#ifdef HS_BUILD_FOR_OSX
+#ifdef HS_BUILD_FOR_MACOS
 #include <malloc/malloc.h>
 #else
 #include <malloc.h>
@@ -149,8 +152,8 @@ static HASHTABLEDECL(
     link
 ) s_handlers;
 
-static NetCommMsgHandler    s_defaultHandler(0, nil, nil);
-static NetCommMsgHandler    s_preHandler(0, nil, nil);
+static NetCommMsgHandler    s_defaultHandler(0, nullptr, nullptr);
+static NetCommMsgHandler    s_preHandler(0, nullptr, nullptr);
 
 
 //============================================================================
@@ -161,31 +164,27 @@ static void INetErrorCallback (
     NetClientDestroy(false);
     
     plNetClientMgrMsg * msg = new plNetClientMgrMsg(plNetClientMgrMsg::kCmdDisableNet,
-                                                    true, nil);
+                                                    true, nullptr);
     msg->AddReceiver(plNetClientApp::GetInstance()->GetKey());
 
     switch (error)
     {
     case kNetErrKickedByCCR:
-        StrPrintf(
-            msg->str,
-            arrsize(msg->str),
-            "You have been kicked by a CCR."
-        );
+        strncpy(msg->str, "You have been kicked by a CCR.", std::size(msg->str));
         break;
 
     default:
         // Until we get some real error handling, this'll ensure no errors
         // fall thru the cracks and we hang forever wondering what's up.
-        StrPrintf(
+        snprintf(
             // buf
             msg->str,
-            arrsize(msg->str),
+            std::size(msg->str),
             // fmt
             "Network error %u, %S.\n"
             "protocol: %S\n"
             ,// values
-            error,
+            static_cast<unsigned>(error),
             NetErrorToString(error),
             NetProtocolToString(protocol)
         );
@@ -270,7 +269,7 @@ static void PlayerInitCallback (
     void *      param
 ) {
     if (IS_NET_ERROR(result) && (result != kNetErrVaultNodeNotFound)) {
-        s_player = nil;
+        s_player = nullptr;
     }
     else {
         // Ensure the city link has the required spawn points
@@ -305,7 +304,7 @@ static void INetCliAuthSetPlayerRequestCallback (
         PlayerInitCallback(result, param);
     }
     else if (IS_NET_ERROR(result) && (result != kNetErrVaultNodeNotFound)) {
-        s_player = nil;
+        s_player = nullptr;
         PlayerInitCallback(result, param);
     }
     else {
@@ -316,8 +315,8 @@ static void INetCliAuthSetPlayerRequestCallback (
             s_player->playerInt,
             PlayerInitCallback,
             param,
-            nil,
-            nil
+            nullptr,
+            nullptr
         );
     }
 }
@@ -328,7 +327,7 @@ static void LoginPlayerInitCallback (
     void *                      param
 ) {
     if (IS_NET_ERROR(result) && (result != kNetErrVaultNodeNotFound))
-        s_player = nil;
+        s_player = nullptr;
     else
         VaultProcessPlayerInbox();
 
@@ -359,7 +358,7 @@ static void INetCliAuthLoginSetPlayerRequestCallback (
     void *          param
 ) {
     if (IS_NET_ERROR(result) && (result != kNetErrVaultNodeNotFound)) {
-        s_player = nil;
+        s_player = nullptr;
         
         plNetCommAuthMsg * msg  = new plNetCommAuthMsg;
         msg->result             = result;
@@ -372,8 +371,8 @@ static void INetCliAuthLoginSetPlayerRequestCallback (
             s_player->playerInt,
             LoginPlayerInitCallback,
             param,
-            nil,
-            nil
+            nullptr,
+            nullptr
         );
     }
 }
@@ -390,7 +389,7 @@ static void INetCliAuthLoginRequestCallback (
 ) {
     s_authResult = result;
 
-    s_player = nil;
+    s_player = nullptr;
     s_players.clear();
     
     bool wantsStartUpAge = (s_startupAge.ageDatasetName.empty() ||
@@ -404,7 +403,7 @@ static void INetCliAuthLoginRequestCallback (
         s_account.billingType   = billingType;
         s_players.resize(playerCount);
         for (unsigned i = 0; i < playerCount; ++i) {
-            LogMsg(kLogDebug, "Player %{}: {} explorer: {}", playerInfoArr[i].playerInt, playerInfoArr[i].playerName, playerInfoArr[i].explorer);
+            LogMsg(kLogDebug, "Player {}: {} explorer: {}", playerInfoArr[i].playerInt, playerInfoArr[i].playerName, playerInfoArr[i].explorer);
             s_players[i].playerInt         = playerInfoArr[i].playerInt;
             s_players[i].explorer          = playerInfoArr[i].explorer;
             s_players[i].playerName        = playerInfoArr[i].playerName;
@@ -526,7 +525,7 @@ static void INetCliAuthChangePasswordCallback (
 static void INetCliAuthGetPublicAgeListCallback (
     ENetError                   result,
     void *                      param,
-    const TArray<NetAgeInfo> &  ages
+    std::vector<NetAgeInfo>     ages
 ) {
     NetCommParam * cp = (NetCommParam *) param;
     
@@ -534,7 +533,7 @@ static void INetCliAuthGetPublicAgeListCallback (
     msg->result     = result;
     msg->param      = cp->param;
     msg->ptype      = cp->type;
-    msg->ages.Set(ages.Ptr(), ages.Count());
+    msg->ages       = std::move(ages);
     msg->Send();
     
     delete cp;
@@ -715,7 +714,7 @@ void NetCommSetAvatarLoaded (bool loaded /* = true */) {
 
 //============================================================================
 void NetCommChangeMyPassword (const ST::string& password) {
-    NetCliAuthAccountChangePasswordRequest(s_account.accountName, password, INetCliAuthChangePasswordCallback, nil);
+    NetCliAuthAccountChangePasswordRequest(s_account.accountName, password, INetCliAuthChangePasswordCallback, nullptr);
 }
 
 //============================================================================
@@ -732,15 +731,15 @@ void NetCommStartup () {
     s_startupAge.ageDatasetName = s_iniStartupAgeName;
 
     s_startupAge.ageInstId = s_iniStartupAgeInstId;
-    StrCopy(s_startupAge.spawnPtName, "LinkInPointDefault", arrsize(s_startupAge.spawnPtName));
+    StrCopy(s_startupAge.spawnPtName, "LinkInPointDefault", std::size(s_startupAge.spawnPtName));
 }
 
 //============================================================================
 void NetCommShutdown () {
     s_shutdown = true;
 
-    NetCommSetDefaultMsgHandler(nil, nil);
-    NetCommSetMsgPreHandler(nil, nil);
+    NetCommSetDefaultMsgHandler(nullptr, nullptr);
+    NetCommSetMsgPreHandler(nullptr, nullptr);
     NetCommRemoveMsgHandler(
         kNetCommAllMsgClasses,
         kNetCommAllMsgHandlers,
@@ -810,11 +809,11 @@ void NetCommConnect () {
         connectedToKeeper = true;
 
         // request an auth server ip address
-        NetCliGateKeeperAuthSrvIpAddressRequest(AuthSrvIpAddressCallback, nil);
+        NetCliGateKeeperAuthSrvIpAddressRequest(AuthSrvIpAddressCallback, nullptr);
 
         while(!s_hasAuthSrvIpAddress && !s_netError) {
             NetClientUpdate();
-            AsyncSleep(10);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
             
         const ST::string authSrv[] = {
@@ -839,11 +838,11 @@ void NetCommConnect () {
             }
 
             // request a file server ip address
-            NetCliGateKeeperFileSrvIpAddressRequest(FileSrvIpAddressCallback, nil, false);
+            NetCliGateKeeperFileSrvIpAddressRequest(FileSrvIpAddressCallback, nullptr, false);
 
             while(!s_hasFileSrvIpAddress && !s_netError) {
                 NetClientUpdate();
-                AsyncSleep(10);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             
             const ST::string fileSrv[] = {
@@ -1008,9 +1007,9 @@ void NetCommSetAuthTokenAndOS (
     wchar_t               os[]
 ) {
     if (authToken)
-        StrCopy(s_iniAuthToken, authToken, arrsize(s_iniAuthToken));
+        StrCopy(s_iniAuthToken, authToken, std::size(s_iniAuthToken));
     if (os)
-        StrCopy(s_iniOS, os, arrsize(s_iniOS));
+        StrCopy(s_iniOS, os, std::size(s_iniOS));
 }
 
 //============================================================================
@@ -1033,7 +1032,7 @@ void NetCommAuthenticate (
         s_iniAuthToken,
         s_iniOS,
         INetCliAuthLoginRequestCallback,
-        nil
+        nullptr
     );
 }
 
@@ -1044,10 +1043,10 @@ void NetCommLinkToAge (     // --> plNetCommLinkToAgeMsg
 ) {
     s_age = age;
 
-    if (plNetClientMgr::GetInstance()->GetFlagsBit(plNetClientApp::kLinkingToOfflineAge)) {
+    if (plNetClientApp::GetInstance()->GetFlagsBit(plNetClientApp::kLinkingToOfflineAge)) {
         plNetCommLinkToAgeMsg * msg = new plNetCommLinkToAgeMsg;
         msg->result     = kNetSuccess;
-        msg->param      = nil;
+        msg->param      = nullptr;
         msg->Send();
 
         return;
@@ -1073,14 +1072,14 @@ void NetCommSetActivePlayer (//--> plNetCommActivePlayerMsg
             VaultPlayerInfoNode pInfo(rvn);
             pInfo.SetAgeInstUuid(kNilUuid);
             pInfo.SetOnline(false);
-            NetCliAuthVaultNodeSave(rvn, nil, nil);
+            NetCliAuthVaultNodeSave(rvn.Get(), nullptr, nullptr);
         }
 
         VaultCull(s_player->playerInt);
     }
 
     if (desiredPlayerInt == 0)
-        s_player = nil;
+        s_player = nullptr;
     else {
         for (NetCommPlayer& player : s_players) {
             if (player.playerInt == desiredPlayerInt) {
@@ -1256,7 +1255,7 @@ void NetCommSendFriendInvite (
         toName,
         inviteUuid,
         INetCliAuthSendFriendInviteCallback,
-        nil
+        nullptr
     );
 }
 
@@ -1278,7 +1277,7 @@ plNetClientComm::plNetClientComm()
 // ~plNetClientComm ----------------------------------------------
 plNetClientComm::~plNetClientComm()
 {
-    NetCommSetMsgPreHandler(nil, nil);
+    NetCommSetMsgPreHandler(nullptr, nullptr);
 }
 
 // AddMsgHandlerForType ----------------------------------------------

@@ -51,9 +51,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plgDispatch.h"
 
 // other
+#include "pnSceneObject/plSceneObject.h"
+
 #include "plMessage/plAvatarMsg.h"
-#include "plMessage/plOneShotMsg.h"
 #include "plMessage/plOneShotCallbacks.h"
+#include "plMessage/plOneShotMsg.h"
 
 // CTOR()
 plOneShotMod::plOneShotMod()
@@ -155,7 +157,7 @@ void plOneShotMod::Read(hsStream *stream, hsResMgr *mgr)
 
     // read in the name of the animation itself
     fAnimName = stream->ReadSafeString();
-    fSeekDuration = stream->ReadLEScalar();
+    fSeekDuration = stream->ReadLEFloat();
     fDrivable = stream->ReadBool();
     fReversable = stream->ReadBool();
     fSmartSeek = (float)stream->ReadBool();
@@ -167,7 +169,7 @@ void plOneShotMod::Write(hsStream *stream, hsResMgr *mgr)
     plMultiModifier::Write(stream, mgr);
 
     stream->WriteSafeString(fAnimName);
-    stream->WriteLEScalar(fSeekDuration);
+    stream->WriteLEFloat(fSeekDuration);
     stream->WriteBool(fDrivable);
     stream->WriteBool(fReversable);
     stream->WriteBool((bool)fSmartSeek);

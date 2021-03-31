@@ -55,10 +55,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef hsG3DDeviceSelector_inc
 #define hsG3DDeviceSelector_inc
 
+#include <vector>
+
+#include "hsBitVector.h"
+#include "hsRefCnt.h"
+
 #include "hsWinRef.h"
 
-#include "hsTemplates.h"
-#include "hsBitVector.h"
 #include <string_theory/string>
 
 #ifdef HS_BUILD_FOR_WIN32
@@ -86,9 +89,9 @@ protected:
     uint32_t              fHeight;
     uint32_t              fDepth;
 
-    hsTArray<uint16_t>    fZStencilDepths;    // Array of supported depth/stencil buffer formats.
-                                            // Each entry is of the form: ( stencil bit count << 8 ) | ( depth bit count )
-    hsTArray<uint8_t>     fFSAATypes;         // Array of multisample types supported (each one 2-16)
+    std::vector<uint16_t> fZStencilDepths;    // Array of supported depth/stencil buffer formats.
+                                              // Each entry is of the form: (stencil bit count << 8) | (depth bit count)
+    std::vector<uint8_t>  fFSAATypes;         // Array of multisample types supported (each one 2-16)
 
     bool                  fCanRenderToCubics;
 
@@ -104,21 +107,21 @@ public:
     uint32_t GetWidth() const { return fWidth; }
     uint32_t GetHeight() const { return fHeight; }
     uint32_t GetColorDepth() const { return fDepth; }
-    uint8_t  GetNumZStencilDepths() const { return fZStencilDepths.GetCount(); }
-    uint16_t GetZStencilDepth( uint8_t i ) const { return fZStencilDepths[ i ]; }
-    uint8_t  GetNumFSAATypes() const { return fFSAATypes.GetCount(); }
-    uint8_t  GetFSAAType( uint8_t i ) const { return fFSAATypes[ i ]; }
+    size_t   GetNumZStencilDepths() const { return fZStencilDepths.size(); }
+    uint16_t GetZStencilDepth(size_t i) const { return fZStencilDepths[i]; }
+    size_t   GetNumFSAATypes() const { return fFSAATypes.size(); }
+    uint8_t  GetFSAAType(size_t i) const { return fFSAATypes[i]; }
     bool     GetCanRenderToCubics() const { return fCanRenderToCubics; }
 
     void SetDiscarded(bool on=true) { if(on) fFlags |= kDiscarded; else fFlags &= ~kDiscarded; }
     void SetWidth(uint32_t w) { fWidth = w; }
     void SetHeight(uint32_t h) { fHeight = h; }
     void SetColorDepth(uint32_t d) { fDepth = d; }
-    void ClearZStencilDepths() { fZStencilDepths.Reset(); }
-    void AddZStencilDepth( uint16_t depth ) { fZStencilDepths.Append( depth ); }
+    void ClearZStencilDepths() { fZStencilDepths.clear(); }
+    void AddZStencilDepth(uint16_t depth) { fZStencilDepths.emplace_back(depth); }
 
-    void    ClearFSAATypes() { fFSAATypes.Reset(); }
-    void    AddFSAAType( uint8_t type ) { fFSAATypes.Append( type ); }
+    void    ClearFSAATypes() { fFSAATypes.clear(); }
+    void    AddFSAAType(uint8_t type) { fFSAATypes.emplace_back(type); }
 
     void    SetCanRenderToCubics( bool can ) { fCanRenderToCubics = can; }
 };
@@ -155,7 +158,7 @@ protected:
     uint32_t        fLayersAtOnce;
     uint32_t        fMemoryBytes;
 
-    hsTArray<hsG3DDeviceMode> fModes;
+    std::vector<hsG3DDeviceMode> fModes;
 
     float   fZBiasRating;
     float   fLODBiasRating;
@@ -234,9 +237,7 @@ public:
     void    SetInvalid( bool on = true ) { if( on ) fFlags |= kInvalid; else fFlags &= ~kInvalid; }
     bool    IsInvalid() const { return 0 != ( fFlags & kInvalid ); }
 
-    hsTArray<hsG3DDeviceMode>& GetModes() { return fModes; }
-
-    hsG3DDeviceMode* GetMode(int i) const { return &fModes[i]; }
+    std::vector<hsG3DDeviceMode>& GetModes() { return fModes; }
 
     void ClearModes();
     void Clear();
@@ -317,7 +318,7 @@ public:
     };
 
 protected:
-    hsTArray<hsG3DDeviceRecord>     fRecords;
+    std::vector<hsG3DDeviceRecord> fRecords;
     char fTempWinClass[ 128 ];
 
     char    fErrorString[ 128 ];

@@ -39,38 +39,33 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "HeadSpin.h"
-#include "pnKeyedObject/plKey.h"
-#include "hsTemplates.h"
-#include "hsStream.h"
 #include "plLinkEffectsMgr.h"
+
+#include "plNetLinkingMgr.h"
+#include "plNetClientMgr.h"
+
+#include "plgDispatch.h"
+#include "hsResMgr.h"
+#include "hsStream.h"
+#include "hsTimer.h"
+
+#include "pnKeyedObject/plFixedKey.h"
+#include "pnKeyedObject/plKey.h"
 #include "pnMessage/plEventCallbackMsg.h"
 #include "pnMessage/plTimeMsg.h"
 #include "pnMessage/plPlayerPageMsg.h"
-#include "plMessage/plLinkToAgeMsg.h"
-#include "plMessage/plTransitionMsg.h"
-#include "plgDispatch.h"
-#include "hsResMgr.h"
-#include "hsTimer.h"
-#include "pnNetCommon/plNetApp.h"
-#include "plNetClient/plNetClientMgr.h"
-#include "pnSceneObject/plSceneObject.h"
-#include "plNetTransport/plNetTransportMember.h"
-#include "plVault/plVault.h"
-#include "plNetClient/plNetLinkingMgr.h"
-#include "plAgeLoader/plAgeLoader.h"
-#include "pnSceneObject/plCoordinateInterface.h"
 #include "pnMessage/plWarpMsg.h"
-#include "pnKeyedObject/plFixedKey.h"
-
-// chronicle var
-#define kCleftSolved                    "CleftSolved"
+#include "pnSceneObject/plSceneObject.h"
+#include "pnSceneObject/plCoordinateInterface.h"
 
 #include "plAvatar/plArmatureMod.h"
 #include "plAvatar/plAvatarTasks.h"
 #include "plAnimation/plAGAnim.h"
 #include "plMessage/plAvatarMsg.h"
+#include "plMessage/plLinkToAgeMsg.h"
 #include "plMessage/plLoadAgeMsg.h"
+#include "plMessage/plTransitionMsg.h"
+#include "plNetTransport/plNetTransportMember.h"
 
 plLinkEffectsMgr::plLinkEffectsMgr()
 {
@@ -78,18 +73,17 @@ plLinkEffectsMgr::plLinkEffectsMgr()
 
 plLinkEffectsMgr::~plLinkEffectsMgr()
 {
-    int i;
-    for( i = 0; i < fLinks.GetCount(); i++ )
+    for (plLinkEffectsTriggerMsg* msg : fLinks)
     {
-        hsRefCnt_SafeUnRef(fLinks[i]);
+        hsRefCnt_SafeUnRef(msg);
     }
-    for( i = 0; i < fWaitlist.GetCount(); i++ )
+    for (plLinkEffectsTriggerMsg* msg : fWaitlist)
     {
-        hsRefCnt_SafeUnRef(fWaitlist[i]);
+        hsRefCnt_SafeUnRef(msg);
     }
-    for( i = 0; i < fDeadlist.GetCount(); i++ )
+    for (plLinkEffectsTriggerMsg* msg : fDeadlist)
     {
-        hsRefCnt_SafeUnRef(fDeadlist[i]);
+        hsRefCnt_SafeUnRef(msg);
     }
 }
 
@@ -101,50 +95,48 @@ void plLinkEffectsMgr::Init()
 
 plLinkEffectsTriggerMsg *plLinkEffectsMgr::IFindLinkTriggerMsg(plKey linkKey)
 {
-    int i;
-    for (i = 0; i < fLinks.GetCount(); i++)
+    for (plLinkEffectsTriggerMsg* msg : fLinks)
     {
-        if (fLinks[i]->GetLinkKey() == linkKey)
-            return fLinks[i];
+        if (msg->GetLinkKey() == linkKey)
+            return msg;
     }
-    return nil;
+    return nullptr;
 }
 
 void plLinkEffectsMgr::IAddLink(plLinkEffectsTriggerMsg *msg)
 {
     hsRefCnt_SafeRef(msg);
-    fLinks.Append(msg);
+    fLinks.emplace_back(msg);
 }
 
 void plLinkEffectsMgr::IAddWait(plLinkEffectsTriggerMsg *msg)
 {
     hsRefCnt_SafeRef(msg);
-    fWaitlist.Append(msg);
+    fWaitlist.emplace_back(msg);
 }
 
 void plLinkEffectsMgr::IAddDead(plLinkEffectsTriggerMsg *msg)
 {
     hsRefCnt_SafeRef(msg);
-    fDeadlist.Append(msg);
+    fDeadlist.emplace_back(msg);
 }
 
-void plLinkEffectsMgr::IAddPsuedo(plPseudoLinkEffectMsg *msg)
+void plLinkEffectsMgr::IAddPseudo(plPseudoLinkEffectMsg *msg)
 {
     hsRefCnt_SafeRef(msg);
-    fPseudolist.Append(msg);
+    fPseudolist.emplace_back(msg);
 }
 
 bool plLinkEffectsMgr::IHuntWaitlist(plLinkEffectsTriggerMsg *msg)
 {
-    int i;
     bool found = false;
-    for (i = fWaitlist.GetCount() - 1; i >= 0; i--)
+    for (hsSsize_t i = fWaitlist.size() - 1; i >= 0; i--)
     {
         if (fWaitlist[i] == msg)
         {
             found = true;
-            hsRefCnt_SafeUnRef(fWaitlist[i]);           
-            fWaitlist.Remove(i);
+            hsRefCnt_SafeUnRef(fWaitlist[i]);
+            fWaitlist.erase(fWaitlist.begin() + i);
             plNetApp::GetInstance()->DebugMsg("Received backup LinkEffectsTriggerMsg. Never got remote trigger!\n");            
         }
     }
@@ -154,9 +146,8 @@ bool plLinkEffectsMgr::IHuntWaitlist(plLinkEffectsTriggerMsg *msg)
 
 bool plLinkEffectsMgr::IHuntWaitlist(plKey linkKey)
 {
-    int i;
     bool found = false;
-    for (i = fWaitlist.GetCount() - 1; i >= 0; i--)
+    for (hsSsize_t i = fWaitlist.size() - 1; i >= 0; i--)
     {
         if (fWaitlist[i]->GetLinkKey() == linkKey)
         {
@@ -164,7 +155,7 @@ bool plLinkEffectsMgr::IHuntWaitlist(plKey linkKey)
             IAddDead(fWaitlist[i]);
 
             hsRefCnt_SafeUnRef(fWaitlist[i]);
-            fWaitlist.Remove(i);
+            fWaitlist.erase(fWaitlist.begin() + i);
             plNetApp::GetInstance()->DebugMsg("Received remote LinkEffectsTriggerMsg. Awaiting backup.\n");
         }
     }
@@ -174,15 +165,14 @@ bool plLinkEffectsMgr::IHuntWaitlist(plKey linkKey)
 
 bool plLinkEffectsMgr::IHuntDeadlist(plLinkEffectsTriggerMsg *msg)
 {
-    int i;
     bool found = false;
-    for (i = fDeadlist.GetCount() - 1; i >= 0; i--)
+    for (hsSsize_t i = fDeadlist.size() - 1; i >= 0; i--)
     {
         if (fDeadlist[i] == msg)
         {
             found = true;
             hsRefCnt_SafeUnRef(fDeadlist[i]);
-            fDeadlist.Remove(i);
+            fDeadlist.erase(fDeadlist.begin() + i);
             plNetApp::GetInstance()->DebugMsg("Received backup LinkEffectsTriggerMsg. Cleanly ignoring since we received remote trigger.\n");
         }
     }
@@ -194,8 +184,7 @@ bool plLinkEffectsMgr::IHuntDeadlist(plLinkEffectsTriggerMsg *msg)
 
 void plLinkEffectsMgr::ISendAllReadyCallbacks()
 {
-    int i;
-    for (i = fLinks.GetCount() - 1; i >= 0; i--)
+    for (hsSsize_t i = fLinks.size() - 1; i >= 0; i--)
     {
         if (fLinks[i]->fEffects <= 0)
         {
@@ -226,7 +215,7 @@ void plLinkEffectsMgr::ISendAllReadyCallbacks()
             }
 
             hsRefCnt_SafeUnRef(fLinks[i]);
-            fLinks.Remove(i);
+            fLinks.erase(fLinks.begin() + i);
 
             hsStatusMessage("Done - removing link FX msg\n");
         }
@@ -238,30 +227,30 @@ bool plLinkEffectsMgr::MsgReceive(plMessage *msg)
     plNetClientMgr* nc = plNetClientMgr::GetInstance();
     plNetLinkingMgr* lm = plNetLinkingMgr::GetInstance();
 
-    plPseudoLinkEffectMsg* pSeudoMsg = plPseudoLinkEffectMsg::ConvertNoRef(msg);
-    if (pSeudoMsg)
+    plPseudoLinkEffectMsg* pseudoMsg = plPseudoLinkEffectMsg::ConvertNoRef(msg);
+    if (pseudoMsg)
     {
         // verify valid avatar and "link" objects
-        if (!pSeudoMsg->fAvatarKey) 
+        if (!pseudoMsg->fAvatarKey)
             return true;
-        if (!pSeudoMsg->fLinkObjKey)
+        if (!pseudoMsg->fLinkObjKey)
             return true;
-        if (!pSeudoMsg->fLinkObjKey->ObjectIsLoaded())
+        if (!pseudoMsg->fLinkObjKey->ObjectIsLoaded())
             return true;
-        if (!plNetClientMgr::GetInstance()->IsAPlayerKey(pSeudoMsg->fAvatarKey))
+        if (!plNetClientMgr::GetInstance()->IsAPlayerKey(pseudoMsg->fAvatarKey))
             return true;
         // send the trigger message to the avatar...
-        plPseudoLinkAnimTriggerMsg* pMsg = new plPseudoLinkAnimTriggerMsg(true, pSeudoMsg->fAvatarKey);
+        plPseudoLinkAnimTriggerMsg* pMsg = new plPseudoLinkAnimTriggerMsg(true, pseudoMsg->fAvatarKey);
         pMsg->SetSender(GetKey());
         pMsg->Send();
-        IAddPsuedo(pSeudoMsg);
+        IAddPseudo(pseudoMsg);
     }
 
-    plPseudoLinkAnimCallbackMsg* pSeudoCallback = plPseudoLinkAnimCallbackMsg::ConvertNoRef(msg);
-    if (pSeudoCallback)
+    plPseudoLinkAnimCallbackMsg* pseudoCallback = plPseudoLinkAnimCallbackMsg::ConvertNoRef(msg);
+    if (pseudoCallback)
     {
         // warp the avatar to his new position
-        plPseudoLinkEffectMsg* pMsg = IFindPseudo(pSeudoCallback->fAvatarKey);
+        plPseudoLinkEffectMsg* pMsg = IFindPseudo(pseudoCallback->fAvatarKey);
         if (pMsg)
         {
             plSceneObject* pObj = plSceneObject::ConvertNoRef(pMsg->fLinkObjKey->ObjectIsLoaded());
@@ -271,7 +260,7 @@ bool plLinkEffectsMgr::MsgReceive(plMessage *msg)
                 // create message
                 plWarpMsg* pMsg = new plWarpMsg(mat);
                 pMsg->SetWarpFlags(plWarpMsg::kFlushTransform);
-                pMsg->AddReceiver(pSeudoCallback->fAvatarKey);
+                pMsg->AddReceiver(pseudoCallback->fAvatarKey);
                 plUoid U(kVirtualCamera1_KEY);
                 plKey pCamKey = hsgResMgr::ResMgr()->FindKey(U);
                 if (pCamKey)
@@ -280,10 +269,10 @@ bool plLinkEffectsMgr::MsgReceive(plMessage *msg)
                 }
                 plgDispatch::MsgSend( pMsg );   // whoosh... off it goes
                 // now make him re-appear
-                plPseudoLinkAnimTriggerMsg* pTrigMsg = new plPseudoLinkAnimTriggerMsg(false, pSeudoCallback->fAvatarKey);
+                plPseudoLinkAnimTriggerMsg* pTrigMsg = new plPseudoLinkAnimTriggerMsg(false, pseudoCallback->fAvatarKey);
                 pTrigMsg->SetSender(GetKey());
                 pTrigMsg->Send();
-                IRemovePseudo(pSeudoCallback->fAvatarKey);
+                IRemovePseudo(pseudoCallback->fAvatarKey);
                 
             }
         }
@@ -309,7 +298,7 @@ bool plLinkEffectsMgr::MsgReceive(plMessage *msg)
             !pTriggerMsg->IsLeavingAge(), pTriggerMsg->GetInvisLevel());
 
         plKey linkKey = pTriggerMsg->GetLinkKey();
-        if (linkKey == nil)
+        if (linkKey == nullptr)
             return true;
 
         if ((linkKey != nc->GetLocalPlayerKey()) &&
@@ -326,14 +315,14 @@ bool plLinkEffectsMgr::MsgReceive(plMessage *msg)
         }
 
         plSceneObject *avatar = plSceneObject::ConvertNoRef(linkKey->ObjectIsLoaded());
-        if (avatar == nil)
+        if (avatar == nullptr)
         {
             plNetApp::GetInstance()->DebugMsg("Can't find avatar, mod={}\n", linkKey->GetName());
             return true;
         }
 
         // This is not the right place to catch this problem.
-//      if (IFindLinkTriggerMsg(linkKey) != nil)
+//      if (IFindLinkTriggerMsg(linkKey) != nullptr)
 //      { 
 //          hsAssert(false, "Trying to link an Avatar already in the process of linking.");
 //          return true;
@@ -380,8 +369,6 @@ bool plLinkEffectsMgr::MsgReceive(plMessage *msg)
                 bool linkToStartup = ageName.compare_i(kStartUpAgeFilename) == 0;      // To Startup
                 bool linkFromStartup = prevAgeName.compare_i(kStartUpAgeFilename) == 0;   // Leaving Startup
 
-                bool cleftSolved = VaultHasChronicleEntry( kCleftSolved );
-
                 bool linkToACA = ageName.compare_i(kAvCustomizationFilename) == 0;
                 bool linkFromACA = prevAgeName.compare_i(kAvCustomizationFilename) == 0;
 
@@ -406,8 +393,8 @@ bool plLinkEffectsMgr::MsgReceive(plMessage *msg)
         
         if (!pTriggerMsg->IsLeavingAge()) // Avatar is currently entering a new age
         {
-            plATCAnim *linkInAnim = nil;
-            plKey linkInAnimKey = nil;
+            plATCAnim *linkInAnim = nullptr;
+            plKey linkInAnimKey;
             const plArmatureMod *avMod = plArmatureMod::ConvertNoRef(avatar->GetModifierByType(plArmatureMod::Index()));
             if (pTriggerMsg->HasBCastFlag(plMessage::kNetNonLocal))
             {
@@ -417,13 +404,13 @@ bool plLinkEffectsMgr::MsgReceive(plMessage *msg)
             else
             {
                 // this is our backup trigger we send ourselves. We've already received the remote player's SDL.
-                linkInAnimKey = avMod ? avMod->GetLinkInAnimKey() : nil;
+                linkInAnimKey = avMod ? avMod->GetLinkInAnimKey() : nullptr;
             }
-            linkInAnim = plATCAnim::ConvertNoRef(linkInAnimKey ? linkInAnimKey->ObjectIsLoaded() : nil);
+            linkInAnim = plATCAnim::ConvertNoRef(linkInAnimKey ? linkInAnimKey->ObjectIsLoaded() : nullptr);
             
             if (avMod && linkInAnim)
             {   
-                plAvOneShotTask *task = new plAvOneShotTask(linkInAnim->GetName(), false, false, nil);
+                plAvOneShotTask *task = new plAvOneShotTask(linkInAnim->GetName(), false, false, nullptr);
                 task->fBackwards = true;
                 task->fDisableLooping = true;
                 task->fDisablePhysics = false;
@@ -453,9 +440,8 @@ bool plLinkEffectsMgr::MsgReceive(plMessage *msg)
         plNetApp::GetInstance()->DebugMsg("Received pLinkCallbackMsg, localmsg={}\n",
             !msg->HasBCastFlag(plMessage::kNetNonLocal));
 
-        static char str[ 128 ];
         plLinkEffectsTriggerMsg *pTriggerMsg = IFindLinkTriggerMsg(pLinkCallbackMsg->fLinkKey);
-        if (pTriggerMsg == nil)
+        if (pTriggerMsg == nullptr)
         {
             hsAssert(true, "Received a callback for an avatar that isn't linking.");
             return true;
@@ -531,7 +517,7 @@ bool plLinkEffectsMgr::MsgReceive(plMessage *msg)
 void plLinkEffectsMgr::WaitForEffect(plKey linkKey, float time)
 {
     plLinkEffectsTriggerMsg *msg = IFindLinkTriggerMsg(linkKey);
-    if (msg == nil)
+    if (msg == nullptr)
     {
         hsAssert(true, "Request to wait on an effect for an avatar that isn't linking.");
         return;
@@ -550,10 +536,10 @@ void plLinkEffectsMgr::WaitForEffect(plKey linkKey, float time)
 plMessage *plLinkEffectsMgr::WaitForEffect(plKey linkKey)
 {
     plLinkEffectsTriggerMsg *msg = IFindLinkTriggerMsg(linkKey);
-    if (msg == nil)
+    if (msg == nullptr)
     {
         hsAssert(true, "Request to wait on an effect for an avatar that isn't linking.");
-        return nil;
+        return nullptr;
     }
 
     msg->fEffects++;
@@ -569,7 +555,7 @@ plMessage *plLinkEffectsMgr::WaitForEffect(plKey linkKey)
 void plLinkEffectsMgr::WaitForPseudoEffect(plKey linkKey, float time)
 {
     plPseudoLinkEffectMsg* msg = IFindPseudo(linkKey);
-    if (msg == nil)
+    if (msg == nullptr)
     {
         hsAssert(true, "Request to wait on an fake effect for an avatar that isn't fake linking.");
         return;
@@ -584,24 +570,22 @@ void plLinkEffectsMgr::WaitForPseudoEffect(plKey linkKey, float time)
 
 plPseudoLinkEffectMsg* plLinkEffectsMgr::IFindPseudo(plKey avatarKey)
 {
-    int i;
-    for (i = 0; i < fPseudolist.GetCount(); i++)
+    for (plPseudoLinkEffectMsg* msg : fPseudolist)
     {
-        if (fPseudolist[i]->fAvatarKey == avatarKey)
-            return fPseudolist[i];
+        if (msg->fAvatarKey == avatarKey)
+            return msg;
     }
-    return nil;
+    return nullptr;
 
 }
 
 void plLinkEffectsMgr::IRemovePseudo(plKey avatarKey)
 {
-    int i;
-    for (i = 0; i < fPseudolist.GetCount(); i++)
+    for (auto iter = fPseudolist.cbegin(); iter != fPseudolist.cend(); ++iter)
     {
-        if (fPseudolist[i]->fAvatarKey == avatarKey)
-        {   
-            fPseudolist.Remove(i);
+        if ((*iter)->fAvatarKey == avatarKey)
+        {
+            fPseudolist.erase(iter);
             return;
         }
     }

@@ -46,7 +46,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 ***/
 
 #include "../Pch.h"
-#pragma hdrstop
 
 namespace Ngl { namespace Game {
 /*****************************************************************************
@@ -102,12 +101,12 @@ struct JoinAgeRequestTrans : NetGameTrans {
         void *                              param
     );
 
-    bool Send ();
-    void Post ();
-    bool Recv (
+    bool Send() override;
+    void Post() override;
+    bool Recv(
         const uint8_t  msg[],
         unsigned    bytes
-    );
+    ) override;
 };
 
 //============================================================================
@@ -119,9 +118,12 @@ struct RcvdPropagatedBufferTrans : NetNotifyTrans {
     unsigned        bufferBytes;
     uint8_t *          bufferData;
 
-    RcvdPropagatedBufferTrans () : NetNotifyTrans(kGmRcvdPropagatedBufferTrans) {}
+    RcvdPropagatedBufferTrans ()
+        : NetNotifyTrans(kGmRcvdPropagatedBufferTrans),
+          bufferType(), bufferBytes(), bufferData()
+    { }
     ~RcvdPropagatedBufferTrans ();
-    void Post ();
+    void Post() override;
 };
 
 /*****************************************************************************
@@ -164,7 +166,7 @@ static CliGmConn * GetConnIncRef_CS (const char tag[]) {
             conn->Ref(tag);
             return conn;
         }
-    return nil;
+    return nullptr;
 }
 
 //============================================================================
@@ -178,8 +180,8 @@ static void UnlinkAndAbandonConn_CS (CliGmConn * conn) {
     s_conns.Unlink(conn);
     conn->abandoned = true;
     if (conn->cancelId) {
-        AsyncSocketConnectCancel(nil, conn->cancelId);
-        conn->cancelId  = 0;
+        AsyncSocketConnectCancel(conn->cancelId);
+        conn->cancelId  = nullptr;
     }
     else if (conn->sock) {
         AsyncSocketDisconnect(conn->sock, true);
@@ -213,7 +215,7 @@ static void NotifyConnSocketConnect (CliGmConn * conn) {
         true,
         ConnEncrypt,
         0,
-        nil,
+        nullptr,
         conn
     );
 }
@@ -223,7 +225,7 @@ static void NotifyConnSocketConnectFailed (CliGmConn * conn) {
     bool notify;
     {
         hsLockGuard(s_critsect);
-        conn->cancelId = 0;
+        conn->cancelId = nullptr;
         s_conns.Unlink(conn);
         
         notify
@@ -232,7 +234,7 @@ static void NotifyConnSocketConnectFailed (CliGmConn * conn) {
             && (!s_active || conn == s_active);
             
         if (conn == s_active)
-            s_active = nil;
+            s_active = nullptr;
     }
 
     NetTransCancelByConnId(conn->seq, kNetErrTimeout);
@@ -258,7 +260,7 @@ static void NotifyConnSocketDisconnect (CliGmConn * conn) {
             && (!s_active || conn == s_active);
 
         if (conn == s_active)
-            s_active = nil;
+            s_active = nullptr;
     }
 
     // Cancel all transactions in process on this connection.
@@ -274,7 +276,7 @@ static void NotifyConnSocketDisconnect (CliGmConn * conn) {
 static bool NotifyConnSocketRead (CliGmConn * conn, AsyncNotifySocketRead * read) {
     // TODO: Only dispatch messages from the active game server
     conn->lastHeardTimeMs = GetNonZeroTimeMs();
-    bool result = NetCliDispatch(conn->cli, read->buffer, read->bytes, nil);
+    bool result = NetCliDispatch(conn->cli, read->buffer, read->bytes, nullptr);
     read->bytesProcessed += read->bytes;
     return result;
 }
@@ -298,7 +300,7 @@ static bool SocketNotifyCallback (
             {
                 hsLockGuard(s_critsect);
                 conn->sock      = sock;
-                conn->cancelId  = 0;
+                conn->cancelId  = nullptr;
                 abandoned       = conn->abandoned;
             }
             if (abandoned)
@@ -320,6 +322,10 @@ static bool SocketNotifyCallback (
         case kNotifySocketRead:
             conn = (CliGmConn *) *userState;
             result = NotifyConnSocketRead(conn, (AsyncNotifySocketRead *) notify);
+        break;
+
+        case kNotifySocketWrite:
+            // No action
         break;
     }
     
@@ -360,9 +366,7 @@ static void Connect (
         SocketNotifyCallback,
         conn,
         &connect,
-        sizeof(connect),
-        0,
-        0
+        sizeof(connect)
     );
 }
 
@@ -388,9 +392,9 @@ static unsigned CliGmConnPingTimerProc (void * param) {
 
 //============================================================================
 CliGmConn::CliGmConn ()
-    : hsRefCnt(0), sock(nil), cancelId(nil), cli(nil)
-    , seq(0), abandoned(false)
-    , pingTimer(nil), pingSendTimeMs(0), lastHeardTimeMs(0)
+    : hsRefCnt(0), sock(), cancelId(), cli()
+    , seq(), abandoned()
+    , pingTimer(), pingSendTimeMs(), lastHeardTimeMs()
 {
     ++s_perf[kPerfConnCount];
 }
@@ -407,8 +411,7 @@ void CliGmConn::AutoPing () {
     ASSERT(!pingTimer);
     Ref("PingTimer");
     hsLockGuard(critsect);
-    AsyncTimerCreate(
-        &pingTimer,
+    pingTimer = AsyncTimerCreate(
         CliGmConnPingTimerProc,
         sock ? 0 : kAsyncTimeInfinite,
         this
@@ -420,7 +423,7 @@ void CliGmConn::StopAutoPing () {
     hsLockGuard(critsect);
     if (pingTimer) {
         AsyncTimerDeleteCallback(pingTimer, CliGmConnTimerDestroyed);
-        pingTimer = nil;
+        pingTimer = nullptr;
     }
 }
 
@@ -434,7 +437,7 @@ void CliGmConn::TimerPing () {
         pingSendTimeMs
     };
 
-    Send(msg, arrsize(msg));
+    Send(msg, std::size(msg));
 }
 
 //============================================================================
@@ -451,36 +454,24 @@ void CliGmConn::Send (const uintptr_t fields[], unsigned count) {
 *
 ***/
 
+template<typename T>
+bool RecvMsg(const uint8_t msg[], unsigned bytes, void* param)
+{
+    // Stupid nested namespaces...
+    return ::NetTransRecvFromMsgGeneric<T>(msg, bytes, param);
+}
+
 //============================================================================
-static bool Recv_PingReply (
-    const uint8_t      msg[],
-    unsigned        bytes,
-    void *          param
-) {
+template<>
+bool RecvMsg<Game2Cli_PingReply>(const uint8_t msg[], unsigned bytes, void* param)
+{
     return true;
 }
 
 //============================================================================
-static bool Recv_JoinAgeReply (
-    const uint8_t      msg[],
-    unsigned        bytes,
-    void *          param
-) {
-    const Game2Cli_JoinAgeReply & reply = *(const Game2Cli_JoinAgeReply *)msg;
-    if (sizeof(reply) != bytes)
-        return false;
-
-    NetTransRecv(reply.transId, msg, bytes);
-
-    return true;
-}
-
-//============================================================================
-static bool Recv_PropagateBuffer (
-    const uint8_t      msg[],
-    unsigned        bytes,
-    void *          param
-) {
+template<>
+bool RecvMsg<Game2Cli_PropagateBuffer>(const uint8_t msg[], unsigned bytes, void* param)
+{
     const Game2Cli_PropagateBuffer & reply = *(const Game2Cli_PropagateBuffer *)msg;
 
     RcvdPropagatedBufferTrans * trans = new RcvdPropagatedBufferTrans;
@@ -494,11 +485,9 @@ static bool Recv_PropagateBuffer (
 }
 
 //============================================================================
-static bool Recv_GameMgrMsg (
-    const uint8_t      msg[],
-    unsigned        bytes,
-    void *          param
-) {
+template<>
+bool RecvMsg<Game2Cli_GameMgrMsg>(const uint8_t msg[], unsigned bytes, void* param)
+{
     // What do you expect me to do with this crap?
     return true;
 }
@@ -516,7 +505,7 @@ static NetMsgInitSend s_send[] = {
 };
 #undef MSG
 
-#define MSG(s)  &kNetMsg_Game2Cli_##s, Recv_##s
+#define MSG(s)  &kNetMsg_Game2Cli_##s, RecvMsg<Game2Cli_##s>
 static NetMsgInitRecv s_recv[] = {
     { MSG(PingReply)            },
     { MSG(JoinAgeReply),        },
@@ -561,7 +550,7 @@ bool JoinAgeRequestTrans::Send () {
                         m_playerInt,
     };
 
-    m_conn->Send(msg, arrsize(msg));
+    m_conn->Send(msg, std::size(msg));
     
     return true;
 }
@@ -614,7 +603,7 @@ void RcvdPropagatedBufferTrans::Post () {
 //============================================================================
 NetGameTrans::NetGameTrans (ETransType transType)
 :   NetTrans(kNetProtocolCli2Game, transType)
-,   m_conn(nil)
+,   m_conn()
 {
 }
 
@@ -627,14 +616,14 @@ NetGameTrans::~NetGameTrans () {
 bool NetGameTrans::AcquireConn () {
     if (!m_conn)
         m_conn = GetConnIncRef("AcquireConn");
-    return m_conn != nil;
+    return m_conn != nullptr;
 }
 
 //============================================================================
 void NetGameTrans::ReleaseConn () {
     if (m_conn) {
         m_conn->UnRef("AcquireConn");
-        m_conn = nil;
+        m_conn = nullptr;
     }
 }
 
@@ -651,8 +640,8 @@ void GameInitialize () {
     NetMsgProtocolRegister(
         kNetProtocolCli2Game,
         false,
-        s_send, arrsize(s_send),
-        s_recv, arrsize(s_recv),
+        s_send, std::size(s_send),
+        s_recv, std::size(s_recv),
         kGameDhGValue,
         plBigNum(sizeof(kGameDhXData), kGameDhXData),
         plBigNum(sizeof(kGameDhNData), kGameDhNData)
@@ -662,7 +651,7 @@ void GameInitialize () {
 //============================================================================
 void GameDestroy (bool wait) {
     s_running = false;
-    s_bufHandler = nil;
+    s_bufHandler = nullptr;
 
     NetTransCancelByProtocol(
         kNetProtocolCli2Game,
@@ -677,7 +666,7 @@ void GameDestroy (bool wait) {
         hsLockGuard(s_critsect);
         while (CliGmConn * conn = s_conns.Head())
             UnlinkAndAbandonConn_CS(conn);
-        s_active = nil;
+        s_active = nullptr;
     }
     
     if (!wait)
@@ -685,7 +674,7 @@ void GameDestroy (bool wait) {
 
     while (s_perf[kPerfConnCount]) {
         NetTransUpdate();
-        AsyncSleep(10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
@@ -738,7 +727,7 @@ void NetCliGameDisconnect () {
     hsLockGuard(s_critsect);
     while (CliGmConn * conn = s_conns.Head())
         UnlinkAndAbandonConn_CS(conn);
-    s_active = nil;
+    s_active = nullptr;
 }
 
 //============================================================================
@@ -783,7 +772,7 @@ void NetCliGamePropagateBuffer (
         (uintptr_t) buffer,
     };
 
-    conn->Send(msg, arrsize(msg));
+    conn->Send(msg, std::size(msg));
 
     conn->UnRef("PropBuffer");
 }

@@ -51,7 +51,7 @@ class plCorrectionMsg : public plMessage
 public:
     plCorrectionMsg() : plMessage(nullptr, nullptr, nullptr) { }
 
-    plCorrectionMsg(plKey& r, const hsMatrix44& l2w, const hsMatrix44& w2l,
+    plCorrectionMsg(const plKey& r, const hsMatrix44& l2w, const hsMatrix44& w2l,
                     bool dirtySynch = false)
         : plMessage(nullptr, r, nullptr),
           fLocalToWorld(l2w),
@@ -68,16 +68,8 @@ public:
     bool fDirtySynch;
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
-        plMessage::IMsgRead(stream, mgr);
-        fLocalToWorld.Read(stream);
-        fWorldToLocal.Read(stream);
-    }
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
-        plMessage::IMsgWrite(stream, mgr);
-        fLocalToWorld.Write(stream);
-        fWorldToLocal.Write(stream);
-    }
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 #endif // plCorrectionMsg_inc

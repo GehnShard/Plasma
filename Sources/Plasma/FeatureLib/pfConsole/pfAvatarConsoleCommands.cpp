@@ -49,45 +49,46 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define LIMIT_CONSOLE_COMMANDS 1
 #endif
 
-#include "pfConsoleCore/pfConsoleCmd.h"
+#include <string_theory/string>
+
 #include "plgDispatch.h"
-#include "pfConsole.h"
 #include "hsResMgr.h"
+#include "hsTimer.h"
 
-#include "pfMessage/plArmatureEffectMsg.h"
+#include "pfConsole.h"
 
-#include "plMessage/plOneShotMsg.h"
-#include "plMessage/plAvatarMsg.h"
-#include "plMessage/plInputEventMsg.h"
-#include "plMessage/plSimStateMsg.h"
-#include "plMessage/plCCRMsg.h"
-#include "plMessage/plLinkToAgeMsg.h"
 #include "pnMessage/plNotifyMsg.h"
+#include "pnNetCommon/plNetApp.h"
 
-#include "plModifier/plSpawnModifier.h"
-
-#include "plResMgr/plKeyFinder.h"
-
+#include "plAnimation/plAGAnim.h"
+#include "plAnimation/plAGAnimInstance.h"
+#include "plAvatar/plArmatureEffects.h"
 #include "plAvatar/plArmatureMod.h"
+#include "plAvatar/plAnimStage.h"
+#include "plAvatar/plAvBrainClimb.h"
 #include "plAvatar/plAvBrainCritter.h"
 #include "plAvatar/plAvBrainHuman.h"
 #include "plAvatar/plAvBrainSwim.h"
 #include "plAvatar/plAvBrainGeneric.h"
+#include "plAvatar/plAvTaskSeek.h"
 #include "plAvatar/plAvatarMgr.h"
+#include "plAvatar/plNPCSpawnMod.h"
 #include "plAvatar/plSeekPointMod.h"
 #include "plAvatar/plOneShotMod.h"
-#include "plAnimation/plAGAnim.h"
-#include "plAvatar/plAvBrainHuman.h"
-#include "plAvatar/plNPCSpawnMod.h"
-#include "plAnimation/plAGAnimInstance.h"
-#include "plAvatar/plArmatureEffects.h"
-#include "plAvatar/plAvTaskSeek.h"
-
-//#include "plHavok1/plSimulationMgr.h"
-#include "pnNetCommon/plNetApp.h"
-#include "plNetClient/plNetClientMgr.h"
-#include "plDrawable/plInstanceDrawInterface.h"
 #include "plDrawable/plDrawableSpans.h"
+#include "plDrawable/plInstanceDrawInterface.h"
+#include "plMessage/plAvatarMsg.h"
+#include "plMessage/plCCRMsg.h"
+#include "plMessage/plInputEventMsg.h"
+#include "plMessage/plLinkToAgeMsg.h"
+#include "plMessage/plOneShotMsg.h"
+#include "plMessage/plSimStateMsg.h"
+#include "plModifier/plSpawnModifier.h"
+#include "plResMgr/plKeyFinder.h"
+#include "plScene/plRelevanceMgr.h"
+
+#include "pfConsoleCore/pfConsoleCmd.h"
+#include "pfMessage/plArmatureEffectMsg.h"
 
 #define PF_SANITY_CHECK( cond, msg ) { if( !( cond ) ) { PrintString( msg ); return; } }
 
@@ -133,8 +134,6 @@ PF_CONSOLE_SUBGROUP( Avatar, LOD )
 
 #endif // LIMIT_CONSOLE_COMMANDS
 
-#include "plAvatar/plAnimStage.h"
-
 plAvBrainHuman * GetMainAvatarBrain()
 {
     plArmatureMod *avatar = plAvatarMgr::GetInstance()->GetLocalAvatar();
@@ -144,7 +143,7 @@ plAvBrainHuman * GetMainAvatarBrain()
         if(brain)
             return brain;
     }
-    return nil;
+    return nullptr;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -386,7 +385,7 @@ PF_CONSOLE_CMD( Avatar_Multistage, Advance, "", "Advances the avatar's current m
     {
         plKey avKey = avatar->GetKey();
         
-        plAvBrainGenericMsg *msg = new plAvBrainGenericMsg(nil, avKey, plAvBrainGenericMsg::kNextStage, 0, true, 0.5f);
+        plAvBrainGenericMsg *msg = new plAvBrainGenericMsg(nullptr, avKey, plAvBrainGenericMsg::kNextStage, 0, true, 0.5f);
         msg->Send();
     }
 }
@@ -400,7 +399,7 @@ PF_CONSOLE_CMD( Avatar_Multistage, Regress, "", "Regresses the avatar's current 
     {
         plKey avKey = avatar->GetKey();
         
-        plAvBrainGenericMsg *msg = new plAvBrainGenericMsg(nil, avKey, plAvBrainGenericMsg::kPrevStage, 0, true, 0.5f);
+        plAvBrainGenericMsg *msg = new plAvBrainGenericMsg(nullptr, avKey, plAvBrainGenericMsg::kPrevStage, 0, true, 0.5f);
         msg->Send();
     }
 }
@@ -457,8 +456,6 @@ PF_CONSOLE_CMD( Avatar, PopBrain, "", "Remove the topmost brain from the avatar.
     }
 }
 
-#include "plScene/plRelevanceMgr.h"
-
 PF_CONSOLE_CMD( Avatar, 
                MarkRelevanceRegion,
                "string regionA, string regionB, int wantsUpdate",
@@ -501,7 +498,7 @@ PF_CONSOLE_CMD( Avatar, SeekPoint, "string seekpoint", "Move to the given seekpo
             
             plKey avKey = avatar->GetKey();
             float unused = 0.0f;
-            plAvSeekMsg *msg = new plAvSeekMsg(nil, avKey, targetKey, unused, false);
+            plAvSeekMsg *msg = new plAvSeekMsg(nullptr, avKey, targetKey, unused, false);
             
             plgDispatch::MsgSend(msg);
         }
@@ -592,7 +589,7 @@ PF_CONSOLE_CMD( Avatar, FakeLinkToObj, "string objName", "Pseudo-Link the avatar
         return;
     }
     plPseudoLinkEffectMsg* msg = new plPseudoLinkEffectMsg;
-    msg->fAvatarKey = plNetClientMgr::GetInstance()->GetLocalPlayerKey();
+    msg->fAvatarKey = plNetClientApp::GetInstance()->GetLocalPlayerKey();
     msg->fLinkObjKey = seekKey;
     plgDispatch::MsgSend(msg);
     
@@ -755,9 +752,6 @@ PF_CONSOLE_CMD( Avatar_LOD,  GetLODDistance, "", "Get Distance for switching Ava
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-
-#include "plAvatar/plAvBrainClimb.h"
-
 PF_CONSOLE_CMD( Avatar_Climb, Start, "string direction", "Specify initial mount direction: up, down, left, right")
 {
     plArmatureMod *avMod = const_cast<plArmatureMod *>(plAvatarMgr::GetInstance()->GetLocalAvatar());
@@ -896,15 +890,13 @@ PF_CONSOLE_CMD( Avatar_Warp, WarpToXYZ, "float x, float y, float z", "Warp our a
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "hsTimer.h"
-
 PF_CONSOLE_CMD( Avatar_AG, DumpFull, "", "print out the animation graph for the avatar")
 {
     plArmatureMod *avatar = plAvatarMgr::GetInstance()->GetLocalAvatar();
 
     double time = hsTimer::GetSysSeconds();
 
-    avatar->DumpAniGraph(nil, false, time);
+    avatar->DumpAniGraph(nullptr, false, time);
 }
 
 PF_CONSOLE_CMD( Avatar_AG, DumpFullOptimized, "", "print out the optimized animation graph for the avatar")
@@ -912,7 +904,7 @@ PF_CONSOLE_CMD( Avatar_AG, DumpFullOptimized, "", "print out the optimized anima
     plArmatureMod *avatar = plAvatarMgr::GetInstance()->GetLocalAvatar();
 
     double time = hsTimer::GetSysSeconds();
-    avatar->DumpAniGraph(nil, true, time);
+    avatar->DumpAniGraph(nullptr, true, time);
 }
 
 PF_CONSOLE_CMD( Avatar_AG, DumpSingle, "string boneName", "print out the animation graph for the given (avatar) bone")

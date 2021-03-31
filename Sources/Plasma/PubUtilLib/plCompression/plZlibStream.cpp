@@ -52,10 +52,6 @@ void ZlibFree(voidpf opaque, voidpf address)
     free(address);
 }
 
-plZlibStream::plZlibStream() : fOutput(nil), fZStream(nil), fHeader(kNeedMoreData), fDecompressedOk(false)
-{
-}
-
 plZlibStream::~plZlibStream()
 {
     hsAssert(!fOutput && !fZStream, "plZlibStream not closed");
@@ -76,14 +72,14 @@ bool plZlibStream::Close()
     {
         fOutput->Close();
         delete fOutput;
-        fOutput = nil;
+        fOutput = nullptr;
     }
     if (fZStream)
     {
         z_streamp zstream = (z_streamp)fZStream;
         inflateEnd(zstream);
         delete zstream;
-        fZStream = nil;
+        fZStream = nullptr;
     }
 
     return true;
@@ -195,7 +191,7 @@ int plZlibStream::IValidateGzHeader(uint32_t byteCount, const void* buffer)
     
     // Discard time, xflags and OS code:
     for (i = 0; i < 6; i++)
-        s.ReadByte();
+        (void)s.ReadByte();
     CheckForEnd();
     
     if ((flags & EXTRA_FIELD) != 0)
@@ -231,7 +227,7 @@ int plZlibStream::IValidateGzHeader(uint32_t byteCount, const void* buffer)
     // skip the header crc
     if ((flags & HEAD_CRC) != 0)
     {
-        s.ReadLE16();
+        (void)s.ReadLE16();
         CheckForEnd();
     }
     
@@ -245,7 +241,7 @@ int plZlibStream::IValidateGzHeader(uint32_t byteCount, const void* buffer)
     memset(zstream, 0, sizeof(z_stream_s));
     zstream->zalloc = ZlibAlloc;
     zstream->zfree = ZlibFree;
-    zstream->opaque = nil;
+    zstream->opaque = nullptr;
     zstream->avail_in = byteCount - clipBuffer;
     zstream->next_in = (uint8_t*)&fHeaderCache[clipBuffer];
     // Gotta use inflateInit2, because there's no header for zlib to look at.

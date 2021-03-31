@@ -55,7 +55,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnMessage/plNodeRefMsg.h"
 #include "pnKeyedObject/plKey.h"
 
-plSimulationInterface::plSimulationInterface() : fPhysical(nil)
+plSimulationInterface::plSimulationInterface() : fPhysical()
 {
 }
 
@@ -97,7 +97,7 @@ void plSimulationInterface::Read(hsStream* s, hsResMgr* mgr)
     // avoid breaking the format
     fProps.Read(s);
     // Also unnecessary
-    int poop = s->ReadLE32();
+    (void)s->ReadLE32();
 
     plIntRefMsg* refMsg = new plIntRefMsg(GetKey(), plRefMsg::kOnCreate, 0, plIntRefMsg::kPhysical, 0);
     mgr->ReadKeyNotifyMe(s, refMsg, plRefFlags::kActiveRef);
@@ -151,7 +151,7 @@ bool plSimulationInterface::MsgReceive(plMessage* msg)
                 if (phys)
                 {
                     hsAssert(phys == fPhysical, "Removing Physical I don't have");
-                    fPhysical = nil;
+                    fPhysical = nullptr;
                 }
             }
             else

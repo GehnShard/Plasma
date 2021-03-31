@@ -48,12 +48,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plMiscComponents.h"
 #include "MaxMain/plMaxNode.h"
 #include "MaxMain/plMaxNodeData.h"
-#include "resource.h"
+#include "MaxMain/MaxAPI.h"
 
-#include <iparamm2.h>
-#include <memory>
-#include <notify.h>
-#pragma hdrstop
+#include "resource.h"
 
 #ifdef MAXASS_AVAILABLE
 #   include "../../AssetMan/PublicInterface/MaxAssInterface.h"
@@ -120,9 +117,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 void DummyCodeIncludeFuncMisc() 
 {
-    RegisterNotification(plPageInfoComponent::NotifyProc, nil, NOTIFY_FILE_POST_OPEN);
-    RegisterNotification(plPageInfoComponent::NotifyProc, nil, NOTIFY_SYSTEM_POST_RESET);
-    RegisterNotification(plPageInfoComponent::NotifyProc, nil, NOTIFY_SYSTEM_POST_NEW);
+    RegisterNotification(plPageInfoComponent::NotifyProc, nullptr, NOTIFY_FILE_POST_OPEN);
+    RegisterNotification(plPageInfoComponent::NotifyProc, nullptr, NOTIFY_SYSTEM_POST_RESET);
+    RegisterNotification(plPageInfoComponent::NotifyProc, nullptr, NOTIFY_SYSTEM_POST_NEW);
 }
 
 
@@ -152,7 +149,7 @@ ParamBlockDesc2 gInterestBk
 (   // KLUDGE: not the defined block ID, but kept for backwards compat.
     1, _T("Player Attention"), 0, &gInterestDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_INTEREST, IDS_COMP_INTERESTS, 0, 0, NULL,
+    IDD_COMP_INTEREST, IDS_COMP_INTERESTS, 0, 0, nullptr,
 
     // params
     kInteresting,       _T("interesting"),      TYPE_STRING,        0, 0,   
@@ -219,7 +216,7 @@ protected:
         if( idx == CB_ERR )
             return;
         char *agePath = (char *)ComboBox_GetItemData( GetDlgItem( fhDlg, IDC_COMP_LOCATION_AGECOMBO ), idx );
-        if( agePath == nil )
+        if (agePath == nullptr)
             return;
 
         // Get the age description
@@ -230,12 +227,12 @@ protected:
 
         const char *curPage = fPB->GetStr(plPageInfoComponent::kInfoPage);
         if (curPage && *curPage == '\0')
-            curPage = nil;
+            curPage = nullptr;
 
         // Load the page combo and select the saved page (if it's in there)
         plAgePage *page;
         aged.SeekFirstPage();
-        while( ( page = aged.GetNextPage() ) != nil )
+        while ((page = aged.GetNextPage()) != nullptr)
         {
             int idx = ComboBox_AddString(hPageCombo, page->GetName().c_str() );
             if (curPage && (page->GetName() == curPage))
@@ -249,7 +246,7 @@ protected:
         while( ComboBox_GetCount( combo ) > 0 )
         {
             char *path = (char *)ComboBox_GetItemData( combo, 0 );
-            if( path != nil )
+            if (path != nullptr)
                 delete [] path;
             ComboBox_DeleteString( combo, 0 );
         }
@@ -260,19 +257,19 @@ protected:
         HWND hAgeCombo = GetDlgItem(fhDlg, IDC_COMP_LOCATION_AGECOMBO);
         IClearAges( hAgeCombo );
 
-        hsTArray<plFileName> ageFiles = plAgeDescInterface::BuildAgeFileList();
+        std::vector<plFileName> ageFiles = plAgeDescInterface::BuildAgeFileList();
 
         const char *curAge = fPB->GetStr(plPageInfoComponent::kInfoAge);
         if (!curAge || *curAge == '\0')
             curAge = "";
 
-        for( int i = 0; i < ageFiles.GetCount(); i++ )
+        for (const plFileName& ageFile : ageFiles)
         {
-            ST::string ageName = ageFiles[i].GetFileNameNoExt();
+            ST::string ageName = ageFile.GetFileNameNoExt();
 
             int idx = ComboBox_AddString( hAgeCombo, ageName.c_str() );
             // Store the pathas the item data for later (so don't free it yet!)
-            ComboBox_SetItemData( hAgeCombo, idx, (LPARAM)hsStrcpy(ageFiles[i].AsString().c_str()) );
+            ComboBox_SetItemData(hAgeCombo, idx, (LPARAM)hsStrcpy(ageFile.AsString().c_str()));
 
             if (ageName == curAge)
                 ComboBox_SetCurSel( hAgeCombo, idx );
@@ -282,9 +279,9 @@ protected:
     }
 
 public:
-    void DeleteThis() {}
+    void DeleteThis() override { }
 
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -327,7 +324,7 @@ public:
                     char buf[256];
                     ComboBox_GetText(hPageCombo, buf, sizeof(buf));
                     fPB->SetValue( plPageInfoComponent::kInfoPage, 0, buf );
-                    fPB->SetValue( plPageInfoComponent::kInfoSeqSuffix, 0, ComboBox_GetItemData( hPageCombo, idx ) );
+                    fPB->SetValue(plPageInfoComponent::kInfoSeqSuffix, 0, (int)ComboBox_GetItemData(hPageCombo, idx));
                 }
 
                 return TRUE;
@@ -549,7 +546,7 @@ bool plPageInfoComponent::DeInit(plMaxNode *node, plErrorMsg *pErrMsg)
         if (node->GetSwappableGeom())
         {
             snKey->Release(so->GetKey());
-            node->GetMaxNodeData()->SetSceneObject(nil);
+            node->GetMaxNodeData()->SetSceneObject(nullptr);
 
             // Since child refs are now passive, this isn't needed.
             /*
@@ -580,7 +577,7 @@ void    plPageInfoComponent::IVerifyLatestAgeAsset( const ST::string &ageName, c
     plFileName ageFileName, assetPath;
 
    MaxAssInterface *assetMan = GetMaxAssInterface();
-   if( assetMan == nil )
+   if (assetMan == nullptr)
        return;      // No AssetMan available
 
     // Try to find it in assetMan
@@ -671,7 +668,7 @@ void    plPageInfoComponent::IUpdateSeqNumbersFromAgeFile( plErrorMsg *errMsg )
 
     // Find our page
     const char *compPBPageName = fCompPB->GetStr( kInfoPage );
-    if( compPBPageName == nil )
+    if (compPBPageName == nullptr)
     {
         errMsg->Set( true,
                      "PageInfo Convert Error",
@@ -687,7 +684,7 @@ void    plPageInfoComponent::IUpdateSeqNumbersFromAgeFile( plErrorMsg *errMsg )
     plAgePage   *page;
     aged->SeekFirstPage();
 
-    while( ( page = aged->GetNextPage() ) != nil )
+    while ((page = aged->GetNextPage()) != nullptr)
     {
         if( page->GetName().compare_i( compPBPageName ) == 0 )
         {
@@ -758,7 +755,7 @@ int32_t   plPageInfoUtils::GetSeqNumFromAgeDesc( const char *ageName, const char
 {
     int             seqPrefix, seqSuffix = 0;
     plAgeDescription *aged = GetAgeDesc( ageName );
-    if( aged == nil )
+    if (aged == nullptr)
     {
         // ???? This ain't good...attempt to get the resMgr to give us a temporary seqNum...
         return 0;
@@ -769,7 +766,7 @@ int32_t   plPageInfoUtils::GetSeqNumFromAgeDesc( const char *ageName, const char
     // Find our page
     plAgePage *page;
     aged->SeekFirstPage();
-    while( ( page = aged->GetNextPage() ) != nil )
+    while ((page = aged->GetNextPage()) != nullptr)
     {
         if (page->GetName().compare_i(pageName) == 0)
         {
@@ -802,9 +799,9 @@ plAgeDescription *plPageInfoUtils::GetAgeDesc( const ST::string &ageName )
 const char* LocCompGetPage(plComponentBase* comp)
 {
     if (!comp)
-        return nil;
+        return nullptr;
 
-    const char* page = nil;
+    const char* page = nullptr;
     
     if (comp->ClassID() == PAGEINFO_CID)
     {
@@ -815,7 +812,7 @@ const char* LocCompGetPage(plComponentBase* comp)
     if (page && *page != '\0')
         return page;
     
-    return nil;
+    return nullptr;
 }
 
 static const char *CheckPageInfoCompsRecur(plMaxNode *node)
@@ -833,7 +830,7 @@ static const char *CheckPageInfoCompsRecur(plMaxNode *node)
         if (result)
             return result;
     }
-    return nil;
+    return nullptr;
 }
 
 void plPageInfoComponent::NotifyProc(void *param, NotifyInfo *info)
@@ -841,7 +838,7 @@ void plPageInfoComponent::NotifyProc(void *param, NotifyInfo *info)
     if (info->intcode == NOTIFY_FILE_POST_OPEN)
     {
         const char *ageName = CheckPageInfoCompsRecur((plMaxNode*)GetCOREInterface()->GetRootNode());
-        if (ageName != nil)
+        if (ageName != nullptr)
             strncpy( fCurrExportedAge, ageName, sizeof( fCurrExportedAge ) );
     }
     else if (info->intcode == NOTIFY_SYSTEM_POST_RESET ||
@@ -882,7 +879,7 @@ ParamBlockDesc2 gRoomCompBk
 (   
     1, _T("Location"), 0, &gRoomDesc, P_AUTO_CONSTRUCT+ P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_ROOM, IDS_COMP_ROOMS, 0,   0,  NULL,
+    IDD_COMP_ROOM, IDS_COMP_ROOMS, 0,   0,  nullptr,
 
     // params
     kLocAge,            _T("Age"),      TYPE_STRING,        0, 0,
@@ -929,8 +926,8 @@ public:
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 //Max desc stuff necessary below.
@@ -948,7 +945,7 @@ ParamBlockDesc2 gViewFacingBk
 (   // KLUDGE: not the defined block ID, but kept for backwards compat.
     1, _T("View Facing"), 0, &gViewFacingDesc, P_AUTO_CONSTRUCT, plComponent::kRefComp,
 #if 0
-    IDD_COMP_VIEWFACE, IDS_COMP_VIEWFACES, 0, 0, NULL,
+    IDD_COMP_VIEWFACE, IDS_COMP_VIEWFACES, 0, 0, nullptr,
 
     kTypeofView,    _T("ViewType"),     TYPE_INT,       0, 0,
         p_ui,       TYPE_RADIO, 4,  IDC_RADIO_VF1,  IDC_RADIO_VF2,  IDC_RADIO_VF3,  IDC_RADIO_VF4, 
@@ -1123,8 +1120,7 @@ bool plViewFacingComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     {
         pMod->SetFlag(plViewFaceModifier::kScale);
         
-        hsVector3 scale;
-        scale.Set(1.f, 1.f, 1.f);
+        hsVector3 scale(1.f, 1.f, 1.f);
         scale.fX = fCompPB->GetFloat(kViewFaceScaleX);
         scale.fY = fCompPB->GetFloat(kViewFaceScaleY);
         scale.fZ = fCompPB->GetFloat(kViewFaceScaleZ);
@@ -1162,8 +1158,8 @@ public:
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 //Max desc stuff necessary below.
@@ -1225,29 +1221,27 @@ enum    {
 class plOcclusionComponentProc : public ParamMap2UserDlgProc
 {
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
         case WM_INITDIALOG:
-            {
-            }
-            return true;
+            return TRUE;
 
 //////////////////
         case WM_COMMAND:
             {
                 if (LOWORD(wParam) == IDC_COMP_OCCLUSION_CKBX)
                 {
-                    return true;
+                    return TRUE;
                 }
             }
             
         }
 
-        return false;
+        return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plOcclusionComponentProc gOccProc;
 
@@ -1257,11 +1251,11 @@ class plOcclusionComponent : public plComponent
 public:
     plOcclusionComponent();
 
-    virtual bool SetupProperties(plMaxNode* pNode, plErrorMsg* pErrMsg);
-    virtual bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode* pNode, plErrorMsg* pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables) { AddTargetsToList(nonDrawables); }
+    void CollectNonDrawables(INodeTab& nonDrawables) override { AddTargetsToList(nonDrawables); }
 };
 
 CLASS_DESC(plOcclusionComponent, gOcclusionDesc, "Occlusion",  "Occlusion", COMP_TYPE_GRAPHICS, Class_ID(0x18c454df, 0x1ecd40f5))
@@ -1322,10 +1316,10 @@ public:
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
 
-    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 //Max desc stuff necessary below.
@@ -1340,7 +1334,7 @@ ParamBlockDesc2 gCamViewBk
 (
     plComponent::kBlkComp, _T("CamView"), 0, &gCamViewDesc, P_AUTO_CONSTRUCT/* + P_AUTO_UI*/, plComponent::kRefComp,
 
-//  IDD_COMP_CAMVIEW, IDS_COMP_CAMVIEWS, 0, 0, NULL,
+//  IDD_COMP_CAMVIEW, IDS_COMP_CAMVIEWS, 0, 0, nullptr,
 
     end
 );
@@ -1358,7 +1352,7 @@ bool plCamViewComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
 
     Object* obj = node->EvalWorldState(timeVal).obj;
 
-    GenCamera* cam = nil;
+    GenCamera* cam = nullptr;
     if( obj->CanConvertToType(Class_ID(LOOKAT_CAM_CLASS_ID, 0)) )
         cam = (GenCamera *) obj->ConvertToType(timeVal, Class_ID(LOOKAT_CAM_CLASS_ID, 0));
     else 
@@ -1400,8 +1394,8 @@ bool plCamViewComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
         }
         break;
     }
-    fovX *= 180.f / M_PI;
-    fovY *= 180.f / M_PI;
+    fovX = hsRadiansToDegrees(fovX);
+    fovY = hsRadiansToDegrees(fovY);
     mod->SetFovX(fovX);
     mod->SetFovY(fovY);
 
@@ -1491,7 +1485,7 @@ enum
 class plLeaderObjAccessor : public PBAccessor
 {
 public:
-    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)
+    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override
     {
         if( (id == kLeaderObjectSel) )
         {
@@ -1505,7 +1499,7 @@ plLeaderObjAccessor gLeaderObjAccessor;
 class plFollowComponentProc : public ParamMap2UserDlgProc
 {
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -1534,15 +1528,15 @@ public:
                     else
                         map->Enable(kLeaderObjectSel, FALSE);
                     
-                    return true;
+                    return TRUE;
                 }
             }
             
         }
 
-        return false;
+        return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plFollowComponentProc gFollowProc;
 
@@ -1557,9 +1551,9 @@ private:
 public:
     plFollowComponent();
 
-    bool SetupProperties(plMaxNode* pNode, plErrorMsg* pErrMsg);
-    bool PreConvert(plMaxNode* pNode, plErrorMsg* pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode* pNode, plErrorMsg* pErrMsg) override;
+    bool PreConvert(plMaxNode* pNode, plErrorMsg* pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 
@@ -1627,7 +1621,7 @@ plFollowMod* plFollowComponent::IMakeFollowMod(plMaxNode* pNode, plErrorMsg* pEr
 
     if( plFollowMod::kObject == lType )
     {
-        if(fCompPB->GetINode(kLeaderObjectSel) != NULL)
+        if (fCompPB->GetINode(kLeaderObjectSel) != nullptr)
         {
             plMaxNode* targNode = (plMaxNode*)fCompPB->GetINode(kLeaderObjectSel);
 
@@ -1732,8 +1726,8 @@ public:
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 //Max desc stuff necessary below.
@@ -1743,7 +1737,7 @@ ParamBlockDesc2 gUnleashBk
 (
     plComponent::kBlkComp, _T("Unleash"), 0, &gUnleashDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_UNLEASH, IDS_COMP_UNLEASH, 0, 0, NULL,
+    IDD_COMP_UNLEASH, IDS_COMP_UNLEASH, 0, 0, nullptr,
 
     end
 );
@@ -1784,8 +1778,8 @@ public:
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) { return true; }
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override { return true; }
 };
 
 //Max desc stuff necessary below.
@@ -1795,7 +1789,7 @@ ParamBlockDesc2 gForceRTLightBk
 (
     plComponent::kBlkComp, _T("ForceRTLight"), 0, &gForceRTLightDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_FORCE_RTLIGHT, IDS_COMP_FORCE_RTLIGHT, 0, 0, NULL,
+    IDD_COMP_FORCE_RTLIGHT, IDS_COMP_FORCE_RTLIGHT, 0, 0, nullptr,
 
     end
 );
@@ -1837,8 +1831,8 @@ public:
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) { return true; }
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override { return true; }
 };
 
 static const int kDefMaxFaces(1000);
@@ -1848,7 +1842,7 @@ static const int kDefMinFaces(300);
 class plGeoDiceComponentProc : public ParamMap2UserDlgProc
 {
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -1872,7 +1866,7 @@ public:
                     map->Enable(plGeoDiceComponent::kMinFaces, TRUE);
                 }
             }
-            return true;
+            return TRUE;
 
 //////////////////
         case WM_COMMAND:
@@ -1897,15 +1891,15 @@ public:
                         map->Enable(plGeoDiceComponent::kMinFaces, TRUE);
                     }
                     
-                    return true;
+                    return TRUE;
                 }
             }
             
         }
 
-        return false;
+        return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plGeoDiceComponentProc gGeoDiceProc;
 
@@ -1981,11 +1975,11 @@ class plReferencePointComponent : public plComponent
 public:
     plReferencePointComponent();
 
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) { return true; }
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override { return true; }
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    virtual bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg); 
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
 };
 
 CLASS_DESC(plReferencePointComponent, gReferencePointDesc, "Reference Point",  "RefPoint", COMP_TYPE_MISC, Class_ID(0x3c9c6f71, 0x5774fc5))
@@ -2027,9 +2021,9 @@ public:
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    virtual bool SetupProperties(plMaxNode* node, plErrorMsg* errMsg);
-    virtual bool Convert(plMaxNode* node, plErrorMsg* errMsg) { return true; }
-    virtual bool DeInit(plMaxNode* node, plErrorMsg* errMsg);
+    bool SetupProperties(plMaxNode* node, plErrorMsg* errMsg) override;
+    bool Convert(plMaxNode* node, plErrorMsg* errMsg) override { return true; }
+    bool DeInit(plMaxNode* node, plErrorMsg* errMsg) override;
 };
 
 CLASS_DESC(plNetSyncComponent, gNetSyncDesc, "Net Sync", "NetSync", COMP_TYPE_MISC, Class_ID(0x4d1b2d6f, 0x28fe08db))
@@ -2088,7 +2082,7 @@ protected:
     }
 
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -2108,7 +2102,7 @@ public:
 
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plNetSyncComponentProc gNetSyncProc;
 
@@ -2252,7 +2246,7 @@ void plNetSyncComponent::ISetNetSync(plSynchedObject* so)
 
 void plNetSyncComponent::ISetMtl(hsGMaterial* mtl)
 {
-    for (int i = 0; i < mtl->GetNumLayers(); i++)
+    for (size_t i = 0; i < mtl->GetNumLayers(); i++)
     {
         plLayerInterface* layer = mtl->GetLayer(i);
         while (layer)
@@ -2282,7 +2276,7 @@ bool plNetSyncComponent::DeInit(plMaxNode* node, plErrorMsg* errMsg)
     Mtl* maxMaterial = hsMaterialConverter::Instance().GetBaseMtl(node);
     if (maxMaterial)
     {
-        hsTArray<hsGMaterial*> matArray;
+        std::vector<hsGMaterial*> matArray;
 
         // Get the textures from the material converter
         if (hsMaterialConverter::Instance().IsMultiMat(maxMaterial))
@@ -2295,9 +2289,8 @@ bool plNetSyncComponent::DeInit(plMaxNode* node, plErrorMsg* errMsg)
             hsMaterialConverter::Instance().GetMaterialArray(maxMaterial, node, matArray);
 
         // Set sync on the textures we found
-        for (int i = 0; i < matArray.GetCount(); i++)
+        for (hsGMaterial* mtl : matArray)
         {
-            hsGMaterial* mtl = matArray[i];
             if (mtl)
                 ISetMtl(mtl);
         }
@@ -2328,10 +2321,10 @@ protected:
         for( int i = 0; i < comp->GetNumBitmaps(); i++ )
         {
             plLayerTex *layer = comp->GetBitmap( i );
-            if( layer != nil )
+            if (layer != nullptr)
             {
                 const char *str = layer->GetPBBitmap()->bi.Filename();
-                int idx = SendMessage( ctrl, LB_ADDSTRING, 0, (LPARAM)str );
+                int idx = (int)SendMessage(ctrl, LB_ADDSTRING, 0, (LPARAM)str);
                 SendMessage( ctrl, LB_SETITEMDATA, (WPARAM)idx, (LPARAM)i );
 
                 SIZE strSize;
@@ -2340,7 +2333,7 @@ protected:
                     maxWidth = strSize.cx;
             }
         }
-        SendMessage( ctrl, LB_SETHORIZONTALEXTENT, (WPARAM)maxWidth, NULL );
+        SendMessage(ctrl, LB_SETHORIZONTALEXTENT, (WPARAM)maxWidth, 0);
         ReleaseDC( ctrl, dc );
 
         EnableWindow( GetDlgItem( hDlg, IDC_IMAGE_EDIT ), false );
@@ -2354,11 +2347,11 @@ protected:
 
 public:
 
-    void DeleteThis() {}
+    void DeleteThis() override { }
 
 //  virtual void    Update( TimeValue t, Interval &valid, IParamMap2 *map );
 
-    BOOL DlgProc( TimeValue t, IParamMap2 *pmap, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *pmap, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         IParamBlock2            *pb = pmap->GetParamBlock();
         pfImageLibComponent     *comp = (pfImageLibComponent *)pb->GetOwner();
@@ -2370,7 +2363,7 @@ public:
                 // Fill our list with bitmap filenames
                 comp->Validate();
                 IRefreshImageList( hWnd, comp );
-                return true;
+                return TRUE;
 
             case WM_DESTROY:
                 break;
@@ -2388,12 +2381,12 @@ public:
                 }
                 else if( LOWORD( wParam ) == IDC_IMAGE_EDIT )
                 {
-                    int idx = SendDlgItemMessage( hWnd, IDC_IMAGE_LIST, LB_GETCURSEL, 0, 0 );
+                    int idx = (int)SendDlgItemMessage(hWnd, IDC_IMAGE_LIST, LB_GETCURSEL, 0, 0);
                     if( idx != LB_ERR )
                     {
-                        idx = SendDlgItemMessage( hWnd, IDC_IMAGE_LIST, LB_GETITEMDATA, (WPARAM)idx, 0 );
+                        idx = (int)SendDlgItemMessage(hWnd, IDC_IMAGE_LIST, LB_GETITEMDATA, (WPARAM)idx, 0);
                         plLayerTex *layer = comp->GetBitmap( idx );
-                        if( layer != nil && layer->HandleBitmapSelection() )
+                        if (layer != nullptr && layer->HandleBitmapSelection())
                         {
                             IRefreshImageList( hWnd, comp );
                         }
@@ -2401,18 +2394,18 @@ public:
                 }               
                 else if( LOWORD( wParam ) == IDC_IMAGE_REMOVE )
                 {
-                    int idx = SendDlgItemMessage( hWnd, IDC_IMAGE_LIST, LB_GETCURSEL, 0, 0 );
+                    int idx = (int)SendDlgItemMessage(hWnd, IDC_IMAGE_LIST, LB_GETCURSEL, 0, 0);
                     if( idx != LB_ERR )
                     {
-                        idx = SendDlgItemMessage( hWnd, IDC_IMAGE_LIST, LB_GETITEMDATA, (WPARAM)idx, 0 );
+                        idx = (int)SendDlgItemMessage(hWnd, IDC_IMAGE_LIST, LB_GETITEMDATA, (WPARAM)idx, 0);
                         comp->RemoveBitmap( idx );
                         IRefreshImageList( hWnd, comp );
                     }
-                    return false;
+                    return FALSE;
                 }
                 else if( LOWORD( wParam ) == IDC_IMAGE_LIST && HIWORD( wParam ) == LBN_SELCHANGE )
                 {
-                    int idx = SendDlgItemMessage( hWnd, IDC_IMAGE_LIST, LB_GETCURSEL, 0, 0 );
+                    int idx = (int)SendDlgItemMessage(hWnd, IDC_IMAGE_LIST, LB_GETCURSEL, 0, 0);
                     EnableWindow( GetDlgItem( hWnd, IDC_IMAGE_EDIT ), idx != LB_ERR );
                     EnableWindow( GetDlgItem( hWnd, IDC_IMAGE_REMOVE ), idx != LB_ERR );
 
@@ -2429,7 +2422,7 @@ public:
                 break;
 
         }
-        return false;
+        return FALSE;
     }
 };
 static pfImageLibProc   gImageLibProc;
@@ -2475,7 +2468,7 @@ plLayerTex  *pfImageLibComponent::GetBitmap( int idx )
 {  
     // If we don't have one, create one
     plLayerTex  *layer = (plLayerTex *)fCompPB->GetTexmap( (ParamID)kRefImageList, 0, idx );
-    if( layer == nil || layer->ClassID() != LAYER_TEX_CLASS_ID )
+    if (layer == nullptr || layer->ClassID() != LAYER_TEX_CLASS_ID)
     {
         layer = new plLayerTex;
         fCompPB->SetValue( (ParamID)kRefImageList, 0, (Texmap *)layer, idx );
@@ -2526,10 +2519,10 @@ bool pfImageLibComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     for( i = 0; i < GetNumBitmaps(); i++ )
     {
         plLayerTex *layer = GetBitmap( i );
-        if( layer != nil )
+        if (layer != nullptr)
         {
             PBBitmap *texture = layer->GetPBBitmap();
-            if( texture != nil )
+            if (texture != nullptr)
             {
                 uint32_t flags = plBitmap::kAlphaChannelFlag;
 
@@ -2541,7 +2534,7 @@ bool pfImageLibComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
                 }
                 else // compress using PNG compression scheme
                     bMap = plLayerConverter::Instance().CreateSimpleTexture( texture->bi.Name(), lib->GetKey()->GetUoid().GetLocation(), 0, flags, true );
-                if( bMap != nil )
+                if (bMap != nullptr)
                 {
                     hsgResMgr::ResMgr()->AddViaNotify( bMap->GetKey(), new plGenRefMsg( lib->GetKey(), 
                                             plRefMsg::kOnCreate, lib->GetNumImages(), plImageLibMod::kRefImage ), plRefFlags::kActiveRef );

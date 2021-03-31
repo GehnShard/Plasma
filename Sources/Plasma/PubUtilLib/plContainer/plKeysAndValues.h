@@ -48,7 +48,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "hsStream.h"
 
-#pragma warning(disable:4284)
+namespace ST { class string; }
 
 enum KAddValueMode
 {
@@ -96,20 +96,20 @@ public:
     bool SetValue(const ST::string & key, int value);
     bool SetValue(const ST::string & key, double value);
     // get single value
-    ST::string GetValue(const ST::string & key, const ST::string & defval=ST::null, bool * outFound=nil) const;
-    uint32_t GetValue(const ST::string & key, uint32_t defval, bool * outFound=nil) const;
-    int GetValue(const ST::string & key, int defval, bool * outFound=nil) const;
-    double GetValue(const ST::string & key, double defval, bool * outFound=nil) const;
+    ST::string GetValue(const ST::string & key, const ST::string & defval={}, bool * outFound=nullptr) const;
+    uint32_t GetValue(const ST::string & key, uint32_t defval, bool * outFound=nullptr) const;
+    int GetValue(const ST::string & key, int defval, bool * outFound=nullptr) const;
+    double GetValue(const ST::string & key, double defval, bool * outFound=nullptr) const;
     std::vector<ST::string> GetAllValues(const ST::string & key);
     // key iterator
     bool GetKeyIterators(Keys::const_iterator & iter, Keys::const_iterator & end) const;
     // value iterator (use for getting all values for key)
     bool GetValueIterators(const ST::string & key, Values::const_iterator & iter, Values::const_iterator & end) const;
     // streamable
-    void Read(hsStream * s);
-    void Write(hsStream * s);
+    void Read(hsStream * s) override;
+    void Write(hsStream * s) override;
     // TODO:
-    uint32_t GetStreamSize() { return 0;}
+    uint32_t GetStreamSize() override { return 0;}
 };
 
 

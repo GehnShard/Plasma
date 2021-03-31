@@ -44,11 +44,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "plComponentBase.h"
 #include "MaxMain/plMaxNodeBase.h"
-#pragma hdrstop
 
 #include "plNotetrackAnim.h"
 
-plNotetrackAnim::plNotetrackAnim() : fSegMap(nil)
+plNotetrackAnim::plNotetrackAnim() : fSegMap()
 {
 }
 
@@ -86,7 +85,7 @@ plNotetrackAnim::~plNotetrackAnim()
 ST::string plNotetrackAnim::GetNextAnimName()
 {
     if (!fSegMap)
-        return ST::null;
+        return ST::string();
 
     while (fAnimIt != fSegMap->end())
     {
@@ -98,7 +97,7 @@ ST::string plNotetrackAnim::GetNextAnimName()
     }
 
     fAnimIt = fSegMap->begin();
-    return ST::null;
+    return ST::string();
 }
 
 plAnimInfo plNotetrackAnim::GetAnimInfo(const ST::string &animName)
@@ -107,7 +106,7 @@ plAnimInfo plNotetrackAnim::GetAnimInfo(const ST::string &animName)
         return plAnimInfo();
 
     if (animName.empty() || fSegMap->find(animName) == fSegMap->end())
-        return plAnimInfo(fSegMap, ST::null);
+        return plAnimInfo(fSegMap, ST::string());
     else 
         return plAnimInfo(fSegMap, animName);
 }
@@ -117,7 +116,7 @@ plAnimInfo plNotetrackAnim::GetAnimInfo(const ST::string &animName)
 plAnimInfo::plAnimInfo(SegmentMap *segMap, const ST::string &animName)
 {
     fSegMap = segMap;
-    fAnimSpec = !animName.empty() ? (*fSegMap)[animName] : nil;
+    fAnimSpec = !animName.empty() ? (*fSegMap)[animName] : nullptr;
 
     if (fSegMap)
     {
@@ -129,7 +128,7 @@ plAnimInfo::plAnimInfo(SegmentMap *segMap, const ST::string &animName)
 
 ST::string plAnimInfo::GetAnimName()
 {
-    return fAnimSpec ? fAnimSpec->fName : ST::null;
+    return fAnimSpec ? fAnimSpec->fName : ST::string();
 }
 
 float plAnimInfo::GetAnimStart()
@@ -150,7 +149,7 @@ float plAnimInfo::GetAnimInitial()
 ST::string plAnimInfo::GetNextLoopName()
 {
     if (!fSegMap)
-        return ST::null;
+        return ST::string();
 
     while (fLoopIt != fSegMap->end())
     {
@@ -163,7 +162,7 @@ ST::string plAnimInfo::GetNextLoopName()
     }
 
     fLoopIt = fSegMap->begin();
-    return ST::null;
+    return ST::string();
 }
 
 float plAnimInfo::GetLoopStart(const ST::string &loopName)
@@ -203,7 +202,7 @@ float plAnimInfo::GetLoopEnd(const ST::string &loopName)
 ST::string plAnimInfo::GetNextMarkerName()
 {
     if (!fSegMap)
-        return ST::null;
+        return ST::string();
 
     while (fMarkerIt != fSegMap->end())
     {
@@ -216,7 +215,7 @@ ST::string plAnimInfo::GetNextMarkerName()
     }
 
     fMarkerIt = fSegMap->begin();
-    return ST::null;
+    return ST::string();
 }
 
 float plAnimInfo::GetMarkerTime(const ST::string &markerName)

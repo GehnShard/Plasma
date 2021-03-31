@@ -49,7 +49,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "resource.h"
 
 #include <iparamm2.h>
-#pragma hdrstop
 
 // singular
 #include "plPhysicalComponents.h"
@@ -142,7 +141,7 @@ bool plPhysicCoreComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
 class plPhysCoreAccessor : public PBAccessor
 {
 public:
-    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)
+    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override
     {
         if (id == plPhysicCoreComponent::kCustomBoundListStuff)
         {
@@ -158,9 +157,9 @@ class plPhysDebugComponent : public plPhysicCoreComponent
 {
 public:
     plPhysDebugComponent();
-    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg); 
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables);
+    void CollectNonDrawables(INodeTab& nonDrawables) override;
 };
 */
 OBSOLETE_CLASS(plPhysDebugComponent, gPhysDebugDesc, "Physics Debug", "PhysDebug", COMP_TYPE_PHYSICAL, PHYSICS_DEBUG_CID)
@@ -179,7 +178,7 @@ ParamBlockDesc2 gPhysicalBk
 
     //Roll out
     4, 
-    kPhysMain, IDD_COMP_PHYSICAL, IDS_COMP_PHYS_DEBUG, 0, 0, NULL,
+    kPhysMain, IDD_COMP_PHYSICAL, IDS_COMP_PHYS_DEBUG, 0, 0, nullptr,
     kPhysMember, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_MEMBER, 0, APPENDROLL_CLOSED, &gMemberGroupProc,
     kPhysBounce, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_BOUNCE, 0, APPENDROLL_CLOSED, &gBounceGroupProc,
     kPhysReport, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_REPORT, 0, APPENDROLL_CLOSED, &gReportGroupProc,
@@ -339,9 +338,9 @@ class plPhysTerrainComponent : public plPhysicCoreComponent
 {
 public:
     plPhysTerrainComponent();
-    bool SetupProperties(plMaxNode* node,plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode* node,plErrorMsg *pErrMsg) override;
 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables);
+    void CollectNonDrawables(INodeTab& nonDrawables) override;
 };
 
 
@@ -354,7 +353,7 @@ ParamBlockDesc2 gPhysTerrainBk
 
     //Roll out
     1, 
-    kPhysMain, IDD_COMP_PHYS_TERRAIN, IDS_COMP_PHYS_TERRAIN, 0, 0, NULL,
+    kPhysMain, IDD_COMP_PHYS_TERRAIN, IDS_COMP_PHYS_TERRAIN, 0, 0, nullptr,
 //  kPhysMember, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_MEMBER, 0, APPENDROLL_CLOSED, &gMemberGroupProc,
 //  kPhysBounce, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_BOUNCE, 0, APPENDROLL_CLOSED, &gBounceGroupProc,
 
@@ -478,9 +477,9 @@ class plProxyTerrainComponent : public plPhysicCoreComponent
 {
 public:
     plProxyTerrainComponent();
-    bool SetupProperties(plMaxNode* node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode* node, plErrorMsg *pErrMsg) override;
 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables) { AddTargetsToList(nonDrawables); }
+    void CollectNonDrawables(INodeTab& nonDrawables) override { AddTargetsToList(nonDrawables); }
 };
 
 CLASS_DESC(plProxyTerrainComponent, gProxyTerrainDesc, "Proxy Terrain", "ProxyTerrain", COMP_TYPE_PHYSICAL, PHYSICS_INVISIBLE_CID)
@@ -491,7 +490,7 @@ ParamBlockDesc2 gPhysInvisibleBk
 
     //Roll out
     1, 
-    kPhysMain, IDD_COMP_PHYS_PROXY_TERRAIN, IDS_COMP_PHYS_PROXY_TERRAIN, 0, 0, NULL,
+    kPhysMain, IDD_COMP_PHYS_PROXY_TERRAIN, IDS_COMP_PHYS_PROXY_TERRAIN, 0, 0, nullptr,
 //  kPhysMember, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_MEMBER, 0, APPENDROLL_CLOSED, &gMemberGroupProc,
 //  kPhysBounce, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_BOUNCE, 0, APPENDROLL_CLOSED, &gBounceGroupProc,
 
@@ -593,9 +592,9 @@ class plCameraBlockerComponent : public plPhysicCoreComponent
 public:
     plCameraBlockerComponent();
 
-    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg); 
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables) { AddTargetsToList(nonDrawables); }
+    void CollectNonDrawables(INodeTab& nonDrawables) override { AddTargetsToList(nonDrawables); }
 };
 
 CLASS_DESC(plCameraBlockerComponent, gCameraBlockerDesc, "(ex) Camera Blocker", "CameraBlocker", COMP_TYPE_PHYSICAL, PHYS_CAMERA_BLOCK_CID)
@@ -606,7 +605,7 @@ ParamBlockDesc2 gCameraOccludeBlock
 
     //Roll out
     1, 
-    kPhysMain, IDD_COMP_CAMERA_OCCLUDER, IDS_CAMERA_OCCLUDERS, 0, 0, NULL,
+    kPhysMain, IDD_COMP_CAMERA_OCCLUDER, IDS_CAMERA_OCCLUDERS, 0, 0, nullptr,
 //  kPhysMember, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_MEMBER, 0, APPENDROLL_CLOSED, &gMemberGroupProc,
 //  kPhysBounce, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_BOUNCE, 0, APPENDROLL_CLOSED, &gBounceGroupProc,
 
@@ -665,9 +664,9 @@ class plPhysSimpleComponent : public plPhysicCoreComponent
 {
 public:
     plPhysSimpleComponent();
-    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables);
+    void CollectNonDrawables(INodeTab& nonDrawables) override;
 };
 
 CLASS_DESC(plPhysSimpleComponent, gPhysSimpleDesc, "Simple", "Simple", COMP_TYPE_PHYSICAL, PHYSICS_SIMPLE_CID)
@@ -678,7 +677,7 @@ ParamBlockDesc2 gPhysSimpleBk
 
     //Roll out
     1, 
-    kPhysMain, IDD_COMP_PHYS_SIMPLE, IDS_COMP_PHYS_SIMPLE, 0, 0, NULL,
+    kPhysMain, IDD_COMP_PHYS_SIMPLE, IDS_COMP_PHYS_SIMPLE, 0, 0, nullptr,
 //  kPhysMember, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_MEMBER, 0, APPENDROLL_CLOSED, &gMemberGroupProc,
 //  kPhysBounce, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_BOUNCE, 0, APPENDROLL_CLOSED, &gBounceGroupProc,
 
@@ -807,9 +806,9 @@ class plPhysBlockerComponent : public plPhysicCoreComponent
 {
 public:
     plPhysBlockerComponent();
-    bool SetupProperties(plMaxNode* node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode* node, plErrorMsg *pErrMsg) override;
 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables) { AddTargetsToList(nonDrawables); }
+    void CollectNonDrawables(INodeTab& nonDrawables) override { AddTargetsToList(nonDrawables); }
 };
 
 CLASS_DESC(plPhysBlockerComponent, gPhysBlockerDesc, "(ex) Invisible Blocker",  "InvisBlocker", COMP_TYPE_PHYSICAL, PHYSICS_BLOCKER_CID)
@@ -820,7 +819,7 @@ ParamBlockDesc2 gPhysBlockerBk
 
     //Roll out
     1, 
-    kPhysMain, IDD_COMP_PHYS_INVISIBLE, IDS_COMP_PHYS_INVISIBLE, 0, 0, NULL,
+    kPhysMain, IDD_COMP_PHYS_INVISIBLE, IDS_COMP_PHYS_INVISIBLE, 0, 0, nullptr,
 //  kPhysMember, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_MEMBER, 0, APPENDROLL_CLOSED, &gMemberGroupProc,
 //  kPhysBounce, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_BOUNCE, 0, APPENDROLL_CLOSED, &gBounceGroupProc,
 
@@ -906,9 +905,9 @@ class plPhysWalkableComponent : public plPhysicCoreComponent
 {
 public:
     plPhysWalkableComponent();
-    bool SetupProperties(plMaxNode* node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode* node, plErrorMsg *pErrMsg) override;
 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables) { AddTargetsToList(nonDrawables); }
+    void CollectNonDrawables(INodeTab& nonDrawables) override { AddTargetsToList(nonDrawables); }
 };
 
 CLASS_DESC(plPhysWalkableComponent, gPhysWalkableDesc, "Walkable", "Walkable", COMP_TYPE_PHYS_TERRAINS, PHYS_WALKABLE_CID)
@@ -919,7 +918,7 @@ ParamBlockDesc2 gPhysWalkableBk
 
     //Roll out
     1, 
-    kPhysMain, IDD_COMP_PHYS_INVISIBLE, IDS_COMP_PHYS_WALKABLE, 0, 0, NULL,
+    kPhysMain, IDD_COMP_PHYS_INVISIBLE, IDS_COMP_PHYS_WALKABLE, 0, 0, nullptr,
 //  kPhysMember, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_MEMBER, 0, APPENDROLL_CLOSED, &gMemberGroupProc,
 //  kPhysBounce, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_BOUNCE, 0, APPENDROLL_CLOSED, &gBounceGroupProc,
     
@@ -988,9 +987,9 @@ class plPhysClimbableComponent : public plPhysicCoreComponent
 {
 public:
     plPhysClimbableComponent();
-    bool SetupProperties(plMaxNode* node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode* node, plErrorMsg *pErrMsg) override;
 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables) { AddTargetsToList(nonDrawables); }
+    void CollectNonDrawables(INodeTab& nonDrawables) override { AddTargetsToList(nonDrawables); }
 };
 
 CLASS_DESC(plPhysClimbableComponent, gPhysClimbableDesc, "Climbable", "Climbable", COMP_TYPE_PHYS_TERRAINS, PHYS_CLIMBABLE_CID)
@@ -1001,7 +1000,7 @@ ParamBlockDesc2 gPhysClimbableBk
 
     //Roll out
     1, 
-    kPhysMain, IDD_COMP_PHYS_CLIMBABLE, IDS_COMP_PHYS_CLIMBABLE, 0, 0, NULL,
+    kPhysMain, IDD_COMP_PHYS_CLIMBABLE, IDS_COMP_PHYS_CLIMBABLE, 0, 0, nullptr,
 //  kPhysMember, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_MEMBER, 0, APPENDROLL_CLOSED, &gMemberGroupProc,
 //  kPhysBounce, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_BOUNCE, 0, APPENDROLL_CLOSED, &gBounceGroupProc,
     
@@ -1121,8 +1120,8 @@ public:
             map->Invalidate(maxIndex);
         }
     }
-    
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         int id = LOWORD(wParam);
         
@@ -1137,7 +1136,7 @@ public:
         }
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static Swim2DDlgProc gSwim2DDlgProc;
 
@@ -1284,7 +1283,7 @@ plSwim2DComponent::plSwim2DComponent()
 bool plSwim2DComponent::SetupProperties(plMaxNode *node, plErrorMsg *errMsg)
 {
     IFixBounds();
-    plPhysicalProps *physProps = nil;
+    plPhysicalProps *physProps = nullptr;
     plMaxNode *detectorNode = (plMaxNode *)fCompPB->GetINode(kSwimDetectorNode);
     if (detectorNode)
     {
@@ -1313,9 +1312,9 @@ bool plSwim2DComponent::SetupProperties(plMaxNode *node, plErrorMsg *errMsg)
 
 bool plSwim2DComponent::PreConvert(plMaxNode *node, plErrorMsg *pErrMsg)
 {
-    plSwimRegionInterface *swimInt = nil;
+    plSwimRegionInterface *swimInt = nullptr;
     int type = fCompPB->GetInt(ParamID(kSwimCurrentType));
-    if (type != kCurrentNone && fCompPB->GetINode(ParamID(kSwimCurrentNode)) == nil)
+    if (type != kCurrentNone && fCompPB->GetINode(ParamID(kSwimCurrentNode)) == nullptr)
     {
         pErrMsg->Set(true, node->GetName(), "No dummy box set to define current. Forcing current to \"none\"").Show();
         type = kCurrentNone;
@@ -1355,8 +1354,8 @@ bool plSwim2DComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
         if (!detectorNode->GetSceneObject()->GetModifierByType(plSwimDetector::Index()))
         {
             plKey nilKey;
-            plSwimMsg *enterMsg = new plSwimMsg(detectorNode->GetKey(), nilKey, true, nil);
-            plSwimMsg *exitMsg = new plSwimMsg(detectorNode->GetKey(), nilKey, false, nil);
+            plSwimMsg *enterMsg = new plSwimMsg(detectorNode->GetKey(), nilKey, true, nullptr);
+            plSwimMsg *exitMsg = new plSwimMsg(detectorNode->GetKey(), nilKey, false, nullptr);
             enterMsg->SetBCastFlag(plMessage::kPropagateToModifiers);
             exitMsg->SetBCastFlag(plMessage::kPropagateToModifiers);
             plSwimDetector *swimMod = new plSwimDetector(enterMsg, exitMsg);
@@ -1430,9 +1429,9 @@ class plPhysSwim3DComponent : public plPhysicCoreComponent
 {
 public:
     plPhysSwim3DComponent();
-    bool SetupProperties(plMaxNode* node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode* node, plErrorMsg *pErrMsg) override;
 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables) { AddTargetsToList(nonDrawables); }
+    void CollectNonDrawables(INodeTab& nonDrawables) override { AddTargetsToList(nonDrawables); }
 };
 
 CLASS_DESC(plPhysSwim3DComponent, gPhysSwim3DDesc, "Swim 3D", "Swim 3D", COMP_TYPE_PHYS_TERRAINS, PHYS_SWIM3D_CID)
@@ -1443,7 +1442,7 @@ ParamBlockDesc2 gPhysSwim3DBk
 
     //Roll out
     1, 
-    kPhysMain, IDD_COMP_PHYS_SWIM3D, IDS_COMP_PHYS_SWIM3D, 0, 0, NULL,
+    kPhysMain, IDD_COMP_PHYS_SWIM3D, IDS_COMP_PHYS_SWIM3D, 0, 0, nullptr,
 //  kPhysMember, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_MEMBER, 0, APPENDROLL_CLOSED, &gMemberGroupProc,
 //  kPhysBounce, IDD_COMP_PHYS_CORE_GROUP, IDS_COMP_PHYS_BOUNCE, 0, APPENDROLL_CLOSED, &gBounceGroupProc,
     
@@ -1586,8 +1585,8 @@ class plPhysSubWorldComponent : public plPhysicCoreComponent
 {
 public:
     plPhysSubWorldComponent();
-    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
     void IAddChildren(plMaxNode *node, plMaxNode* worldKey);
 };
 
@@ -1598,7 +1597,7 @@ ParamBlockDesc2 gPhysSubWorldBk
     plComponent::kBlkComp, _T("Subworld\t"), 0, &gPhysSubWorldDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
     //Roll out
-    IDD_COMP_PHYS_SUBWORLD, IDS_COMP_PHYS_SUBWORLD, 0, 0, NULL,
+    IDD_COMP_PHYS_SUBWORLD, IDS_COMP_PHYS_SUBWORLD, 0, 0, nullptr,
 
     end
 );  
@@ -1687,11 +1686,11 @@ class plSubworldDetectorComponent : public plPhysicCoreComponent
 public:
     plSubworldDetectorComponent();
 
-    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg); 
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
-    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg); 
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables) { AddTargetsToList(nonDrawables); }
+    void CollectNonDrawables(INodeTab& nonDrawables) override { AddTargetsToList(nonDrawables); }
 };
 
 
@@ -1715,7 +1714,7 @@ ParamBlockDesc2 gSubworldRegionBlock
 (
     plComponent::kBlkComp, _T("subworldRegion"), 0, &gSubworldDetectorDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_SUBWORLD_REGION, IDS_COMP_SUBWORLD_REGION, 0, 0, NULL,
+    IDD_COMP_SUBWORLD_REGION, IDS_COMP_SUBWORLD_REGION, 0, 0, nullptr,
 
     kSubworldTarget, _T("SubworldTarget"),  TYPE_INODE,     0, 0,
         p_ui,   TYPE_PICKNODEBUTTON, IDC_COMP_CAMERARGN_PICKSTATE_BASE,
@@ -1783,7 +1782,7 @@ bool plSubworldDetectorComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     }
     else
     {
-        detector->SetSubworldKey(nil);
+        detector->SetSubworldKey(nullptr);
     }
 
     bool onExit = (fCompPB->GetInt(kSubworldTriggerOn) == kSubTriggerOnExit);
@@ -1823,12 +1822,12 @@ public:
     };
 
     plPanicLinkDetectorComponent();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
 
-    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg); 
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
-    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg); 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables) { AddTargetsToList(nonDrawables); }
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    void CollectNonDrawables(INodeTab& nonDrawables) override { AddTargetsToList(nonDrawables); }
 };
 
 
@@ -1838,7 +1837,7 @@ ParamBlockDesc2 gPanicLinkRegionBlock
 (
     plComponent::kBlkComp, _T("panicLinkRegion"), 0, &gPanicLinkDetectorDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_PANIC, IDS_COMP_PANIC, 0, 0, NULL,
+    IDD_COMP_PANIC, IDS_COMP_PANIC, 0, 0, nullptr,
     
     plPanicLinkDetectorComponent::kPlayAnim, _T("PlayAnim"),        TYPE_BOOL,      0,      0,
     p_default, true,
@@ -1905,8 +1904,8 @@ public:
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 //Max desc stuff necessary below.
@@ -1917,7 +1916,7 @@ ParamBlockDesc2 gShootableBk
 //  1, _T(""), 0, &gShootableDesc, P_AUTO_CONSTRUCT, 0,
     plComponent::kBlkComp, _T("Shootable"), 0, &gShootableDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_SHOOTABLE, IDS_COMP_SHOOTABLE, 0, 0, NULL,
+    IDD_COMP_SHOOTABLE, IDS_COMP_SHOOTABLE, 0, 0, nullptr,
 
     end
 );
@@ -1953,11 +1952,11 @@ class plRideAnimatedPhysicalComponent : public plPhysicCoreComponent
 {
 public:
     plRideAnimatedPhysicalComponent();
-    void DeleteThis(){delete this;}     
-    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg); 
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
-    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg); 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables) { AddTargetsToList(nonDrawables); }
+    void DeleteThis() override { delete this; }
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    void CollectNonDrawables(INodeTab& nonDrawables) override { AddTargetsToList(nonDrawables); }
 };
 CLASS_DESC(plRideAnimatedPhysicalComponent , gRideAnimatedPhysicalComponent, "RideAnimPhysReg",  "RideAnimatedPhysicalRegion", COMP_TYPE_PHYSICAL, Class_ID(0xaf305963, 0x63a246df));
 ParamBlockDesc2 gSRideAnimatedPhysBk
@@ -1965,7 +1964,7 @@ ParamBlockDesc2 gSRideAnimatedPhysBk
 plComponent::kBlkComp, _T("rideAnimated"), 0, &gRideAnimatedPhysicalComponent, P_AUTO_CONSTRUCT + P_AUTO_UI , plComponent::kRefComp,
 //Roll out
 
-IDD_COMP_RIDE_ANIMATED_PHYS, IDS_COMP_RIDE_ANIMATED_PHYS, 0, 0, NULL,
+IDD_COMP_RIDE_ANIMATED_PHYS, IDS_COMP_RIDE_ANIMATED_PHYS, 0, 0, nullptr,
 
 plPhysicCoreComponent::kBoundCondRadio, _T("BoundingConditions"), TYPE_INT, 0, 0,
     p_ui, TYPE_RADIO, 4, IDC_RADIO_BSPHERE, IDC_RADIO_BBOX, IDC_RADIO_BHULL, IDC_RADIO_PICKSTATE,
@@ -2003,9 +2002,9 @@ bool plRideAnimatedPhysicalComponent::Convert(plMaxNode *node, plErrorMsg *pErrM
 {
     plSceneObject *obj = node->GetSceneObject();
     plLocation loc = node->GetLocation();
-    plRideAnimatedPhysMsg* enter = new plRideAnimatedPhysMsg(obj->GetKey(), nil, true, nil);
+    plRideAnimatedPhysMsg* enter = new plRideAnimatedPhysMsg(obj->GetKey(), nullptr, true, nullptr);
     enter->SetBCastFlag(plMessage::kPropagateToModifiers);
-    plRideAnimatedPhysMsg* exit = new plRideAnimatedPhysMsg(obj->GetKey(), nil, false, nil);
+    plRideAnimatedPhysMsg* exit = new plRideAnimatedPhysMsg(obj->GetKey(), nullptr, false, nullptr);
     exit->SetBCastFlag(plMessage::kPropagateToModifiers);
     plRidingAnimatedPhysicalDetector *detector = new plRidingAnimatedPhysicalDetector(enter, exit);
     // Register the detector

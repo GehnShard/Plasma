@@ -51,24 +51,25 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _pfGUICtrlGenerator_h
 #define _pfGUICtrlGenerator_h
 
-#include "hsStream.h"
-#include "hsTemplates.h"
+#include "HeadSpin.h"
 
+#include <string_theory/string>
+#include <vector>
 
 //// pfGUICtrlGenerator Definition ///////////////////////////////////////////
 
-class pfGUIDialogMod;
-class pfGUIButtonMod;
-class pfGUIDragBarCtrl;
-class hsGMaterial;
 struct hsColorRGBA;
-class plSceneNode;
+class plDrawable;
+class hsGMaterial;
+class pfGUIButtonMod;
+class pfGUIDialogMod;
+class pfGUIDragBarCtrl;
 class hsKeyedObject;
 class plKey;
-class plTextGenerator;
-class plSceneObject;
-class plDrawable;
 struct hsMatrix44;
+class plSceneNode;
+class plSceneObject;
+class plTextGenerator;
 
 class pfGUICtrlGenerator
 {
@@ -77,11 +78,11 @@ class pfGUICtrlGenerator
         char    fFontFace[ 256 ];
         uint32_t  fFontSize;
 
-        hsTArray<plTextGenerator *> fTextGens;
+        std::vector<plTextGenerator *> fTextGens;
 
-        hsTArray<plSceneNode *>     fDynDlgNodes;
-        hsTArray<pfGUIDialogMod *>  fDynDialogs;
-        hsTArray<plSceneObject *>   fDynDragBars;
+        std::vector<plSceneNode *>     fDynDlgNodes;
+        std::vector<pfGUIDialogMod *>  fDynDialogs;
+        std::vector<plSceneObject *>   fDynDragBars;
 
 
         plKey       IAddKey( hsKeyedObject *ko, const char *prefix );
@@ -95,7 +96,10 @@ class pfGUICtrlGenerator
         pfGUIDialogMod  *IGetDialog();
         pfGUIDialogMod  *IGenerateDialog( const char *name, float scrnWidth, bool show = true );
 
-        plSceneObject   *IGenSceneObject( pfGUIDialogMod *dlg, plDrawable *myDraw, plSceneObject *parent = nil, hsMatrix44 *l2w = nil, hsMatrix44 *w2l = nil );
+        plSceneObject   *IGenSceneObject(pfGUIDialogMod *dlg, plDrawable *myDraw,
+                                         plSceneObject *parent = nullptr,
+                                         hsMatrix44 *l2w = nullptr,
+                                         hsMatrix44 *w2l = nullptr);
 
     public:
         

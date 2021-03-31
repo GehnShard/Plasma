@@ -40,12 +40,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "HeadSpin.h"
-#include "hsWindows.h"
-#include "../resource.h"
 
-#include <iparamm2.h>
-#include <stdmat.h>
-#pragma hdrstop
+#include "MaxMain/MaxAPI.h"
+
+#include "../resource.h"
 
 #include "plAngleAttenLayer.h"
 
@@ -55,14 +53,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 class plAngleAttenLayerClassDesc : public ClassDesc2
 {
 public:
-    int             IsPublic()      { return TRUE; }
-    void*           Create(BOOL loading = FALSE) { return new plAngleAttenLayer(); }
-    const TCHAR*    ClassName()     { return GetString(IDS_ANGLE_ATTEN_LAYER); }
-    SClass_ID       SuperClassID()  { return TEXMAP_CLASS_ID; }
-    Class_ID        ClassID()       { return ANGLE_ATTEN_LAYER_CLASS_ID; }
-    const TCHAR*    Category()      { return TEXMAP_CAT_COLMOD; }
-    const TCHAR*    InternalName()  { return _T("PlasmaAngleAttenLayer"); }
-    HINSTANCE       HInstance()     { return hInstance; }
+    int             IsPublic() override     { return TRUE; }
+    void*           Create(BOOL loading = FALSE) override { return new plAngleAttenLayer(); }
+    const TCHAR*    ClassName() override    { return GetString(IDS_ANGLE_ATTEN_LAYER); }
+    SClass_ID       SuperClassID() override { return TEXMAP_CLASS_ID; }
+    Class_ID        ClassID() override      { return ANGLE_ATTEN_LAYER_CLASS_ID; }
+    const TCHAR*    Category() override     { return TEXMAP_CAT_COLMOD; }
+    const TCHAR*    InternalName() override { return _T("PlasmaAngleAttenLayer"); }
+    HINSTANCE       HInstance() override    { return hInstance; }
 };
 static plAngleAttenLayerClassDesc plAngleAttenLayerDesc;
 ClassDesc2* GetAngleAttenLayerDesc() { return &plAngleAttenLayerDesc; }
@@ -78,10 +76,10 @@ static const float kDefOpaque1 = 0.f;
 
 static ParamBlockDesc2 gAngleAttenParamBlk
 (
-    plAngleAttenLayer::kBlkAngles, _T("angles"),  0, GetAngleAttenLayerDesc(),//NULL,
+    plAngleAttenLayer::kBlkAngles, _T("angles"),  0, GetAngleAttenLayerDesc(),//nullptr,
     P_AUTO_CONSTRUCT + P_AUTO_UI, plAngleAttenLayer::kRefAngles,
 
-    IDD_ANGLE_ATTEN_LAYER, IDS_ANGLE_ATTEN_LAYER_PROPS, 0, 0, nil,
+    IDD_ANGLE_ATTEN_LAYER, IDS_ANGLE_ATTEN_LAYER_PROPS, 0, 0, nullptr,
 
     // Texture size
     plAngleAttenLayer::kTranspAngle0,   _T("transp0"),  TYPE_FLOAT, 0, 0,
@@ -135,7 +133,7 @@ static ParamBlockDesc2 gAngleAttenParamBlk
 );
 
 plAngleAttenLayer::plAngleAttenLayer() :
-    fParmsPB(NULL),
+    fParmsPB(),
     fIValid(NEVER),
     fCosTransp0(0),
     fCosOpaque0(0),
@@ -206,7 +204,7 @@ RefTargetHandle plAngleAttenLayer::GetReference(int i)
     switch (i)
     {
         case kRefAngles:        return fParmsPB;
-        default:                return NULL;
+        default:                return nullptr;
     }
 }
 
@@ -232,7 +230,7 @@ IParamBlock2* plAngleAttenLayer::GetParamBlock(int i)
     switch (i)
     {
     case 0: return fParmsPB;
-    default: return NULL;
+    default: return nullptr;
     }
 }
 
@@ -241,7 +239,7 @@ IParamBlock2* plAngleAttenLayer::GetParamBlockByID(BlockID id)
     if (fParmsPB->ID() == id)
         return fParmsPB;
     else
-        return NULL;
+        return nullptr;
 }
 
 //From ReferenceTarget 
@@ -265,7 +263,7 @@ Animatable* plAngleAttenLayer::SubAnim(int i)
     switch (i)
     {
         case kRefAngles:        return fParmsPB;
-        default: return NULL;
+        default:                return nullptr;
     }
 }
 
@@ -454,18 +452,18 @@ void plAngleAttenLayer::ActivateTexDisplay(BOOL onoff)
 
 BITMAPINFO *plAngleAttenLayer::GetVPDisplayDIB(TimeValue t, TexHandleMaker& thmaker, Interval &valid, BOOL mono, BOOL forceW, BOOL forceH)
 {
-    return nil;
+    return nullptr;
                         // FIXME
 }
 
-DWORD plAngleAttenLayer::GetActiveTexHandle(TimeValue t, TexHandleMaker& thmaker) 
+DWORD_PTR plAngleAttenLayer::GetActiveTexHandle(TimeValue t, TexHandleMaker& thmaker)
 {
     return 0;
 }
 
 const char *plAngleAttenLayer::GetTextureName( int which )
 {
-    return NULL;
+    return nullptr;
 }
 
 int plAngleAttenLayer::GetLoClamp()

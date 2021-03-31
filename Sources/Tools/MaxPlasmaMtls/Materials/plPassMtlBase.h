@@ -42,7 +42,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef PL_PASSMTLBASE_H
 #define PL_PASSMTLBASE_H
 
-#include "hsTemplates.h"
+#include <vector>
+
 #include "plInterp/plAnimEaseTypes.h"
 
 class plNoteTrackWatcher;
@@ -74,10 +75,10 @@ protected:
 
     bool            fLoading;
 
-    hsTArray<NoteTrack *>   fNotetracks;
+    std::vector<NoteTrack *> fNotetracks;
 
-    bool                            fStealthsChanged;
-    hsTArray<plMtlChangeCallback *> fChangeCallbacks;
+    bool                               fStealthsChanged;
+    std::vector<plMtlChangeCallback *> fChangeCallbacks;
 
     void                IUpdateAnimNodes();
     plAnimStealthNode   *IFindStealth( const ST::string &animName );
@@ -121,15 +122,15 @@ public:
     virtual void    NameChanged();
 
     // Loading/Saving
-    IOResult Load(ILoad *iload);
-    IOResult Save(ISave *isave);
+    IOResult Load(ILoad *iload) override;
+    IOResult Save(ISave *isave) override;
 
-    virtual void    Reset();
+    void    Reset() override;
 
-    int                     NumRefs();
-    virtual RefTargetHandle GetReference( int i );
-    virtual void            SetReference( int i, RefTargetHandle rtarg );
-    RefResult               NotifyRefChanged( Interval changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message );
+    int             NumRefs() override;
+    RefTargetHandle GetReference(int i) override;
+    void            SetReference(int i, RefTargetHandle rtarg) override;
+    RefResult       NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message) override;
 
     // Convert time, called on the setupProps pass for each material applied to a node in the scene
     virtual bool    SetupProperties( plMaxNode *node, plErrorMsg *pErrMsg );
@@ -188,7 +189,7 @@ public:
     virtual float        GetEaseOutMinLength() { return 1; }
     virtual float        GetEaseOutMaxLength() { return 1; }
     virtual float        GetEaseOutNormLength() { return 1; }
-    virtual const char*  GetGlobalVarName() { return NULL; }
+    virtual const char*  GetGlobalVarName() { return nullptr; }
     virtual int          GetUseGlobal() { return 0; }
 
     // Basic block
@@ -262,7 +263,7 @@ public:
         fEaseOutMinID = easeOutMinID; fEaseOutMaxID = easeOutMaxID; fEaseOutNormID = easeOutNormID;
     }
 
-    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)
+    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override
     {
         if (fDoingUpdate)
             return;

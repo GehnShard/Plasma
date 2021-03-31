@@ -40,13 +40,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "HeadSpin.h"
-#include "hsWindows.h"
-#include <commdlg.h>
 
-#include <max.h>
-#include <bmmlib.h>
-#include <guplib.h>
-#pragma hdrstop
+#include "MaxMain/MaxAPI.h"
 
 #include "plExportProgressBar.h"
 
@@ -75,7 +70,7 @@ void plExportProgressBar::Start(char *name, uint32_t steps)
     fCurStep = 0;
 
     fInterface->ProgressEnd();
-    fInterface->ProgressStart(name, TRUE, ProgressDummyFunc, nil);
+    fInterface->ProgressStart(name, TRUE, ProgressDummyFunc, nullptr);
    
    GUP* exportServerGup = OpenGupPlugIn(Class_ID(470000004,99));
    if(exportServerGup && name)

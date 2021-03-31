@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include <Python.h>
-#pragma hdrstop
 
 #include "pyGameScoreMsg.h"
 
@@ -93,7 +92,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptGameScoreListMsg, getName)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptGameScoreListMsg, getOwnerID)
 {
-    return PyInt_FromLong(self->fThis->GetOwnerID());
+    return PyLong_FromLong(self->fThis->GetOwnerID());
 }
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptGameScoreListMsg, getScores)
@@ -123,7 +122,7 @@ PLASMA_DEFAULT_TYPE_WBASE(ptGameScoreListMsg, pyGameScoreMsg, "Game Score messag
 // PyObject interop
 PyObject* pyGameScoreListMsg::New(pfGameScoreListMsg* msg)
 {
-    ptGameScoreListMsg* newObj = (ptGameScoreListMsg*)ptGameScoreListMsg_type.tp_new(&ptGameScoreListMsg_type, NULL, NULL);
+    ptGameScoreListMsg* newObj = (ptGameScoreListMsg*)ptGameScoreListMsg_type.tp_new(&ptGameScoreListMsg_type, nullptr, nullptr);
     hsRefCnt_SafeUnRef(newObj->fThis->fMsg);
     newObj->fThis->fMsg = msg;
     hsRefCnt_SafeRef(newObj->fThis->fMsg);
@@ -183,7 +182,7 @@ PLASMA_DEFAULT_TYPE_WBASE(ptGameScoreTransferMsg, pyGameScoreMsg, "Game Score me
 // PyObject interop
 PyObject* pyGameScoreTransferMsg::New(pfGameScoreTransferMsg* msg)
 {
-    ptGameScoreTransferMsg* newObj = (ptGameScoreTransferMsg*)ptGameScoreTransferMsg_type.tp_new(&ptGameScoreTransferMsg_type, NULL, NULL);
+    ptGameScoreTransferMsg* newObj = (ptGameScoreTransferMsg*)ptGameScoreTransferMsg_type.tp_new(&ptGameScoreTransferMsg_type, nullptr, nullptr);
     hsRefCnt_SafeUnRef(newObj->fThis->fMsg);
     newObj->fThis->fMsg = msg;
     hsRefCnt_SafeRef(newObj->fThis->fMsg);
@@ -231,7 +230,7 @@ PLASMA_DEFAULT_TYPE_WBASE(ptGameScoreUpdateMsg, pyGameScoreMsg, "Game Score mess
 // PyObject interop
 PyObject* pyGameScoreUpdateMsg::New(pfGameScoreUpdateMsg* msg)
 {
-    ptGameScoreUpdateMsg* newObj = (ptGameScoreUpdateMsg*)ptGameScoreUpdateMsg_type.tp_new(&ptGameScoreUpdateMsg_type, NULL, NULL);
+    ptGameScoreUpdateMsg* newObj = (ptGameScoreUpdateMsg*)ptGameScoreUpdateMsg_type.tp_new(&ptGameScoreUpdateMsg_type, nullptr, nullptr);
     hsRefCnt_SafeUnRef(newObj->fThis->fMsg);
     newObj->fThis->fMsg = msg;
     hsRefCnt_SafeRef(newObj->fThis->fMsg);

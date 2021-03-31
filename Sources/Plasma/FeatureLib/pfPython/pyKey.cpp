@@ -48,7 +48,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plgDispatch.h"
 #include "pyKey.h"
 #include "hsResMgr.h"
-#pragma hdrstop
 
 #include "plPythonFileMod.h"
 #include "pnMessage/plEnableMsg.h"
@@ -57,18 +56,17 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 pyKey::pyKey()
 {
-    fKey=nil;
 #ifndef BUILDING_PYPLASMA
-    fPyFileMod=nil;
+    fPyFileMod = nullptr;
     fNetForce=false;
 #endif
 }
 
 pyKey::pyKey(plKey key)
 {
-    fKey = key;
+    fKey = std::move(key);
 #ifndef BUILDING_PYPLASMA
-    fPyFileMod=nil;
+    fPyFileMod = nullptr;
     fNetForce=false;
 #endif
 }
@@ -76,7 +74,7 @@ pyKey::pyKey(plKey key)
 #ifndef BUILDING_PYPLASMA
 pyKey::pyKey(plKey key, plPythonFileMod* pymod)
 {
-    fKey = key;
+    fKey = std::move(key);
     fPyFileMod=pymod;
     fNetForce=false;
 }
@@ -86,9 +84,9 @@ bool pyKey::operator==(const pyKey &key) const
 {
     plKey ours = ((pyKey*)this)->getKey();
     plKey theirs = ((pyKey&)key).getKey();
-    if ( ours == nil && theirs == nil )
+    if (ours == nullptr && theirs == nullptr)
         return true;
-    else if ( ours != nil && theirs != nil )
+    else if (ours != nullptr && theirs != nullptr)
         return (ours->GetUoid()==theirs->GetUoid());
     else
         return false;
@@ -111,7 +109,10 @@ PyObject* pyKey::GetPySceneObject()
         {
             return pySceneObject::New(mod->GetTarget(0)->GetKey());
         }
-        else return nil;
+        else
+        {
+            return nullptr;
+        }
     }
     // create pySceneObject that will be managed by Python
     return pySceneObject::New(getKey());
@@ -151,7 +152,7 @@ PyObject* pyKey::GetParentObject()
                 return pyKey::New(mod->GetTarget(0)->GetKey());
         }
     }
-    return nil;
+    return nullptr;
 }
 
 
@@ -181,11 +182,11 @@ plPipeline* pyKey::GetPipeline()
 {
     if ( fPyFileMod )
         return fPyFileMod->GetPipeline();
-    return nil;
+    return nullptr;
 }
 
 // get the notify list count
-int32_t pyKey::NotifyListCount()
+size_t pyKey::NotifyListCount() const
 {
     // see if we have a PythonFileModifier pointer
     if ( fPyFileMod )
@@ -195,13 +196,13 @@ int32_t pyKey::NotifyListCount()
 }
 
 // get a notify list item
-plKey pyKey::GetNotifyListItem(int32_t i)
+plKey pyKey::GetNotifyListItem(size_t i) const
 {
     // see if we have a PythonFileModifier pointer
     if ( fPyFileMod )
         return fPyFileMod->GetNotifyListItem(i);
     // otherwise... just say it is local
-    return nil;
+    return nullptr;
 }
 
 

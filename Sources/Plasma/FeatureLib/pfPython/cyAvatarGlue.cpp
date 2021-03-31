@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "cyAvatar.h"
 #include "pyColor.h"
@@ -74,10 +73,10 @@ PYTHON_METHOD_DEFINITION(ptAvatar, netForce, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, oneShot, args)
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     float duration;
     char usePhysics;
-    char* animName = NULL;
+    char* animName = nullptr;
     char drivable, reversable;
     if (!PyArg_ParseTuple(args, "Ofbsbb", &keyObj, &duration, &usePhysics, &animName, &drivable, &reversable))
     {
@@ -97,7 +96,7 @@ PYTHON_METHOD_DEFINITION(ptAvatar, oneShot, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, runBehavior, args)
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     char netForce;
     char netProp = 1;
     if (!PyArg_ParseTuple(args, "Ob|b", &keyObj, &netForce, &netProp))
@@ -118,8 +117,8 @@ PYTHON_METHOD_DEFINITION(ptAvatar, runBehavior, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, runBehaviorSetNotify, args)
 {
-    PyObject* behKeyObj = NULL;
-    PyObject* replyKeyObj = NULL;
+    PyObject* behKeyObj = nullptr;
+    PyObject* replyKeyObj = nullptr;
     char netForce;
     char netProp = 1;
     if (!PyArg_ParseTuple(args, "OOb|b", &behKeyObj, &replyKeyObj, &netForce, &netProp))
@@ -142,27 +141,25 @@ PYTHON_METHOD_DEFINITION(ptAvatar, runBehaviorSetNotify, args)
 PYTHON_METHOD_DEFINITION(ptAvatar, runCoopAnim, args)
 {
     PyObject* keyObj;
-    PyObject* animAv1;
-    PyObject* animAv2;
+    ST::string animName1;
+    ST::string animName2;
     float range = 6;
     float dist = 3;
     bool move = true;
-    if (!PyArg_ParseTuple(args, "OOO|ffb", &keyObj, &animAv1, &animAv2, &range, &dist, &move) || !pyKey::Check(keyObj) ||
-        !PyString_CheckEx(animAv1) || !PyString_CheckEx(animAv2))
+    if (!PyArg_ParseTuple(args, "OO&O&|ffb", &keyObj, PyUnicode_STStringConverter, &animName1,
+                          PyUnicode_STStringConverter, &animName2, &range, &dist, &move) || !pyKey::Check(keyObj))
     {
         PyErr_SetString(PyExc_TypeError, "runCoopAnim expects a ptkey and two strings and an optional float and boolean");
         PYTHON_RETURN_ERROR;
     }
 
     pyKey* key = pyKey::ConvertFrom(keyObj);
-    ST::string animName1 = PyString_AsStringEx(animAv1);
-    ST::string animName2 = PyString_AsStringEx(animAv2);
     PYTHON_RETURN_BOOL(self->fThis->RunCoopAnim(*key, animName1, animName2, range, dist, move));
 }
 
 PYTHON_METHOD_DEFINITION(ptAvatar, nextStage, args)
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     float transTime;
     char setTime;
     float newTime;
@@ -185,7 +182,7 @@ PYTHON_METHOD_DEFINITION(ptAvatar, nextStage, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, previousStage, args)
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     float transTime;
     char setTime;
     float newTime;
@@ -208,7 +205,7 @@ PYTHON_METHOD_DEFINITION(ptAvatar, previousStage, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, gotoStage, args)
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     long stage;
     float transTime;
     char setTime;
@@ -247,7 +244,7 @@ PYTHON_METHOD_DEFINITION(ptAvatar, getEntireClothingList, args)
     std::vector<ST::string> clothingList = self->fThis->GetEntireClothingList(clothingType);
     PyObject* retVal = PyList_New(clothingList.size());
     for (int i = 0; i < clothingList.size(); i++)
-        PyList_SetItem(retVal, i, PyString_FromSTString(clothingList[i]));
+        PyList_SetItem(retVal, i, PyUnicode_FromSTString(clothingList[i]));
     return retVal;
 }
 
@@ -278,7 +275,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptAvatar, getAvatarClothingList)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, getMatchingClothingItem, args)
 {
-    char* clothingName = NULL;
+    char* clothingName = nullptr;
     if (!PyArg_ParseTuple(args, "s", &clothingName))
     {
         PyErr_SetString(PyExc_TypeError, "getMatchingClothingItem expects a string");
@@ -291,7 +288,7 @@ PYTHON_METHOD_DEFINITION(ptAvatar, getMatchingClothingItem, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, wearClothingItem, args)
 {
-    char* clothingName = NULL;
+    char* clothingName = nullptr;
     char update = 1;
     if (!PyArg_ParseTuple(args, "s|b", &clothingName, &update))
     {
@@ -305,7 +302,7 @@ PYTHON_METHOD_DEFINITION(ptAvatar, wearClothingItem, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, removeClothingItem, args)
 {
-    char* clothingName = NULL;
+    char* clothingName = nullptr;
     char update = 1;
     if (!PyArg_ParseTuple(args, "s|b", &clothingName, &update))
     {
@@ -319,8 +316,8 @@ PYTHON_METHOD_DEFINITION(ptAvatar, removeClothingItem, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, tintClothingItem, args)
 {
-    char* clothingName = NULL;
-    PyObject* tintObj = NULL;
+    char* clothingName = nullptr;
+    PyObject* tintObj = nullptr;
     char update = 1;
     if (!PyArg_ParseTuple(args, "sO|b", &clothingName, &tintObj, &update))
     {
@@ -340,8 +337,8 @@ PYTHON_METHOD_DEFINITION(ptAvatar, tintClothingItem, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, tintClothingItemLayer, args)
 {
-    char* clothingName = NULL;
-    PyObject* tintObj = NULL;
+    char* clothingName = nullptr;
+    PyObject* tintObj = nullptr;
     unsigned char layer;
     char update = 1;
     if (!PyArg_ParseTuple(args, "sOB|b", &clothingName, &tintObj, &layer, &update))
@@ -362,7 +359,7 @@ PYTHON_METHOD_DEFINITION(ptAvatar, tintClothingItemLayer, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, getTintClothingItem, args)
 {
-    char* clothingName = NULL;
+    char* clothingName = nullptr;
     unsigned char layer = 1;
     if (!PyArg_ParseTuple(args, "s|B", &clothingName, &layer))
     {
@@ -376,7 +373,7 @@ PYTHON_METHOD_DEFINITION(ptAvatar, getTintClothingItem, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, tintSkin, args)
 {
-    PyObject* tintObj = NULL;
+    PyObject* tintObj = nullptr;
     char update = 1;
     if (!PyArg_ParseTuple(args, "O|b", &tintObj, &update))
     {
@@ -401,7 +398,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptAvatar, getTintSkin)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, enterSubWorld, args)
 {
-    PyObject* sceneObj = NULL;
+    PyObject* sceneObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &sceneObj))
     {
         PyErr_SetString(PyExc_TypeError, "enterSubWorld expects a ptSceneObject");
@@ -422,7 +419,7 @@ PYTHON_BASIC_METHOD_DEFINITION(ptAvatar, exitSubWorld, ExitSubWorld)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, setMorph, args)
 {
-    char* clothingName = NULL;
+    char* clothingName = nullptr;
     unsigned char layer;
     float value;
     if (!PyArg_ParseTuple(args, "sBf", &clothingName, &layer, &value))
@@ -438,7 +435,7 @@ PYTHON_METHOD_DEFINITION(ptAvatar, setMorph, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, getMorph, args)
 {
-    char* clothingName = NULL;
+    char* clothingName = nullptr;
     unsigned char layer;
     if (!PyArg_ParseTuple(args, "sB", &clothingName, &layer))
     {
@@ -496,7 +493,7 @@ PYTHON_METHOD_DEFINITION(ptAvatar, getUniqueMeshList, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, getAllWithSameMesh, args)
 {
-    char* clothingName = NULL;
+    char* clothingName = nullptr;
     if (!PyArg_ParseTuple(args, "s", &clothingName))
     {
         PyErr_SetString(PyExc_TypeError, "getAllWithSameMesh expects a string");
@@ -522,9 +519,9 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptAvatar, getWardrobeClothingList)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, addWardrobeClothingItem, args)
 {
-    char* clothingName = NULL;
-    PyObject* tint1Obj = NULL;
-    PyObject* tint2Obj = NULL;
+    char* clothingName = nullptr;
+    PyObject* tint1Obj = nullptr;
+    PyObject* tint2Obj = nullptr;
     if (!PyArg_ParseTuple(args, "sOO", &clothingName, &tint1Obj, &tint2Obj))
     {
         PyErr_SetString(PyExc_TypeError, "addWardrobeClothingItem expects a string and two ptColor objects");
@@ -545,7 +542,7 @@ PYTHON_METHOD_DEFINITION(ptAvatar, addWardrobeClothingItem, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, setReplyKey, args)
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &keyObj))
     {
         PyErr_SetString(PyExc_TypeError, "setReplyKey expects a ptKey object");
@@ -564,12 +561,12 @@ PYTHON_METHOD_DEFINITION(ptAvatar, setReplyKey, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptAvatar, getCurrentMode)
 {
-    return PyInt_FromLong(self->fThis->GetCurrentMode());
+    return PyLong_FromLong(self->fThis->GetCurrentMode());
 }
 
 PYTHON_METHOD_DEFINITION(ptAvatar, registerForBehaviorNotify, args)
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &keyObj))
     {
         PyErr_SetString(PyExc_TypeError, "registerForBehaviorNotify expects a ptKey object");
@@ -588,7 +585,7 @@ PYTHON_METHOD_DEFINITION(ptAvatar, registerForBehaviorNotify, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, unRegisterForBehaviorNotify, args)
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &keyObj))
     {
         PyErr_SetString(PyExc_TypeError, "unRegisterForBehaviorNotify expects a ptKey object");
@@ -607,7 +604,7 @@ PYTHON_METHOD_DEFINITION(ptAvatar, unRegisterForBehaviorNotify, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, playSimpleAnimation, args)
 {
-    char* animName = NULL;
+    char* animName = nullptr;
     if (!PyArg_ParseTuple(args, "s", &animName))
     {
         PyErr_SetString(PyExc_TypeError, "playSimpleAnimation expects a string object");
@@ -620,26 +617,26 @@ PYTHON_METHOD_DEFINITION(ptAvatar, playSimpleAnimation, args)
 
 PYTHON_METHOD_DEFINITION(ptAvatar, saveClothingToFile, args)
 {
-    PyObject* filename;
-    if (!PyArg_ParseTuple(args, "O", &filename) || !PyString_CheckEx(filename))
+    plFileName filename;
+    if (!PyArg_ParseTuple(args, "O&", PyUnicode_PlFileNameDecoder, &filename))
     {
         PyErr_SetString(PyExc_TypeError, "saveClothingToFile expects a string object");
         PYTHON_RETURN_ERROR;
     }
 
-    PYTHON_RETURN_BOOL(self->fThis->SaveClothingToFile(PyString_AsStringEx(filename)));
+    PYTHON_RETURN_BOOL(self->fThis->SaveClothingToFile(filename));
 }
 
 PYTHON_METHOD_DEFINITION(ptAvatar, loadClothingFromFile, args)
 {
-    PyObject* filename;
-    if (!PyArg_ParseTuple(args, "O", &filename) || !PyString_CheckEx(filename))
+    plFileName filename;
+    if (!PyArg_ParseTuple(args, "O&", PyUnicode_PlFileNameDecoder, &filename))
     {
         PyErr_SetString(PyExc_TypeError, "loadClothingFromFile expects a string object");
         PYTHON_RETURN_ERROR;
     }
 
-    PYTHON_RETURN_BOOL(self->fThis->LoadClothingFromFile(PyString_AsStringEx(filename)));
+    PYTHON_RETURN_BOOL(self->fThis->LoadClothingFromFile(filename));
 }
 
 PYTHON_START_METHODS_TABLE(ptAvatar)
@@ -704,7 +701,7 @@ PYTHON_END_METHODS_TABLE;
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtSetBehaviorLoopCount, args, "Params: behaviorKey,stage,loopCount,netForce\nThis will set the loop count for a particular stage in a multistage behavior")
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     long stage, loopCount;
     char netForce;
     if (!PyArg_ParseTuple(args, "Ollb", &keyObj, &stage, &loopCount, &netForce))
@@ -725,7 +722,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtSetBehaviorLoopCount, args, "Params: behaviorK
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtChangeAvatar, args, "Params: gender\nChange the local avatar's gender (or clothing type)")
 {
-    char* gender = NULL;
+    char* gender = nullptr;
     if (!PyArg_ParseTuple(args, "s", &gender))
     {
         PyErr_SetString(PyExc_TypeError, "PtChangeAvatar expects a string");
@@ -739,7 +736,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtChangeAvatar, args, "Params: gender\nChange th
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtChangePlayerName, args, "Params: name\nChange the local avatar's name")
 {
-    char* name = NULL;
+    char* name = nullptr;
     if (!PyArg_ParseTuple(args, "s", &name))
     {
         PyErr_SetString(PyExc_TypeError, "PtChangePlayerName expects a string");
@@ -753,7 +750,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtChangePlayerName, args, "Params: name\nChange 
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtEmoteAvatar, args, "Params: emote\nPlay an emote on the local avatar (netpropagated)")
 {
-    char* emote = NULL;
+    char* emote = nullptr;
     if (!PyArg_ParseTuple(args, "s", &emote))
     {
         PyErr_SetString(PyExc_TypeError, "PtEmoteAvatar expects a string");
@@ -801,14 +798,13 @@ PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtAvatarExitAFK, "Tells the local avatar 
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtAvatarEnterAnimMode, args, "Params: animName\nEnter a custom anim loop (netpropagated)")
 {
-    PyObject* animNameObj;
-    if (!PyArg_ParseTuple(args, "O", &animNameObj) || !PyString_CheckEx(animNameObj))
+    ST::string animName;
+    if (!PyArg_ParseTuple(args, "O&", PyUnicode_STStringConverter, &animName))
     {
         PyErr_SetString(PyExc_TypeError, "PtAvatarEnterAnimMode expects a string");
         PYTHON_RETURN_ERROR;
     }
 
-    ST::string animName = PyString_AsStringEx(animNameObj);
     PYTHON_RETURN_BOOL(cyAvatar::EnterAnimMode(animName));
 }
 
@@ -862,17 +858,6 @@ PLASMA_DEFAULT_TYPE(ptAvatar, "Plasma avatar class");
 // required functions for PyObject interoperability
 PYTHON_CLASS_NEW_IMPL(ptAvatar, cyAvatar)
 
-static PyObject* New(PyObject* sender, PyObject* recvr = nil)
-{
-    ptAvatar* newObj = (ptAvatar*)ptAvatar_type.tp_new(&ptAvatar_type, NULL, NULL);
-    plKey senderKey = pyKey::ConvertFrom(sender)->getKey();
-    plKey recvrKey = pyKey::ConvertFrom(recvr)->getKey();
-    newObj->fThis->SetSender(senderKey);
-    newObj->fThis->AddRecvr(recvrKey);
-    newObj->fThis->SetNetForce(false);
-    return (PyObject*) newObj;
-}
-
 PYTHON_CLASS_CHECK_IMPL(ptAvatar, cyAvatar)
 PYTHON_CLASS_CONVERT_FROM_IMPL(ptAvatar, cyAvatar)
 
@@ -891,37 +876,39 @@ void cyAvatar::AddPlasmaClasses(PyObject *m)
 //
 // AddPlasmaMethods - the python method definitions
 //
-void cyAvatar::AddPlasmaMethods(std::vector<PyMethodDef> &methods)
+void cyAvatar::AddPlasmaMethods(PyObject* m)
 {
-    // static/global functions (to the local avatar)
-    PYTHON_GLOBAL_METHOD(methods, PtSetBehaviorLoopCount);
-    PYTHON_GLOBAL_METHOD(methods, PtChangeAvatar);
-    PYTHON_GLOBAL_METHOD(methods, PtChangePlayerName);
-    PYTHON_GLOBAL_METHOD(methods, PtEmoteAvatar);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtAvatarSitOnGround);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtAvatarEnterLookingAtKI);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtAvatarExitLookingAtKI);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtAvatarEnterUsePersBook);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtAvatarExitUsePersBook);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtAvatarEnterAFK);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtAvatarExitAFK);
-    PYTHON_GLOBAL_METHOD(methods, PtAvatarEnterAnimMode);
+    PYTHON_START_GLOBAL_METHOD_TABLE(ptAvatar)
+        // static/global functions (to the local avatar)
+        PYTHON_GLOBAL_METHOD(PtSetBehaviorLoopCount)
+        PYTHON_GLOBAL_METHOD(PtChangeAvatar)
+        PYTHON_GLOBAL_METHOD(PtChangePlayerName)
+        PYTHON_GLOBAL_METHOD(PtEmoteAvatar)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtAvatarSitOnGround)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtAvatarEnterLookingAtKI)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtAvatarExitLookingAtKI)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtAvatarEnterUsePersBook)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtAvatarExitUsePersBook)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtAvatarEnterAFK)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtAvatarExitAFK)
+        PYTHON_GLOBAL_METHOD(PtAvatarEnterAnimMode)
 
-    // Suspend avatar input
-    PYTHON_BASIC_GLOBAL_METHOD(methods, PtDisableMovementKeys);
-    PYTHON_BASIC_GLOBAL_METHOD(methods, PtEnableMovementKeys);
-    PYTHON_BASIC_GLOBAL_METHOD(methods, PtDisableMouseMovement);
-    PYTHON_BASIC_GLOBAL_METHOD(methods, PtEnableMouseMovement);
-    PYTHON_BASIC_GLOBAL_METHOD(methods, PtDisableAvatarJump);
-    PYTHON_BASIC_GLOBAL_METHOD(methods, PtEnableAvatarJump);
-    PYTHON_BASIC_GLOBAL_METHOD(methods, PtDisableForwardMovement);
-    PYTHON_BASIC_GLOBAL_METHOD(methods, PtEnableForwardMovement);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtLocalAvatarRunKeyDown);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtLocalAvatarIsMoving);
-    PYTHON_GLOBAL_METHOD(methods, PtSetMouseTurnSensitivity);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetMouseTurnSensitivity);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtIsCurrentBrainHuman);
-    PYTHON_BASIC_GLOBAL_METHOD(methods, PtAvatarSpawnNext);
+        // Suspend avatar input
+        PYTHON_BASIC_GLOBAL_METHOD(PtDisableMovementKeys)
+        PYTHON_BASIC_GLOBAL_METHOD(PtEnableMovementKeys)
+        PYTHON_BASIC_GLOBAL_METHOD(PtDisableMouseMovement)
+        PYTHON_BASIC_GLOBAL_METHOD(PtEnableMouseMovement)
+        PYTHON_BASIC_GLOBAL_METHOD(PtDisableAvatarJump)
+        PYTHON_BASIC_GLOBAL_METHOD(PtEnableAvatarJump)
+        PYTHON_BASIC_GLOBAL_METHOD(PtDisableForwardMovement)
+        PYTHON_BASIC_GLOBAL_METHOD(PtEnableForwardMovement)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtLocalAvatarRunKeyDown)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtLocalAvatarIsMoving)
+        PYTHON_GLOBAL_METHOD(PtSetMouseTurnSensitivity)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetMouseTurnSensitivity)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtIsCurrentBrainHuman)
+        PYTHON_BASIC_GLOBAL_METHOD(PtAvatarSpawnNext)
+    PYTHON_END_GLOBAL_METHOD_TABLE(m, ptAvatar)
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -930,36 +917,36 @@ void cyAvatar::AddPlasmaMethods(std::vector<PyMethodDef> &methods)
 //
 void cyAvatar::AddPlasmaConstantsClasses(PyObject *m)
 {
-    PYTHON_ENUM_START(PtBrainModes);
-    PYTHON_ENUM_ELEMENT(PtBrainModes, kGeneric,     plAvBrainGeneric::kGeneric);
-    PYTHON_ENUM_ELEMENT(PtBrainModes, kLadder,      plAvBrainGeneric::kLadder);
-    PYTHON_ENUM_ELEMENT(PtBrainModes, kSit,         plAvBrainGeneric::kSit);
-    PYTHON_ENUM_ELEMENT(PtBrainModes, kSitOnGround, plAvBrainGeneric::kSitOnGround);
-    PYTHON_ENUM_ELEMENT(PtBrainModes, kEmote,       plAvBrainGeneric::kEmote);
-    PYTHON_ENUM_ELEMENT(PtBrainModes, kAFK,         plAvBrainGeneric::kAFK);
-    PYTHON_ENUM_ELEMENT(PtBrainModes, kNonGeneric,  plAvBrainGeneric::kNonGeneric);
-    PYTHON_ENUM_END(m, PtBrainModes);
+    PYTHON_ENUM_START(PtBrainModes)
+    PYTHON_ENUM_ELEMENT(PtBrainModes, kGeneric,     plAvBrainGeneric::kGeneric)
+    PYTHON_ENUM_ELEMENT(PtBrainModes, kLadder,      plAvBrainGeneric::kLadder)
+    PYTHON_ENUM_ELEMENT(PtBrainModes, kSit,         plAvBrainGeneric::kSit)
+    PYTHON_ENUM_ELEMENT(PtBrainModes, kSitOnGround, plAvBrainGeneric::kSitOnGround)
+    PYTHON_ENUM_ELEMENT(PtBrainModes, kEmote,       plAvBrainGeneric::kEmote)
+    PYTHON_ENUM_ELEMENT(PtBrainModes, kAFK,         plAvBrainGeneric::kAFK)
+    PYTHON_ENUM_ELEMENT(PtBrainModes, kNonGeneric,  plAvBrainGeneric::kNonGeneric)
+    PYTHON_ENUM_END(m, PtBrainModes)
 
-    PYTHON_ENUM_START(PtBehaviorTypes);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeStandingJump,     plHBehavior::kBehaviorTypeStandingJump);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeWalkingJump,      plHBehavior::kBehaviorTypeWalkingJump);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeRunningJump,      plHBehavior::kBehaviorTypeRunningJump);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeAnyJump,          plHBehavior::kBehaviorTypeAnyJump);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeRunningImpact,    plHBehavior::kBehaviorTypeRunningImpact);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeGroundImpact,     plHBehavior::kBehaviorTypeGroundImpact);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeAnyImpact,        plHBehavior::kBehaviorTypeAnyImpact);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeIdle,             plHBehavior::kBehaviorTypeIdle);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeWalk,             plHBehavior::kBehaviorTypeWalk);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeRun,              plHBehavior::kBehaviorTypeRun);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeWalkBack,         plHBehavior::kBehaviorTypeWalkBack);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeTurnLeft,         plHBehavior::kBehaviorTypeTurnLeft);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeTurnRight,        plHBehavior::kBehaviorTypeTurnRight);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeSidestepLeft,     plHBehavior::kBehaviorTypeSidestepLeft);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeSidestepRight,    plHBehavior::kBehaviorTypeSidestepRight);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeFall,             plHBehavior::kBehaviorTypeFall);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeMovingTurnLeft,   plHBehavior::kBehaviorTypeMovingTurnLeft);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeMovingTurnRight,  plHBehavior::kBehaviorTypeMovingTurnRight);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeLinkIn,           plHBehavior::kBehaviorTypeLinkIn);
-    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeLinkOut,          plHBehavior::kBehaviorTypeLinkOut);
-    PYTHON_ENUM_END(m, PtBehaviorTypes);
+    PYTHON_ENUM_START(PtBehaviorTypes)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeStandingJump,     plHBehavior::kBehaviorTypeStandingJump)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeWalkingJump,      plHBehavior::kBehaviorTypeWalkingJump)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeRunningJump,      plHBehavior::kBehaviorTypeRunningJump)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeAnyJump,          plHBehavior::kBehaviorTypeAnyJump)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeRunningImpact,    plHBehavior::kBehaviorTypeRunningImpact)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeGroundImpact,     plHBehavior::kBehaviorTypeGroundImpact)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeAnyImpact,        plHBehavior::kBehaviorTypeAnyImpact)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeIdle,             plHBehavior::kBehaviorTypeIdle)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeWalk,             plHBehavior::kBehaviorTypeWalk)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeRun,              plHBehavior::kBehaviorTypeRun)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeWalkBack,         plHBehavior::kBehaviorTypeWalkBack)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeTurnLeft,         plHBehavior::kBehaviorTypeTurnLeft)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeTurnRight,        plHBehavior::kBehaviorTypeTurnRight)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeSidestepLeft,     plHBehavior::kBehaviorTypeSidestepLeft)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeSidestepRight,    plHBehavior::kBehaviorTypeSidestepRight)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeFall,             plHBehavior::kBehaviorTypeFall)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeMovingTurnLeft,   plHBehavior::kBehaviorTypeMovingTurnLeft)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeMovingTurnRight,  plHBehavior::kBehaviorTypeMovingTurnRight)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeLinkIn,           plHBehavior::kBehaviorTypeLinkIn)
+    PYTHON_ENUM_ELEMENT(PtBehaviorTypes, kBehaviorTypeLinkOut,          plHBehavior::kBehaviorTypeLinkOut)
+    PYTHON_ENUM_END(m, PtBehaviorTypes)
 }

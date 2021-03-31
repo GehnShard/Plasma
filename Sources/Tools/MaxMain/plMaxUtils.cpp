@@ -41,15 +41,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
+#include "MaxAPI.h"
+
 #include "pnKeyedObject/plKey.h"
-#include "hsWindows.h"
 
 #include "resource.h"
 
-#include <max.h>
 #include <set>
-#include <utilapi.h>
-#pragma hdrstop
 
 #include "plMaxUtils.h"
 #include "plResMgr/plPageInfo.h"
@@ -59,18 +57,18 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 class MaxUtilsClassDesc : public ClassDesc
 {
 public:
-    int             IsPublic()              { return TRUE; }
-    void*           Create(BOOL loading)    { return &plMaxUtils::Instance(); }
-    const TCHAR*    ClassName()             { return _T("Plasma Debug Utils"); }
-    SClass_ID       SuperClassID()          { return UTILITY_CLASS_ID; }
-    Class_ID        ClassID()               { return Class_ID(0x316610ee, 0xebe62c3); }
-    const TCHAR*    Category()              { return _T(""); }
+    int             IsPublic() override             { return TRUE; }
+    void*           Create(BOOL loading) override   { return &plMaxUtils::Instance(); }
+    const TCHAR*    ClassName() override            { return _T("Plasma Debug Utils"); }
+    SClass_ID       SuperClassID() override         { return UTILITY_CLASS_ID; }
+    Class_ID        ClassID() override              { return Class_ID(0x316610ee, 0xebe62c3); }
+    const TCHAR*    Category() override             { return _T(""); }
 };
 
 static MaxUtilsClassDesc theMaxUtilsClassDesc;
 ClassDesc* GetMaxUtilsDesc() { return &theMaxUtilsClassDesc; }
 
-plMaxUtils::plMaxUtils() :  fhPanel(nil), fhResDlg(nil)
+plMaxUtils::plMaxUtils() : fhPanel(), fhResDlg()
 {
 }
 
@@ -93,14 +91,14 @@ void plMaxUtils::EndEditParams(Interface *ip, IUtil *iu)
     GetCOREInterface()->DeleteRollupPage(fhPanel);
 }
 
-BOOL CALLBACK plMaxUtils::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK plMaxUtils::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     return Instance().DlgProc(hDlg, msg, wParam, lParam);
 }
 
 int ClearTextureIds();
 
-BOOL plMaxUtils::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plMaxUtils::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -110,7 +108,7 @@ BOOL plMaxUtils::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
             int numCleared = ClearTextureIds();
             char buf[256];
             sprintf(buf, "Cleared %d texture ids", numCleared);
-            MessageBox(NULL, buf, "AssetMan Clear", MB_OK);
+            MessageBox(nullptr, buf, "AssetMan Clear", MB_OK);
             return TRUE;
         }
         break;
@@ -131,7 +129,7 @@ int ClearTextureIds()
     int numCleared = 0;
 
     TexSet texmaps;
-    plMtlCollector::GetMtls(nil, &texmaps);
+    plMtlCollector::GetMtls(nullptr, &texmaps);
 
     TexSet::iterator texIt = texmaps.begin();
     for (; texIt != texmaps.end(); texIt++)

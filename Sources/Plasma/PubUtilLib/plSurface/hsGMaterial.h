@@ -42,10 +42,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef hsGCompMatDefined
 #define hsGCompMatDefined
 
-#include "hsTemplates.h"
-#include "pnNetCommon/plSynchedObject.h"
-#include "hsGMatState.h"
+#include <vector>
+
 #include "hsColorRGBA.h"
+#include "hsGMatState.h"
+
+#include "pnNetCommon/plSynchedObject.h"
 
 class hsScene;
 class hsResMgr;
@@ -82,8 +84,8 @@ public:
 
 protected:
     uint32_t                  fLOD;
-    hsTArray<plLayerInterface*>     fLayers;
-    hsTArray<plLayerInterface*>     fPiggyBacks;
+    std::vector<plLayerInterface*> fLayers;
+    std::vector<plLayerInterface*> fPiggyBacks;
 
     uint32_t                  fCompFlags;
     uint32_t                  fLoadFlags;
@@ -91,7 +93,7 @@ protected:
     float                fLastUpdateTime;
 
     void                IClearLayers();
-    uint32_t              IMakeExtraLayer();
+    size_t              IMakeExtraLayer();
 
     void                    InsertLayer(plLayerInterface* lay, int32_t which = 0, bool piggyBack = false);
     void                    SetLayer(plLayerInterface* lay, int32_t which = 0, bool insert=false, bool piggyBack=false);
@@ -105,13 +107,12 @@ public:
     virtual hsGMaterial*    CloneNoLayers(); // For things like blending copies, that manipulate layers directly.
                                              // copies no keyed objects.
     plLayer*                MakeBaseLayer();
-    plLayerInterface*       GetLayer(uint32_t which);
-    plLayerInterface*       GetPiggyBack(uint32_t which);
-    uint32_t                  AddLayerViaNotify(plLayerInterface* lay);
-    uint32_t                  GetNumLayers() const        { return fLayers.GetCount(); }
-    void                    SetNumLayers(int cnt);
-    uint32_t                  GetNumPiggyBacks() const    { return fPiggyBacks.GetCount(); }
-    void                    SetNumPiggyBacks();
+    plLayerInterface*       GetLayer(size_t which);
+    plLayerInterface*       GetPiggyBack(size_t which);
+    uint32_t                AddLayerViaNotify(plLayerInterface* lay);
+    size_t                  GetNumLayers() const        { return fLayers.size(); }
+    void                    SetNumLayers(size_t cnt);
+    size_t                  GetNumPiggyBacks() const    { return fPiggyBacks.size(); }
 
     void                    SetLOD(uint32_t l)            { fLOD = l; }
     uint32_t                  GetLOD() const              { return fLOD; }
@@ -130,8 +131,8 @@ public:
 
     virtual void        Read(hsStream* s);
     virtual void        Write(hsStream* s);
-    virtual void        Read(hsStream* s, hsResMgr *group);
-    virtual void        Write(hsStream* s, hsResMgr *group);
+    void Read(hsStream* s, hsResMgr *group) override;
+    void Write(hsStream* s, hsResMgr *group) override;
 
     virtual void Eval(double secs, uint32_t frame);
     virtual void Reset();
@@ -140,7 +141,7 @@ public:
     CLASSNAME_REGISTER( hsGMaterial );
     GETINTERFACE_ANY( hsGMaterial, hsKeyedObject );
     
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
 };
 
 #endif // hsGCompMatDefined

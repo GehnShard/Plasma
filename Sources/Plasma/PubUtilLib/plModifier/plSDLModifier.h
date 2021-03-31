@@ -43,7 +43,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define plSDLModifier_inc
 
 #include "pnModifier/plSingleModifier.h"
-#include "pnNetCommon/plSDLTypes.h"
 
 //
 // Base class for modifiers which send/recv State Desc Language (SDL) messages
@@ -60,7 +59,7 @@ protected:
     virtual void IPutCurrentStateIn(plStateDataRecord* dstState) = 0;
     virtual void ISetCurrentStateFrom(const plStateDataRecord* srcState) = 0;
     virtual void ISentState(const plStateDataRecord* sentState) {}
-    bool IEval(double secs, float del, uint32_t dirty) {return false;}
+    bool IEval(double secs, float del, uint32_t dirty) override { return false; }
     
     virtual uint32_t IApplyModFlags(uint32_t sendFlags);
     
@@ -71,14 +70,14 @@ public:
     plSDLModifier();
     virtual ~plSDLModifier();
 
-    bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
     void SendState(uint32_t sendFlags);       // send a state update
     void ReceiveState(const plStateDataRecord* srcState);   // recv a state update
     virtual const char* GetSDLName() const = 0; // return the string name of the type of state descriptor you handle
     virtual plKey GetStateOwnerKey() const;
     
     plStateDataRecord* GetStateCache() const { return fStateCache; }
-    virtual void AddTarget(plSceneObject* so);
+    void AddTarget(plSceneObject* so) override;
     
     void AddNotifyForVar(plKey key, const ST::string& varName, float tolerance) const;
 };

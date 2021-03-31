@@ -45,10 +45,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //                                                                          //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "HeadSpin.h"
 #include "plStatusLogDrawer.h"
+
 #include "plPipeline.h"
 #include "plDebugText.h"
+
 #include "plStatusLog/plStatusLog.h"
 
 #include <algorithm>
@@ -119,7 +120,7 @@ void    plStatusLogDrawer::Draw(plStatusLog* curLog, plStatusLog* firstLog)
     y += lineHt * 2;
     for( i = 0; i < IGetMaxNumLines( curLog ); i++ )
     {
-        if( IGetLines( curLog )[ i ] != nil )
+        if (IGetLines(curLog)[i] != nullptr)
             drawText.DrawString( x + 4, y, IGetLines( curLog )[ i ], IGetColors( curLog )[ i ] );
         y += lineHt;
     }

@@ -45,9 +45,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plMessage.h"
 #include "pnNetCommon/plNetSharedState.h"
 
-class hsStream;
-class hsResMgr;
-
 //
 // Msg from server containing generic sharedState
 //
@@ -66,11 +63,14 @@ public:
     plNetSharedState* GetSharedState() { return &fSharedState; }
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+    void Read(hsStream* stream, hsResMgr* mgr) override
+    {
         plMessage::IMsgRead(stream, mgr);
         fSharedState.Write(stream);
     }
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+
+    void Write(hsStream* stream, hsResMgr* mgr) override
+    {
         plMessage::IMsgWrite(stream, mgr);
         fSharedState.Read(stream);
     }

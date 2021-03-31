@@ -42,6 +42,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plPluginResManager_h_inc
 #define plPluginResManager_h_inc
 
+#include <vector>
+
 #include "hsResMgr.h"
 #include "plResMgr/plResManager.h"
 
@@ -108,8 +110,8 @@ protected:
 
     VerifyErrors            fLastVerifyError;
     const plPageInfo*       fLastVerifyPage;
-    hsTArray<plSceneNode*>  fExportedNodes;
-    hsTArray<plKey>         fLooseEnds;
+    std::vector<plSceneNode*> fExportedNodes;
+    std::vector<plKey>      fLooseEnds;
 };
 
 #endif // plPluginResManager_h_inc

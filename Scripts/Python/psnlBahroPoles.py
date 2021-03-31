@@ -51,11 +51,10 @@ Controls the state of the bahro poles
 from Plasma import *
 from PlasmaTypes import *
 from PlasmaVaultConstants import *
-import xEnum
+import enum
 import xRandom
 import copy
 from xPsnlVaultSDL import *
-import string
 
 
 # Max attributes
@@ -129,7 +128,13 @@ kTimerCleftTotemClk = 42
 #GotCleftBook = 0
 boolCleftSolved = 0
 kWriteTimestamps = 8
-BahroPoles = xEnum.Enum("Teledahn = 1, Garrison, Garden, Kadish")
+
+class BahroPoles(enum.IntEnum):
+    Teledahn = enum.auto()
+    Garrison = enum.auto()
+    Garden = enum.auto()
+    Kadish = enum.auto()
+
 HidingPoles = 0
 
 # Bahro pole SDL variable states
@@ -850,7 +855,7 @@ class psnlBahroPoles(ptModifier):
         state8 = 0
         state7 = 0
 
-        for var in self.Poles.viewkeys():
+        for var in self.Poles.keys():
             val = self.Poles[var]["State"]
             PtDebugPrint(val)
 
@@ -1207,7 +1212,7 @@ class psnlBahroPoles(ptModifier):
                             chronString = chronString.split(",")
                             pelletSolution = []
                             for sol in chronString:
-                                pelletSolution.append(string.atoi(sol))
+                                pelletSolution.append(int(sol))
                             PtDebugPrint("found pellet cave solution: ", chron.getValue())
                             break
                     break
@@ -1261,7 +1266,7 @@ class psnlBahroPoles(ptModifier):
         agelist = ["Teledahn", "Garden", "Garrison", "Kadish"]
         solution = []
         for age in agelist:
-            ageSol = string.atoi(self.GetAgeVariable(age, "SolutionSymbol"))
+            ageSol = int(self.GetAgeVariable(age, "SolutionSymbol"))
             solution.append(ageSol)
         return solution
 

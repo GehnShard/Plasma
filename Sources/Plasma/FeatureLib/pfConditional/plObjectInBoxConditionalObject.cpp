@@ -39,21 +39,22 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "HeadSpin.h"
+
 #include "plObjectInBoxConditionalObject.h"
-#include "plPhysical/plDetectorModifier.h"
-#include "pnModifier/plLogicModBase.h"
-#include "plMessage/plActivatorMsg.h"
-#include "pnMessage/plNotifyMsg.h"
-#include "pnMessage/plFakeOutMsg.h"
-#include "pnNetCommon/plNetApp.h"
-#include "plAvatar/plArmatureMod.h"
-#include "pnSceneObject/plSceneObject.h"
-#include "pnMessage/plPlayerPageMsg.h"
+
 #include "plgDispatch.h"
 
-plObjectInBoxConditionalObject::plObjectInBoxConditionalObject() :
-fCurrentTrigger(nil)
+#include "pnMessage/plFakeOutMsg.h"
+#include "pnMessage/plNotifyMsg.h"
+#include "pnMessage/plPlayerPageMsg.h"
+#include "pnModifier/plLogicModBase.h"
+#include "pnNetCommon/plNetApp.h"
+#include "pnSceneObject/plSceneObject.h"
+
+#include "plAvatar/plArmatureMod.h"
+#include "plMessage/plActivatorMsg.h"
+
+plObjectInBoxConditionalObject::plObjectInBoxConditionalObject()
 {
     SetSatisfied(true);
 }
@@ -65,23 +66,27 @@ bool plObjectInBoxConditionalObject::MsgReceive(plMessage* msg)
     {
         if (pActivateMsg->fTriggerType == plActivatorMsg::kVolumeEnter)
         {
-            fInside.Append(pActivateMsg->fHitterObj);
+            fInside.emplace_back(pActivateMsg->fHitterObj);
             return true;
         }
         else
         if (pActivateMsg->fTriggerType == plActivatorMsg::kVolumeExit)
         {
-            for (int i = 0; i < fInside.Count(); i++)
+            for (auto iter = fInside.begin(); iter != fInside.end(); )
             {
-                if (fInside[i] == pActivateMsg->fHitterObj)
+                if (*iter == pActivateMsg->fHitterObj)
                 {
-                    fInside.Remove(i);
+                    iter = fInside.erase(iter);
                     if (pActivateMsg->fHitterObj == fCurrentTrigger && fCurrentTrigger && fLogicMod->HasFlag(plLogicModBase::kTriggered) && !IsToggle())
                     {
-                        fCurrentTrigger = nil;
+                        fCurrentTrigger = nullptr;
                         fLogicMod->GetNotify()->AddContainerEvent(pActivateMsg->fHiteeObj, pActivateMsg->fHitterObj, false);
                         fLogicMod->RequestUnTrigger();
                     }
+                }
+                else
+                {
+                    ++iter;
                 }
             }
             return true;
@@ -97,9 +102,9 @@ bool plObjectInBoxConditionalObject::Verify(plMessage* msg)
     plActivatorMsg* pActivateMsg = plActivatorMsg::ConvertNoRef(msg);
     if (pActivateMsg)
     {
-        for (int i = 0; i < fInside.Count(); i++)
+        for (const plKey& inKey : fInside)
         {
-            if (pActivateMsg->fHitterObj == fInside[i])
+            if (pActivateMsg->fHitterObj == inKey)
             {
                 fLogicMod->GetNotify()->AddContainerEvent(pActivateMsg->fHiteeObj, pActivateMsg->fHitterObj, true);
                 fCurrentTrigger = pActivateMsg->fHiteeObj;
@@ -111,9 +116,9 @@ bool plObjectInBoxConditionalObject::Verify(plMessage* msg)
     plFakeOutMsg* pFakeMsg = plFakeOutMsg::ConvertNoRef(msg);
     if (pFakeMsg && plNetClientApp::GetInstance()->GetLocalPlayerKey())
     {
-        for (int i = 0; i < fInside.Count(); i++)
+        for (const plKey& inKey : fInside)
         {
-            if (plNetClientApp::GetInstance()->GetLocalPlayerKey() == fInside[i])
+            if (plNetClientApp::GetInstance()->GetLocalPlayerKey() == inKey)
                 return true;
         }
     }
@@ -249,7 +254,7 @@ bool plVolumeSensorConditionalObject::MsgReceive(plMessage* msg)
             if (fHittee && fType == kTypeExit) {
                 const plSceneObject* hitteeSO = plSceneObject::ConvertNoRef(fHittee->ObjectIsLoaded());
                 if (hitteeSO && hitteeSO->IsLocallyOwned() == plSynchedObject::kYes) {
-                    fLogicMod->GetNotify()->AddCollisionEvent(false, pActivateMsg->fHitterObj, pActivateMsg->fHiteeObj, false);
+                    fLogicMod->GetNotify()->AddCollisionEvent(false, page->fPlayer, fHittee, false);
                     if (Satisfied())
                         fLogicMod->Trigger(false);
                 }

@@ -56,7 +56,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pyObjectRef.h"
 #include "hsResMgr.h"
 #include "hsStream.h"
-#pragma hdrstop
 
 #include "plPythonFileMod.h"
 
@@ -101,6 +100,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plMessage/plAccountUpdateMsg.h"
 #include "plAgeLoader/plAgeLoader.h"
 #include "plMessage/plAIMsg.h"
+#include "plAvatar/plArmatureMod.h"
 #include "plAvatar/plAvBrainCritter.h"
 #include "pfMessage/pfGameScoreMsg.h"
 
@@ -206,7 +206,8 @@ public:
     {
     }
 
-    void AddedChildNode(RelVaultNode* parentNode, RelVaultNode* childNode)
+    void AddedChildNode(const hsRef<RelVaultNode>& parentNode,
+                        const hsRef<RelVaultNode>& childNode) override
     {
         if (fPyFileMod && fPyFileMod->fPyFunctionInstances[fFunctionIdx]) {
             PyObject* ptuple = PyTuple_New(1);
@@ -215,7 +216,8 @@ public:
         }
     }
 
-    void RemovingChildNode(RelVaultNode* parentNode, RelVaultNode* childNode)
+    void RemovingChildNode(const hsRef<RelVaultNode>& parentNode,
+                           const hsRef<RelVaultNode>& childNode) override
     {
         if (fPyFileMod && fPyFileMod->fPyFunctionInstances[fFunctionIdx]) {
             PyObject* ptuple = PyTuple_New(1);
@@ -224,7 +226,7 @@ public:
         }
     }
 
-    void ChangedNode(RelVaultNode* changedNode)
+    void ChangedNode(const hsRef<RelVaultNode>& changedNode) override
     {
         if (fPyFileMod && fPyFileMod->fPyFunctionInstances[fFunctionIdx]) {
             PyObject* ptuple = PyTuple_New(1);
@@ -252,7 +254,7 @@ class pfPythonKeyCatcher : public plDefaultKeyCatcher
             : fMod(mod)
         { }
 
-        virtual void HandleKeyEvent(plKeyEventMsg* msg)
+        void HandleKeyEvent(plKeyEventMsg* msg) override
         {
             fMod->ICallScriptMethod(plPythonFileMod::kfunc_OnDefaultKeyCaught,
                                     msg->GetKeyChar(), msg->GetKeyDown(),
@@ -271,23 +273,15 @@ bool plPythonFileMod::fAtConvertTime = false;
 //  PURPOSE    : Constructor and destructor
 //
 plPythonFileMod::plPythonFileMod()
+    : fModule(), fLocalNotify(true), fIsFirstTimeEval(true),
+      fVaultCallback(), fSDLMod(), fSelfKey(), fInstance(), fKeyCatcher(),
+      fPipe(), fAmIAttachedToClone()
 {
-    fModule = nil;
-    fLocalNotify= true;
-    fIsFirstTimeEval = true;
-    fVaultCallback = nil;
-    fSDLMod = nil;
-    fSelfKey = nil;
-    fInstance = nil;
-    fKeyCatcher = nil;
-    fPipe = nil;
-    fAmIAttachedToClone = false;
-
     // assume that all the functions are not available
     // ...if the functions are defined in the module, then we'll call 'em
     int i;
     for (i=0 ; i<kfunc_lastone; i++)
-        fPyFunctionInstances[i] = nil;
+        fPyFunctionInstances[i] = nullptr;
 }
 
 plPythonFileMod::~plPythonFileMod()
@@ -362,7 +356,7 @@ static inline void IBuildTupleArg(PyObject* tuple, size_t idx, bool value)
 
 static inline void IBuildTupleArg(PyObject* tuple, size_t idx, char value)
 {
-    PyTuple_SET_ITEM(tuple, idx, PyString_FromFormat("%c", (int)value));
+    PyTuple_SET_ITEM(tuple, idx, PyUnicode_FromFormat("%c", (int)value));
 }
 
 static inline void IBuildTupleArg(PyObject* tuple, size_t idx, ControlEventCode value)
@@ -372,7 +366,7 @@ static inline void IBuildTupleArg(PyObject* tuple, size_t idx, ControlEventCode 
 
 static inline void IBuildTupleArg(PyObject* tuple, size_t idx, const char* value)
 {
-    PyTuple_SET_ITEM(tuple, idx, PyString_FromString(value));
+    PyTuple_SET_ITEM(tuple, idx, PyUnicode_FromString(value));
 }
 
 static inline void IBuildTupleArg(PyObject* tuple, size_t idx, double value)
@@ -387,17 +381,17 @@ static inline void IBuildTupleArg(PyObject* tuple, size_t idx, float value)
 
 static inline void IBuildTupleArg(PyObject* tuple, size_t idx, int8_t value)
 {
-    PyTuple_SET_ITEM(tuple, idx, PyInt_FromLong(value));
+    PyTuple_SET_ITEM(tuple, idx, PyLong_FromLong(value));
 }
 
 static inline void IBuildTupleArg(PyObject* tuple, size_t idx, int16_t value)
 {
-    PyTuple_SET_ITEM(tuple, idx, PyInt_FromLong(value));
+    PyTuple_SET_ITEM(tuple, idx, PyLong_FromLong(value));
 }
 
 static inline void IBuildTupleArg(PyObject* tuple, size_t idx, int32_t value)
 {
-    PyTuple_SET_ITEM(tuple, idx, PyInt_FromLong(value));
+    PyTuple_SET_ITEM(tuple, idx, PyLong_FromLong(value));
 }
 
 static inline void IBuildTupleArg(PyObject* tuple, size_t idx, PyObject* value)
@@ -417,22 +411,22 @@ static inline void IBuildTupleArg(PyObject* tuple, size_t idx, const ST::string&
 
 static inline void IBuildTupleArg(PyObject* tuple, size_t idx, uint8_t value)
 {
-    PyTuple_SET_ITEM(tuple, idx, PyInt_FromSize_t(value));
+    PyTuple_SET_ITEM(tuple, idx, PyLong_FromSize_t(value));
 }
 
 static inline void IBuildTupleArg(PyObject* tuple, size_t idx, uint16_t value)
 {
-    PyTuple_SET_ITEM(tuple, idx, PyInt_FromSize_t(value));
+    PyTuple_SET_ITEM(tuple, idx, PyLong_FromSize_t(value));
 }
 
 static inline void IBuildTupleArg(PyObject* tuple, size_t idx, uint32_t value)
 {
-    PyTuple_SET_ITEM(tuple, idx, PyInt_FromSize_t(value));
+    PyTuple_SET_ITEM(tuple, idx, PyLong_FromSize_t(value));
 }
 
 static inline void IBuildTupleArg(PyObject* tuple, size_t idx, wchar_t value)
 {
-    PyTuple_SET_ITEM(tuple, idx, PyString_FromFormat("%c", (int)value));
+    PyTuple_SET_ITEM(tuple, idx, PyUnicode_FromFormat("%c", (int)value));
 }
 
 template<size_t Size, typename Arg>
@@ -488,25 +482,21 @@ bool plPythonFileMod::ILoadPythonCode()
     // get code from file and execute in module
     // see if the file exists first before trying to import it
     plFileName pyfile = plFileName::Join(".", "python", ST::format("{}.py", fPythonFile));
-    if (plFileInfo(pyfile).Exists()) {
+    plFileName gluefile = plFileName::Join(".", "python", "plasma", "glue.py");
+    if (plFileInfo(pyfile).Exists() && plFileInfo(gluefile).Exists()) {
         // ok... we can't really use import because Python remembers too much where global variables came from
         // ...and using execfile make it sure that globals are defined in this module and not in the imported module
-        ST::string fromLoad = ST::format(R"(execfile('.\\python\\{}.py'))", fPythonFile);
-        if (PythonInterface::RunString(fromLoad.c_str(), fModule)) {
+        // ...but execfile was removed in Python 3 ^_^
+        if (PythonInterface::RunFile(pyfile, fModule)) {
             // we've loaded the code into our module
             // now attach the glue python code to the end
-            if (!PythonInterface::RunString(R"(execfile('.\\python\\plasma\\glue.py'))", fModule)) {
-                // display any output (NOTE: this would be disabled in production)
-                DisplayPythonOutput();
-                return false;
-            } else {
+            if (PythonInterface::RunFile(gluefile, fModule))
                 return true;
-            }
         }
-        DisplayPythonOutput();
 
         ST::string errMsg = ST::format("Python file {}.py had errors!!! Could not load.", fPythonFile);
         PythonInterface::WriteToLog(errMsg);
+        ReportError();
         return false;
     }
 #endif  //PLASMA_EXTERNAL_RELEASE
@@ -517,10 +507,10 @@ bool plPythonFileMod::ILoadPythonCode()
     if (pythonCode && PythonInterface::RunPYC(pythonCode, fModule))
         return true;
 
-    DisplayPythonOutput();
-
     ST::string errMsg = ST::format("Python file {}.py was not found.", fPythonFile);
     PythonInterface::WriteToLog(errMsg);
+    if (PyErr_Occurred())
+        ReportError();
     return false;
 }
 
@@ -560,7 +550,7 @@ void plPythonFileMod::AddTarget(plSceneObject* sobj)
 
             // set the name of the file (in the global dictionary of the module)
             PyObject* dict = PyModule_GetDict(fModule);
-            PyObject* pfilename = PyString_FromSTString(fPythonFile);
+            PyObject* pfilename = PyUnicode_FromSTString(fPythonFile);
             PyDict_SetItemString(dict, "glue_name", pfilename);
 
             // next we need to:
@@ -601,7 +591,7 @@ void plPythonFileMod::AddTarget(plSceneObject* sobj)
             PyObject_SetAttrString(fInstance, "sceneobject", pSobj.Get());
 
             // set the isInitialStateLoaded to not loaded... yet
-            pyObjectRef pInitialState = PyInt_FromLong(0);
+            pyObjectRef pInitialState = PyLong_FromLong(0);
             PyObject_SetAttrString(fInstance, "isInitialStateLoaded", pInitialState.Get());
 
             // Give the SDL mod to Python
@@ -624,13 +614,13 @@ void plPythonFileMod::AddTarget(plSceneObject* sobj)
                     pyObjectRef retvalue;
                     switch (parameter.fValueType) {
                         case plPythonParameter::kInt:
-                            value = PyInt_FromLong(parameter.datarecord.fIntNumber);
+                            value = PyLong_FromLong(parameter.datarecord.fIntNumber);
                             break;
                         case plPythonParameter::kFloat:
                             value = PyFloat_FromDouble(parameter.datarecord.fFloatNumber);
                             break;
                         case plPythonParameter::kbool:
-                            value = PyInt_FromLong(parameter.datarecord.fBool);
+                            value = PyLong_FromLong(parameter.datarecord.fBool);
                             break;
                         case plPythonParameter::kString:
                         case plPythonParameter::kAnimationName:
@@ -641,8 +631,8 @@ void plPythonFileMod::AddTarget(plSceneObject* sobj)
                                     ReportError();
                                     DisplayPythonOutput();
                                 }
-                                if (retvalue && PyInt_Check(retvalue.Get()) )
-                                    isNamedAttr = PyInt_AsLong(retvalue.Get());
+                                if (retvalue && PyLong_Check(retvalue.Get()) )
+                                    isNamedAttr = PyLong_AsLong(retvalue.Get());
                                 // is it a NamedActivator
                                 if (isNamedAttr == 1 || isNamedAttr == 2) {
                                     if (plAgeLoader::GetInstance()->IsLoadingAge())
@@ -656,7 +646,7 @@ void plPythonFileMod::AddTarget(plSceneObject* sobj)
                             // if it wasn't a named string then must be normal string type
                             if (isNamedAttr == 0)
                                 if (!parameter.fString.empty())
-                                    value = PyString_FromSTString(parameter.fString);
+                                    value = PyUnicode_FromSTString(parameter.fString);
                             break;
                         case plPythonParameter::kSceneObject:
                         case plPythonParameter::kSceneObjectList:
@@ -702,8 +692,6 @@ void plPythonFileMod::AddTarget(plSceneObject* sobj)
 
             //  - find functions in class they've defined.
             PythonInterface::CheckInstanceForFunctions(fInstance, fFunctionNames, fPyFunctionInstances);
-            // clear any errors created by checking for methods in a class
-            PyErr_Clear();
 
             // register for PageLoaded message if needed
             if (fPyFunctionInstances[kfunc_PageLoad])
@@ -1022,7 +1010,7 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
         fLocalNotify = !pNtfyMsg->HasBCastFlag(plMessage::kNetNonLocal);
 
         PyObject* levents = PyTuple_New(pNtfyMsg->GetEventCount());
-        for (int i = 0; i < pNtfyMsg->GetEventCount(); i++) {
+        for (size_t i = 0; i < pNtfyMsg->GetEventCount(); i++) {
             proEventData* pED = pNtfyMsg->GetEventRecord(i);
             switch (pED->fEventType) {
                 case proEventData::kCollision:
@@ -1031,7 +1019,7 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
 
                         PyObject* event = PyTuple_New(4);
                         PyTuple_SET_ITEM(event, 0, PyLong_FromLong((long)proEventData::kCollision));
-                        PyTuple_SET_ITEM(event, 1, PyInt_FromLong(eventData->fEnter ? 1 : 0));
+                        PyTuple_SET_ITEM(event, 1, PyLong_FromLong(eventData->fEnter ? 1 : 0));
                         PyTuple_SET_ITEM(event, 2, pySceneObject::New(eventData->fHitter, fSelfKey));
                         PyTuple_SET_ITEM(event, 3, pySceneObject::New(eventData->fHittee, fSelfKey));
                         PyTuple_SET_ITEM(levents, i, event);
@@ -1055,13 +1043,13 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
                         proPickedEventData* eventData = (proPickedEventData*)pED;
                         PyObject* event = PyTuple_New(6);
                         PyTuple_SET_ITEM(event, 0, PyLong_FromLong((long)proEventData::kPicked));
-                        PyTuple_SET_ITEM(event, 1, PyInt_FromLong(eventData->fEnabled ? 1 : 0));
+                        PyTuple_SET_ITEM(event, 1, PyLong_FromLong(eventData->fEnabled ? 1 : 0));
                         PyTuple_SET_ITEM(event, 2, pySceneObject::New(eventData->fPicker, fSelfKey));
                         PyTuple_SET_ITEM(event, 3, pySceneObject::New(eventData->fPicked, fSelfKey));
                         PyTuple_SET_ITEM(event, 4, pyPoint3::New(eventData->fHitPoint));
 
                         // make it in the local space
-                        hsPoint3 tolocal{ 0.f, 0.f, 0.f };
+                        hsPoint3 tolocal;
                         if (eventData->fPicked){
                             plSceneObject* obj = plSceneObject::ConvertNoRef(eventData->fPicked->ObjectIsLoaded());
                             if (obj) {
@@ -1082,7 +1070,7 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
                         PyObject* event = PyTuple_New(3);
                         PyTuple_SET_ITEM(event, 0, PyLong_FromLong((long)proEventData::kControlKey));
                         PyTuple_SET_ITEM(event, 1, PyLong_FromLong(eventData->fControlKey));
-                        PyTuple_SET_ITEM(event, 2, PyInt_FromLong(eventData->fDown ? 1 : 0));
+                        PyTuple_SET_ITEM(event, 2, PyLong_FromLong(eventData->fDown ? 1 : 0));
                         PyTuple_SET_ITEM(levents, i, event);
                     }
                     break;
@@ -1093,7 +1081,7 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
                         // create event list
                         PyObject* event = PyTuple_New(4);
                         PyTuple_SET_ITEM(event, 0, PyLong_FromLong((long)proEventData::kVariable));
-                        PyTuple_SET_ITEM(event, 1, PyString_FromSTString(eventData->fName));
+                        PyTuple_SET_ITEM(event, 1, PyUnicode_FromSTString(eventData->fName));
                         PyTuple_SET_ITEM(event, 2, PyLong_FromLong(eventData->fDataType));
 
                         // depending on the data type create the data
@@ -1105,7 +1093,7 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
                                 PyTuple_SET_ITEM(event, 3, pyKey::New(eventData->fKey));
                                 break;
                             case proEventData::kInt:
-                                PyTuple_SET_ITEM(event, 3, PyInt_FromLong(eventData->fNumber.i));
+                                PyTuple_SET_ITEM(event, 3, PyLong_FromLong(eventData->fNumber.i));
                                 break;
                             default:
                                 Py_INCREF(Py_None);
@@ -1121,7 +1109,7 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
                         proFacingEventData* eventData = (proFacingEventData*)pED;
                         PyObject* event = PyTuple_New(5);
                         PyTuple_SET_ITEM(event, 0, PyLong_FromLong((long)proEventData::kFacing));
-                        PyTuple_SET_ITEM(event, 1, PyInt_FromLong(eventData->enabled ? 1 : 0));
+                        PyTuple_SET_ITEM(event, 1, PyLong_FromLong(eventData->enabled ? 1 : 0));
                         PyTuple_SET_ITEM(event, 2, pySceneObject::New(eventData->fFacer, fSelfKey));
                         PyTuple_SET_ITEM(event, 3, pySceneObject::New(eventData->fFacee, fSelfKey));
                         PyTuple_SET_ITEM(event, 4, PyFloat_FromDouble(eventData->dot));
@@ -1135,7 +1123,7 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
 
                         PyObject* event = PyTuple_New(4);
                         PyTuple_SET_ITEM(event, 0, PyLong_FromLong((long)proEventData::kContained));
-                        PyTuple_SET_ITEM(event, 1, PyInt_FromLong(eventData->fEntering ? 1 : 0));
+                        PyTuple_SET_ITEM(event, 1, PyLong_FromLong(eventData->fEntering ? 1 : 0));
                         PyTuple_SET_ITEM(event, 2, pySceneObject::New(eventData->fContained, fSelfKey));
                         PyTuple_SET_ITEM(event, 3, pySceneObject::New(eventData->fContainer, fSelfKey));
                         PyTuple_SET_ITEM(levents, i, event);
@@ -1148,8 +1136,8 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
 
                         PyObject* event = PyTuple_New(3);
                         PyTuple_SET_ITEM(event, 0, PyLong_FromLong((long)proEventData::kActivate));
-                        PyTuple_SET_ITEM(event, 1, PyInt_FromLong(eventData->fActive ? 1 : 0));
-                        PyTuple_SET_ITEM(event, 2, PyInt_FromLong(eventData->fActivate ? 1 : 0));
+                        PyTuple_SET_ITEM(event, 1, PyLong_FromLong(eventData->fActive ? 1 : 0));
+                        PyTuple_SET_ITEM(event, 2, PyLong_FromLong(eventData->fActivate ? 1 : 0));
                         PyTuple_SET_ITEM(levents, i, event);
                     }
                     break;
@@ -1195,8 +1183,8 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
                         PyObject* event = PyTuple_New(4);
                         PyTuple_SET_ITEM(event, 0, PyLong_FromLong((long)proEventData::kOfferLinkingBook));
                         PyTuple_SET_ITEM(event, 1, pySceneObject::New(eventData->offerer, fSelfKey));
-                        PyTuple_SET_ITEM(event, 2, PyInt_FromLong(eventData->targetAge));
-                        PyTuple_SET_ITEM(event, 3, PyInt_FromLong(eventData->offeree));
+                        PyTuple_SET_ITEM(event, 2, PyLong_FromLong(eventData->targetAge));
+                        PyTuple_SET_ITEM(event, 3, PyLong_FromLong(eventData->offeree));
                         PyTuple_SET_ITEM(levents, i, event);
                     }
                     break;
@@ -1357,7 +1345,7 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
     auto pRLNMsg = IScriptWantsMsg<plRoomLoadNotifyMsg>(kfunc_PageLoad, msg);
     if (pRLNMsg) {
         ICallScriptMethod(kfunc_PageLoad, pRLNMsg->GetWhatHappen(),
-                          pRLNMsg->GetRoom() ? pRLNMsg->GetRoom()->GetName() : ST::null);
+                          pRLNMsg->GetRoom() ? pRLNMsg->GetRoom()->GetName() : ST::string());
         return true;
     }
 
@@ -1392,7 +1380,7 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
                 break;
             case pfKIMsg::kRateIt:
                 value = PyTuple_New(3);
-                PyTuple_SET_ITEM(value.Get(), 0, PyString_FromSTString(pkimsg->GetUser()));
+                PyTuple_SET_ITEM(value.Get(), 0, PyUnicode_FromSTString(pkimsg->GetUser()));
                 PyTuple_SET_ITEM(value.Get(), 1, PyUnicode_FromSTString(pkimsg->GetString()));
                 PyTuple_SET_ITEM(value.Get(), 2, PyLong_FromLong(pkimsg->GetIntValue()));
                 break;
@@ -1445,14 +1433,12 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
         PyObject* player = nullptr;
         if (pramsg->GetAvatarKey()) {
             // try to create the pyPlayer for where this message came from
-            int mbrIndex = plNetClientMgr::GetInstance()->TransportMgr().FindMember(pramsg->GetAvatarKey());
-            if (mbrIndex != -1) {
-                plNetTransportMember *mbr = plNetClientMgr::GetInstance()->TransportMgr().GetMember( mbrIndex );
+            plNetTransportMember *mbr = plNetClientMgr::GetInstance()->TransportMgr().GetMemberByKey(pramsg->GetAvatarKey());
+            if (mbr)
                 player = pyPlayer::New(mbr->GetAvatarKey(), mbr->GetPlayerName(), mbr->GetPlayerID(), mbr->GetDistSq());
-            }
         }
         if (!player)
-            player = PyInt_FromLong(0);
+            player = PyLong_FromLong(0);
         ICallScriptMethod(kfunc_RemoteAvatarInfo, player);
         return true;
     }
@@ -1492,7 +1478,7 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
                     ST::string ageName = vaultNotifyMsg->GetArgs()->GetString(plNetCommon::VaultTaskArgs::kAgeFilename);
                     if (!ageName.empty()) {
                         ptuple = PyTuple_New(1);
-                        PyTuple_SET_ITEM(ptuple.Get(), 0, PyString_FromSTString(ageName));
+                        PyTuple_SET_ITEM(ptuple.Get(), 0, PyUnicode_FromSTString(ageName));
                     }
                 }
                 break;
@@ -1512,9 +1498,8 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
     if (pkimsg && pkimsg->GetCommand() == pfKIMsg::kHACKChatMsg) {
         if (!VaultAmIgnoringPlayer(pkimsg->GetPlayerID())) {
             PyObject* player;
-            int mbrIndex = plNetClientMgr::GetInstance()->TransportMgr().FindMember(pkimsg->GetPlayerID());
-            if (mbrIndex != -1) {
-                plNetTransportMember *mbr = plNetClientMgr::GetInstance()->TransportMgr().GetMember( mbrIndex );
+            plNetTransportMember *mbr = plNetClientMgr::GetInstance()->TransportMgr().GetMemberByID(pkimsg->GetPlayerID());
+            if (mbr) {
                 player = pyPlayer::New(mbr->GetAvatarKey(), pkimsg->GetUser(), mbr->GetPlayerID(), mbr->GetDistSq());
             } else {
                 // else if we could not find the player in our list, then just return a string of the user's name
@@ -1548,7 +1533,7 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
     if (plInitialAgeStateLoadedMsg::ConvertNoRef(msg)) {
         if (fInstance) {
             // set the isInitialStateLoaded to that it is loaded
-            pyObjectRef pInitialState = PyInt_FromLong(1);
+            pyObjectRef pInitialState = PyLong_FromLong(1);
             PyObject_SetAttrString(fInstance, "isInitialStateLoaded", pInitialState.Get());
         }
 
@@ -1675,8 +1660,8 @@ bool plPythonFileMod::MsgReceive(plMessage* msg)
 
     auto pPubAgeMsg = IScriptWantsMsg<plNetCommPublicAgeListMsg>(kfunc_gotPublicAgeList, msg);
     if (pPubAgeMsg) {
-        PyObject* pyEL = PyTuple_New(pPubAgeMsg->ages.Count());
-        for (unsigned i = 0; i < pPubAgeMsg->ages.Count(); ++i) {
+        PyObject* pyEL = PyTuple_New(pPubAgeMsg->ages.size());
+        for (size_t i = 0; i < pPubAgeMsg->ages.size(); ++i) {
             plAgeInfoStruct ageInfo;
             ageInfo.CopyFrom(pPubAgeMsg->ages[i]);
             unsigned nPlayers = pPubAgeMsg->ages[i].currentPopulation;

@@ -41,22 +41,23 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "plPipelineViewSettings.h"
-#include "pl3DPipeline.h"
-#include "plProfile.h"
 
+#include "pl3DPipeline.h"
+#include "plPipeDebugFlags.h"
+#include "plProfile.h"
 #include "hsResMgr.h"
 
-#include "plSurface/hsGMaterial.h"
-#include "plSurface/plLayerInterface.h"
-#include "plSurface/plLayer.h"
-#include "plDrawable/plDrawableSpans.h"
-#include "plDrawable/plSpaceTree.h"
-#include "plDrawable/plDrawableGenerator.h"
-#include "plDrawable/plSpanTypes.h"
 #include "pnSceneObject/plDrawInterface.h"
 #include "pnSceneObject/plSceneObject.h"
+
+#include "plDrawable/plDrawableGenerator.h"
+#include "plDrawable/plDrawableSpans.h"
+#include "plDrawable/plSpaceTree.h"
+#include "plDrawable/plSpanTypes.h"
 #include "plScene/plVisMgr.h"
-#include "plPipeDebugFlags.h"
+#include "plSurface/hsGMaterial.h"
+#include "plSurface/plLayer.h"
+#include "plSurface/plLayerInterface.h"
 
 plProfile_CreateTimer("Harvest", "Draw", Harvest);
 plProfile_Extern(DrawOccBuild);
@@ -137,12 +138,12 @@ void plPipelineViewSettings::SetClear(const hsColorRGBA* col, const float* depth
 
 void plPipelineViewSettings::MakeOcclusionSnap()
 {
-    hsTArray<hsPoint3>& pos         = fCullTree.GetCaptureVerts();
-    hsTArray<hsVector3>& norm       = fCullTree.GetCaptureNorms();
-    hsTArray<hsColorRGBA>& color    = fCullTree.GetCaptureColors();
-    hsTArray<uint16_t>& tris        = fCullTree.GetCaptureTris();
+    std::vector<hsPoint3>& pos      = fCullTree.GetCaptureVerts();
+    std::vector<hsVector3>& norm    = fCullTree.GetCaptureNorms();
+    std::vector<hsColorRGBA>& color = fCullTree.GetCaptureColors();
+    std::vector<uint16_t>& tris     = fCullTree.GetCaptureTris();
 
-    if (tris.GetCount())
+    if (!tris.empty())
     {
         hsMatrix44 ident;
         ident.Reset();
@@ -157,16 +158,16 @@ void plPipelineViewSettings::MakeOcclusionSnap()
         lay->SetOpacity(0.5f);
         lay->SetBlendFlags(lay->GetBlendFlags() | hsGMatState::kBlendAlpha);
 
-        fCullProxy = plDrawableGenerator::GenerateDrawable(pos.GetCount(),
-                                            pos.AcquireArray(),
-                                            norm.AcquireArray(),
+        fCullProxy = plDrawableGenerator::GenerateDrawable(pos.size(),
+                                            pos.data(),
+                                            norm.data(),
                                             nullptr,
                                             0,
-                                            color.AcquireArray(),
+                                            color.data(),
                                             true,
                                             nullptr,
-                                            tris.GetCount(),
-                                            tris.AcquireArray(),
+                                            tris.size(),
+                                            tris.data(),
                                             mat,
                                             ident,
                                             true,
@@ -216,21 +217,21 @@ void plPipelineViewSettings::RefreshCullTree()
 
         if (fMaxCullNodes)
         {
-            int i;
-            for (i = 0; i < fCullPolys.GetCount(); i++)
+            size_t i;
+            for (i = 0; i < fCullPolys.size(); i++)
             {
                 fCullTree.AddPoly(*fCullPolys[i]);
                 if (fCullTree.GetNumNodes() >= fMaxCullNodes)
                     break;
             }
-            fCullPolys.SetCount(0);
+            fCullPolys.clear();
             plProfile_Set(OccPolyUsed, i);
 
-            for (i = 0; i < fCullHoles.GetCount(); i++)
+            for (i = 0; i < fCullHoles.size(); i++)
             {
                 fCullTree.AddPoly(*fCullHoles[i]);
             }
-            fCullHoles.SetCount(0);
+            fCullHoles.clear();
             plProfile_Set(OccNodeUsed, fCullTree.GetNumNodes());
         }
 
@@ -245,7 +246,7 @@ void plPipelineViewSettings::RefreshCullTree()
 }
 
 
-bool plPipelineViewSettings::HarvestVisible(plSpaceTree* space, hsTArray<int16_t>& visList)
+bool plPipelineViewSettings::HarvestVisible(plSpaceTree* space, std::vector<int16_t>& visList)
 {
     if (!space)
         return false;
@@ -261,15 +262,15 @@ bool plPipelineViewSettings::HarvestVisible(plSpaceTree* space, hsTArray<int16_t
     fCullTree.Harvest(space, visList);
     plProfile_EndTiming(Harvest);
 
-    return visList.GetCount() != 0;
+    return !visList.empty();
 }
 
 
-void plPipelineViewSettings::GetVisibleSpans(plDrawableSpans* drawable, hsTArray<int16_t>& visList, plVisMgr* visMgr)
+void plPipelineViewSettings::GetVisibleSpans(plDrawableSpans* drawable, std::vector<int16_t>& visList, plVisMgr* visMgr)
 {
-    static hsTArray<int16_t> tmpVis;
-    tmpVis.SetCount(0);
-    visList.SetCount(0);
+    static std::vector<int16_t> tmpVis;
+    tmpVis.clear();
+    visList.clear();
 
     drawable->GetSpaceTree()->SetViewPos(GetViewPositionWorld());
 
@@ -280,7 +281,7 @@ void plPipelineViewSettings::GetVisibleSpans(plDrawableSpans* drawable, hsTArray
 
     const float viewDist = GetViewDirWorld().InnerProduct(GetViewPositionWorld());
 
-    const hsTArray<plSpan *>    &spans = drawable->GetSpanArray();
+    const std::vector<plSpan *>& spans = drawable->GetSpanArray();
 
     plProfile_BeginTiming(Harvest);
     if (visMgr)
@@ -305,29 +306,27 @@ void plPipelineViewSettings::GetVisibleSpans(plDrawableSpans* drawable, hsTArray
     // I haven't been able to purge it.
     if (fPipeline->IsDebugFlagSet(plPipeDbg::kFlagSkipVisDist))
     {
-        int i;
-        for (i = 0; i < tmpVis.GetCount(); i++)
+        for (int16_t vis : tmpVis)
         {
-            if (spans[tmpVis[i]]->fSubType & fSubDrawableTypeMask)
+            if (spans[vis]->fSubType & fSubDrawableTypeMask)
             {
-                visList.Append(tmpVis[i]);
+                visList.emplace_back(vis);
             }
         }
     }
     else
     {
-        int i;
-        for (i = 0; i < tmpVis.GetCount(); i++)
+        for (int16_t vis : tmpVis)
         {
-            if (spans[tmpVis[i]]->fSubType & fSubDrawableTypeMask)
+            if (spans[vis]->fSubType & fSubDrawableTypeMask)
             {
                 // We'll check here for spans we can discard because they've completely distance faded out.
                 // Note this is based on view direction distance (because the fade is), rather than the
                 // preferrable distance to camera we sort by.
                 float minDist, maxDist;
-                if (drawable->GetSubVisDists(tmpVis[i], minDist, maxDist))
+                if (drawable->GetSubVisDists(vis, minDist, maxDist))
                 {
-                    const hsBounds3Ext& bnd = drawable->GetSpaceTree()->GetNode(tmpVis[i]).fWorldBounds;
+                    const hsBounds3Ext& bnd = drawable->GetSpaceTree()->GetNode(vis).fWorldBounds;
                     hsPoint2 depth;
                     bnd.TestPlane(GetViewDirWorld(), depth);
 
@@ -335,7 +334,7 @@ void plPipelineViewSettings::GetVisibleSpans(plDrawableSpans* drawable, hsTArray
                         continue;
                 }
 
-                visList.Append(tmpVis[i]);
+                visList.emplace_back(vis);
             }
         }
     }
@@ -343,17 +342,16 @@ void plPipelineViewSettings::GetVisibleSpans(plDrawableSpans* drawable, hsTArray
 }
 
 
-bool plPipelineViewSettings::SubmitOccluders(const hsTArray<const plCullPoly*>& polyList)
+bool plPipelineViewSettings::SubmitOccluders(const std::vector<const plCullPoly*>& polyList)
 {
-    fCullPolys.SetCount(0);
-    fCullHoles.SetCount(0);
-    int i;
-    for (i = 0; i < polyList.GetCount(); i++)
+    fCullPolys.clear();
+    fCullHoles.clear();
+    for (const plCullPoly* poly : polyList)
     {
-        if (polyList[i]->IsHole())
-            fCullHoles.Append(polyList[i]);
+        if (poly->IsHole())
+            fCullHoles.emplace_back(poly);
         else
-            fCullPolys.Append(polyList[i]);
+            fCullPolys.emplace_back(poly);
     }
     fCullTreeDirty = true;
 
@@ -378,9 +376,8 @@ bool plPipelineViewSettings::TestVisibleWorld(const plSceneObject* sObj)
     if (!di)
         return false;
 
-    const int numDraw = di->GetNumDrawables();
-    int i;
-    for (i = 0; i < numDraw; i++)
+    const size_t numDraw = di->GetNumDrawables();
+    for (size_t i = 0; i < numDraw; i++)
     {
         plDrawableSpans* dr = plDrawableSpans::ConvertNoRef(di->GetDrawable(i));
         if (!dr)
@@ -390,9 +387,8 @@ bool plPipelineViewSettings::TestVisibleWorld(const plSceneObject* sObj)
         if (diIndex.IsMatrixOnly())
             continue;
 
-        const int numSpan = diIndex.GetCount();
-        int j;
-        for (j = 0; j < numSpan; j++)
+        const size_t numSpan = diIndex.GetCount();
+        for (size_t j = 0; j < numSpan; j++)
         {
             const plSpan* span = dr->GetSpan(diIndex[j]);
 

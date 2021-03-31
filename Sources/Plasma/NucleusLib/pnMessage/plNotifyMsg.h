@@ -43,8 +43,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define _plNotifyMsg_h_
 
 #include "plMessage.h"
-#include "hsResMgr.h"
-#include "pnModifier/plSingleModifier.h"
 
 #include "hsGeometry3.h"
 
@@ -141,11 +139,11 @@ proEventType(Collision)
     plKey   fHittee;    // collision hittee (probably us)
 
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 proEventType(Picked)
@@ -155,11 +153,11 @@ proEventType(Picked)
     hsPoint3 fHitPoint; // where on the picked object that it was picked on
 
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 proEventType(Spawned)
@@ -167,11 +165,11 @@ proEventType(Spawned)
     plKey   fSpawnee;   // what was spawned (typically a scene object with an armature mod)
 
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 proEventType(ControlKey)
@@ -179,11 +177,11 @@ proEventType(ControlKey)
     bool    fDown;          // was the key going down (false if going up)
 
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 proEventType(Variable)
@@ -199,13 +197,13 @@ proEventType(Variable)
     } fNumber;
 
 protected:
-    void IInit() HS_OVERRIDE;
-    void IDestruct() HS_OVERRIDE;
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IInit() override;
+    void IDestruct() override;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 
     virtual void IReadNumber(hsStream * stream);
     virtual void IWriteNumber(hsStream * stream);
@@ -218,11 +216,11 @@ proEventType(Facing)
     bool        enabled; // Now meets facing requirement (true) or no longer meets requirement (false)
 
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 proEventType(Contained)
@@ -231,11 +229,11 @@ proEventType(Contained)
     bool    fEntering;  // entering volume (true) or exiting (false)
 
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 proEventType(Activate)
@@ -243,33 +241,33 @@ proEventType(Activate)
     bool fActivate;   // the data
 
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 proEventType(Callback)
     int32_t   fEventType;  // enumerated in plEventCallbackMsg.h
 
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 proEventType(ResponderState)
     int32_t   fState;     // what state the responder should be switched to before triggering
 
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 proEventType(MultiStage)
@@ -278,22 +276,22 @@ proEventType(MultiStage)
     plKey   fAvatar;    // who was running the stage
 
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 proEventType(Coop)
     uint32_t  fID;        // player ID of the initiator
     uint16_t  fSerial;    // serial number for the initiator
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 
@@ -308,33 +306,33 @@ proEventType(OfferLinkingBook)
     int targetAge; // the age the book is for - taken from konstant list of age buttons in xLinkingBookPopupGUI.py
     int offeree; // who we are offering the book to
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 proEventType(Book)
     uint32_t  fEvent;     // The type of event. See pfJournalBook.h for enumsu
     uint32_t  fLinkID;    // The link ID of the image clicked, if an image link event, otherwise unused
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 proEventType(ClimbingBlockerHit)
     plKey   fBlockerKey;    // collision hittee (probably us)
 
 protected:
-    void IRead(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void IWrite(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void IRead(hsStream* stream, hsResMgr* mgr) override;
+    void IWrite(hsStream* stream, hsResMgr* mgr) override;
 
-    void IReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void IWriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void IReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void IWriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 
@@ -373,7 +371,7 @@ public:
     int32_t       fType;              // what type of notification
     float    fState;             // state of the notifier 0.0=false, 1.0=true
     int32_t       fID;                // special ID mostly for responder State transitions
-    hsTArray<proEventData*> fEvents;// list of events with data
+    std::vector<proEventData*> fEvents; // list of events with data
 
     void SetType(notificationType type) { fType = type; }
     void SetState(float state) { fState = state; }
@@ -403,19 +401,19 @@ public:
     void AddBookEvent( uint32_t event, uint32_t linkID = 0 );
     void AddHitClimbingBlockerEvent(const plKey &blocker);
     proEventData* FindEventRecord( int32_t eventtype );
-    int32_t GetEventCount() { return fEvents.Count(); }
-    proEventData* GetEventRecord(int32_t i) { return fEvents[i]; }
+    size_t GetEventCount() { return fEvents.size(); }
+    proEventData* GetEventRecord(size_t i) { return fEvents[i]; }
     void ClearEvents();
 
     // Searches the event records for an event triggered by an avatar, and returns that key
     plKey GetAvatarKey();
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 
-    void ReadVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void WriteVersion(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void ReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void WriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 

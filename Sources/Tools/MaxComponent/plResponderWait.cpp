@@ -40,12 +40,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "HeadSpin.h"
-#include "hsWindows.h"
 
-#include "MaxMain/MaxCompat.h"
-#include <iparamm2.h>
+#include "MaxMain/MaxAPI.h"
+
 #include "resource.h"
-#pragma hdrstop
 
 #include "plResponderWait.h"
 #include "plResponderComponentPriv.h"
@@ -66,8 +64,8 @@ protected:
 public:
     void Init(IParamBlock2 *curStatePB, int curCmd, HWND hList) { fStatePB = curStatePB; fCurCmd = curCmd; fhList = hList; }
 
-    virtual BOOL DlgProc(TimeValue t, IParamMap2 *pm, HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
-    virtual void DeleteThis() {}
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *pm, HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam) override;
+    void DeleteThis() override { }
 
 protected:
     void LoadWho(bool setDefault=false);
@@ -88,7 +86,7 @@ enum
 
 ParamBlockDesc2 gResponderWaitBlock
 (
-    kResponderWaitBlk, _T("waitCmd"), 0, NULL, P_AUTO_UI,
+    kResponderWaitBlk, _T("waitCmd"), 0, nullptr, P_AUTO_UI,
 
     IDD_COMP_RESPOND_WAIT, IDS_COMP_WAIT, 0, 0, &gResponderWaitProc,
 
@@ -132,7 +130,7 @@ void ResponderWait::FixupWaitBlock(IParamBlock2 *waitPB)
 
 IParamBlock2 *ResponderWait::CreatePB()
 {
-    return CreateParameterBlock2(&gResponderWaitBlock, nil);
+    return CreateParameterBlock2(&gResponderWaitBlock, nullptr);
 }
 
 bool ResponderWait::GetWaitOnMe(IParamBlock2* waitPB)
@@ -149,7 +147,7 @@ ST::string ResponderWait::GetWaitPoint(IParamBlock2* waitPB)
 {
     const char* point = waitPB->GetStr(kWaitPoint);
     if (point && *point == '\0')
-        return ST::null;
+        return ST::string();
     return ST::string::from_utf8(point);
 }
 
@@ -165,7 +163,7 @@ IParamBlock2 *plResponderWaitProc::GetCmdParams(int cmdIdx)
     return (IParamBlock2*)fStatePB->GetReferenceTarget(kStateCmdParams, 0, cmdIdx);
 }
 
-BOOL plResponderWaitProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plResponderWaitProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -229,7 +227,7 @@ BOOL plResponderWaitProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hDlg, UINT m
             {
                 HWND hWho = (HWND)lParam;
                 int who = ComboBox_GetCurSel(hWho);
-                int idx = ComboBox_GetItemData(hWho, who);
+                int idx = (int)ComboBox_GetItemData(hWho, who);
                 fWaitPB->SetValue(kWaitWho, 0, idx);
 
                 LoadPoint();
@@ -300,7 +298,7 @@ void plResponderWaitProc::LoadWho(bool setDefault)
     if (setDefault && numFound > 0)
     {
         HWND hWho = GetDlgItem(fhDlg, IDC_WAIT_WHO);
-        int idx = ComboBox_GetItemData(hWho, numFound-1);
+        int idx = (int)ComboBox_GetItemData(hWho, numFound-1);
         fWaitPB->SetValue(kWaitWho, 0, idx);
 
         ComboBox_SetCurSel(hWho, numFound-1);
@@ -317,7 +315,7 @@ void plResponderWaitProc::LoadPoint(bool force)
     int who = fWaitPB->GetInt(kWaitWho);
     const char *point = fWaitPB->GetStr(kWaitPoint);
     if (point && *point == '\0')
-        point = nil;
+        point = nullptr;
 
     CheckRadioButton(fhDlg, IDC_RADIO_FINISH, IDC_RADIO_POINT, point || force ? IDC_RADIO_POINT : IDC_RADIO_FINISH);
 
@@ -325,7 +323,7 @@ void plResponderWaitProc::LoadPoint(bool force)
     EnableWindow(GetDlgItem(fhDlg, IDC_RADIO_FINISH), enableAll);
     EnableWindow(GetDlgItem(fhDlg, IDC_RADIO_POINT), enableAll);
 
-    BOOL enablePoint = ((point != nil) || force) && enableAll;
+    BOOL enablePoint = ((point != nullptr) || force) && enableAll;
     EnableWindow(GetDlgItem(fhDlg, IDC_WAIT_POINT), enablePoint);
     ComboBox_ResetContent(GetDlgItem(fhDlg, IDC_WAIT_POINT));
 

@@ -46,7 +46,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //////////////////////////////////////////////////////////////////////
 
 #include <Python.h>
-#pragma hdrstop
 
 #include "pyVaultNodeRef.h"
 #include "pyVaultNode.h"
@@ -61,15 +60,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 
 // should only be created from C++ side
-pyVaultNodeRef::pyVaultNodeRef(RelVaultNode * parent, RelVaultNode * child)
-: fParent(parent)
-, fChild(child)
-{
-}
+pyVaultNodeRef::pyVaultNodeRef(hsRef<RelVaultNode> parent, hsRef<RelVaultNode> child)
+    : fParent(std::move(parent)), fChild(std::move(child))
+{ }
 
-pyVaultNodeRef::pyVaultNodeRef(int)
-{
-}
+pyVaultNodeRef::pyVaultNodeRef(std::nullptr_t)
+{ }
 
 hsRef<RelVaultNode> pyVaultNodeRef::GetParentNode() const
 {
@@ -118,7 +114,7 @@ unsigned pyVaultNodeRef::GetSaverID () {
 
 PyObject * pyVaultNodeRef::GetSaver () {
     if (!fParent || !fChild)
-        return 0;
+        return nullptr;
 
     hsRef<RelVaultNode> saver;
     if (hsRef<RelVaultNode> child = VaultGetNode(fChild->GetNodeId())) {
@@ -131,10 +127,10 @@ PyObject * pyVaultNodeRef::GetSaver () {
             saver = VaultGetNode(&templateNode);
 
             if (!saver) {
-                TArray<unsigned> nodeIds;
+                std::vector<unsigned> nodeIds;
                 VaultFindNodesAndWait(&templateNode, &nodeIds);
-                if (nodeIds.Count() > 0) {
-                    VaultFetchNodesAndWait(nodeIds.Ptr(), nodeIds.Count());
+                if (!nodeIds.empty()) {
+                    VaultFetchNodesAndWait(nodeIds.data(), nodeIds.size());
                     saver = VaultGetNode(nodeIds[0]);
                 }
             }

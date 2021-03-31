@@ -91,10 +91,10 @@ class plDynamicTextMap : public plMipmap
 {
     protected:
 
-        uint16_t      fVisWidth, fVisHeight;
+        uint32_t      fVisWidth, fVisHeight;
 
-        virtual uint32_t  Read( hsStream *s );
-        virtual uint32_t  Write( hsStream *s );
+        uint32_t  Read(hsStream *s) override;
+        uint32_t  Write(hsStream *s) override;
 
     public:
         //// Public Flags ////
@@ -123,16 +123,16 @@ class plDynamicTextMap : public plMipmap
         void            Create( uint32_t width, uint32_t height, bool hasAlpha, uint32_t extraWidth = 0, uint32_t extraHeight = 0, bool premultipliedAlpha = false );
         void            SetNoCreate( uint32_t width, uint32_t height, bool hasAlpha );
 
-        virtual void    Reset();
+        void    Reset() override;
 
-        virtual void    Read( hsStream *s, hsResMgr *mgr ) { hsKeyedObject::Read( s, mgr ); this->Read( s ); }
-        virtual void    Write( hsStream *s, hsResMgr *mgr ) { hsKeyedObject::Write( s, mgr ); this->Write( s ); }
+        void    Read(hsStream *s, hsResMgr *mgr) override { hsKeyedObject::Read(s, mgr); this->Read(s); }
+        void    Write(hsStream *s, hsResMgr *mgr) override { hsKeyedObject::Write(s, mgr); this->Write(s); }
 
-        virtual uint8_t   GetNumLevels() const { return 1; }
+        uint8_t   GetNumLevels() const override { return 1; }
 
-        void        Colorize() HS_OVERRIDE { }
-        plMipmap    *Clone() const HS_OVERRIDE;
-        void        CopyFrom(const plMipmap *source) HS_OVERRIDE;
+        void        Colorize() override { }
+        plMipmap    *Clone() const override;
+        void        CopyFrom(const plMipmap *source) override;
 
 
         /// Operations to perform on the text block
@@ -163,12 +163,12 @@ class plDynamicTextMap : public plMipmap
         void    DrawClippedString( int16_t x, int16_t y, const wchar_t *text, uint16_t width, uint16_t height );
         void    DrawClippedString( int16_t x, int16_t y, const ST::string &text, uint16_t clipX, uint16_t clipY, uint16_t width, uint16_t height );
         void    DrawClippedString( int16_t x, int16_t y, const wchar_t *text, uint16_t clipX, uint16_t clipY, uint16_t width, uint16_t height );
-        void    DrawWrappedString( uint16_t x, uint16_t y, const ST::string &text, uint16_t width, uint16_t height, uint16_t *lastX = nil, uint16_t *lastY = nil );
-        void    DrawWrappedString( uint16_t x, uint16_t y, const wchar_t *text, uint16_t width, uint16_t height, uint16_t *lastX = nil, uint16_t *lastY = nil );
-        uint16_t  CalcStringWidth( const ST::string &text, uint16_t *height = nil );
-        uint16_t  CalcStringWidth( const wchar_t *text, uint16_t *height = nil );
-        void    CalcWrappedStringSize( const ST::string &text, uint16_t *width, uint16_t *height, uint32_t *firstClippedChar = nil, uint16_t *maxAscent = nil, uint16_t *lastX = nil, uint16_t *lastY = nil );
-        void    CalcWrappedStringSize( const wchar_t *text, uint16_t *width, uint16_t *height, uint32_t *firstClippedChar = nil, uint16_t *maxAscent = nil, uint16_t *lastX = nil, uint16_t *lastY = nil );
+        void    DrawWrappedString(uint16_t x, uint16_t y, const ST::string &text, uint16_t width, uint16_t height, uint16_t *lastX = nullptr, uint16_t *lastY = nullptr);
+        void    DrawWrappedString(uint16_t x, uint16_t y, const wchar_t *text, uint16_t width, uint16_t height, uint16_t *lastX = nullptr, uint16_t *lastY = nullptr);
+        uint16_t  CalcStringWidth(const ST::string &text, uint16_t *height = nullptr);
+        uint16_t  CalcStringWidth(const wchar_t *text, uint16_t *height = nullptr);
+        void    CalcWrappedStringSize(const ST::string &text, uint16_t *width, uint16_t *height, uint32_t *firstClippedChar = nullptr, uint16_t *maxAscent = nullptr, uint16_t *lastX = nullptr, uint16_t *lastY = nullptr);
+        void    CalcWrappedStringSize(const wchar_t *text, uint16_t *width, uint16_t *height, uint32_t *firstClippedChar = nullptr, uint16_t *maxAscent = nullptr, uint16_t *lastX = nullptr, uint16_t *lastY = nullptr);
         void    FillRect( uint16_t x, uint16_t y, uint16_t width, uint16_t height, hsColorRGBA &color );
         void    FrameRect( uint16_t x, uint16_t y, uint16_t width, uint16_t height, hsColorRGBA &color );
         void    SetFirstLineIndent( int16_t indent );
@@ -185,10 +185,10 @@ class plDynamicTextMap : public plMipmap
 
         void    FlushToHost();
 
-        bool    MsgReceive( plMessage *msg );
+        bool    MsgReceive(plMessage *msg) override;
 
-        uint16_t  GetVisibleWidth() { return fVisWidth; }
-        uint16_t  GetVisibleHeight() { return fVisHeight; }
+        uint32_t  GetVisibleWidth() const { return fVisWidth; }
+        uint32_t  GetVisibleHeight() const { return fVisHeight; }
 
         // Since the dynamic text can actually create a texture bigger than you were expecting,
         // you want to be able to apply a layer texture transform that will compensate. This

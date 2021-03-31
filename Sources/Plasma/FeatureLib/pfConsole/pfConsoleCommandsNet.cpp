@@ -49,52 +49,45 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define LIMIT_CONSOLE_COMMANDS 1
 #endif
 
-
-#include "pfPython/plPythonSDLModifier.h"
-#include "pfConsoleCore/pfConsoleCmd.h"
 #include "plgDispatch.h"
-
-#include "plAgeLoader/plAgeLoader.h"
-#include "plNetCommon/plNetObjectDebugger.h"
-#include "plNetClient/plNetClientMgr.h"
-#include "plNetClient/plNetLinkingMgr.h"
-#include "plAgeLoader/plResPatcher.h"
 #include "hsResMgr.h"
+#include "hsStream.h"
+#include "hsTimer.h"
+
+#include "pfConsole.h"
+
 #include "pnKeyedObject/plFixedKey.h"
 #include "pnKeyedObject/plKey.h"
 #include "pnKeyedObject/plKeyImp.h"
-#include "pnModifier/plLogicModBase.h"
-#include "hsTimer.h"
+#include "pnMessage/plAudioSysMsg.h"
 #include "pnMessage/plClientMsg.h"
 #include "pnMessage/plEnableMsg.h"
-#include "pnMessage/plAudioSysMsg.h"
-#include "plNetMessage/plNetMessage.h"
-#include "plMessage/plAvatarMsg.h"
-#include "plMessage/plOneShotMsg.h"
-#include "plMessage/plConsoleMsg.h"
-#include "../../Apps/plClient/plClient.h"
-#include "pfConsole.h"
-#include "plResMgr/plKeyFinder.h"
-#include "hsResMgr.h"
+#include "pnModifier/plLogicModBase.h"
+#include "pnUUID/pnUUID.h"
 
-// begin for agedefn test
-#include "hsStream.h"
 #include "plAgeDescription/plAgeDescription.h"
-#include "plUnifiedTime/plUnifiedTime.h"
-//end for agedefn test
-
+#include "plAgeLoader/plAgeLoader.h"
+#include "plAgeLoader/plResPatcher.h"
+#include "plMessage/plAvatarMsg.h"
+#include "plMessage/plConsoleMsg.h"
+#include "plMessage/plOneShotMsg.h"
+#include "plNetClient/plNetClientMgr.h"
+#include "plNetClient/plNetLinkingMgr.h"
+#include "plNetCommon/plNetObjectDebugger.h"
+#include "plNetCommon/plSpawnPointInfo.h"
+#include "plNetGameLib/plNetGameLib.h"
+#include "plNetMessage/plNetMessage.h"
+#include "plResMgr/plKeyFinder.h"
+#include "plSDL/plSDL.h"
 #include "plStatusLog/plStatusLog.h"
-
-#include "hsTemplates.h"
-
+#include "plUnifiedTime/plUnifiedTime.h"
 #include "plVault/plVault.h"
 
-#include "plNetCommon/plSpawnPointInfo.h"
+#include "pfConsoleCore/pfConsoleCmd.h"
+#include "pfPython/plPythonSDLModifier.h"
 
-#include "plSDL/plSDL.h"
-
-#include "plNetGameLib/plNetGameLib.h"
-
+// FIXME FIXME
+#include "../../Apps/plClient/plClient.h"
 
 #define PF_SANITY_CHECK( cond, msg ) { if( !( cond ) ) { PrintString( msg ); return; } }
 
@@ -231,7 +224,7 @@ PF_CONSOLE_CMD( Net,        // groupName
         text += ST::string::from_utf8( (char*)params[i] );
         text += " ";
     }
-    plConsoleMsg    *cMsg = new plConsoleMsg( plConsoleMsg::kAddLine, text.c_str() );
+    plConsoleMsg    *cMsg = new plConsoleMsg( plConsoleMsg::kAddLine, text );
     cMsg->SetBCastFlag(plMessage::kNetPropagate | plMessage::kNetForce);
     cMsg->SetBCastFlag(plMessage::kLocalPropagate, 0);
     plgDispatch::MsgSend( cMsg );
@@ -548,7 +541,7 @@ PF_CONSOLE_CMD( Net, DownloadViaManifest,
                "string remoteManifestFileName", // paramList
                "Downloads the given file from the dataserver, then updates all the ages listed in the file" )   // helpString
 {
-//  if( hsgResMgr::ResMgr() != nil )
+//  if (hsgResMgr::ResMgr() != nullptr)
 //  {
 //      plResPatcher::PatchFromManifest( params[ 0 ] );
 //  }
@@ -607,7 +600,7 @@ PF_CONSOLE_CMD( Net_DebugObject,        // groupName
                "Create a debug log about the specified object. AddObject objName [pageName], wildcards allowed" )   // helpString
 {
     char* objName = params[0];  
-    char* pageName = numParams>1 ? (char*)params[1] : nil;
+    char* pageName = numParams>1 ? (char*)params[1] : nullptr;
     if (plNetObjectDebugger::GetInstance())
         plNetObjectDebugger::GetInstance()->AddDebugObject(objName, pageName);
 }
@@ -618,7 +611,7 @@ PF_CONSOLE_CMD( Net_DebugObject,        // groupName
                "Stop focused debugging about the specified object. RemoveObject objName [pageName], wildcards allowed" )    // helpString
 {
     char* objName = params[0];  
-    char* pageName = numParams>1 ? (char*)params[1] : nil;
+    char* pageName = numParams>1 ? (char*)params[1] : nullptr;
     if (plNetObjectDebugger::GetInstance())
         plNetObjectDebugger::GetInstance()->RemoveDebugObject(objName, pageName);
 }

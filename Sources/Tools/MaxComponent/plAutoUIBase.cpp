@@ -40,13 +40,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "HeadSpin.h"
-#include "hsWindows.h"
 
-#include <iparamb2.h>
-#include <max.h>
+#include "MaxMain/MaxAPI.h"
 
 #include "resource.h"
-#pragma hdrstop
 
 #include "plAutoUIBase.h"
 #include "plAutoUIParams.h"
@@ -54,7 +51,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plGUICompClassIDs.h"
 
 plAutoUIBase::plAutoUIBase() :
-    fhDlg(nil), fDesc(nil), fPBlock(nil), fName(nil), fhRollup(nil)
+    fhDlg(), fDesc(), fPBlock(), fName(), fhRollup()
 {
 }
 
@@ -71,19 +68,19 @@ plAutoUIBase::~plAutoUIBase()
             ParamDef& def = fDesc->GetParamDef(id);
 
             char *name = def.int_name;
-            def.int_name = nil;
+            def.int_name = nullptr;
             delete [] name;
 
             if (def.type == TYPE_STRING)
             {
                 char *defVal = def.def.s;
-                def.def.s = nil;
+                def.def.s = nullptr;
                 delete [] defVal;
             }
         }
 
         delete fDesc;
-        fDesc = nil;
+        fDesc = nullptr;
     }
 
     uint32_t count = fParams.size();
@@ -92,13 +89,13 @@ plAutoUIBase::~plAutoUIBase()
     fParams.clear();
 
     delete [] fName;
-    fName = nil;
+    fName = nullptr;
 }
 
 char *plAutoUIBase::IMakeScriptName(const char *fullName)
 {
     if (!fullName)
-        return nil;
+        return nullptr;
 
     char buf[256];
     buf[0] = '\0';
@@ -118,7 +115,7 @@ char *plAutoUIBase::IMakeScriptName(const char *fullName)
     *bufptr = '\0';
 
     if (buf[0] == '\0')
-        return nil;
+        return nullptr;
 
     return hsStrcpy(buf);
 }
@@ -172,7 +169,7 @@ void plAutoUIBase::AddEditBox(int16_t id, const char *scriptName, const char *na
     char *scriptNameNew = scriptName ? hsStrcpy(scriptName) : IMakeScriptName(name);
 
     fDesc->AddParam(id, scriptNameNew, TYPE_STRING, 0, 0,
-        p_default, def ? hsStrcpy(def) : nil, end,
+        p_default, def ? hsStrcpy(def) : nullptr, end,
         end);
     plAutoUIParam* param = new plEditParam(id, name, lines);
     param->SetVisInfo(vid, vstates);
@@ -400,7 +397,7 @@ void plAutoUIBase::AddDropDownList(int16_t id, const char *scriptName, const cha
     char *scriptNameNew = scriptName ? hsStrcpy(scriptName) : IMakeScriptName(name);
 
     fDesc->AddParam(id, scriptNameNew, TYPE_STRING, 0, 0,
-        p_default, nil, end,
+        p_default, nullptr, end,
         end);
     plAutoUIParam* param = new plDropDownListParam(id, name, options);
     param->SetVisInfo(vid, vstates);
@@ -419,23 +416,23 @@ void plAutoUIBase::AddPickGrassComponentButton(int16_t id, const char *scriptNam
     fParams.push_back(param);
 }
 
-BOOL CALLBACK plAutoUIBase::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK plAutoUIBase::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    plAutoUIBase *pthis = NULL;
+    plAutoUIBase *pthis = nullptr;
     if (msg == WM_INITDIALOG)
     {
-        SetWindowLong(hDlg, GWL_USERDATA, lParam);
+        SetWindowLongPtr(hDlg, GWLP_USERDATA, lParam);
         pthis = (plAutoUIBase*)lParam;
     }
     else
-        pthis = (plAutoUIBase*)GetWindowLong(hDlg, GWL_USERDATA);
+        pthis = (plAutoUIBase*)GetWindowLongPtr(hDlg, GWLP_USERDATA);
 
     return pthis->DlgProc(hDlg, msg, wParam, lParam);
 }
 
 #define WM_SIZE_PANEL WM_APP+1
 
-BOOL plAutoUIBase::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plAutoUIBase::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     if (msg == WM_INITDIALOG)
     {
@@ -480,7 +477,7 @@ BOOL plAutoUIBase::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
                 if (index >= 0)
                     rollup->SetPageDlgHeight(index, yOffset);
                 
-                InvalidateRect(fhDlg, NULL, TRUE);
+                InvalidateRect(fhDlg, nullptr, TRUE);
             }
             return TRUE;
         }
@@ -526,7 +523,7 @@ BOOL plAutoUIBase::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
                 if (index >= 0)
                     rollup->SetPageDlgHeight(index, yOffset);
 
-                InvalidateRect(fhDlg, NULL, TRUE);
+                InvalidateRect(fhDlg, nullptr, TRUE);
             }
         }
 
@@ -570,9 +567,9 @@ void plAutoUIBase::DestroyAutoRollup()
     if (fhDlg)
     {
         GetCOREInterface()->DeleteRollupPage(fhDlg);
-        fhDlg = nil;
+        fhDlg = nullptr;
     }
 
-    fPBlock = nil;
+    fPBlock = nullptr;
 }
 

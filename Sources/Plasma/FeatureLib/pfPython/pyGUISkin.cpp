@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "pfGameGUIMgr/pfGameGUIMgr.h"
 #include "pfGameGUIMgr/pfGUIPopUpMenu.h"
@@ -60,7 +59,6 @@ pyGUISkin::pyGUISkin(plKey objkey)
 
 pyGUISkin::pyGUISkin()
 {
-    fGCkey = nil;
 }
 
 bool pyGUISkin::IsGUISkin(pyKey& gckey)
@@ -74,9 +72,9 @@ bool pyGUISkin::IsGUISkin(pyKey& gckey)
 bool pyGUISkin::operator==(const pyGUISkin &gcobj) const
 {
     plKey theirs = ((pyGUISkin&)gcobj).getObjKey();
-    if ( fGCkey == nil && theirs == nil )
+    if (fGCkey == nullptr && theirs == nullptr)
         return true;
-    else if ( fGCkey != nil && theirs != nil )
+    else if (fGCkey != nullptr && theirs != nullptr)
         return (fGCkey->GetUoid()==theirs->GetUoid());
     else
         return false;

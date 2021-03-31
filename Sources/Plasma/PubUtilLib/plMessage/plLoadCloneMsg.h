@@ -39,16 +39,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#ifndef NO_AV_MSGS
-#ifndef SERVER
 
 #ifndef plLoadCloneMsgMsg_INC
 #define plLoadCloneMsgMsg_INC
 
-
 #include "pnMessage/plMessage.h"
-// 
-#include "pnKeyedObject/plUoid.h"
+
+class plKey;
+class plUoid;
 
 /** \class plLoadCloneMsg
     Tell the net client manager to allocate a new object based on copying an
@@ -100,11 +98,11 @@ public:
     GETINTERFACE_ANY(plLoadCloneMsg, plMessage);
 
     // IO 
-    void Read(hsStream* stream, hsResMgr* mgr);
-    void Write(hsStream* stream, hsResMgr* mgr);
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 
-    void ReadVersion(hsStream* stream, hsResMgr* mgr);
-    void WriteVersion(hsStream* stream, hsResMgr* mgr);
+    void ReadVersion(hsStream* stream, hsResMgr* mgr) override;
+    void WriteVersion(hsStream* stream, hsResMgr* mgr) override;
     
     plKey   GetCloneKey();
     plKey   GetRequestorKey();
@@ -129,7 +127,3 @@ protected:
 };
 
 #endif
-
-
-#endif // ndef SERVER
-#endif // ndef NO_AV_MSGS

@@ -42,24 +42,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 #include "hsStream.h"
-#include "hsWindows.h"
-#include "MaxMain/MaxCompat.h"
 
-#include <iparamb2.h>
-#include <max.h>
+#include "MaxMain/MaxAPI.h"
 
 #include "resource.h"
-#pragma hdrstop
 
 #include "plMultistageStage.h"
 #include "plAvatar/plAnimStage.h"
 
-BOOL plBaseStage::IStaticDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plBaseStage::IStaticDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     if (msg == WM_INITDIALOG)
-        SetWindowLong(hDlg, GWL_USERDATA, lParam);
+        SetWindowLongPtr(hDlg, GWLP_USERDATA, lParam);
 
-    plBaseStage *stage = (plBaseStage*)GetWindowLong(hDlg, GWL_USERDATA);
+    plBaseStage *stage = (plBaseStage*)GetWindowLongPtr(hDlg, GWLP_USERDATA);
 
     if (!stage)
         return FALSE;
@@ -67,7 +63,7 @@ BOOL plBaseStage::IStaticDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPar
     return stage->IDlgProc(hDlg, msg, wParam, lParam);
 }
 
-BOOL plBaseStage::IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plBaseStage::IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     return FALSE;
 }
@@ -96,13 +92,13 @@ ST::string plBaseStage::GetName()
 
 void plBaseStage::Read(hsStream *stream)
 {
-    stream->ReadLE16();
+    (void)stream->ReadLE16();
     fName = stream->ReadSafeString();
 }
 
 void plBaseStage::Write(hsStream *stream)
 {
-    stream->WriteLE16(1);
+    stream->WriteLE16(uint16_t(1));
     stream->WriteSafeString(fName);
 }
 
@@ -114,7 +110,7 @@ void plBaseStage::IBaseClone(plBaseStage* clone)
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-HWND plStandardStage::fDlg = NULL;
+HWND plStandardStage::fDlg = nullptr;
 
 plStandardStage::plStandardStage()
 {
@@ -161,7 +157,7 @@ void plStandardStage::Write(hsStream *stream)
 {
     plBaseStage::Write(stream);
 
-    stream->WriteLE16(2);
+    stream->WriteLE16(uint16_t(2));
 
     stream->WriteSafeString(fAnimName);
     stream->WriteLE32(fNumLoops);
@@ -195,12 +191,12 @@ void plStandardStage::DestroyDlg()
     IGetAnimName();
 
     IDestroyDlg(fDlg);
-    fDlg = nil;
+    fDlg = nullptr;
 }
 
 #define SetBit(f,b,on) on ? hsSetBits(f,b) : hsClearBits(f,b)
 
-BOOL plStandardStage::IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plStandardStage::IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -213,7 +209,7 @@ BOOL plStandardStage::IDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam
             if (code == CBN_SELCHANGE)
             {
                 int sel = ComboBox_GetCurSel((HWND)lParam);
-                int type = ComboBox_GetItemData((HWND)lParam, sel);
+                int type = (int)ComboBox_GetItemData((HWND)lParam, sel);
 
                 if (id == IDC_FORWARD_COMBO)
                     fForward = type;

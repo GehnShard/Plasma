@@ -105,18 +105,13 @@ bool    plFontFreeType::ImportFreeType( const plFileName &fontPath, Options *opt
         uint16_t        glyphChars[ kMaxGlyphs ];
         FT_Vector       ftAdvances[ kMaxGlyphs ];
         FT_BBox         ftGlyphBox, ftFontBox;
-        FT_UInt         previous = 0;
-        bool            useKerning = false;
 
-
-        if( options->fUseKerning )
-            useKerning = FT_HAS_KERNING( ftFace );
 
         ftFontBox.xMin = ftFontBox.yMin = 32000;
         ftFontBox.xMax = ftFontBox.yMax = -32000;
 
         // Hack for now: if we don't have a charmap active already, just choose the first one
-        if( ftFace->charmap == nil )
+        if (ftFace->charmap == nullptr)
         {
             if( ftFace->num_charmaps == 0 )
                 throw false;
@@ -189,9 +184,9 @@ bool    plFontFreeType::ImportFreeType( const plFileName &fontPath, Options *opt
         uint32_t stride = ( fBPP == 1 ) ? ( fWidth >> 3 ) : fWidth;
 
         // Pre-expand our char list
-        fCharacters.ExpandAndZero( maxChar + 1 );
-        fCharacters.SetCount( 0 );
-        if( callback != nil )
+        fCharacters.clear();
+        fCharacters.reserve(maxChar + 1);
+        if (callback != nullptr)
             callback->NumChars( (uint16_t)(maxChar + 1) );
 
         // Now re-run through our stored list of glyphs, converting them to bitmaps
@@ -208,14 +203,14 @@ bool    plFontFreeType::ImportFreeType( const plFileName &fontPath, Options *opt
                     throw false;
             }
 
-            if( fCharacters.GetCount() < glyphChars[ i ] + 1 )
-                fCharacters.SetCount( glyphChars[ i ] + 1 );
+            if (fCharacters.size() < glyphChars[i] + 1)
+                fCharacters.resize(glyphChars[i] + 1);
 
             FT_BitmapGlyph ftBitmap = (FT_BitmapGlyph)ftGlyphs[ i ];
             plCharacter *ch = &fCharacters[ glyphChars[ i ] ];
 
             uint8_t *ourBitmap = IGetFreeCharData( ch->fBitmapOff );
-            if( ourBitmap == nil )
+            if (ourBitmap == nullptr)
                 throw false;
 
             if( ch->fBitmapOff > ( ( fWidth * ( fHeight - ftBitmap->bitmap.rows ) * fBPP ) >> 3 ) )
@@ -245,7 +240,7 @@ bool    plFontFreeType::ImportFreeType( const plFileName &fontPath, Options *opt
 
             FT_Done_Glyph( ftGlyphs[ i ] );
 
-            if( callback != nil )
+            if (callback != nullptr)
                 callback->CharDone();
         }
 

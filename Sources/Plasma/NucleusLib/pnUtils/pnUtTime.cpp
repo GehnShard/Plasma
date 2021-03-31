@@ -39,6 +39,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+
+#include "Pch.h"
 #include "pnUtTime.h"
 
 #if HS_BUILD_FOR_UNIX
@@ -70,7 +72,7 @@ uint32_t TimeGetMs () {
     return GetTickCount();
 #else
     struct timeval tv;
-    if (gettimeofday(&tv, NULL) != 0)
+    if (gettimeofday(&tv, nullptr) != 0)
         return 0;
 
     return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);

@@ -44,10 +44,9 @@ Mead, WA   99021
 #include "plGImage/plFont.h"
 #include "plGImage/plMipmap.h"
 
+#include <memory>
 #include <QPainter>
 #include <QPicture>
-
-#include <memory>
 
 void plFontPreview::Update(plFont *font, const QString &text)
 {
@@ -92,10 +91,6 @@ void plFontPreview::Update(plFont *font, const QString &text)
         for (x = 0; x < width(); x++) {
             uint32_t color = *mip->GetAddr32(x, y);
 
-            if (color != 0xffffffff && color != 0xff000000)
-            {
-                int q = 0;
-            }
             // One pixel at a time?  Surely we can do better...
             // But for now this is a pure port
             fPreview.setPixel(x, y, color | 0xff000000);

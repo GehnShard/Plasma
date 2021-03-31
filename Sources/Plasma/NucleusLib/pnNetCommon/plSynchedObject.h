@@ -94,7 +94,7 @@ public:
         ST::string  fSDLName;
 
         plSynchedObject* GetObject() const { return plSynchedObject::ConvertNoRef(fObjKey->ObjectIsLoaded()); }
-        StateDefn() : fObjKey(nil),fSendFlags(0) {}
+        StateDefn() : fSendFlags() { }
         StateDefn(plKey k, uint32_t f, const ST::string& sdlName)
             : fObjKey(k), fSendFlags(f), fSDLName(sdlName) { }
     };
@@ -124,7 +124,7 @@ public:
     CLASSNAME_REGISTER(plSynchedObject);
     GETINTERFACE_ANY(plSynchedObject, hsKeyedObject);
 
-    bool MsgReceive(plMessage* msg) HS_OVERRIDE;
+    bool MsgReceive(plMessage* msg) override;
 
     // getters
     int GetSynchFlags() const { return fSynchFlags; }
@@ -147,16 +147,16 @@ public:
     static void PushSynchDisabled(bool b) { fSynchStateStack.push_back(b); }
     static bool PopSynchDisabled();
     static plSynchedObject* GetStaticSynchedObject() { return fStaticSynchedObj; }
-    static int32_t GetNumDirtyStates() { return fDirtyStates.size(); }
-    static plSynchedObject::StateDefn* GetDirtyState(int32_t i) { return &fDirtyStates[i]; }
+    static size_t GetNumDirtyStates() { return fDirtyStates.size(); }
+    static plSynchedObject::StateDefn* GetDirtyState(size_t i) { return &fDirtyStates[i]; }
     static void ClearDirtyState(std::vector<StateDefn>& carryOver) { fDirtyStates=carryOver; } 
 
     // IO 
 //  void SendCreationMsg(double secs);
 //  void SendDestructionMsg(double secs) ;
 
-    void Read(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void Write(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void Read(hsStream* s, hsResMgr* mgr) override;
+    void Write(hsStream* s, hsResMgr* mgr) override;
 
     int IsLocallyOwned() const;     // returns yes/no/maybe
 
@@ -177,44 +177,6 @@ public:
     void AddToSDLVolatileList(const ST::string&);
     void RemoveFromSDLVolatileList(const ST::string&);
     bool IsInSDLVolatileList(const ST::string&) const;
-
-    //
-    // synched value stuff, currently unused
-    // current size is 16 + numValue bytes*2 + numFriends*4 bytes
-    //
-#ifdef USE_SYNCHED_VALUES
-public:
-    typedef uint16_t AddrOffsetType;
-    typedef uint8_t NumSynchedValuesType;
-    typedef uint16_t FlagsType;
-    friend class plSynchedValueBase;
-
-private:
-    AddrOffsetType* fSynchedValueAddrOffsets;   // represent uint32_ts offsets
-    NumSynchedValuesType fNumSynchedValues;
-
-    // array of friends
-    plSynchedValueBase** fSynchedValueFriends;  
-    NumSynchedValuesType fNumSynchedValueFriends;
-
-    // dirty callback notifiers
-    std::vector<plDirtyNotifier*> fDirtyNotifiers;
-
-    void IAppendSynchedValueAddrOffset(AddrOffsetType synchedValueAddrOffset);
-    void IAppendSynchedValueFriend(plSynchedValueBase* v);
-    plSynchedValueBase* IGetSynchedValue(NumSynchedValuesType i) const
-        { return (plSynchedValueBase*)((int32_t)this + (fSynchedValueAddrOffsets[i]<<2)); }
-    plSynchedValueBase* IGetSynchedValueFriend(NumSynchedValuesType i) const
-        { return fSynchedValueFriends[i]; }
-
-public:
-    int32_t GetNumSynchedValues() const { return fNumSynchedValues+fNumSynchedValueFriends; }
-    plSynchedValueBase* GetSynchedValue(int i) const;
-
-    uint8_t RegisterSynchedValue(plSynchedValueBase* v); 
-    bool RemoveSynchedValue(plSynchedValueBase* v);       // handles SVFriends too
-    void RegisterSynchedValueFriend(plSynchedValueBase* v); 
-#endif
 
 #ifdef USE_DIRTY_NOTIFIERS
     // dirty CB notifiers
@@ -245,7 +207,7 @@ protected:
     plKey fSynchedObjKey;
     void* fUserData;
 public: 
-    plDirtyNotifier() : fSynchedObjKey(nil),fUserData(nil) {}
+    plDirtyNotifier() : fUserData() { }
     virtual ~plDirtyNotifier()
     {
         if (fSynchedObjKey)
@@ -265,22 +227,6 @@ public:
     // override
     virtual void Callback() = 0;
 };
-#endif
-
-//
-// MACROS
-//
-
-#ifdef USE_SYNCHED_VALUES
-#define SYNCHED_VALUE(type)             plSynchedValue<type>    
-#define SYNCHED_TARRAY(type)            plSynchedTArray<type>   
-#define SYNCHED_VALUE_FRIEND(type)      plSynchedValueFriend<type>  
-#define SYNCHED_TARRAY_FRIEND(type)     plSynchedTArrayFriend<type> 
-#else
-#define SYNCHED_VALUE(type)             type
-#define SYNCHED_TARRAY(type)            hsTArray<type>
-#define SYNCHED_VALUE_FRIEND(type)      type
-#define SYNCHED_TARRAY_FRIEND(type)     hsTArray<type>
 #endif
 
 #endif  // PLSYNCHOBJ_inc

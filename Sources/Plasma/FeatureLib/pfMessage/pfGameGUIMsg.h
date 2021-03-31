@@ -49,10 +49,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define _pfGameGUIMsg_h
 
 #include "HeadSpin.h"
-#include "hsStream.h"
-#include "pnMessage/plMessage.h"
 
-#define GAME_GUI_MSG_STRING_SIZE (128)
+#include <string_theory/string>
+
+#include "pnMessage/plMessage.h"
 
 class pfGameGUIMsg : public plMessage
 {
@@ -70,32 +70,15 @@ class pfGameGUIMsg : public plMessage
             kLoadDialog
         };
 
-        pfGameGUIMsg() : plMessage( nil, nil, nil ) { SetBCastFlag( kBCastByExactType ); }
-        pfGameGUIMsg(plKey &receiver, uint8_t command) : plMessage(nil, nil, nil) { AddReceiver(receiver); fCommand = command; }
+        pfGameGUIMsg() : plMessage(nullptr, nullptr, nullptr), fCommand() { SetBCastFlag(kBCastByExactType); }
+        pfGameGUIMsg(plKey &receiver, uint8_t command)
+            : plMessage(nullptr, nullptr, nullptr), fCommand(command) { AddReceiver(receiver); }
 
         CLASSNAME_REGISTER( pfGameGUIMsg );
         GETINTERFACE_ANY( pfGameGUIMsg, plMessage );
 
-        virtual void Read(hsStream* s, hsResMgr* mgr) 
-        { 
-            plMessage::IMsgRead( s, mgr ); 
-            s->ReadLE( &fCommand );
-            char buffer[GAME_GUI_MSG_STRING_SIZE];
-            s->Read(sizeof(buffer), buffer);
-            buffer[GAME_GUI_MSG_STRING_SIZE - 1] = 0;
-            fString = buffer;
-            fAge = s->ReadSafeString();
-        }
-        
-        virtual void Write(hsStream* s, hsResMgr* mgr) 
-        { 
-            plMessage::IMsgWrite( s, mgr ); 
-            s->WriteLE( fCommand );
-            char buffer[GAME_GUI_MSG_STRING_SIZE];
-            strncpy(buffer, fString.c_str(), GAME_GUI_MSG_STRING_SIZE);
-            s->Write(sizeof(buffer), buffer);
-            s->WriteSafeString( fAge );
-        }
+        void Read(hsStream* s, hsResMgr* mgr) override;
+        void Write(hsStream* s, hsResMgr* mgr) override;
 
         uint8_t     GetCommand() const { return fCommand; }
 

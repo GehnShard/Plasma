@@ -44,7 +44,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsResMgr.h"
 #include "plgDispatch.h"
 
-#include "plAgeLoader/plAgeLoader.h"
+#include "plAgeLoader.h"
 #include "plFile/plEncryptedStream.h"
 #include "plFile/plStreamSource.h"
 #include "plFile/plSecureStream.h"
@@ -76,7 +76,7 @@ void plResPatcher::Shutdown()
 
 void plResPatcher::OnCompletion(ENetError result, const ST::string& status)
 {
-    ST::string error = ST::null;
+    ST::string error;
     if (IS_NET_ERROR(result))
         error = ST::format("Update Failed: {}\n{}", NetErrorAsString(result), status);
     plgDispatch::Dispatch()->MsgQueue(new plResPatcherMsg(IS_NET_SUCCESS(result), error));
@@ -120,8 +120,8 @@ bool plResPatcher::OnGameCodeDiscovered(const plFileName& file, hsStream* stream
 void plResPatcher::OnProgressTick(uint64_t dl, uint64_t total, const ST::string& msg)
 {
     if (dl && total) {
-        fProgress->SetLength(total);
-        fProgress->SetHowMuch(dl);
+        fProgress->SetLength(float(total));
+        fProgress->SetHowMuch(float(dl));
     }
 
     ST::string status = ST::format("{} / {}",

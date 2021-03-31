@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 #include "plMaxNode.h"
-#pragma hdrstop
 
 #include "plPhysicalProps.h"
 #include "plPhysical/plSimDefs.h"
@@ -100,20 +99,20 @@ enum PhysFlags
 };
 
 plPhysicalProps::plPhysicalProps() :
-    fUsed(false),
+    fUsed(),
     fCanIgnore(kAll),
-    fGroup(0),
-    fReportGroup(0),
-    fMass(0),
-    fFriction(0),
-    fRestitution(0),
+    fGroup(),
+    fReportGroup(),
+    fMass(),
+    fFriction(),
+    fRestitution(),
     fBoundsType(plSimDefs::kHullBounds),
-    fProxyNode(nil),
-    fFlags(0),
-    fSubworld(nil),
-    fNoSynchronize(0),
-    fStartInactive(0),
-    fAvAnimPushable(0)
+    fProxyNode(),
+    fFlags(),
+    fSubworld(),
+    fNoSynchronize(),
+    fStartInactive(),
+    fAvAnimPushable()
 {
 }
 

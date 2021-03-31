@@ -54,7 +54,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define _plDXRenderTargetRef_h
 
 #include "hsMatrix44.h"
-#include "hsTemplates.h"
 #include "plDXTextureRef.h"
 
 
@@ -85,7 +84,7 @@ class plDXRenderTargetRef: public plDXTextureRef
 
         IDirect3DSurface9   *GetColorSurface() const
         {
-            if( fD3DTexture != nil )
+            if (fD3DTexture != nullptr)
             {
                 IDirect3DSurface9* psurf;
                 ((IDirect3DTexture9*)fD3DTexture)->GetSurfaceLevel(0, &psurf);
@@ -98,7 +97,7 @@ class plDXRenderTargetRef: public plDXTextureRef
         }
 
         virtual ~plDXRenderTargetRef();
-        void    Release();
+        void    Release() override;
 };
 
 

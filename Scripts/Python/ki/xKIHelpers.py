@@ -73,10 +73,10 @@ class AutocompleteState:
         names = set()
 
         for name in nameList:
-            nospace = self.space_match.sub('', name.lower())
+            nospace = self.space_match.sub('', name.casefold())
             names.add((nospace, name))
 
-        text_lower = text.lower()
+        text_lower = text.casefold()
         words = [(m.start(), m.end()) for m in self.word_match.finditer(text_lower)]
         words.reverse()
         suffix = ""
@@ -198,19 +198,16 @@ class SeparatorFolder:
 ## Helper function to prioritize online players in lists.
 def CMPplayerOnline(playerA, playerB):
 
-    elPlayerA = playerA.getChild()
-    elPlayerB = playerB.getChild()
+    elPlayerA = playerA.getChild().upcastToPlayerInfoNode()
+    elPlayerB = playerB.getChild().upcastToPlayerInfoNode()
     if elPlayerA and elPlayerB:
-        if elPlayerA.getType() == PtVaultNodeTypes.kPlayerInfoNode and elPlayerB.getType() == PtVaultNodeTypes.kPlayerInfoNode:
-            elPlayerA = elPlayerA.upcastToPlayerInfoNode()
-            elPlayerB = elPlayerB.upcastToPlayerInfoNode()
-            if elPlayerA.playerIsOnline() and elPlayerB.playerIsOnline():
-                return cmp(elPlayerA.playerGetName().lower(), elPlayerB.playerGetName().lower())
-            if elPlayerA.playerIsOnline():
-                return -1
-            if elPlayerB.playerIsOnline():
-                return 1
-            return cmp(elPlayerA.playerGetName().lower(), elPlayerB.playerGetName().lower())
+        online = (elPlayerA.playerIsOnline(), elPlayerB.playerIsOnline())
+        if all(online) or not any(online):
+            playerAname = elPlayerA.playerGetName().casefold()
+            playerBname = elPlayerB.playerGetName().casefold()
+            return (playerAname > playerBname) - (playerAname < playerBname)
+        else:
+            return -1 if online[0] else 1
     return 0
 
 
@@ -237,7 +234,7 @@ def FilterAgeName(ageName):
     # Replace file names with display names - only once, from the right.
     # This fixes a bug in which avatars' names containing words like Garden
     # incorrectly get replaced.
-    for Age, replacement in kAges.Replace.iteritems():
+    for Age, replacement in kAges.Replace.items():
         # Only replace if the replacement is not already in there...
         # Otherwise we wend up with junk like "Eder Eder Gira"
         if ageName.find(replacement) == -1:
@@ -303,7 +300,7 @@ def GetNeighborhood():
     try:
         return ptVault().getLinkToMyNeighborhood().getAgeInfo()
     except AttributeError:
-        PtDebugPrint(u"xKIHelpers.GetNeighborhood(): Neighborhood not found.", level=kDebugDumpLevel)
+        PtDebugPrint("xKIHelpers.GetNeighborhood(): Neighborhood not found.", level=kDebugDumpLevel)
         return None
 
 ## Find the player's neighbors.
@@ -312,7 +309,7 @@ def GetNeighbors():
     try:
         return GetNeighborhood().getAgeOwnersFolder()
     except AttributeError:
-        PtDebugPrint(u"xKIHelpers.GetNeighbors(): List of neighbors not found.", level=kDebugDumpLevel)
+        PtDebugPrint("xKIHelpers.GetNeighbors(): List of neighbors not found.", level=kDebugDumpLevel)
         return None
 
 ## Sends a notification message to a script.

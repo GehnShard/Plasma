@@ -43,15 +43,16 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plCameraModifier_inc
 #define plCameraModifier_inc
 
-#include "pnModifier/plSingleModifier.h"
 #include "hsBitVector.h"
 #include "hsGeometry3.h"
-#include "hsTemplates.h"
 
-class plPipeline;
-class plKey;
+#include "pnKeyedObject/plKey.h"
+#include "pnModifier/plSingleModifier.h"
+
 class plCameraBrain1;
 class plCameraMsg;
+class plPipeline;
+
 struct CamTrans
 {
     // used when creating default track transitions at runtime
@@ -96,7 +97,7 @@ class plCameraModifier1 : public plSingleModifier
 protected:
 
     void Output();
-    virtual bool IEval(double secs, float del, uint32_t dirty) { return true; }
+    bool IEval(double secs, float del, uint32_t dirty) override { return true; }
         
 public:
     
@@ -106,12 +107,12 @@ public:
     CLASSNAME_REGISTER( plCameraModifier1 );
     GETINTERFACE_ANY( plCameraModifier1, plSingleModifier );
 
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
 
     void        Initialize();
     virtual void Update();
 
-    virtual void AddTarget(plSceneObject* so);
+    void AddTarget(plSceneObject* so) override;
 
     void    SetBrain(plCameraBrain1* brain) { fBrain = brain; }
 
@@ -135,11 +136,11 @@ public:
     void            SetFOVh(float f, bool fUpdateVCam = true); 
     bool            GetInSubworld() { return fInSubLastUpdate; }
     void            InSubworld(bool b) { fInSubLastUpdate = b; }
-    virtual void Read(hsStream* stream, hsResMgr* mgr);
-    virtual void Write(hsStream* stream, hsResMgr* mgr);
-    void AddTrans(CamTrans* t) { fTrans.Append(t); }
-    int  GetNumTrans() { return fTrans.Count(); }
-    CamTrans* GetTrans(int i) { return fTrans[i]; }
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
+    void AddTrans(CamTrans* t) { fTrans.emplace_back(t); }
+    size_t GetNumTrans() { return fTrans.size(); }
+    CamTrans* GetTrans(size_t i) const { return fTrans[i]; }
     void SetSubject(plSceneObject* pObj); 
     plSceneObject* GetSubject();
 
@@ -156,12 +157,12 @@ private:
     hsPoint3                fFrom;
     hsPoint3                fAt;
     plCameraBrain1*         fBrain; // the 'logic' portion of the camera
-    hsTArray<CamTrans*>     fTrans;
+    std::vector<CamTrans*>  fTrans;
     plSceneObject*          fSubObj;
-    float                fFOVw;
-    float                fFOVh;
-    hsTArray<plMessage*>    fMessageQueue;
-    hsTArray<plCameraMsg*>  fFOVInstructions;
+    float                   fFOVw;
+    float                   fFOVh;
+    std::vector<plMessage*> fMessageQueue;
+    std::vector<plCameraMsg*> fFOVInstructions;
     bool                    fAnimated, fStartAnimOnPush, fStopAnimOnPop, fResetAnimOnPop;
     hsPoint3                fLastSubPos;
     hsPoint3                fLastSubPOA;

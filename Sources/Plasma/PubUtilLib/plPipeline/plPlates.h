@@ -49,10 +49,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define _plPlates_h
 
 #include "HeadSpin.h"
+
 #include <string>
+#include <vector>
 
 #include "hsColorRGBA.h"
-#include "hsTemplates.h"
 
 #include "hsMatrix44.h"
 
@@ -101,8 +102,8 @@ class plPlate
                 fNext->fPrevPtr = fPrevPtr;
             *fPrevPtr = fNext;
 
-            fNext = nil;
-            fPrevPtr = nil;
+            fNext = nullptr;
+            fPrevPtr = nullptr;
         }
 
         void ISetResourceAlphas(uint32_t colorKey);
@@ -121,7 +122,7 @@ class plPlate
         void    SetTransform( hsMatrix44 &matrix, bool reSort = true );
         void    SetMaterial( hsGMaterial *material );
         void    SetTexture(plBitmap *texture); // Creates a new single layer material to use the texture.
-        void    SetTitle( const char *title ) { if( title != nil ) strncpy( fTitle, title, sizeof( fTitle ) ); else fTitle[ 0 ] = 0; }
+        void    SetTitle(const char *title) { if (title != nullptr) strncpy(fTitle, title, sizeof(fTitle)); else fTitle[0] = 0; }
 
         hsGMaterial     *GetMaterial() { return fMaterial; }
         hsMatrix44      &GetTransform() { return fXformMatrix; }
@@ -143,7 +144,7 @@ class plPlate
         void    SetPosition( float x, float y, float z = -1.0f );
         void    SetSize( float width, float height, bool adjustByAspectRatio = false );
 
-        plMipmap        *CreateMaterial( uint32_t width, uint32_t height, bool withAlpha, plMipmap* texture = NULL );
+        plMipmap        *CreateMaterial(uint32_t width, uint32_t height, bool withAlpha, plMipmap* texture = nullptr);
         void            CreateFromResource(const ST::string& resName);
         void            ReloadFromResource(const ST::string& resName);
 };
@@ -171,7 +172,7 @@ class plGraphPlate : public plPlate
 
         void    SetDataRange( uint32_t min, uint32_t max, uint32_t width );
         void    SetDataLabels( uint32_t min, uint32_t max );
-        void    SetLabelText(const char *text1, const char *text2 = nil, const char *text3 = nil, const char *text4 = nil );
+        void    SetLabelText(const char *text1, const char *text2 = nullptr, const char *text3 = nullptr, const char *text4 = nullptr);
         void    SetLabelText( const std::vector<std::string> & text );
         void    ClearData();
 
@@ -211,7 +212,7 @@ class plPlateManager
         plPlateManager( plPipeline *pipe ) 
         {
             fInstance = this;
-            fPlates = nil;
+            fPlates = nullptr;
             fOwner = pipe;
             fCreatedSucessfully = true;
         }
@@ -225,7 +226,7 @@ class plPlateManager
         virtual ~plPlateManager();
         
         static plPlateManager   &Instance() { return *fInstance; }
-        static bool InstanceValid() { return fInstance != nil; }
+        static bool InstanceValid() { return fInstance != nullptr; }
 
         void        CreatePlate( plPlate **handle );
         void        CreatePlate( plPlate **handle, float width, float height );

@@ -41,7 +41,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
-#include "hsTemplates.h"
+
+#include "MaxAPI.h"
 
 #include "MaxComponent/plComponentBase.h"
 #include "MaxComponent/plComponentReg.h"
@@ -49,11 +50,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "resource.h"
 
 #include <algorithm>
-#include <notify.h>
-#include <utilapi.h>
-#include <notify.h>
 #include <vector>
-#pragma hdrstop
 
 #include "plComponentDlg.h"
 #include "plComponentPanel.h"
@@ -61,25 +58,25 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 extern HINSTANCE hInstance;
 
-plComponentDlg::plComponentDlg() : fhDlg(nil), fCompMenu(nil), fTypeMenu(nil), fCommentNode(nil)
+plComponentDlg::plComponentDlg() : fhDlg(), fCompMenu(), fTypeMenu(), fCommentNode()
 {
     fInterface = GetCOREInterface();
 
-    RegisterNotification(INotify, 0, NOTIFY_FILE_PRE_OPEN);
-    RegisterNotification(INotify, 0, NOTIFY_SYSTEM_PRE_NEW);
-    RegisterNotification(INotify, 0, NOTIFY_SYSTEM_PRE_RESET);
-    RegisterNotification(INotify, 0, NOTIFY_FILE_PRE_MERGE);
-    RegisterNotification(INotify, 0, NOTIFY_PRE_IMPORT);
-    RegisterNotification(INotify, 0, NOTIFY_FILE_PRE_SAVE);
-    RegisterNotification(INotify, 0, NOTIFY_FILE_PRE_SAVE_OLD);
+    RegisterNotification(INotify, nullptr, NOTIFY_FILE_PRE_OPEN);
+    RegisterNotification(INotify, nullptr, NOTIFY_SYSTEM_PRE_NEW);
+    RegisterNotification(INotify, nullptr, NOTIFY_SYSTEM_PRE_RESET);
+    RegisterNotification(INotify, nullptr, NOTIFY_FILE_PRE_MERGE);
+    RegisterNotification(INotify, nullptr, NOTIFY_PRE_IMPORT);
+    RegisterNotification(INotify, nullptr, NOTIFY_FILE_PRE_SAVE);
+    RegisterNotification(INotify, nullptr, NOTIFY_FILE_PRE_SAVE_OLD);
 
-    RegisterNotification(INotify, 0, NOTIFY_FILE_POST_OPEN);
-    RegisterNotification(INotify, 0, NOTIFY_SYSTEM_POST_NEW);
-    RegisterNotification(INotify, 0, NOTIFY_SYSTEM_POST_RESET);
-    RegisterNotification(INotify, 0, NOTIFY_FILE_POST_MERGE);
-    RegisterNotification(INotify, 0, NOTIFY_POST_IMPORT);
+    RegisterNotification(INotify, nullptr, NOTIFY_FILE_POST_OPEN);
+    RegisterNotification(INotify, nullptr, NOTIFY_SYSTEM_POST_NEW);
+    RegisterNotification(INotify, nullptr, NOTIFY_SYSTEM_POST_RESET);
+    RegisterNotification(INotify, nullptr, NOTIFY_FILE_POST_MERGE);
+    RegisterNotification(INotify, nullptr, NOTIFY_POST_IMPORT);
 
-    RegisterNotification(INotify, 0, NOTIFY_SYSTEM_SHUTDOWN);
+    RegisterNotification(INotify, nullptr, NOTIFY_SYSTEM_SHUTDOWN);
 }
 
 plComponentDlg::~plComponentDlg()
@@ -119,7 +116,7 @@ void plComponentDlg::Open()
         rect.right = rect.left + 235;
         rect.bottom = rect.top + 335;
         IPositionControls(&rect, WMSZ_BOTTOM);
-        SetWindowPos(fhDlg, NULL, 0, 0, rect.right - rect.left, rect.bottom - rect.top, SWP_NOMOVE | SWP_NOZORDER);
+        SetWindowPos(fhDlg, nullptr, 0, 0, rect.right - rect.left, rect.bottom - rect.top, SWP_NOMOVE | SWP_NOZORDER);
     }
     
     fInterface->RegisterDlgWnd(fhDlg);
@@ -166,7 +163,7 @@ void plComponentDlg::IPositionControls(RECT *newRect, int edge)
         IPositionControl(GetDlgItem(fhDlg, IDC_ATTACH),         hDiff);
     }
 
-    InvalidateRect(fhDlg, NULL, TRUE);
+    InvalidateRect(fhDlg, nullptr, TRUE);
 }
 
 void plComponentDlg::IPositionControl(HWND hControl, int hDiff, int wDiff, int flags)
@@ -186,7 +183,7 @@ void plComponentDlg::IPositionControl(HWND hControl, int hDiff, int wDiff, int f
         if (flags & kMoveY)
             pos.y += hDiff;
 
-        SetWindowPos(hControl, NULL, pos.x, pos.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOREDRAW);
+        SetWindowPos(hControl, nullptr, pos.x, pos.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOREDRAW);
     }
 
     if (flags & kResizeX || flags & kResizeY)
@@ -198,7 +195,7 @@ void plComponentDlg::IPositionControl(HWND hControl, int hDiff, int wDiff, int f
         if (flags & kResizeY)
             h += hDiff;
 
-        SetWindowPos(hControl, NULL, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER | SWP_NOREDRAW);
+        SetWindowPos(hControl, nullptr, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER | SWP_NOREDRAW);
     }
 }
 
@@ -220,14 +217,14 @@ void plComponentDlg::IGetComment()
     }
 }
 
-BOOL plComponentDlg::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plComponentDlg::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     return Instance().DlgProc(hDlg, msg, wParam, lParam);
 }
 
 #define MENU_ID_START 41000
 
-BOOL plComponentDlg::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plComponentDlg::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -240,7 +237,7 @@ BOOL plComponentDlg::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
         return TRUE;
 
     case WM_SIZING:
-        IPositionControls((RECT*)lParam, wParam);
+        IPositionControls((RECT*)lParam, (int)wParam);
         return TRUE;
 
     case WM_ACTIVATE:
@@ -331,7 +328,7 @@ BOOL plComponentDlg::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
                     }
                     else
                     {
-                        fCommentNode = nil;
+                        fCommentNode = nullptr;
                         SetDlgItemText(hDlg, IDC_COMMENTS, "");
                     }
 
@@ -343,7 +340,7 @@ BOOL plComponentDlg::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
                 // If this isn't a component, don't allow the edit
                 if (!IIsComponent(((NMTVDISPINFO*)lParam)->item.lParam))
                 {
-                    SetWindowLong(hDlg, DWL_MSGRESULT, TRUE);
+                    SetWindowLongPtr(hDlg, DWLP_MSGRESULT, TRUE);
                     return TRUE;
                 }
 
@@ -373,7 +370,7 @@ BOOL plComponentDlg::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
                         SetSaveRequiredFlag();
 
                         // Return true to keep the changes
-                        SetWindowLong(hDlg, DWL_MSGRESULT, TRUE);
+                        SetWindowLongPtr(hDlg, DWLP_MSGRESULT, TRUE);
                     }
 
                     plMaxAccelerators::Enable();
@@ -413,7 +410,7 @@ HTREEITEM plComponentDlg::IAddLeaf(HWND hTree, HTREEITEM hParent, const char *te
     tvi.cchTextMax = strlen(text);  
     tvi.lParam     = lParam;
 
-    TVINSERTSTRUCT tvins = {0};
+    TVINSERTSTRUCT tvins = {};
     tvins.item         = tvi;
     tvins.hParent      = hParent;
     tvins.hInsertAfter = TVI_SORT;
@@ -441,7 +438,7 @@ HTREEITEM plComponentDlg::IFindTreeItem(HWND hTree, const char *name, HTREEITEM 
         hChild = TreeView_GetNextSibling(hTree, hChild);
     }
 
-    return nil;
+    return nullptr;
 }
 
 HTREEITEM plComponentDlg::IAddComponent(HWND hTree, plMaxNode *node)
@@ -492,10 +489,10 @@ void plComponentDlg::ICreateMenu()
     HMENU hMenu = GetMenu(fhDlg);
 
     HMENU hNew = CreatePopupMenu();
-    InsertMenu(hMenu, 0, MF_POPUP | MF_STRING | MF_BYPOSITION, (UINT)hNew, "New");
+    InsertMenu(hMenu, 0, MF_POPUP | MF_STRING | MF_BYPOSITION, (UINT_PTR)hNew, "New");
 
-    const char *lastCat = nil;
-    HMENU hCurType = nil;
+    const char *lastCat = nullptr;
+    HMENU hCurType = nullptr;
 
     uint32_t count = plComponentMgr::Inst().Count();
     for (uint32_t i = 0; i < count; i++)
@@ -511,7 +508,7 @@ void plComponentDlg::ICreateMenu()
             lastCat = desc->Category();
 
             hCurType = CreatePopupMenu();
-            AppendMenu(hNew, MF_POPUP | MF_STRING, (UINT)hCurType, lastCat);
+            AppendMenu(hNew, MF_POPUP | MF_STRING, (UINT_PTR)hCurType, lastCat);
         }
 
         AppendMenu(hCurType, MF_STRING, MENU_ID_START+i, desc->ClassName());
@@ -704,7 +701,7 @@ plMaxNode *plComponentDlg::ITreeItemToNode(HWND hTree, HTREEITEM hItem)
             return (plMaxNode*)item.lParam;
     }
 
-    return nil;
+    return nullptr;
 }
 
 enum
@@ -752,7 +749,7 @@ void plComponentDlg::IOpenRightClickMenu()
     item.hItem = hitTest.hItem;
     TreeView_GetItem(hTree, &item);
 
-    HMENU menu = nil;
+    HMENU menu = nullptr;
     if (IIsComponent(item.lParam))
         menu = fCompMenu;
     else if (IIsType(item.lParam))
@@ -765,7 +762,7 @@ void plComponentDlg::IOpenRightClickMenu()
 
     // Create the popup menu and get the option the user selects
     SetForegroundWindow(fhDlg);
-    int sel = TrackPopupMenu(menu, TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, 0, fhDlg, NULL);
+    int sel = TrackPopupMenu(menu, TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, 0, fhDlg, nullptr);
     switch(sel)
     {
     case kMenuDelete:
@@ -787,7 +784,7 @@ void plComponentDlg::IOpenRightClickMenu()
             INodeTab copy;
 
             // Make the copy
-            fInterface->CloneNodes(tab, Point3(0,0,0), true, NODE_COPY, NULL, &copy);
+            fInterface->CloneNodes(tab, Point3(0,0,0), true, NODE_COPY, nullptr, &copy);
 
             // Delete the targets for the copy and add it to the tree
             plMaxNode *newNode = (plMaxNode*)copy[0];
@@ -848,14 +845,14 @@ HTREEITEM plComponentDlg::ISearchTree(HWND hTree, LPARAM lParam, HTREEITEM hCur)
         hChild = TreeView_GetNextSibling(hTree, hChild);
     }
 
-    return NULL;
+    return nullptr;
 }
 
 void plComponentDlg::IRefreshTree()
 {
     if (fhDlg)
     {
-        fCommentNode = nil;
+        fCommentNode = nullptr;
 
         HWND hTree = GetDlgItem(fhDlg, IDC_TREE);
         TreeView_DeleteAllItems(hTree);
@@ -867,21 +864,21 @@ void plComponentDlg::INotify(void *param, NotifyInfo *info)
 {
     if (info->intcode == NOTIFY_SYSTEM_SHUTDOWN)
     {
-        UnRegisterNotification(INotify, 0, NOTIFY_FILE_PRE_OPEN);
-        UnRegisterNotification(INotify, 0, NOTIFY_SYSTEM_PRE_NEW);
-        UnRegisterNotification(INotify, 0, NOTIFY_SYSTEM_PRE_RESET);
-        UnRegisterNotification(INotify, 0, NOTIFY_FILE_PRE_MERGE);
-        UnRegisterNotification(INotify, 0, NOTIFY_PRE_IMPORT);
-        UnRegisterNotification(INotify, 0, NOTIFY_FILE_PRE_SAVE);
-        UnRegisterNotification(INotify, 0, NOTIFY_FILE_PRE_SAVE_OLD);
+        UnRegisterNotification(INotify, nullptr, NOTIFY_FILE_PRE_OPEN);
+        UnRegisterNotification(INotify, nullptr, NOTIFY_SYSTEM_PRE_NEW);
+        UnRegisterNotification(INotify, nullptr, NOTIFY_SYSTEM_PRE_RESET);
+        UnRegisterNotification(INotify, nullptr, NOTIFY_FILE_PRE_MERGE);
+        UnRegisterNotification(INotify, nullptr, NOTIFY_PRE_IMPORT);
+        UnRegisterNotification(INotify, nullptr, NOTIFY_FILE_PRE_SAVE);
+        UnRegisterNotification(INotify, nullptr, NOTIFY_FILE_PRE_SAVE_OLD);
 
-        UnRegisterNotification(INotify, 0, NOTIFY_FILE_POST_OPEN);
-        UnRegisterNotification(INotify, 0, NOTIFY_SYSTEM_POST_NEW);
-        UnRegisterNotification(INotify, 0, NOTIFY_SYSTEM_POST_RESET);
-        UnRegisterNotification(INotify, 0, NOTIFY_FILE_POST_MERGE);
-        UnRegisterNotification(INotify, 0, NOTIFY_POST_IMPORT);
+        UnRegisterNotification(INotify, nullptr, NOTIFY_FILE_POST_OPEN);
+        UnRegisterNotification(INotify, nullptr, NOTIFY_SYSTEM_POST_NEW);
+        UnRegisterNotification(INotify, nullptr, NOTIFY_SYSTEM_POST_RESET);
+        UnRegisterNotification(INotify, nullptr, NOTIFY_FILE_POST_MERGE);
+        UnRegisterNotification(INotify, nullptr, NOTIFY_POST_IMPORT);
 
-        UnRegisterNotification(INotify, 0, NOTIFY_SYSTEM_SHUTDOWN);
+        UnRegisterNotification(INotify, nullptr, NOTIFY_SYSTEM_SHUTDOWN);
     }
     // New nodes are coming in, refresh the scene component list
     else if (info->intcode == NOTIFY_FILE_POST_OPEN ||
@@ -1003,10 +1000,10 @@ public:
         return true;
     }
 
-    virtual TCHAR *dialogTitle() { return "Select Nodes"; }
-    virtual TCHAR *buttonText() { return "Copy"; }
+    TCHAR *dialogTitle() override { return "Select Nodes"; }
+    TCHAR *buttonText() override { return "Copy"; }
 
-    virtual int filter(INode *node)
+    int filter(INode *node) override
     {
         // Make sure this node doesn't already have the components
         for (int i = 0; i < fSelectedNodes.Count(); i++)
@@ -1018,7 +1015,7 @@ public:
         return TRUE;
     }
 
-    virtual void proc(INodeTab &nodeTab)
+    void proc(INodeTab &nodeTab) override
     {
         for (int i = 0; i < nodeTab.Count(); i++)
         {

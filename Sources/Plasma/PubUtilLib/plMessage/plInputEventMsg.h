@@ -46,8 +46,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnMessage/plMessage.h"
 #include "pnInputCore/plControlDefinition.h"
 #include "hsGeometry3.h"
-#include "hsStream.h"
-
 
 class plKeyEventMsg;
 class plMouseEventMsg;
@@ -72,11 +70,11 @@ public:
     int fEvent;
     
     // IO 
-    void Read(hsStream* stream, hsResMgr* mgr);
-    void Write(hsStream* stream, hsResMgr* mgr);
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 
-    void ReadVersion(hsStream* s, hsResMgr* mgr);
-    void WriteVersion(hsStream* s, hsResMgr* mgr);
+    void ReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void WriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 
@@ -103,22 +101,22 @@ public:
 
     void SetCmdString(const char* cs)       { delete [] fCmd; fCmd=hsStrcpy(cs); }
     void SetControlCode(ControlEventCode c) { fControlCode = c; }
-    void SetControlActivated(bool b)      { fControlActivated = b; }
-    void SetTurnToPt(hsPoint3 pt)           { fTurnToPt = pt; }
-    void SetControlPct(float p)          { fControlPct = p; }
+    void SetControlActivated(bool b)        { fControlActivated = b; }
+    void SetTurnToPt(const hsPoint3& pt)    { fTurnToPt = pt; }
+    void SetControlPct(float p)             { fControlPct = p; }
 
     ControlEventCode    GetControlCode()    const { return fControlCode; }
-    bool                ControlActivated()  { return fControlActivated; }
-    hsPoint3            GetTurnToPt()       { return fTurnToPt; }
-    float            GetPct()            { return fControlPct; }
-    char*               GetCmdString()      { return fCmd; }
+    bool                ControlActivated()  const { return fControlActivated; }
+    hsPoint3            GetTurnToPt()       const { return fTurnToPt; }
+    float               GetPct()            const { return fControlPct; }
+    char*               GetCmdString()      const { return fCmd; }
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr);
-    void Write(hsStream* stream, hsResMgr* mgr);
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 
-    void ReadVersion(hsStream* s, hsResMgr* mgr);
-    void WriteVersion(hsStream* s, hsResMgr* mgr);
+    void ReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void WriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 
@@ -162,27 +160,8 @@ public:
     bool        GetRepeat() const          { return fRepeat; }
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr)
-    {
-        plInputEventMsg::Read(stream, mgr);
-        stream->ReadLE((int32_t*)&fKeyCode);
-        fKeyDown = stream->ReadBOOL();
-        fCapsLockKeyDown = stream->ReadBOOL();
-        fShiftKeyDown = stream->ReadBOOL();
-        fCtrlKeyDown = stream->ReadBOOL();
-        fRepeat = stream->ReadBOOL();
-    }
-
-    void Write(hsStream* stream, hsResMgr* mgr)
-    {
-        plInputEventMsg::Write(stream, mgr);
-        stream->WriteLE32((int32_t)fKeyCode);
-        stream->WriteBOOL(fKeyDown);
-        stream->WriteBOOL(fCapsLockKeyDown);
-        stream->WriteBOOL(fShiftKeyDown);
-        stream->WriteBOOL(fCtrlKeyDown);
-        stream->WriteBOOL(fRepeat);
-    }
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 
@@ -221,25 +200,8 @@ public:
 
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr)
-    {
-        plInputEventMsg::Read(stream, mgr);
-        stream->ReadLE((int32_t*)&fKeyCode);
-        fKeyDown = stream->ReadBOOL();
-        fCapsLockKeyDown = stream->ReadBOOL();
-        fShiftKeyDown = stream->ReadBOOL();
-        fCtrlKeyDown = stream->ReadBOOL();
-    }
-
-    void Write(hsStream* stream, hsResMgr* mgr)
-    {
-        plInputEventMsg::Write(stream, mgr);
-        stream->WriteLE((int32_t)fKeyCode);
-        stream->WriteBOOL(fKeyDown);
-        stream->WriteBOOL(fCapsLockKeyDown);
-        stream->WriteBOOL(fShiftKeyDown);
-        stream->WriteBOOL(fCtrlKeyDown);
-    }
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 class plIMouseXEventMsg : public plInputEventMsg
@@ -259,20 +221,8 @@ public:
     CLASSNAME_REGISTER( plIMouseXEventMsg );
     GETINTERFACE_ANY( plIMouseXEventMsg, plInputEventMsg );
 
-    void Read(hsStream* stream, hsResMgr* mgr)
-    {
-        plInputEventMsg::Read(stream, mgr);
-        stream->ReadLE(&fX);
-        stream->ReadLE(&fWx);
-    }
-
-    void Write(hsStream* stream, hsResMgr* mgr)
-    {
-        plInputEventMsg::Write(stream, mgr);
-        stream->WriteLE(fX);
-        stream->WriteLE(fWx);
-    }
-
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 class plIMouseYEventMsg : public plInputEventMsg
@@ -292,20 +242,8 @@ public:
     CLASSNAME_REGISTER( plIMouseYEventMsg );
     GETINTERFACE_ANY( plIMouseYEventMsg, plInputEventMsg );
 
-    void Read(hsStream* stream, hsResMgr* mgr)
-    {
-        plInputEventMsg::Read(stream, mgr);
-        stream->ReadLE(&fY);
-        stream->ReadLE(&fWy);
-    }
-
-    void Write(hsStream* stream, hsResMgr* mgr)
-    {
-        plInputEventMsg::Write(stream, mgr);
-        stream->WriteLE(fY);
-        stream->WriteLE(fWy);
-    }
-
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 class plIMouseBEventMsg : public plInputEventMsg
 {
@@ -323,18 +261,8 @@ public:
     CLASSNAME_REGISTER( plIMouseBEventMsg );
     GETINTERFACE_ANY( plIMouseBEventMsg, plInputEventMsg );
 
-    void Read(hsStream* stream, hsResMgr* mgr)
-    {
-        plInputEventMsg::Read(stream, mgr);
-        stream->ReadLE(&fButton);
-    }
-
-    void Write(hsStream* stream, hsResMgr* mgr)
-    {
-        plInputEventMsg::Write(stream, mgr);
-        stream->WriteLE(fButton);
-    }
-
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 class plMouseEventMsg : public plInputEventMsg
@@ -376,27 +304,8 @@ public:
     short GetButton() { return fButton; }
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr)
-    {
-        plInputEventMsg::Read(stream, mgr);
-        stream->ReadLE(&fXPos);
-        stream->ReadLE(&fYPos);
-        stream->ReadLE(&fDX);
-        stream->ReadLE(&fDY);
-        stream->ReadLE(&fButton);
-        stream->ReadLE(&fWheelDelta);
-    }
-
-    void Write(hsStream* stream, hsResMgr* mgr)
-    {
-        plInputEventMsg::Write(stream, mgr);
-        stream->WriteLE(fXPos);
-        stream->WriteLE(fYPos);
-        stream->WriteLE(fDX);
-        stream->WriteLE(fDY);
-        stream->WriteLE(fButton);
-        stream->WriteLE(fWheelDelta);
-    }
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 class plAvatarInputStateMsg : public plMessage
@@ -410,11 +319,11 @@ public:
     CLASSNAME_REGISTER( plAvatarInputStateMsg );
     GETINTERFACE_ANY( plAvatarInputStateMsg, plMessage );
 
-    void Read(hsStream *s, hsResMgr *mgr);
-    void Write(hsStream *s, hsResMgr *mgr);
+    void Read(hsStream *s, hsResMgr *mgr) override;
+    void Write(hsStream *s, hsResMgr *mgr) override;
 
-    void ReadVersion(hsStream* s, hsResMgr* mgr);
-    void WriteVersion(hsStream* s, hsResMgr* mgr);
+    void ReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void WriteVersion(hsStream* s, hsResMgr* mgr) override;
 
     // Mapping of bits to the control events we care about
     static const ControlEventCode fCodeMap[];

@@ -49,9 +49,17 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <string>
 #include <algorithm>
 #include <string_theory/stdio>
+#include <unordered_set>
 
 static const char* kPackFileName = "python.pak";
 static const char* kModuleFile = "__init__.py";
+
+/** Directories that should not generate their own .pak file. */
+static const std::unordered_set<ST::string, ST::hash_i, ST::equal_i> s_ignoreSubdirs{
+    ST_LITERAL("plasma"),
+    ST_LITERAL("system"),
+    ST_LITERAL("__pycache__"),
+};
 
 #if HS_BUILD_FOR_WIN32
     #define NULL_DEVICE "NUL:"
@@ -115,30 +123,30 @@ void WritePythonFile(const plFileName &fileName, const plFileName &path, hsStrea
     }
 
     // import the module first, to make packages work correctly
-    PyImport_ImportModule(fileName.AsString().c_str());
+    PyObject* fModule = PyImport_ImportModule(fileName.AsString().c_str());
+    if (!fModule)
+        ST::printf(stderr, "......import failed ");
+
     PyObject* pythonCode = PythonInterface::CompileString(code, fileName);
     if (pythonCode)
     {
-        // We need to find out if this is a PythonFile module.
-        // Create a module name (with the '.' as an 'x')
-        // and create a python file name that is without the ".py"
-        PyObject* fModule = PythonInterface::CreateModule(fileName.AsString().c_str());
         // run the code
         if (PythonInterface::RunPYC(pythonCode, fModule) )
         {
             // set the name of the file (in the global dictionary of the module)
             PyObject* dict = PyModule_GetDict(fModule);
-            PyObject* pfilename = PyString_FromString(fileName.AsString().c_str());
+            PyObject* pfilename = PyUnicode_FromString(fileName.AsString().c_str());
             PyDict_SetItemString(dict, "glue_name", pfilename);
+            Py_DECREF(pfilename);
 
             // next we need to:
             //  - create instance of class
             PyObject* getID = PythonInterface::GetModuleItem("glue_getBlockID",fModule);
             bool foundID = false;
-            if ( getID!=nil && PyCallable_Check(getID) )
+            if (getID != nullptr && PyCallable_Check(getID))
             {
-                PyObject* id = PyObject_CallFunction(getID,nil);
-                if ( id && PyInt_Check(id) )
+                PyObject* id = PyObject_CallFunction(getID, nullptr);
+                if ( id && PyLong_Check(id) )
                     foundID = true;
             }
             if ( foundID == false )     // then there was an error or no ID or somethin'
@@ -169,37 +177,22 @@ void WritePythonFile(const plFileName &fileName, const plFileName &path, hsStrea
         else
         {
             ST::printf(stderr, "......blast! Error during run-code in {}!\n", fileName);
-
-            ST::string msg;
-            PythonInterface::getOutputAndReset(msg);
-            if (!msg.empty())
-                ST::printf(out, "{}\n", msg);
-            PythonInterface::getErrorAndReset(msg);
-            if (!msg.empty())
-                ST::printf(stderr, "{}\n", msg);
+            PyErr_Print();
         }
     }
 
     // make sure that we have code to save
     if (pythonCode)
     {
-        int32_t size;
+        Py_ssize_t size;
         char* pycode;
         PythonInterface::DumpObject(pythonCode,&pycode,&size);
 
         ST::printf(out, "\n");
 
-        // print any message after each module
-        ST::string msg;
-        PythonInterface::getOutputAndReset(msg);
-        if (!msg.empty())
-            ST::printf(out, "{}\n", msg);
-        PythonInterface::getErrorAndReset(msg);
-        if (!msg.empty())
-            ST::printf(stderr, "{}\n", msg);
-
-        s->WriteLE32(size);
+        s->WriteLE32((int32_t)size);
         s->Write(size, pycode);
+        delete[] pycode;
     }
     else
     {
@@ -208,17 +201,11 @@ void WritePythonFile(const plFileName &fileName, const plFileName &path, hsStrea
 
         PyErr_Print();
         PyErr_Clear();
-
-        ST::string msg;
-        PythonInterface::getOutputAndReset(msg);
-        if (!msg.empty())
-            ST::printf(out, "{}\n", msg);
-        PythonInterface::getErrorAndReset(msg);
-        if (!msg.empty())
-            ST::printf(stderr, "{}\n", msg);
     }
 
     delete [] code;
+    Py_XDECREF(pythonCode);
+    Py_XDECREF(fModule);
 
     pyStream.Close();
     glueStream.Close();
@@ -241,12 +228,12 @@ void FindSubDirs(std::vector<plFileName> &dirnames, const plFileName &path)
     std::vector<plFileName> subdirs = plFileSystem::ListSubdirs(path);
     for (auto iter = subdirs.begin(); iter != subdirs.end(); ++iter) {
         ST::string name = iter->GetFileName();
-        if (name.compare_i("system") != 0 && name.compare_i("plasma") != 0)
+        if (s_ignoreSubdirs.find(name) == s_ignoreSubdirs.end())
             dirnames.push_back(name);
     }
 }
 
-void FindPackages(std::vector<plFileName>& fileNames, std::vector<plFileName>& pathNames, const plFileName& path, const ST::string& parent_package=ST::null)
+void FindPackages(std::vector<plFileName>& fileNames, std::vector<plFileName>& pathNames, const plFileName& path, const ST::string& parent_package={})
 {
     std::vector<plFileName> packages;
     FindSubDirs(packages, path);
@@ -308,40 +295,30 @@ void PackDirectory(const plFileName& dir, const plFileName& rootPath, const plFi
     if (!s.Open(pakName, "wb"))
         return;
 
-    s.WriteLE32(fileNames.size());
-
-    int i;
-    for (i = 0; i < fileNames.size(); i++)
+    s.WriteLE32((uint32_t)fileNames.size());
+    for (const plFileName& fn : fileNames)
     {
-        s.WriteSafeString(fileNames[i].AsString());
+        s.WriteSafeString(fn.AsString());
         s.WriteLE32(0);
     }
 
-    PythonInterface::initPython(rootPath, out, stderr);
-
-    for (i = 0; i < extraDirs.size(); i++)
-        PythonInterface::addPythonPath(plFileName::Join(rootPath, extraDirs[i]), out);
-    ST::printf(out, "\n");
-
-    // set to maximum optimization (includes removing __doc__ strings)
-    Py_OptimizeFlag = 2;
+    PythonInterface::initPython(rootPath, extraDirs, out, stderr);
 
     std::vector<uint32_t> filePositions;
     filePositions.resize(fileNames.size());
 
-    for (i = 0; i < fileNames.size(); i++)
+    for (size_t i = 0; i < fileNames.size(); i++)
     {
         // strip '.py' from the file name
         plFileName properFileName = fileNames[i].StripFileExt();
         uint32_t initialPos = s.GetPosition();
         WritePythonFile(properFileName, pathNames[i], &s);
-        uint32_t endPos = s.GetPosition();
 
         filePositions[i] = initialPos;
     }
 
     s.SetPosition(sizeof(uint32_t));
-    for (i = 0; i < fileNames.size(); i++)
+    for (size_t i = 0; i < fileNames.size(); i++)
     {
         s.WriteSafeString(fileNames[i].AsString());
         s.WriteLE32(filePositions[i]);
@@ -383,7 +360,7 @@ int main(int argc, char *argv[])
         args.emplace_back(ST::string::from_utf8(argv[i]));
     }
 
-    plCmdParser cmdParser(cmdLineArgs, arrsize(cmdLineArgs));
+    plCmdParser cmdParser(cmdLineArgs, std::size(cmdLineArgs));
     if (cmdParser.Parse(args)) {
         if (cmdParser.GetBool(kArgHelp1) || cmdParser.GetBool(kArgHelp2)) {
             PrintUsage();

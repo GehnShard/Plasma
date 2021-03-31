@@ -161,11 +161,10 @@ def PtDetermineKILevel():
     "Get the KILevel"
     # assume that they have none...
     import Plasma
-    import string
     vault = Plasma.ptVault()
     entry = vault.findChronicleEntry(kChronicleKILevel)
     if entry is not None:
-        level = string.atoi(entry.chronicleGetValue())
+        level = int(entry.chronicleGetValue())
         # make sure it is a valid level
         if level >= kLowestKILevel and level <= kHighestKILevel:
             return level
@@ -176,11 +175,10 @@ def PtDetermineCensorLevel():
     "Get the KILevel"
     # assume that they have none...
     import Plasma
-    import string
     vault = Plasma.ptVault()
     entry = vault.findChronicleEntry(kChronicleCensorLevel)
     if entry is not None:
-        level = string.atoi(entry.chronicleGetValue())
+        level = int(entry.chronicleGetValue())
         return level
     # if couldn't be determine... just assume lowest form
     return 0
@@ -189,11 +187,10 @@ def PtDetermineKIMarkerLevel():
     "Get the KIMarkerLevel"
     # assume that they have none...
     import Plasma
-    import string
     vault = Plasma.ptVault()
     entry = vault.findChronicleEntry(kChronicleKIMarkerLevel)
     if entry is not None:
-        level = string.atoi(entry.chronicleGetValue())
+        level = int(entry.chronicleGetValue())
         return level
     # if couldn't be determine... just assume lowest form
     return kKIMarkerNotUpgraded
@@ -267,7 +264,7 @@ def PtIsCGZMComplete():
         captures = PtGetMarkerQuestCaptures("cgz")
         if not captures:
             return False
-        for i in captures.itervalues():
+        for i in captures.values():
             if not i:
                 return False
         return True
@@ -286,7 +283,7 @@ def PtSetCGZM(mission):
 def PtSetMarkerQuestCaptures(name, captures):
     chron = PtFindCreateMarkerChronicle("Quest", name)
     if captures:
-        chron.setValue(','.join(( str(key) for key, value in captures.iteritems() if value )))
+        chron.setValue(','.join(( str(key) for key, value in captures.items() if value )))
     else:
         chron.setValue("")
     chron.save()

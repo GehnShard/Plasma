@@ -43,6 +43,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define plCloneSpawnModifier_inc
 
 #include "pnModifier/plSingleModifier.h"
+#include <string_theory/string>
 
 class plCloneSpawnModifier : public plSingleModifier
 {
@@ -50,7 +51,7 @@ protected:
     ST::string fTemplateName;
     bool fExportTime;
 
-    virtual bool IEval(double secs, float del, uint32_t dirty) { return true; }
+    bool IEval(double secs, float del, uint32_t dirty) override { return true; }
 
 public:
     plCloneSpawnModifier();
@@ -58,10 +59,10 @@ public:
     CLASSNAME_REGISTER(plCloneSpawnModifier);
     GETINTERFACE_ANY(plCloneSpawnModifier, plSingleModifier);
 
-    virtual void Read(hsStream *s, hsResMgr *mgr);
-    virtual void Write(hsStream *s, hsResMgr *mgr);
+    void Read(hsStream *s, hsResMgr *mgr) override;
+    void Write(hsStream *s, hsResMgr *mgr) override;
 
-    virtual void SetTarget(plSceneObject* so);
+    void SetTarget(plSceneObject* so) override;
 
     void SetTemplateName(const ST::string &templateName) { fTemplateName = templateName; }
 

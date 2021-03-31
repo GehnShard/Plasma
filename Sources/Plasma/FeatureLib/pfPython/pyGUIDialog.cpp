@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "pyColor.h"
 #include "cyPythonInterface.h"
@@ -83,7 +82,6 @@ pyGUIDialog::pyGUIDialog(plKey objkey)
 
 pyGUIDialog::pyGUIDialog()
 {
-    fGCkey = nil;
 }
 
 bool pyGUIDialog::IsGUIDialog(pyKey& gckey)
@@ -138,9 +136,9 @@ uint32_t pyGUIDialog::WhatControlType(pyKey& gckey)
 bool pyGUIDialog::operator==(const pyGUIDialog &gcobj) const
 {
     plKey theirs = ((pyGUIDialog&)gcobj).getObjKey();
-    if ( fGCkey == nil && theirs == nil )
+    if (fGCkey == nullptr && theirs == nullptr)
         return true;
-    else if ( fGCkey != nil && theirs != nil )
+    else if (fGCkey != nullptr && theirs != nullptr)
         return (fGCkey->GetUoid()==theirs->GetUoid());
     else
         return false;
@@ -219,7 +217,7 @@ uint32_t pyGUIDialog::GetVersion()
 }
 
 
-uint32_t pyGUIDialog::GetNumControls()
+size_t pyGUIDialog::GetNumControls()
 {
     if ( fGCkey )
     {
@@ -512,7 +510,7 @@ void pyGUIDialog::NoFocus( )
         pfGUIDialogMod* pdmod = pfGUIDialogMod::ConvertNoRef(fGCkey->ObjectIsLoaded());
         if ( pdmod )
         {
-            pdmod->SetFocus(nil);
+            pdmod->SetFocus(nullptr);
         }
     }
 }

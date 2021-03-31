@@ -42,85 +42,76 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plArmatureMod.h"
 
 // local
-#include "plAvBrain.h"
-#include "plAvatarMgr.h"
-#include "plAnimation/plAGModifier.h"
-#include "plAvatarClothing.h"
-#include "plClothingSDLModifier.h"
-#include "plAvatarSDLModifier.h"
-#include "plAnimation/plAGAnim.h"
 #include "plArmatureEffects.h"
-#include "plAvBrainHuman.h"
-#include "plAnimation/plMatrixChannel.h"
+#include "plAvatarClothing.h"
+#include "plAvatarMgr.h"
+#include "plAvatarSDLModifier.h"
 #include "plAvatarTasks.h"
-#include "plPhysicalControllerCore.h"
+#include "plAvBrain.h"
 #include "plAvBrainCritter.h"
+#include "plAvBrainHuman.h"
+#include "plClothingSDLModifier.h"
+#include "plPhysicalControllerCore.h"
 
 // global
 #include "plgDispatch.h"
 #include "hsQuat.h"
 #include "hsTimer.h"
-
-// other
-#include "pnSceneObject/plCoordinateInterface.h"
-#include "pnSceneObject/plAudioInterface.h"
-#include "plInterp/plAnimTimeConvert.h"
-
-#include "pnMessage/plEnableMsg.h"
-#include "pnMessage/plTimeMsg.h"
-#include "pnMessage/plSDLModifierMsg.h"
-#include "pnMessage/plAttachMsg.h"
-#include "pnMessage/plWarpMsg.h"
-#include "pnMessage/plCorrectionMsg.h"
-#include "pnMessage/plCameraMsg.h"
-#include "pnMessage/plPipeResMakeMsg.h"
-
-#include "plMessage/plAvatarMsg.h"
-#include "plMessage/plAvatarFootMsg.h"
-#include "plMessage/plInputEventMsg.h"
-#include "plMessage/plLoadAgeMsg.h"
-#include "plMessage/plAnimCmdMsg.h"
-#include "plMessage/plListenerMsg.h"
-#include "plMessage/plAgeLoadedMsg.h"
-#include "plMessage/plParticleUpdateMsg.h"
-#include "plMessage/plLoadClothingMsg.h"
-
-#include "plParticleSystem/plParticleSystem.h"
-#include "plParticleSystem/plParticleSDLMod.h"
-
-#include "pfMessage/plArmatureEffectMsg.h"
-#include "pfMessage/pfKIMsg.h"
-#include "plVault/plVault.h"
-
-#include "pnKeyedObject/plFixedKey.h"
-#include "pnKeyedObject/plKey.h"
-#include "pnKeyedObject/plKeyImp.h" 
-
-#include "plDrawable/plInstanceDrawInterface.h"
-#include "plDrawable/plDrawableSpans.h"
-#include "plSurface/plLayerAnimation.h"
-#include "plSurface/hsGMaterial.h"
-
-#include "pnNetCommon/plNetApp.h"
-#include "plNetClient/plNetClientMgr.h"         // for CCR stuff..
-#include "plNetClient/plNetLinkingMgr.h"
-#include "plModifier/plSpawnModifier.h"
-#include "plPipeline/plDebugText.h"
-#include "plResMgr/plKeyFinder.h"
-#include "plAudio/plWin32StaticSound.h"
-#include "plAudio/plAudioSystem.h"
-#include "plNetMessage/plNetMessage.h"
-#include "plInputCore/plAvatarInputInterface.h"
-#include "plInputCore/plSceneInputInterface.h"
-#include "plInputCore/plInputDevice.h"
-#include "pfCamera/plVirtualCamNeu.h"
-#include "plScene/plRelevanceMgr.h"
-#include "plMessage/plSimStateMsg.h"
-
-#include "plGImage/plLODMipmap.h"
 #include "plPipeline.h"
 #include "plTweak.h"
+
+// other
+#include "pnKeyedObject/plKey.h"
+#include "pnKeyedObject/plKeyImp.h"
+#include "pnMessage/plAttachMsg.h"
+#include "pnMessage/plCameraMsg.h"
+#include "pnMessage/plCorrectionMsg.h"
+#include "pnMessage/plEnableMsg.h"
+#include "pnMessage/plPipeResMakeMsg.h"
+#include "pnMessage/plRefMsg.h"
+#include "pnMessage/plSDLModifierMsg.h"
+#include "pnMessage/plTimeMsg.h"
+#include "pnMessage/plWarpMsg.h"
+#include "pnNetCommon/plNetApp.h"
+#include "pnNetCommon/plSDLTypes.h"
+#include "pnSceneObject/plCoordinateInterface.h"
+#include "pnSceneObject/plDrawInterface.h"
+
+#include "plAnimation/plAGAnim.h"
+#include "plAnimation/plAGModifier.h"
+#include "plAnimation/plMatrixChannel.h"
+#include "plDrawable/plDrawableSpans.h"
+#include "plDrawable/plInstanceDrawInterface.h"
 #include "plDrawable/plVisLOSMgr.h"
+#include "plInputCore/plAvatarInputInterface.h"
+#include "plInputCore/plInputDevice.h"
+#include "plInputCore/plSceneInputInterface.h"
+#include "plInterp/plAnimTimeConvert.h"
+#include "plMessage/plAgeLoadedMsg.h"
+#include "plMessage/plAnimCmdMsg.h"
+#include "plMessage/plAvatarFootMsg.h"
+#include "plMessage/plAvatarMsg.h"
+#include "plMessage/plInputEventMsg.h"
+#include "plMessage/plLinkToAgeMsg.h"
+#include "plMessage/plListenerMsg.h"
+#include "plMessage/plLoadAgeMsg.h"
+#include "plMessage/plLoadAvatarMsg.h"
+#include "plMessage/plLoadClothingMsg.h"
+#include "plMessage/plParticleUpdateMsg.h"
+#include "plMessage/plSimStateMsg.h"
+#include "plModifier/plSpawnModifier.h"
+#include "plNetMessage/plNetMessage.h"
+#include "plParticleSystem/plParticleSDLMod.h"
+#include "plParticleSystem/plParticleSystem.h"
+#include "plPipeline/plDebugText.h"
+#include "plResMgr/plKeyFinder.h"
+#include "plScene/plRelevanceMgr.h"
+#include "plSurface/hsGMaterial.h"
+#include "plSurface/plLayerAnimation.h"
+
+#include "pfCamera/plVirtualCamNeu.h"
+#include "pfMessage/pfKIMsg.h"
+#include "pfMessage/plArmatureEffectMsg.h"
 
 static const ST::string kPersonalLinkAnimName = ST_LITERAL("PersonalLink");
 
@@ -130,11 +121,11 @@ double plArmatureModBase::fLODDistance = 50.0;
 
 plArmatureModBase::plArmatureModBase() :
     fWaitFlags(kNeedMesh | kNeedPhysics | kNeedApplicator | kNeedBrainActivation),
-    fController(nil),
+    fController(),
     fCurLOD(-1),
-    fRootAnimator(nil),
-    fDisabledPhysics(0),
-    fDisabledDraw(0)
+    fRootAnimator(),
+    fDisabledPhysics(),
+    fDisabledDraw()
 {
 }
 
@@ -151,7 +142,7 @@ plArmatureModBase::~plArmatureModBase()
 
 bool plArmatureModBase::MsgReceive(plMessage* msg)
 {
-    plArmatureBrain *curBrain = nil;
+    plArmatureBrain *curBrain = nullptr;
     if (fBrains.size() > 0)
     {
         curBrain = fBrains.back();
@@ -248,9 +239,9 @@ void plArmatureModBase::Write(hsStream *stream, hsResMgr *mgr)
         mgr->WriteKey(stream, meshKey);
         
         // Should be a list per mesh key
-        stream->WriteLE32(fUnusedBones[i]->size());
-        for(int j = 0; j < fUnusedBones[i]->size(); j++)
-            mgr->WriteKey(stream, (*fUnusedBones[i])[j]);
+        stream->WriteLE32((uint32_t)fUnusedBones[i]->size());
+        for (const plKey& boneKey : *fUnusedBones[i])
+            mgr->WriteKey(stream, boneKey);
     }
     
     int nBrains = fBrains.size();
@@ -267,7 +258,7 @@ void plArmatureModBase::AddressMessageToDescendants(const plCoordinateInterface 
         return;
     
     msg->AddReceiver(CI->GetOwnerKey());
-    for (int i = 0; i < CI->GetNumChildren(); i++)
+    for (size_t i = 0; i < CI->GetNumChildren(); i++)
         AddressMessageToDescendants(CI->GetChild(i), msg);
 }
 
@@ -293,7 +284,7 @@ plKey plArmatureModBase::GetWorldKey() const
     if (fController)
         return fController->GetSubworld();
     else
-        return nil;
+        return nullptr;
 }
 
 bool plArmatureModBase::ValidatePhysics()
@@ -353,7 +344,7 @@ void plArmatureModBase::PushBrain(plArmatureBrain *brain)
 
 void plArmatureModBase::PopBrain()
 {
-    plArmatureBrain *oldBrain = nil;
+    plArmatureBrain *oldBrain = nullptr;
     if (fBrains.size() > 0)
     {
         oldBrain = fBrains.back();
@@ -370,7 +361,7 @@ void plArmatureModBase::PopBrain()
 
 plArmatureBrain *plArmatureModBase::GetCurrentBrain() const
 {
-    plArmatureBrain *result = nil;
+    plArmatureBrain *result = nullptr;
     if (fBrains.size() > 0)
         result = fBrains.back();
     
@@ -379,12 +370,12 @@ plArmatureBrain *plArmatureModBase::GetCurrentBrain() const
 
 plDrawable *plArmatureModBase::FindDrawable() const
 {
-    if (fMeshKeys[0] == nil)
-        return nil;
+    if (fMeshKeys[0] == nullptr)
+        return nullptr;
     
     plSceneObject *so = plSceneObject::ConvertNoRef(fMeshKeys[0]->ObjectIsLoaded());
-    if (so == nil)
-        return nil;
+    if (so == nullptr)
+        return nullptr;
     
     const plDrawInterface *di = so->GetDrawInterface();
     if (di && di->GetNumDrawables() > 0)
@@ -398,7 +389,7 @@ plDrawable *plArmatureModBase::FindDrawable() const
     if (idi)
         return idi->GetInstanceDrawable();
     
-    return nil;
+    return nullptr;
 }
 
 void plArmatureModBase::LeaveAge()
@@ -509,7 +500,8 @@ int plArmatureModBase::AppendBoneVec(plKeyVector *boneVec)
 
 uint8_t plArmatureModBase::GetNumLOD() const
 {
-    return fMeshKeys.size();
+    hsAssert(fMeshKeys.size() < std::numeric_limits<uint8_t>::max(), "Too many mesh keys");
+    return (uint8_t)fMeshKeys.size();
 }
 
 void plArmatureModBase::EnablePhysics(bool status, uint16_t reason /* = kDisableReasonUnknown */)
@@ -630,45 +622,19 @@ const char *plArmatureMod::BoneStrings[] = {"Male", "Female", "Critter", "Actor"
 float plArmatureMod::fMouseTurnSensitivity = 1.f;
 bool plArmatureMod::fClickToTurn = true;
 
-void plArmatureMod::IInitDefaults()
+plArmatureMod::plArmatureMod() 
+    : plArmatureModBase(),
+      fBoneRootAnimator(), fRootAGMod(), fFootSoundSOKey(), fLinkSoundSOKey(),
+      fBodyType(kBoneBaseMale), fClothingOutfit(), fClothingSDLMod(), fAvatarSDLMod(),
+      fAvatarPhysicalSDLMod(), fEffects(), fDebugOn(), fBoneMap(),
+      fStealthMode(plAvatarStealthModeMsg::kStealthVisible), fStealthLevel(),
+      fMouseFrameTurnStrength(), fSuspendInputCount(), fIsLinkedIn(), fMidLink(),
+      fAlreadyPanicLinking(), fReverseFBOnIdle(), fFollowerParticleSystemSO(),
+      fPendingSynch(), fOpaque(true), fPhysHeight(), fPhysWidth(), fUpdateMsg(),
+      fRootName(), fDontPanicLink(), fBodyAgeName("GlobalAvatars"),
+      fBodyFootstepSoundPage("Audio"), fAnimationPrefix("Male"), fUserStr(),
+      fUnconsumedJump(), fLastSynch()
 {
-    fBoneRootAnimator = nil;
-    fRootAGMod = nil;
-    fFootSoundSOKey = nil;
-    fLinkSoundSOKey = nil;
-    fBodyType = kBoneBaseMale;
-    fClothingOutfit = nil;
-    fClothingSDLMod = nil;
-    fAvatarSDLMod = nil;
-    fAvatarPhysicalSDLMod = nil;
-    fEffects = nil;
-    fDebugOn = false;
-    fBoneMap = nil;
-    fStealthMode = plAvatarStealthModeMsg::kStealthVisible;
-    fStealthLevel = 0;
-    fMouseFrameTurnStrength = 0.f;
-    fSuspendInputCount = 0;
-    fIsLinkedIn = false;
-    fMidLink = false;
-    fAlreadyPanicLinking = false;
-    fReverseFBOnIdle = false;
-    fFollowerParticleSystemSO = nil;
-    fPendingSynch = false;
-    fOpaque = true;
-    fPhysHeight = 0.f;
-    fPhysWidth = 0.f;
-    fUpdateMsg = nil;
-    fRootName = ST::null;
-    fDontPanicLink = false;
-    fBodyAgeName = "GlobalAvatars";
-    fBodyFootstepSoundPage = "Audio";
-    fAnimationPrefix = "Male";
-    fUserStr = ST::null;
-}
-
-plArmatureMod::plArmatureMod() : plArmatureModBase()
-{
-    IInitDefaults();
     fWaitFlags |= kNeedAudio | kNeedCamera | kNeedSpawn;
 }
 
@@ -682,7 +648,7 @@ plArmatureMod::~plArmatureMod()
 
 void plArmatureMod::SetPositionAndRotationSim(const hsPoint3* position, const hsQuat* rotation)
 {
-    const plCoordinateInterface* subworldCI = nil;
+    const plCoordinateInterface* subworldCI = nullptr;
     if (fController)
         subworldCI = fController->GetSubworldCI();
 
@@ -745,7 +711,7 @@ void plArmatureMod::GetPositionAndRotationSim(hsPoint3* position, hsQuat* rotati
 
 const plSceneObject *plArmatureMod::FindBone(const ST::string & name) const
 {
-    plSceneObject *result = nil;
+    plSceneObject *result = nullptr;
 
     plAGModifier * mod = GetChannelMod(name);
 
@@ -760,7 +726,7 @@ const plSceneObject *plArmatureMod::FindBone(uint32_t id) const
     if(fBoneMap)
         return fBoneMap->FindBone(id);
     else
-        return nil;
+        return nullptr;
 }
 
 void plArmatureMod::AddBoneMapping(uint32_t id, const plSceneObject *bone)
@@ -891,7 +857,7 @@ void plArmatureMod::SetFollowerParticleSystemSO(plSceneObject *follower)
     plWarpMsg *warp = new plWarpMsg(GetKey(), follower->GetKey(), plWarpMsg::kFlushTransform | plWarpMsg::kZeroVelocity,
         GetTarget(0)->GetLocalToWorld());
     warp->Send();
-    hsgResMgr::ResMgr()->AddViaNotify(follower->GetKey(), new plAttachMsg(GetTarget(0)->GetKey(), nil, plRefMsg::kOnRequest), plRefFlags::kActiveRef);
+    hsgResMgr::ResMgr()->AddViaNotify(follower->GetKey(), new plAttachMsg(GetTarget(0)->GetKey(), nullptr, plRefMsg::kOnRequest), plRefFlags::kActiveRef);
     fFollowerParticleSystemSO = follower;
 
     plParticleSystem *sys = const_cast<plParticleSystem*>(plParticleSystem::ConvertNoRef(follower->GetModifierByType(plParticleSystem::Index())));
@@ -910,18 +876,21 @@ plSceneObject *plArmatureMod::GetFollowerParticleSystemSO()
 
 void plArmatureMod::RegisterForBehaviorNotify(plKey key)
 {
-    if (fNotifyKeys.Find(key) == fNotifyKeys.kMissingIndex)
-        fNotifyKeys.Append(key);
+    const auto idx = std::find(fNotifyKeys.begin(), fNotifyKeys.end(), key);
+    if (idx == fNotifyKeys.end())
+        fNotifyKeys.emplace_back(std::move(key));
 }
 
 void plArmatureMod::UnRegisterForBehaviorNotify(plKey key)
 {
-    fNotifyKeys.RemoveItem(key);
+    const auto idx = std::find(fNotifyKeys.begin(), fNotifyKeys.end(), key);
+    if (idx != fNotifyKeys.end())
+        fNotifyKeys.erase(idx);
 }
 
 void plArmatureMod::IFireBehaviorNotify(uint32_t type, bool behaviorStart)
 {
-    if (fNotifyKeys.GetCount() > 0)
+    if (!fNotifyKeys.empty())
     {
         plAvatarBehaviorNotifyMsg *msg = new plAvatarBehaviorNotifyMsg();
         msg->SetSender(GetKey());
@@ -1059,9 +1028,7 @@ void plArmatureMod::PersonalLink()
 
 bool plArmatureMod::MsgReceive(plMessage* msg)
 {   
-    bool result = false;
-    
-    plArmatureBrain *curBrain = nil;
+    plArmatureBrain *curBrain = nullptr;
     if (fBrains.size() > 0)
     {
         curBrain = fBrains.back();
@@ -1107,8 +1074,8 @@ bool plArmatureMod::MsgReceive(plMessage* msg)
             {
                 if (fClothingOutfit)
                     plgDispatch::Dispatch()->UnRegisterForExactType(plPipeRTMakeMsg::Index(), fClothingOutfit->GetKey());
-                fClothingOutfit = nil;
-                outfit->fAvatar = nil;
+                fClothingOutfit = nullptr;
+                outfit->fAvatar = nullptr;
             }
             return true;
         }
@@ -1122,8 +1089,8 @@ bool plArmatureMod::MsgReceive(plMessage* msg)
             }
             else if( refMsg->GetContext() & (plRefMsg::kOnDestroy|plRefMsg::kOnRemove) )
             {
-                fEffects->fArmature = nil;
-                fEffects = nil;
+                fEffects->fArmature = nullptr;
+                fEffects = nullptr;
             }
             return true;        
         }
@@ -1132,12 +1099,13 @@ bool plArmatureMod::MsgReceive(plMessage* msg)
         {
             if( refMsg->GetContext() & (plRefMsg::kOnCreate|plRefMsg::kOnRequest|plRefMsg::kOnReplace) )
             {
-                fClothToSOMap.ExpandAndZero(refMsg->fWhich + 1);
+                if ((size_t)refMsg->fWhich >= fClothToSOMap.size())
+                    fClothToSOMap.resize(refMsg->fWhich + 1);
                 fClothToSOMap[refMsg->fWhich] = so;
             }
             else if( refMsg->GetContext() & (plRefMsg::kOnDestroy|plRefMsg::kOnRemove) )
             {
-                fClothToSOMap[refMsg->fWhich] = nil;
+                fClothToSOMap[refMsg->fWhich] = nullptr;
             }
             return true;
         }
@@ -1251,7 +1219,7 @@ bool plArmatureMod::MsgReceive(plMessage* msg)
             if (dstSys)
             {
                 // Got the system. Time to steal particles!
-                plParticleSystem *srcSys = nil;
+                plParticleSystem *srcSys = nullptr;
                 plSceneObject *srcSysSO = plSceneObject::ConvertNoRef(partMsg->fSysSOKey->ObjectIsLoaded());
                 if (srcSysSO)
                     srcSys = const_cast<plParticleSystem*>(plParticleSystem::ConvertNoRef(srcSysSO->GetModifierByType(plParticleSystem::Index())));
@@ -1286,7 +1254,7 @@ bool plArmatureMod::MsgReceive(plMessage* msg)
                 if(spawnSO)
                 {
                     hsMatrix44 l2w = spawnSO->GetLocalToWorld();
-                    plWarpMsg *warpM = new plWarpMsg(nil, GetTarget(0)->GetKey(), plWarpMsg::kFlushTransform, l2w);
+                    plWarpMsg *warpM = new plWarpMsg(nullptr, GetTarget(0)->GetKey(), plWarpMsg::kFlushTransform, l2w);
                     warpM->Send();
                     fWaitFlags &= ~kNeedSpawn;
                 }
@@ -1330,7 +1298,7 @@ bool plArmatureMod::MsgReceive(plMessage* msg)
         {
             if (cloneMsg->GetCloneKey() == GetFollowerParticleSystemSO()->GetKey())
             {
-                SetFollowerParticleSystemSO(nil);
+                SetFollowerParticleSystemSO(nullptr);
                 return true;
             }
         }
@@ -1468,7 +1436,7 @@ bool plArmatureMod::IHandleControlMsg(plControlEventMsg* pMsg)
                 if (moveCode == B_CONTROL_JUMP)
                     SetInputFlag(B_CONTROL_CONSUMABLE_JUMP, true);
                 
-                if(plNetClientMgr::GetInstance()->AmCCR())
+                if(plNetClientApp::GetInstance()->AmCCR())
                 {
                     // special case for clipping: synch every key change
                     SynchIfLocal( hsTimer::GetSysSeconds(), false);
@@ -1504,7 +1472,7 @@ void plArmatureMod::IHandleInputStateMsg(plAvatarInputStateMsg *msg)
     
 }
 
-void plArmatureMod::SynchInputState(uint32_t rcvID /* = kInvalidPlayerID */)
+void plArmatureMod::SynchInputState() const
 {
     if (plAvatarMgr::GetInstance()->GetLocalAvatar() != this)
         return;
@@ -1522,15 +1490,12 @@ void plArmatureMod::SynchInputState(uint32_t rcvID /* = kInvalidPlayerID */)
     msg->SetBCastFlag(plMessage::kNetUseRelevanceRegions);
     msg->SetBCastFlag(plMessage::kLocalPropagate, false);
     msg->SetBCastFlag(plMessage::kNetSendUnreliable, true);
-    if (rcvID != kInvalidPlayerID)
-        msg->AddNetReceiver(rcvID);
-    
     msg->Send();
 }
 
 void plArmatureMod::ILinkToPersonalAge()
 {
-    plNetClientMgr * nc = plNetClientMgr::GetInstance();
+    plNetClientApp * nc = plNetClientApp::GetInstance();
     
     plAgeLinkStruct link;
     link.GetAgeInfo()->SetAgeFilename( kPersonalAgeFilename );
@@ -1554,7 +1519,7 @@ bool plArmatureMod::IEval(double time, float elapsed, uint32_t dirty)
         bool noOverlap = false;
 
         const plArmatureMod *localPlayer = plAvatarMgr::GetInstance()->GetLocalAvatar();
-        if (plRelevanceMgr::Instance()->GetEnabled() && (localPlayer != nil))
+        if (plRelevanceMgr::Instance()->GetEnabled() && (localPlayer != nullptr))
         {
             // (May decide to update this elsewhere instead.)
             plRelevanceMgr::Instance()->SetRegionVectors(GetTarget(0)->GetLocalToWorld().GetTranslate(), fRegionsImIn, fRegionsICareAbout); 
@@ -1674,10 +1639,10 @@ void plArmatureMod::AddTarget(plSceneObject* so)
     so->AddModifier(fAvatarPhysicalSDLMod);
 
     // At export time, this key will be nil. This is important, or else we'll overwrite the page the key comes from.
-    if (fFootSoundSOKey != nil)
-        hsgResMgr::ResMgr()->AddViaNotify(fFootSoundSOKey, new plAttachMsg(so->GetKey(), nil, plRefMsg::kOnRequest), plRefFlags::kActiveRef);
-    if (fLinkSoundSOKey != nil)
-        hsgResMgr::ResMgr()->AddViaNotify(fLinkSoundSOKey, new plAttachMsg(so->GetKey(), nil, plRefMsg::kOnRequest), plRefFlags::kActiveRef);
+    if (fFootSoundSOKey != nullptr)
+        hsgResMgr::ResMgr()->AddViaNotify(fFootSoundSOKey, new plAttachMsg(so->GetKey(), nullptr, plRefMsg::kOnRequest), plRefFlags::kActiveRef);
+    if (fLinkSoundSOKey != nullptr)
+        hsgResMgr::ResMgr()->AddViaNotify(fLinkSoundSOKey, new plAttachMsg(so->GetKey(), nullptr, plRefMsg::kOnRequest), plRefFlags::kActiveRef);
 
     if (fUpdateMsg)
         fUpdateMsg->UnRef(); // delete an old one.
@@ -1697,11 +1662,11 @@ void plArmatureMod::RemoveTarget(plSceneObject* so)
             so->RemoveModifier(fAvatarPhysicalSDLMod);
     }
     delete fClothingSDLMod;
-    fClothingSDLMod = nil;
+    fClothingSDLMod = nullptr;
     delete fAvatarSDLMod;
-    fAvatarSDLMod = nil;
+    fAvatarSDLMod = nullptr;
     delete fAvatarPhysicalSDLMod;
-    fAvatarPhysicalSDLMod = nil;
+    fAvatarPhysicalSDLMod = nullptr;
 
     plArmatureModBase::RemoveTarget(so);
 }
@@ -1719,7 +1684,7 @@ void plArmatureMod::Write(hsStream *stream, hsResMgr *mgr)
     for (int i = 0; i < nBrains; i++)
         mgr->WriteCreatable(stream, fBrains[i]);
 
-    if (fClothingOutfit == nil)
+    if (fClothingOutfit == nullptr)
     {
         stream->WriteBool( false );
     }
@@ -1730,7 +1695,7 @@ void plArmatureMod::Write(hsStream *stream, hsResMgr *mgr)
     }
 
     stream->WriteLE32(fBodyType);
-    if( fEffects == nil )
+    if (fEffects == nullptr)
         stream->WriteBool( false );
     else
     {
@@ -1768,7 +1733,7 @@ void plArmatureMod::Read(hsStream * stream, hsResMgr *mgr)
     if( stream->ReadBool() )
         mgr->ReadKeyNotifyMe(stream, new plGenRefMsg(GetKey(), plRefMsg::kOnCreate, -1, -1), plRefFlags::kActiveRef); // plClothingBase     
     else
-        fClothingOutfit = nil;
+        fClothingOutfit = nullptr;
 
     fBodyType = stream->ReadLE32();
 
@@ -1790,7 +1755,7 @@ void plArmatureMod::Read(hsStream * stream, hsResMgr *mgr)
             {
                 // So it exists... but FindKey won't properly create our clone. So we do.
                 SOUoid.SetClone(myUoid.GetClonePlayerID(), myUoid.GetCloneID());
-                fFootSoundSOKey = mgr->ReRegister(ST::null, SOUoid);
+                fFootSoundSOKey = mgr->ReRegister(ST::string(), SOUoid);
             }
 
             // Add the effect to our effects manager
@@ -1799,9 +1764,9 @@ void plArmatureMod::Read(hsStream * stream, hsResMgr *mgr)
             if (effectKey)
             {
                 effectUoid.SetClone(myUoid.GetClonePlayerID(), myUoid.GetCloneID());
-                effectKey = mgr->ReRegister(ST::null, effectUoid);
+                effectKey = mgr->ReRegister(ST::string(), effectUoid);
             }
-            if (effectKey != nil)
+            if (effectKey != nullptr)
                 mgr->AddViaNotify(effectKey, new plGenRefMsg(effectMgrKey, plRefMsg::kOnCreate, -1, -1), plRefFlags::kActiveRef);
 
             // Get the linking sound
@@ -1810,12 +1775,12 @@ void plArmatureMod::Read(hsStream * stream, hsResMgr *mgr)
             if (fLinkSoundSOKey)
             {
                 LinkUoid.SetClone(myUoid.GetClonePlayerID(), myUoid.GetCloneID());
-                fLinkSoundSOKey = mgr->ReRegister(ST::null, LinkUoid);
+                fLinkSoundSOKey = mgr->ReRegister(ST::string(), LinkUoid);
             }
         }
     }
     else
-        fEffects = nil;
+        fEffects = nullptr;
 
     fPhysHeight = stream->ReadLEFloat();
     fPhysWidth = stream->ReadLEFloat();
@@ -1917,8 +1882,8 @@ void plArmatureMod::ICustomizeApplicator()
 
 const plSceneObject *plArmatureMod::GetClothingSO(uint8_t lod) const 
 {
-    if (fClothToSOMap.GetCount() <= lod)
-        return nil;
+    if (fClothToSOMap.size() <= lod)
+        return nullptr;
 
     return fClothToSOMap[lod];
 }
@@ -1965,15 +1930,14 @@ void plArmatureMod::SynchIfLocal(double timeNow, int force)
 
 plLayerLinkAnimation *plArmatureMod::IFindLayerLinkAnim()
 {
-    int i;
     hsGMaterial *mat = fClothingOutfit->fMaterial;
     if (!mat)
-        return nil;
+        return nullptr;
 
-    for (i = 0; i < mat->GetNumLayers(); i++)
+    for (size_t i = 0; i < mat->GetNumLayers(); i++)
     {
         plLayerInterface *li = mat->GetLayer(i);
-        while (li != nil)
+        while (li != nullptr)
         {
             plLayerLinkAnimation *anim = plLayerLinkAnimation::ConvertNoRef(li);
             if (anim)
@@ -1982,7 +1946,7 @@ plLayerLinkAnimation *plArmatureMod::IFindLayerLinkAnim()
             li = li->GetUnderLay();
         }
     }
-    return nil;
+    return nullptr;
 }
 
 bool plArmatureMod::ValidatePhysics()
@@ -1991,11 +1955,7 @@ bool plArmatureMod::ValidatePhysics()
         return false;
 
     if (!fController)
-    {
-        // The kinematic actor is made taller if the avatar is human (male or female)
-        fController = plPhysicalControllerCore::Create(GetTarget(0)->GetKey(), fPhysHeight,
-                      fPhysWidth, (fBodyType == kBoneBaseMale || fBodyType == kBoneBaseFemale));
-    }
+        fController = plPhysicalControllerCore::Create(GetTarget(0)->GetKey(), fPhysHeight, fPhysWidth);
 
     if (fController)
     {
@@ -2025,9 +1985,8 @@ bool plArmatureMod::ValidateMesh()
     if (fWaitFlags & kNeedMesh)
     {
         fWaitFlags &= ~kNeedMesh;
-        int n = fMeshKeys.size();
-        
-        for(int i = 0; i < n; i++)
+
+        for (size_t i = 0; i < fMeshKeys.size(); i++)
         {
             plKey meshKey = fMeshKeys[i];
             plSceneObject * meshObj = (plSceneObject *)meshKey->GetObjectPtr();
@@ -2042,13 +2001,13 @@ bool plArmatureMod::ValidateMesh()
             EnableDrawingTree(meshObj, visible);
             
             // If we haven't created the mapping yet...
-            if (fClothToSOMap.GetCount() <= i || fClothToSOMap[i] == nil)
+            if (fClothToSOMap.size() <= i || fClothToSOMap[i] == nullptr)
             {
                 plGenRefMsg *refMsg = new plGenRefMsg(GetKey(), plRefMsg::kOnRequest, i, 0);
                 hsgResMgr::ResMgr()->SendRef(meshObj->GetKey(), refMsg, plRefFlags::kPassiveRef); 
             }
         }
-        if (!GetTarget(0)->GetKeyName().compare("Yeesha"))
+        if (GetTarget(0)->GetKeyName() == "Yeesha")
             ISetTransparentDrawOrder(true);
         else
             ISetTransparentDrawOrder(false);
@@ -2059,11 +2018,10 @@ bool plArmatureMod::ValidateMesh()
 
 plArmatureBrain * plArmatureMod::GetNextBrain(plArmatureBrain *brain)
 {
-    plArmatureBrain * result = nil;
+    plArmatureBrain * result = nullptr;
     bool passedTarget = false;
 
-    int count = fBrains.size();
-    for(int i = count - 1; i >= 0; i--)
+    for (hsSsize_t i = fBrains.size() - 1; i >= 0; i--)
     {
         plArmatureBrain *curBrain = fBrains.at(i);
         if(passedTarget)
@@ -2075,11 +2033,6 @@ plArmatureBrain * plArmatureMod::GetNextBrain(plArmatureBrain *brain)
     }
 
     return result;
-}
-
-int plArmatureMod::GetBrainCount()
-{
-    return fBrains.size();
 }
 
 plArmatureBrain * plArmatureMod::FindBrainByClass(uint32_t classID) const
@@ -2095,7 +2048,7 @@ plArmatureBrain * plArmatureMod::FindBrainByClass(uint32_t classID) const
             return brain;
         }
     }
-    return nil;
+    return nullptr;
 }
 
 void plArmatureMod::TurnToPoint(hsPoint3 &point)
@@ -2139,7 +2092,7 @@ void plArmatureMod::IProcessQueuedInput()
         plControlEventMsg *ctrlMsg = *i;
         IHandleControlMsg(ctrlMsg);
         ctrlMsg->UnRef();
-        (*i) = nil;
+        (*i) = nullptr;
         i++;
     }
     fQueuedCtrlMessages.clear();
@@ -2368,8 +2321,7 @@ int plArmatureMod::GetCurrentGenericType()
 
 bool plArmatureMod::FindMatchingGenericBrain(const char *names[], int count)
 {
-    int i;
-    for (i = 0; i < GetBrainCount(); i++)
+    for (size_t i = 0; i < GetBrainCount(); i++)
     {
         plAvBrainGeneric *brain = plAvBrainGeneric::ConvertNoRef(GetBrain(i));
         if (brain && brain->MatchAnimNames(names, count))
@@ -2539,28 +2491,15 @@ void plArmatureMod::ISetTransparentDrawOrder(bool val)
     }
 }
 
-bool plArmatureMod::IsKILowestLevel()
-{
-    if ( GetKILevel() == pfKIMsg::kNanoKI )
-        return true;
-    else
-        return false;
-}
-
-int  plArmatureMod::GetKILevel()
-{
-    return VaultGetKILevel();
-}
-
 void plArmatureMod::SetLinkInAnim(const ST::string &animName)
 {
     if (!animName.empty())
     {
         plAGAnim *anim = FindCustomAnim(animName);
-        fLinkInAnimKey = (anim ? anim->GetKey() : nil);
+        fLinkInAnimKey = (anim ? anim->GetKey() : nullptr);
     }
     else
-        fLinkInAnimKey = nil;
+        fLinkInAnimKey = nullptr;
 }
 
 plKey plArmatureMod::GetLinkInAnimKey() const
@@ -2623,9 +2562,9 @@ void plArmatureLODMod::Write(hsStream *stream, hsResMgr *mgr)
         mgr->WriteKey(stream, meshKey);
         
         // Should be a list per mesh key
-        stream->WriteLE32(fUnusedBones[i]->size());
-        for(int j = 0; j < fUnusedBones[i]->size(); j++)
-            mgr->WriteKey(stream, (*fUnusedBones[i])[j]);
+        stream->WriteLE32((uint32_t)fUnusedBones[i]->size());
+        for (const plKey& boneKey : *fUnusedBones[i])
+            mgr->WriteKey(stream, boneKey);
     }
 }
 
@@ -2672,7 +2611,7 @@ void plArmatureMod::DumpToDebugDisplay(int &x, int &y, int lineHeight, plDebugTe
             frozen = fController->IsEnabled() ? "no" : "yes";
 
         // are we in a subworld?
-        plKey world = nil;
+        plKey world;
         if (fController)
             world = fController->GetSubworld();
         debugTxt.DrawString(x, y, ST::format("In world: {}  Frozen: {}",
@@ -2683,7 +2622,7 @@ void plArmatureMod::DumpToDebugDisplay(int &x, int &y, int lineHeight, plDebugTe
         if (fController)
         {
             hsPoint3 physPos;
-            GetPositionAndRotationSim(&physPos, nil);
+            GetPositionAndRotationSim(&physPos, nullptr);
             const hsVector3& vel = fController->GetLinearVelocity();
             details = ST::format("position(physical): <{.2f}, {.2f}, {.2f}> velocity: <{5.2f}, {5.2f}, {5.2f}>",
                                  physPos.fX, physPos.fY, physPos.fZ, vel.fX, vel.fY, vel.fZ);
@@ -2698,13 +2637,9 @@ void plArmatureMod::DumpToDebugDisplay(int &x, int &y, int lineHeight, plDebugTe
 
     DebugDumpMoveKeys(x, y, lineHeight, debugTxt);
 
-    int i;
-    for(i = 0; i < fBrains.size(); i++)
-    {
-        plArmatureBrain *brain = fBrains[i];
+    for (plArmatureBrain *brain : fBrains)
         brain->DumpToDebugDisplay(x, y, lineHeight, debugTxt);
-    }
-    
+
     if (fClothingOutfit)
     {
         y += lineHeight;
@@ -2713,12 +2648,12 @@ void plArmatureMod::DumpToDebugDisplay(int &x, int &y, int lineHeight, plDebugTe
         y += lineHeight;
         ST::string_stream outfit;
         int itemCount = 0; 
-        for (i = 0; i < fClothingOutfit->fItems.GetCount(); i++)
+        for (plClothingItem* item : fClothingOutfit->fItems)
         {
             if (itemCount == 0)
                 outfit << "    ";
 
-            outfit << fClothingOutfit->fItems[i]->fName;
+            outfit << item->fName;
             itemCount++;
 
             if (itemCount == 4)
@@ -2774,7 +2709,7 @@ plAvBoneMap::~plAvBoneMap()
 const plSceneObject * plAvBoneMap::FindBone(uint32_t boneID)
 {
     BoneMapImp::id2SceneObjectMap::iterator i = fImp->fMap.find(boneID);
-    const plSceneObject *result = nil;
+    const plSceneObject *result = nullptr;
 
     if(i != fImp->fMap.end())
     {

@@ -51,8 +51,8 @@ protected:
     plKey           fNodeKey;
 
 public:
-    plNodeChangeMsg() : fNodeKey(nil) {}
-    plNodeChangeMsg(plKey s, plKey &r, plKey node, double* t=nil)
+    plNodeChangeMsg() = default;
+    plNodeChangeMsg(plKey s, plKey &r, plKey node, double* t=nullptr)
         :   plMessage(s, r, t), fNodeKey(node) {}
 
     CLASSNAME_REGISTER(plNodeChangeMsg);
@@ -61,8 +61,8 @@ public:
     plKey       GetNodeKey() const { return fNodeKey; }
     void        SetNodeKey(plKey &k) { fNodeKey = k; }
 
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE;
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 #endif //plNodeChangeMsg_inc

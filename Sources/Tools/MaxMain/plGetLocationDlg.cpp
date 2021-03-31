@@ -41,20 +41,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
+#include "MaxAPI.h"
+
 #include "pnKeyedObject/plKey.h"
-#include "hsWindows.h"
 
 #include "plMaxNode.h"
 #include "MaxComponent/plComponent.h"
 #include "resource.h"
-#pragma hdrstop
 
 #include "plGetLocationDlg.h"
 
 #include "MaxComponent/plMiscComponents.h"
 #include "MaxExport/plErrorMsg.h"
 
-plGetLocationDlg::plGetLocationDlg() : fNode(nil), fErrMsg(nil), fDefaultLocation(nil)
+plGetLocationDlg::plGetLocationDlg() : fNode(), fErrMsg(), fDefaultLocation()
 {
 }
 
@@ -93,7 +93,7 @@ bool plGetLocationDlg::GetLocation(plMaxNode *node, plErrorMsg *errMsg)
         return false;
     }
 
-    int ret = DialogBox(hInstance,
+    INT_PTR ret = DialogBox(hInstance,
                         MAKEINTRESOURCE(IDD_GET_LOCATION),
                         GetCOREInterface()->GetMAXHWnd(),
                         ForwardDlgProc);
@@ -103,7 +103,7 @@ bool plGetLocationDlg::GetLocation(plMaxNode *node, plErrorMsg *errMsg)
 
 void plGetLocationDlg::ResetDefaultLocation()
 {
-    fDefaultLocation = nil;
+    fDefaultLocation = nullptr;
 }
 
 void plGetLocationDlg::IListRooms(plMaxNode *node, HWND hList)
@@ -112,7 +112,7 @@ void plGetLocationDlg::IListRooms(plMaxNode *node, HWND hList)
     plComponentBase *comp = node->ConvertToComponent();
     if(comp && (comp->ClassID() == ROOM_CID || comp->ClassID() == PAGEINFO_CID))
     {
-        int idx = SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)node->GetName());
+        int idx = (int)SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)node->GetName());
         SendMessage(hList, LB_SETITEMDATA, idx, (LPARAM)node);
     }
 
@@ -123,7 +123,7 @@ void plGetLocationDlg::IListRooms(plMaxNode *node, HWND hList)
 
 void plGetLocationDlg::IAddSelection(HWND hList, bool setDefault)
 {
-    int sel = SendMessage(hList, LB_GETCURSEL, 0, 0);
+    int sel = (int)SendMessage(hList, LB_GETCURSEL, 0, 0);
     if (sel != LB_ERR)
     {
         // Get the node and component for the selected room component
@@ -141,7 +141,7 @@ void plGetLocationDlg::ISetLocation(plMaxNode *locNode)
 
     // Add the roomless node to the target list and run the convert pass that gives it a room
     comp->AddTarget(fNode);         // Might want to fix this...
-    comp->SetupProperties(fNode, nil);
+    comp->SetupProperties(fNode, nullptr);
 }
 
 INT_PTR plGetLocationDlg::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)

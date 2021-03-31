@@ -57,7 +57,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAudioFileReader.h"
 #include "hsThread.h"
 #include "plFileSystem.h"
+
 #include <mutex>
+#include <vector>
 
 //// Class Definition ////////////////////////////////////////////////////////
 
@@ -91,8 +93,8 @@ public:
 
     void            RoundDataPos( uint32_t &pos );
 
-    virtual void    Read( hsStream *s, hsResMgr *mgr );
-    virtual void    Write( hsStream *s, hsResMgr *mgr );
+    void    Read(hsStream *s, hsResMgr *mgr) override;
+    void    Write(hsStream *s, hsResMgr *mgr) override;
 
     plWAVHeader &GetHeader()              { return fHeader; }
     uint32_t    GetDataLength() const     { return fDataLength; }
@@ -132,8 +134,6 @@ protected:
     // plSoundBuffers can be two ways--they can either have a filename and no
     // data, in which case they reference a file in the sfx folder, or they
     // can store the data directly
-    
-    void            IInitBuffer();
 
     bool            IGrabHeaderInfo();
     void            IAddBuffers( void *base, void *toAdd, uint32_t lengthInBytes, uint8_t bitsPerSample );
@@ -163,21 +163,21 @@ protected:
 class plSoundPreloader : public hsThread
 {
 protected:
-    hsTArray<plSoundBuffer*> fBuffers;
+    std::vector<plSoundBuffer*> fBuffers;
     hsEvent fEvent;
     bool fRunning;
     std::mutex fCritSect;
 
 public:
-    void Run() HS_OVERRIDE;
+    void Run() override;
 
-    void Start() HS_OVERRIDE
+    void Start() override
     {
         fRunning = true;
         hsThread::Start();
     }
 
-    void Stop() HS_OVERRIDE
+    void Stop() override
     {
         fRunning = false;
         fEvent.Signal();
@@ -186,10 +186,11 @@ public:
 
     bool IsRunning() const { return fRunning; }
 
-    void AddBuffer(plSoundBuffer* buffer) {
+    void AddBuffer(plSoundBuffer* buffer)
+    {
         {
             hsLockGuard(fCritSect);
-            fBuffers.Push(buffer);
+            fBuffers.emplace_back(buffer);
         }
 
         fEvent.Signal();

@@ -45,9 +45,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "plMessage.h"
 #include "hsBitVector.h"
-#include "hsResMgr.h"
-#include "hsStream.h"
-
 
 class plControlConfig;
 
@@ -56,10 +53,10 @@ class plCmdIfaceModMsg : public plMessage
 protected:
 
 public:
-    plCmdIfaceModMsg() : fInterface(nil), fIndex(0), fControlCode(0){SetBCastFlag(plMessage::kBCastByExactType);}
+    plCmdIfaceModMsg() : fInterface(), fIndex(), fControlCode() { SetBCastFlag(plMessage::kBCastByExactType); }
     plCmdIfaceModMsg(const plKey* s, 
                     const plKey* r, 
-                    const double* t) : fInterface(nil) { }
+                    const double* t) : fInterface() { }
     
     CLASSNAME_REGISTER(plCmdIfaceModMsg);
     GETINTERFACE_ANY(plCmdIfaceModMsg, plMessage);
@@ -89,10 +86,10 @@ public:
     void ClearCmd(int n) { fCmd.ClearBit(n); }
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+    void Read(hsStream* stream, hsResMgr* mgr) override {
         plMessage::IMsgRead(stream, mgr);
     }
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+    void Write(hsStream* stream, hsResMgr* mgr) override {
         plMessage::IMsgWrite(stream, mgr);
     }
 };

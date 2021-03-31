@@ -59,10 +59,10 @@ static const int kFileStartOffset = kMagicStringLen + sizeof(uint32_t);
 static const int kMaxBufferedFileSize = 10*1024;
 
 plEncryptedStream::plEncryptedStream(uint32_t* key) :
-    fRef(nil),
-    fActualFileSize(0),
-    fBufferedStream(false),
-    fRAMStream(nil),
+    fRef(),
+    fActualFileSize(),
+    fBufferedStream(),
+    fRAMStream(),
     fOpenMode(kOpenFail)
 {
     if (key)
@@ -176,16 +176,16 @@ bool plEncryptedStream::Close()
     if (fRef)
     {
         rtn = (fclose(fRef) == 0);
-        fRef = nil;
+        fRef = nullptr;
     }
 
     if (fRAMStream)
     {
         delete fRAMStream;
-        fRAMStream = nil;
+        fRAMStream = nullptr;
     }
 
-    fWriteFileName = ST::null;
+    fWriteFileName = ST::string();
     fActualFileSize = 0;
     fBufferedStream = false;
     fOpenMode = kOpenFail;
@@ -227,7 +227,7 @@ void plEncryptedStream::IBufferFile()
 
     fBufferedStream = true;
     fclose(fRef);
-    fRef = nil;
+    fRef = nullptr;
     fPosition = 0;
 }
 
@@ -318,7 +318,7 @@ uint32_t plEncryptedStream::Read(uint32_t bytes, void* buffer)
 
         // Read in the chunk and decrypt it
         char buf[kEncryptChunkSize];
-        uint32_t numRead = IRead(kEncryptChunkSize, &buf);
+        (void)IRead(kEncryptChunkSize, &buf);   // numRead
         IDecipher((uint32_t*)&buf);
 
         // Copy the relevant portion to the output buffer
@@ -343,7 +343,7 @@ uint32_t plEncryptedStream::Read(uint32_t bytes, void* buffer)
         // Read in the final chunk and decrypt it
         char buf[kEncryptChunkSize];
         SetPosition(startPos + startAmt + numMidChunks*kEncryptChunkSize);
-        uint32_t numRead = IRead(kEncryptChunkSize, &buf);
+        (void)IRead(kEncryptChunkSize, &buf);   // numRead
         IDecipher((uint32_t*)&buf);
 
         memcpy(((char*)buffer)+totalNumRead-endAmt, &buf, endAmt);
@@ -400,7 +400,7 @@ bool plEncryptedStream::IWriteEncypted(hsStream* sourceStream, const plFileName&
         if (!seededRand)
         {
             seededRand = true;
-            srand((unsigned int)time(nil));
+            srand((unsigned int)time(nullptr));
         }
 
         for (int i = amtRead; i < kEncryptChunkSize; i++)
@@ -507,7 +507,7 @@ hsStream* plEncryptedStream::OpenEncryptedFile(const plFileName& fileName, uint3
 
     bool isEncrypted = IsEncryptedFile(fileName);
 
-    hsStream* s = nil;
+    hsStream* s = nullptr;
     if (isEncrypted)
         s = new plEncryptedStream(cryptKey);
     else
@@ -519,7 +519,7 @@ hsStream* plEncryptedStream::OpenEncryptedFile(const plFileName& fileName, uint3
 
 hsStream* plEncryptedStream::OpenEncryptedFileWrite(const plFileName& fileName, uint32_t* cryptKey)
 {
-    hsStream* s = nil;
+    hsStream* s = nullptr;
     if (IsEncryptedFile(fileName))
         s = new plEncryptedStream(cryptKey);
     else

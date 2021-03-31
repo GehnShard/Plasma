@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "plPythonSDLModifier.h"
 #include "cyPythonInterface.h"
@@ -62,7 +61,7 @@ plStateDataRecord * GetAgeSDL()
     const plPythonSDLModifier * mod = plPythonSDLModifier::FindAgeSDL();
     if ( mod )
         return mod->GetStateCache();
-    return nil;
+    return nullptr;
 }
 
 
@@ -319,8 +318,8 @@ bool plPythonSDLModifier::IPythonVarIdxToSDL(plSimpleStateVariable* var, int var
     case plVarDescriptor::kByte:
     case plVarDescriptor::kBool:
     case plVarDescriptor::kInt:
-        if (PyInt_Check(pyVar)) {
-            int v = PyInt_AsLong(pyVar);
+        if (PyLong_Check(pyVar)) {
+            int v = PyLong_AsLong(pyVar);
             var->Set(v, varIdx);
             if (!hintstring.empty())
                 var->GetNotificationInfo().SetHintString(hintstring);
@@ -347,8 +346,8 @@ bool plPythonSDLModifier::IPythonVarIdxToSDL(plSimpleStateVariable* var, int var
             if (!hintstring.empty())
                 var->GetNotificationInfo().SetHintString(hintstring);
             return true;
-        } else if (PyInt_Check(pyVar)) {
-            float v = (float)PyInt_AsLong(pyVar);
+        } else if (PyLong_Check(pyVar)) {
+            float v = (float)PyLong_AsLong(pyVar);
             var->Set(v, varIdx);
             if (!hintstring.empty())
                 var->GetNotificationInfo().SetHintString(hintstring);
@@ -357,8 +356,8 @@ bool plPythonSDLModifier::IPythonVarIdxToSDL(plSimpleStateVariable* var, int var
         break;
 
     case plVarDescriptor::kString32:
-        if (PyString_Check(pyVar)) {
-            char* v = PyString_AsString(pyVar);
+        if (PyUnicode_Check(pyVar)) {
+            const char* v = PyUnicode_AsUTF8(pyVar);
             var->Set(v, varIdx);
             if (!hintstring.empty())
                 var->GetNotificationInfo().SetHintString(hintstring);
@@ -383,8 +382,8 @@ bool plPythonSDLModifier::IPythonVarIdxToSDL(plSimpleStateVariable* var, int var
             if (!hintstring.empty())
                 var->GetNotificationInfo().SetHintString(hintstring);
             return true;
-        } else if (PyInt_Check(pyVar)) {
-            double v = (double)PyInt_AsLong(pyVar);
+        } else if (PyLong_Check(pyVar)) {
+            double v = (double)PyLong_AsLong(pyVar);
             var->Set(v, varIdx);
             if (!hintstring.empty())
                 var->GetNotificationInfo().SetHintString(hintstring);
@@ -434,7 +433,7 @@ PyObject* plPythonSDLModifier::ISDLVarIdxToPython(plSimpleStateVariable* var, in
         {
             int v;
             var->Get(&v, idx);
-            return PyInt_FromLong(v);
+            return PyLong_FromLong(v);
         }
 
     case plVarDescriptor::kFloat:
@@ -456,7 +455,7 @@ PyObject* plPythonSDLModifier::ISDLVarIdxToPython(plSimpleStateVariable* var, in
         {
             char v[256];
             var->Get(v, idx);
-            return PyString_FromString(v);
+            return PyUnicode_FromString(v);
         }
 
     case plVarDescriptor::kKey:
@@ -504,7 +503,7 @@ PyObject* plPythonSDLModifier::ISDLVarToPython(plSimpleStateVariable* var)
 
 bool plPythonSDLModifier::HasSDL(const ST::string& pythonFile)
 {
-    return (plSDLMgr::GetInstance()->FindDescriptor(pythonFile, plSDL::kLatestVersion) != nil);
+    return (plSDLMgr::GetInstance()->FindDescriptor(pythonFile, plSDL::kLatestVersion) != nullptr);
 }
 
 const plSDLModifier* ExternFindAgeSDL()

@@ -44,7 +44,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define plTimeMsg_inc
 
 #include "plMessage.h"
-#include "hsStream.h"
 
 class plTimeMsg : public plMessage
 {
@@ -69,17 +68,8 @@ public:
     float        DelSeconds() { return fDelSecs; }
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
-        plMessage::IMsgRead(stream, mgr);
-        stream->ReadLE(&fSeconds);
-        stream->ReadLE(&fDelSecs);
-    }
-
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
-        plMessage::IMsgWrite(stream, mgr);
-        stream->WriteLE(fSeconds);
-        stream->WriteLE(fDelSecs);
-    }
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 class plEvalMsg : public plTimeMsg
@@ -95,11 +85,11 @@ public:
     GETINTERFACE_ANY(plEvalMsg, plTimeMsg);
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+    void Read(hsStream* stream, hsResMgr* mgr) override {
         plTimeMsg::Read(stream, mgr);
     }
 
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+    void Write(hsStream* stream, hsResMgr* mgr) override {
         plTimeMsg::Write(stream, mgr);
     }
 };
@@ -117,10 +107,10 @@ public:
     GETINTERFACE_ANY(plTransformMsg, plTimeMsg);
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+    void Read(hsStream* stream, hsResMgr* mgr) override {
         plTimeMsg::Read(stream, mgr);
     }
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+    void Write(hsStream* stream, hsResMgr* mgr) override {
         plTimeMsg::Write(stream, mgr);
     }
 };

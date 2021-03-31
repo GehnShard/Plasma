@@ -46,10 +46,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plComponent.h"
 #include "plComponentReg.h"
 #include "MaxMain/plMaxNode.h"
-#include "resource.h"
+#include "MaxMain/MaxAPI.h"
 
-#include <iparamm2.h>
-#pragma hdrstop
+#include "resource.h"
 
 #include "MaxExport/plExportProgressBar.h"
 
@@ -67,7 +66,7 @@ void DummyCodeIncludeFuncShadow()
 {
 }
 
-static uint16_t QualityBitToMask(int q) { return ~((1 << q) - 1); }
+static uint8_t QualityBitToMask(int q) { return ~((1 << q) - 1); }
 
 #define WM_ROLLOUT_OPEN WM_USER+1
 static const int kNumQualities = 4;
@@ -81,7 +80,7 @@ static const char* kQualityStrings[kNumQualities] = {
 template <class T> class plQualityProc : public ParamMap2UserDlgProc
 {
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -104,15 +103,15 @@ public:
             switch( LOWORD(wParam) )
             {
             case IDC_COMP_SHADOW_QUALITY:
-                map->GetParamBlock()->SetValue(T::kQuality, t, SendMessage(GetDlgItem(hWnd, LOWORD(wParam)), CB_GETCURSEL, 0, 0));
+                map->GetParamBlock()->SetValue(T::kQuality, t, (int)SendMessage(GetDlgItem(hWnd, LOWORD(wParam)), CB_GETCURSEL, 0, 0));
                 return TRUE;
             }
             break;
         }
 
-        return false;
+        return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 
 
@@ -190,7 +189,7 @@ ParamBlockDesc2 gShadowCastBk
 );
 
 plShadowCastComponent::plShadowCastComponent()
-:   fCaster(nil)
+:   fCaster()
 {
     fClassDesc = &gShadowCastDesc;
     fClassDesc->MakeAutoParamBlocks(this);
@@ -227,7 +226,7 @@ bool plShadowCastComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
 
 bool plShadowCastComponent::SetupProperties(plMaxNode *pNode,  plErrorMsg *pErrMsg)
 {
-    fCaster = nil;
+    fCaster = nullptr;
     return true;
 }
 
@@ -252,8 +251,7 @@ bool plShadowCastComponent::AddShadowCastModifier(plSceneObject* so, plShadowCas
 {
     // First off, ensure that we NEVER NEVER NEVER have more than one shadowcaster on an object.
     // That would be BAD BAD BAD BAD BAD BAD BAD BAD BAD BAD BAD BAD BAD BAD BAD BAD BAD BAD.
-    int i;
-    for( i = 0; i < so->GetNumModifiers(); i++ )
+    for (size_t i = 0; i < so->GetNumModifiers(); i++)
     {
         if( plShadowCaster::ConvertNoRef(so->GetModifier(i)) )
             return false;
@@ -276,7 +274,7 @@ ParamBlockDesc2 gShadowRcvBk
 (
     plComponent::kBlkComp, _T("ShadowRcv"), 0, &gShadowRcvDesc, P_AUTO_CONSTRUCT+P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_SHADOW_RCV, IDS_COMP_SHADOW_RCV,  0, 0, nil,
+    IDD_COMP_SHADOW_RCV, IDS_COMP_SHADOW_RCV,  0, 0, nullptr,
 
     plShadowRcvComponent::kForceRadio, _T("ForceShadow"),       TYPE_INT,       0, 0,
         p_ui,       TYPE_RADIO, 2,  IDC_RADIO_FORCE_ON,                 IDC_RADIO_FORCE_OFF,

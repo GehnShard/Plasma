@@ -50,9 +50,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #endif
 #define PLASMA20_SOURCES_PLASMA_PUBUTILLIB_PLNETGAMELIB_PRIVATE_PLNGLAUTH_H
 
-#include "pnNetCommon/plNetAddress.h"
-
-class plUUID;
+#include "pnEncryption/plChecksum.h"
 
 /*****************************************************************************
 *
@@ -264,7 +262,7 @@ struct NetAgeInfo;
 typedef void (*FNetCliAuthGetPublicAgeListCallback)(
     ENetError                   result,
     void *                      param,
-    const TArray<NetAgeInfo> &  ages
+    std::vector<NetAgeInfo>     ages
 );
 void NetCliAuthGetPublicAgeList (
     const ST::string&                   ageName,
@@ -350,7 +348,7 @@ void NetCliAuthAgeRequest (
 //============================================================================
 void NetCliAuthGetEncryptionKey (
     uint32_t      key[],
-    unsigned    size
+    size_t        size
 );
 
 //============================================================================

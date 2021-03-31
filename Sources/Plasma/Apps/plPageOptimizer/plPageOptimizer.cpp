@@ -41,22 +41,23 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 #include "plPageOptimizer.h"
 
+#include "hsStream.h"
+
+#include "pnFactory/plFactory.h"
+#include "pnKeyedObject/plKeyImp.h"
 #include "pnKeyedObject/plUoid.h"
+
 #include "plResMgr/plResManager.h"
 #include "plResMgr/plRegistryHelpers.h"
 #include "plResMgr/plKeyFinder.h"
 #include "plResMgr/plRegistryNode.h"
 
-#include "pnFactory/plFactory.h"
-#include "pnKeyedObject/plKeyImp.h"
 
-#include "hsStream.h"
-
-plPageOptimizer* plPageOptimizer::fInstance = nil;
+plPageOptimizer* plPageOptimizer::fInstance = nullptr;
 
 plPageOptimizer::plPageOptimizer(const plFileName& pagePath) :
     fOptimized(true),
-    fPageNode(nil),
+    fPageNode(),
     fPagePath(pagePath)
 {
     fInstance = this;
@@ -73,7 +74,7 @@ void plPageOptimizer::IFindLoc()
     public:
         plLocation fLoc;
 
-        virtual bool EatPage(plRegistryPageNode* keyNode)
+        bool EatPage(plRegistryPageNode* keyNode) override
         {
             fLoc = keyNode->GetPageInfo().GetLocation();
             return true;
@@ -108,7 +109,7 @@ void plPageOptimizer::Optimize()
         public:
             KeyVec& fKeys;
             plVecKeyCollector(KeyVec& keys) : fKeys(keys) {}
-            virtual bool EatKey(const plKey& key) { fKeys.push_back(key); return true; }
+            bool EatKey(const plKey& key) override { fKeys.push_back(key); return true; }
         };
         plVecKeyCollector keyIt(fAllKeys);
         fResMgr->IterateKeys(&keyIt);
@@ -122,7 +123,7 @@ void plPageOptimizer::Optimize()
         // Unload everything
         snKey->RefObject();
         snKey->UnRefObject();
-        snKey = nil;
+        snKey = nullptr;
     }
     else
     {
@@ -240,7 +241,6 @@ void plPageOptimizer::IRewritePage()
                 IWriteKeyData(&oldPage, &newPage, fAllKeys[i]);
         }
 
-        uint32_t newKeyStart = newPage.GetPosition();
         uint32_t oldKeyStart = pageInfo.GetIndexStart();
         oldPage.SetPosition(oldKeyStart);
 

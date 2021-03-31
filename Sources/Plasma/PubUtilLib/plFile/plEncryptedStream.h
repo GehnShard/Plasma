@@ -79,19 +79,19 @@ protected:
 
 public:
     // If you don't pass in a key (4 uint32_t's), the default one will be used
-    plEncryptedStream(uint32_t* key=nil);
+    plEncryptedStream(uint32_t* key=nullptr);
     ~plEncryptedStream();
 
-    virtual bool    Open(const plFileName& name, const char* mode = "rb");
-    virtual bool    Close();
+    bool    Open(const plFileName& name, const char* mode = "rb") override;
+    bool    Close() override;
 
-    virtual uint32_t  Read(uint32_t byteCount, void* buffer);
-    virtual uint32_t  Write(uint32_t byteCount, const void* buffer);
-    virtual bool    AtEnd();
-    virtual void    Skip(uint32_t deltaByteCount);
-    virtual void    Rewind();
-    virtual void    FastFwd();
-    virtual uint32_t  GetEOF();
+    uint32_t  Read(uint32_t byteCount, void* buffer) override;
+    uint32_t  Write(uint32_t byteCount, const void* buffer) override;
+    bool    AtEnd() override;
+    void    Skip(uint32_t deltaByteCount) override;
+    void    Rewind() override;
+    void    FastFwd() override;
+    uint32_t  GetEOF() override;
 
     uint32_t GetActualFileSize() const { return fActualFileSize;}
 
@@ -103,8 +103,8 @@ public:
     // Attempts to create a read-binary stream for the requested file.  If it's
     // encrypted, you'll get a plEncryptedStream, otherwise just a standard
     // hsUNIXStream.  Remember to delete the stream when you're done with it.
-    static hsStream* OpenEncryptedFile(const plFileName& fileName, uint32_t* cryptKey = nil);
-    static hsStream* OpenEncryptedFileWrite(const plFileName& fileName, uint32_t* cryptKey = nil);
+    static hsStream* OpenEncryptedFile(const plFileName& fileName, uint32_t* cryptKey = nullptr);
+    static hsStream* OpenEncryptedFileWrite(const plFileName& fileName, uint32_t* cryptKey = nullptr);
 };
 
 #endif // plEncryptedStream_h_inc

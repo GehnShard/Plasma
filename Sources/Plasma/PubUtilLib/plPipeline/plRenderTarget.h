@@ -91,10 +91,10 @@ class plRenderTarget : public plBitmap
 
         plCubicRenderTarget* fParent;
 
-        virtual void SetKey(plKey k);
+        void SetKey(plKey k) override;
 
-        virtual uint32_t  Read( hsStream *s );
-        virtual uint32_t  Write( hsStream *s );
+        uint32_t  Read(hsStream *s) override;
+        uint32_t  Write(hsStream *s) override;
     public:
 
         CLASSNAME_REGISTER( plRenderTarget );
@@ -119,7 +119,7 @@ class plRenderTarget : public plBitmap
             fStencilDepth = ( stencilDepth != 0xff ) ? stencilDepth : 0;
 
             fFlags = flags;
-            fParent = nil;
+            fParent = nullptr;
 
             hsAssert( fFlags & (kIsTexture|kIsOffscreen), "Cannot perform this on an on-screen RenderTarget" );
             fApplyTexQuality = false;
@@ -139,7 +139,7 @@ class plRenderTarget : public plBitmap
             fStencilDepth = ( stencilDepth != 0xff ) ? stencilDepth : 0;
 
             fFlags = flags;
-            fParent = nil;
+            fParent = nullptr;
 
             hsAssert( !( fFlags & (kIsTexture|kIsOffscreen) ), "Cannot perform this on an offscreen RenderTarget" );
             fApplyTexQuality = false;
@@ -188,11 +188,11 @@ class plRenderTarget : public plBitmap
 
         plCubicRenderTarget *GetParent() const { return fParent; }
 
-        virtual uint32_t  GetTotalSize() const { return fWidth * fHeight * ( fPixelSize >> 3 ); }
+        uint32_t  GetTotalSize() const override { return fWidth * fHeight * ( fPixelSize >> 3 ); }
 
-        virtual bool MsgReceive(plMessage* msg);
+        bool MsgReceive(plMessage* msg) override;
 
-        virtual void SetVisRegionName(char *name){} // override to set vis region names for anyone who cares
+        virtual void SetVisRegionName(ST::string name) { } // override to set vis region names for anyone who cares
 };
 
 

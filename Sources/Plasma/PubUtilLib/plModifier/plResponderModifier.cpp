@@ -39,18 +39,22 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "HeadSpin.h"
-#include "hsTimer.h"
+
 #include "plResponderModifier.h"
 #include "plResponderSDLModifier.h"
+
+#include "plCreatableIndex.h"
 #include "plgDispatch.h"
-#include "hsResMgr.h"
 #include "plPhysical.h"
+#include "hsResMgr.h"
+#include "hsTimer.h"
+
 #include "pnKeyedObject/plKey.h"
 #include "pnKeyedObject/plFixedKey.h"
 #include "pnSceneObject/plSceneObject.h"
 #include "pnMessage/plNotifyMsg.h"
 #include "pnNetCommon/plNetApp.h"
+#include "pnNetCommon/plSDLTypes.h"
 
 // for localOnly cmd check
 #include "plMessage/plLinkToAgeMsg.h"
@@ -69,8 +73,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plTimerCallbackManager.h"
 
 #include "plMessage/plSimStateMsg.h"
-//#include "plHavok1\plHKPhysical.h"
-//#include "plHavok1\plHKSubWorld.h"
 #include "plAvatar/plArmatureMod.h"
 #include "plAvatar/plAvatarMgr.h"
 
@@ -102,27 +104,15 @@ void plResponderEnableMsg::Write(hsStream* stream, hsResMgr* mgr)
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////
 
-plResponderModifier::plResponderModifier() : 
-    fCurState(0), 
-    fCurCommand(-1), 
-    fEnabled(true), 
-    fFlags(0), 
-    fEnter(false),
-    fResponderSDLMod(nil), 
-    fGotFirstLoad(false),
-    fNotifyMsgFlags(0)
-{
-}
-
 plResponderModifier::~plResponderModifier()
 {
     delete fResponderSDLMod;
-    fResponderSDLMod=nil;
+    fResponderSDLMod = nullptr;
 
-    for (int i = 0; i < fStates.Count(); i++)
+    for (plResponderState& state : fStates)
     {
-        for (int j = 0; j < fStates[i].fCmds.Count(); j++ )
-            hsRefCnt_SafeUnRef(fStates[i].fCmds[j].fMsg);
+        for (plResponderCmd& cmd : state.fCmds)
+            hsRefCnt_SafeUnRef(cmd.fMsg);
     }
 }
 
@@ -167,9 +157,9 @@ bool plResponderModifier::MsgReceive(plMessage* msg)
     plTimerCallbackMsg *timerMsg = plTimerCallbackMsg::ConvertNoRef(msg);
     if (pEventMsg || timerMsg)
     {
-        uint32_t waitID = pEventMsg ? pEventMsg->fUser : timerMsg->fID;
+        int32_t waitID = pEventMsg ? pEventMsg->fUser : timerMsg->fID;
 
-        if (waitID != -1)
+        if (waitID >= 0)
         {
             // Flag that this callback completed and try sending in case any commands were waiting on this
             fCompletedEvents.SetBit(waitID);
@@ -199,7 +189,7 @@ bool plResponderModifier::MsgReceive(plMessage* msg)
 
 void plResponderModifier::AddCommand(plMessage* pMsg, int state)
 {
-    fStates[state].fCmds.Append(plResponderCmd(pMsg, -1));
+    fStates[state].fCmds.emplace_back(pMsg, -1);
 }
 
 void plResponderModifier::AddCallback(int8_t state, int8_t cmd, int8_t callback)
@@ -220,7 +210,7 @@ bool plResponderModifier::IIsLocalOnlyCmd(plMessage* cmd)
         return true;
 
     plSoundMsg *snd = plSoundMsg::ConvertNoRef( cmd );
-    if( snd != nil && snd->Cmd( plSoundMsg::kIsLocalOnly ) )
+    if (snd != nullptr && snd->Cmd(plSoundMsg::kIsLocalOnly))
         return true;
 
     return false;
@@ -229,7 +219,7 @@ bool plResponderModifier::IIsLocalOnlyCmd(plMessage* cmd)
 void plResponderModifier::ISetResponderState(int8_t state)
 {
     // make sure that it is a valid state to switch to
-    if (state >= 0 && state < fStates.Count())
+    if (state >= 0 && (size_t)state < fStates.size())
     {
         fCurState = state;
     }
@@ -243,7 +233,7 @@ void plResponderModifier::ISetResponderStateFromNotify(plNotifyMsg* msg)
 {
     // set the state of the responder IF they want it to be
     proResponderStateEventData* event = (proResponderStateEventData*)msg->FindEventRecord(proEventData::kResponderState);
-    if (event != nil)
+    if (event != nullptr)
         ISetResponderState((int8_t)(event->fState));
 }
 
@@ -290,7 +280,7 @@ bool plResponderModifier::IContinueSending()
 
     plResponderState& state = fStates[fCurState];
 
-    while (fCurCommand < state.fCmds.Count())
+    while (fCurCommand < (hsSsize_t)state.fCmds.size())
     {
         plMessage *msg = state.fCmds[fCurCommand].fMsg;
         if (msg)
@@ -320,7 +310,7 @@ bool plResponderModifier::IContinueSending()
                     bool foundCollision = false;
 
                     // If we find a collision event, this message is meant to trigger a multistage
-                    for (int i = 0; i < notifyMsg->GetEventCount(); i++)
+                    for (size_t i = 0; i < notifyMsg->GetEventCount(); i++)
                     {
                         proEventData* event = notifyMsg->GetEventRecord(i);
                         if (event->fEventType == proEventData::kCollision)
@@ -450,7 +440,7 @@ void plResponderModifier::Restore()
             if (callbackMsg)
             {
                 // Create a new message for just the callbacks
-                plMessageWithCallbacks* newCallbackMsg = nil;
+                plMessageWithCallbacks* newCallbackMsg = nullptr;
 
                 if (plAnimCmdMsg* animMsg = plAnimCmdMsg::ConvertNoRef(callbackMsg))
                 {
@@ -469,12 +459,12 @@ void plResponderModifier::Restore()
 
                 // Setup the sender and receiver
                 newCallbackMsg->SetSender(callbackMsg->GetSender());
-                for (int iReceiver = 0; i < callbackMsg->GetNumReceivers(); i++)
+                for (int iReceiver = 0; iReceiver < callbackMsg->GetNumReceivers(); iReceiver++)
                     newCallbackMsg->AddReceiver(callbackMsg->GetReceiver(iReceiver));
 
                 // Add the callbacks
-                int numCallbacks = callbackMsg->GetNumCallbacks();
-                for (int iCallback = 0; iCallback < numCallbacks; iCallback++)
+                size_t numCallbacks = callbackMsg->GetNumCallbacks();
+                for (size_t iCallback = 0; iCallback < numCallbacks; iCallback++)
                 {
                     plMessage* callback = callbackMsg->GetCallback(iCallback);
 //                  hsRefCnt_SafeRef(callback); AddCallback will ref this for us.
@@ -487,12 +477,10 @@ void plResponderModifier::Restore()
     }
 }
 
-#include "plCreatableIndex.h"
-
 plMessage* plResponderModifier::IGetFastForwardMsg(plMessage* msg, bool python)
 {
     if (!msg)
-        return nil;
+        return nullptr;
 
     if (plAnimCmdMsg* animMsg = plAnimCmdMsg::ConvertNoRef(msg))
     {
@@ -535,7 +523,7 @@ plMessage* plResponderModifier::IGetFastForwardMsg(plMessage* msg, bool python)
     {
         if( fFlags & kSkipFFSound )
         {
-            return nil;
+            return nullptr;
         }
         if(soundMsg->Cmd(plSoundMsg::kPlay) ||
             soundMsg->Cmd(plSoundMsg::kToggleState)  ||
@@ -603,7 +591,7 @@ plMessage* plResponderModifier::IGetFastForwardMsg(plMessage* msg, bool python)
         return msg;
     }
 
-    return nil;
+    return nullptr;
 }
 
 void plResponderModifier::IFastForward(bool python)
@@ -614,7 +602,7 @@ void plResponderModifier::IFastForward(bool python)
 
     plResponderState& state = fStates[fCurState];
 
-    while (fCurCommand < state.fCmds.Count())
+    while (fCurCommand < (hsSsize_t)state.fCmds.size())
     {
         plMessage *msg = state.fCmds[fCurCommand].fMsg;
         msg = IGetFastForwardMsg(msg, python);
@@ -637,30 +625,25 @@ void plResponderModifier::Read(hsStream* stream, hsResMgr* mgr)
 {
     plSingleModifier::Read(stream, mgr);
 
-    int8_t numStates = stream->ReadByte();
-    fStates.SetCount(numStates);
-    for (int8_t i = 0; i < numStates; i++)
+    uint8_t numStates = stream->ReadByte();
+    fStates.resize(numStates);
+    for (plResponderState& state : fStates)
     {
-        plResponderState& state = fStates[i];
         state.fNumCallbacks = stream->ReadByte();
         state.fSwitchToState = stream->ReadByte();
 
-        int8_t j;
-
-        int8_t numCmds = stream->ReadByte();
-        state.fCmds.SetCount(numCmds);
-        for (j = 0; j < numCmds; j++)
+        uint8_t numCmds = stream->ReadByte();
+        state.fCmds.resize(numCmds);
+        for (plResponderCmd& cmd : state.fCmds)
         {
-            plResponderCmd& cmd = state.fCmds[j];
-
             plMessage* pMsg = plMessage::ConvertNoRef(mgr->ReadCreatable(stream));
             cmd.fMsg = pMsg;
             cmd.fWaitOn = stream->ReadByte();
         }
 
         state.fWaitToCmd.clear();
-        int8_t mapSize = stream->ReadByte();
-        for (j = 0; j < mapSize; j++)
+        uint8_t mapSize = stream->ReadByte();
+        for (uint8_t j = 0; j < mapSize; j++)
         {
             int8_t wait = stream->ReadByte();
             int8_t cmd = stream->ReadByte();
@@ -682,30 +665,30 @@ void plResponderModifier::Write(hsStream* stream, hsResMgr* mgr)
 {
     plSingleModifier::Write(stream, mgr);
 
-    int8_t numStates = fStates.GetCount();
-    stream->WriteByte(numStates);
-    for (int i = 0; i < numStates; i++)
+    size_t numStates = fStates.size();
+    hsAssert(numStates < std::numeric_limits<uint8_t>::max(), "Too many states");
+    stream->WriteByte((uint8_t)numStates);
+    for (const plResponderState& state : fStates)
     {
-        plResponderState& state = fStates[i];
         stream->WriteByte(state.fNumCallbacks);
         stream->WriteByte(state.fSwitchToState);
 
-        int8_t numCmds = state.fCmds.GetCount();
-        stream->WriteByte(numCmds);
-        for (int j = 0; j < numCmds; j++)
+        size_t numCmds = state.fCmds.size();
+        hsAssert(numCmds < std::numeric_limits<uint8_t>::max(), "Too many commands");
+        stream->WriteByte((uint8_t)numCmds);
+        for (const plResponderCmd& cmd : state.fCmds)
         {
-            plResponderCmd& cmd = state.fCmds[j];
-
             mgr->WriteCreatable(stream, cmd.fMsg);
             stream->WriteByte(cmd.fWaitOn);
         }
 
-        int8_t mapSize = state.fWaitToCmd.size();
-        stream->WriteByte(mapSize);
-        for (WaitToCmd::iterator it = state.fWaitToCmd.begin(); it != state.fWaitToCmd.end(); it++)
+        size_t mapSize = state.fWaitToCmd.size();
+        hsAssert(mapSize < std::numeric_limits<uint8_t>::max(), "WaitToCmd map too large");
+        stream->WriteByte(uint8_t(mapSize));
+        for (auto it : state.fWaitToCmd)
         {
-            stream->WriteByte(it->first);
-            stream->WriteByte(it->second);
+            stream->WriteByte(it.first);
+            stream->WriteByte(it.second);
         }
     }
 
@@ -752,7 +735,7 @@ void plResponderModifier::IDebugPlayMsg(plAnimCmdMsg* msg)
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef STATUS_LOG
-static plStatusLog *gLog = nil;
+static plStatusLog *gLog = nullptr;
 static std::vector<ST::string> gNoLogStrings;
 #endif // STATUS_LOG
 
@@ -784,7 +767,7 @@ void plResponderModifier::ILog(uint32_t color, const char* format, ...)
     char buf[256];
     va_list args;
     va_start(args, format);
-    int numWritten = hsVsnprintf(buf, sizeof(buf), format, args);
+    int numWritten = vsnprintf(buf, sizeof(buf), format, args);
     hsAssert(numWritten > 0, "Buffer too small");
     va_end(args);
 

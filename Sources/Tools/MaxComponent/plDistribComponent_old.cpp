@@ -42,18 +42,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 
+#include "MaxMain/MaxAPI.h"
+
 #include "plComponent.h"
 #include "plComponentReg.h"
 #include "MaxMain/plMaxNode.h"
 
-#include <bmmlib.h>
-#include <commdlg.h>
-#include <iparamm2.h>
-#include <meshdlib.h>
-#include <stdmat.h>
-
 #include "resource.h"
-#pragma hdrstop
 
 #include "MaxMain/plPlasmaRefMsgs.h"
 
@@ -66,15 +61,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "plDistribComponent_old.h"
 
-static const int kNumColorChanOptions = 13;
-
 struct plProbChanStringValPair
 {
     plDistributor::ColorChan        fValue;
     const char*                     fString;
 };
 
-static plProbChanStringValPair kProbColorChanStrings[kNumColorChanOptions] =
+static plProbChanStringValPair kProbColorChanStrings[] =
 {
     { plDistributor::kRed, "Red" },
     { plDistributor::kGreen, "Green" },
@@ -143,19 +136,16 @@ private:
         }
     }
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
-        HWND cbox = NULL;
+        HWND cbox = nullptr;
         switch (msg)
         {
 
         case WM_INITDIALOG:
             cbox = GetDlgItem(hWnd, IDC_COMP_DISTRIB_PROBCOLORCHAN);
-            int i;
-            for( i = 0; i < kNumColorChanOptions; i++ )
-            {
-                SendMessage(cbox, CB_ADDSTRING, 0, (LPARAM)kProbColorChanStrings[i].fString);
-            }
+            for (const auto& i : kProbColorChanStrings)
+                SendMessage(cbox, CB_ADDSTRING, 0, (LPARAM)i.fString);
             SendMessage(cbox, CB_SETCURSEL, map->GetParamBlock()->GetInt(plDistribComponent_old::kProbColorChan), 0);
 
             ISetupScaleLock(map, true);
@@ -173,7 +163,7 @@ public:
             {
                 case IDC_COMP_DISTRIB_PROBCOLORCHAN:
                 {
-                    map->GetParamBlock()->SetValue(plDistribComponent_old::kProbColorChan, t, SendMessage(GetDlgItem(hWnd, LOWORD(wParam)), CB_GETCURSEL, 0, 0));
+                    map->GetParamBlock()->SetValue(plDistribComponent_old::kProbColorChan, t, (int)SendMessage(GetDlgItem(hWnd, LOWORD(wParam)), CB_GETCURSEL, 0, 0));
                     return TRUE;
                 }
                 break;
@@ -234,9 +224,9 @@ public:
             break;
         }
 
-        return false;
+        return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plDistribComponentProc_old gDistribCompProc_old;
 
@@ -247,7 +237,7 @@ OBSOLETE_CLASS_DESC(plDistribComponent_old, gDistribCompDesc_old, "Distributor(o
 class plDistribCompAccessor_old : public PBAccessor
 {
 public:
-    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)
+    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override
     {
         if( id == plDistribComponent_old::kTemplates )
         {
@@ -690,7 +680,7 @@ BOOL plDistribComponent_old::IsFlexible() const
 
 void plDistribComponent_old::ISetProbTexmap(plDistributor& distrib)
 {
-    distrib.SetProbabilityBitmapTex(nil);
+    distrib.SetProbabilityBitmapTex(nullptr);
 
     Texmap* tex = fCompPB->GetTexmap(kProbTexmap);
     if( tex )
@@ -761,7 +751,7 @@ void plDistribComponent_old::Preview()
 INode* plDistribComponent_old::IMakeOne(plDistribInstTab& nodes)
 {
     if( !nodes.Count() )
-        return nil;
+        return nullptr;
 
     int iStartNode = 0;
 
@@ -814,7 +804,7 @@ INode* plDistribComponent_old::IMakeOne(plDistribInstTab& nodes)
         fCompPB->Append(kReplicants, 1, &outNode);
     }
 
-    return nil;
+    return nullptr;
 }
 
 Box3 plDistribComponent_old::GetFade()

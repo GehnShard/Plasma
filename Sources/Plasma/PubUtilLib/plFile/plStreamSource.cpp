@@ -52,7 +52,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 plStreamSource::plStreamSource()
 {
-    memset(fServerKey, 0, arrsize(fServerKey));
+    memset(fServerKey, 0, std::size(fServerKey));
 }
 
 void plStreamSource::ICleanup()
@@ -65,7 +65,7 @@ void plStreamSource::ICleanup()
     {
         curData->second.fStream->Close();
         delete curData->second.fStream;
-        curData->second.fStream = nil;
+        curData->second.fStream = nullptr;
     }
 
     fFileData.clear();
@@ -104,7 +104,7 @@ hsStream* plStreamSource::GetFile(const plFileName& filename)
             return fFileData[sFilename].fStream;
         }
 #endif // PLASMA_EXTERNAL_RELEASE
-        return nil;
+        return nullptr;
     }
     return fFileData[sFilename].fStream;
 }

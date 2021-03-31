@@ -47,19 +47,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef PLAGMODIFIER_H
 #define PLAGMODIFIER_H
 
-#include "HeadSpin.h"                            // need for plSingleModifier
+#include "HeadSpin.h"                           // need for plSingleModifier
+#include "plAGApplicator.h"
+#include "plAGDefs.h"
 #include "pnModifier/plSingleModifier.h"        // inherited
-
-// local
-#include "plScalarChannel.h"
 
 class plSceneObject;
 
 class plAGAnimInstance;
 class plAGAnim;
+class plAGChannel;
 class plAvatarAnim;
 class plAnimCmdMsg;
 class plOneShotCallbacks;
+class plScalarChannel;
 
 ///////////////
 //
@@ -124,8 +125,8 @@ public:
     void Enable(bool val);
 
     // PERSISTENCE
-    virtual void Read(hsStream *stream, hsResMgr *mgr);
-    virtual void Write(hsStream *stream, hsResMgr *mgr);
+    void Read(hsStream *stream, hsResMgr *mgr) override;
+    void Write(hsStream *stream, hsResMgr *mgr) override;
 
     // PLASMA PROTOCOL
     CLASSNAME_REGISTER( plAGModifier );
@@ -140,7 +141,7 @@ protected:
     bool     fEnabled;          // if not enabled, we don't eval any of our anims
 
     // APPLYING THE ANIMATION
-    virtual bool IEval(double secs, float del, uint32_t dirty);
+    bool IEval(double secs, float del, uint32_t dirty) override;
 
     virtual bool IHandleCmd(plAnimCmdMsg* modMsg) { return false; } // only plAGMasterMod should handle these
     virtual void IApplyDynamic() {};    // dummy function required by base class

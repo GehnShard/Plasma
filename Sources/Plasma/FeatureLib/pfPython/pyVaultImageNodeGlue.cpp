@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include <Python.h>
-#pragma hdrstop
 
 #include "pyVaultImageNode.h"
 #include "pyImage.h"
@@ -80,12 +79,12 @@ PYTHON_METHOD_DEFINITION(ptVaultImageNode, imageSetTitle, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultImageNode, imageGetTitle)
 {
-    return PyString_FromString(self->fThis->Image_GetTitle().c_str());
+    return PyUnicode_FromSTString(self->fThis->Image_GetTitle());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultImageNode, imageSetImage, args)
 {
-    PyObject* imageObj = NULL;
+    PyObject* imageObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &imageObj))
     {
         PyErr_SetString(PyExc_TypeError, "imageSetImage expects a ptImage");
@@ -128,19 +127,9 @@ PYTHON_METHOD_DEFINITION(ptVaultImageNode, setTitleW, args)
     }
     if (PyUnicode_Check(textObj))
     {
-        int strLen = PyUnicode_GetSize(textObj);
-        wchar_t* title = new wchar_t[strLen + 1];
-        PyUnicode_AsWideChar((PyUnicodeObject*)textObj, title, strLen);
-        title[strLen] = L'\0';
+        wchar_t* title = PyUnicode_AsWideCharString(textObj, nullptr);
         self->fThis->Image_SetTitleW(title);
-        delete [] title;
-        PYTHON_RETURN_NONE;
-    }
-    else if (PyString_Check(textObj))
-    {
-        // we'll allow this, just in case something goes weird
-        char* title = PyString_AsString(textObj);
-        self->fThis->Image_SetTitle(title);
+        PyMem_Free(title);
         PYTHON_RETURN_NONE;
     }
     PyErr_SetString(PyExc_TypeError, "setTitleW expects a unicode string");
@@ -149,7 +138,7 @@ PYTHON_METHOD_DEFINITION(ptVaultImageNode, setTitleW, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultImageNode, getTitle)
 {
-    return PyString_FromString(self->fThis->Image_GetTitle().c_str());
+    return PyUnicode_FromSTString(self->fThis->Image_GetTitle());
 }
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultImageNode, getTitleW)
@@ -160,7 +149,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVaultImageNode, getTitleW)
 
 PYTHON_METHOD_DEFINITION(ptVaultImageNode, setImage, args)
 {
-    PyObject* imageObj = NULL;
+    PyObject* imageObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &imageObj))
     {
         PyErr_SetString(PyExc_TypeError, "setImage expects a ptImage");
@@ -183,7 +172,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVaultImageNode, getImage)
 
 PYTHON_METHOD_DEFINITION(ptVaultImageNode, setImageFromBuf, args)
 {
-    PyObject* buf = NULL;
+    PyObject* buf = nullptr;
     if (!PyArg_ParseTuple(args, "O", &buf))
     {
         PyErr_SetString(PyExc_TypeError, "setImageFromBuf expects a buffer object");

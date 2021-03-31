@@ -44,7 +44,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pyGeometry3.h"
 #include "pyKey.h"
 #include "plPipeline.h"
-#pragma hdrstop
 
 #include "cyMisc.h"
 #include "pyGlueHelpers.h"
@@ -55,7 +54,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtRequestLOSScreen, args, "Params: selfKey,ID,xPos,yPos,distance,what,reportType\nRequest a LOS check from a point on the screen")
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     long id;
     float xPos, yPos, distance;
     int what, reportType;
@@ -76,7 +75,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtRequestLOSScreen, args, "Params: selfKey,ID,xP
 PYTHON_GLOBAL_METHOD_DEFINITION(PtKillParticles, args, "Params: timeRemaining,pctToKill,particleSystem\nTells particleSystem to kill pctToKill percent of its particles")
 {
     float timeRemaining, pctToKill;
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     if (!PyArg_ParseTuple(args, "ffO", &timeRemaining, &pctToKill, &keyObj))
     {
         PyErr_SetString(PyExc_TypeError, "PtKillParticles expects two floats and a ptKey");
@@ -94,7 +93,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtKillParticles, args, "Params: timeRemaining,pc
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtGetNumParticles, args, "Params: key\nKey is the key of scene object host to particle system")
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &keyObj))
     {
         PyErr_SetString(PyExc_TypeError, "PtGetNumParticles expects a ptKey");
@@ -106,13 +105,13 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtGetNumParticles, args, "Params: key\nKey is th
         PYTHON_RETURN_ERROR;
     }
     pyKey* key = pyKey::ConvertFrom(keyObj);
-    return PyInt_FromLong(cyMisc::GetNumParticles(*key));
+    return PyLong_FromLong(cyMisc::GetNumParticles(*key));
 }
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtSetParticleOffset, args, "Params: x,y,z,particlesys\nSets the particlesys particle system's offset")
 {
     float x,y,z;
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     if (!PyArg_ParseTuple(args, "fffO", &x, &y, &z, &keyObj))
     {
         PyErr_SetString(PyExc_TypeError, "PtSetParticleOffset expects three floats and a ptKey");
@@ -130,10 +129,10 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtSetParticleOffset, args, "Params: x,y,z,partic
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtSetLightValue, args, "Params: key,name,r,g,b,a\n Key is the key of scene object host to light. Name is the name of the light to manipulate")
 {
-    PyObject* keyObj = NULL;
-    PyObject* nameObj = NULL;
+    PyObject* keyObj = nullptr;
+    ST::string name;
     float r,g,b,a;
-    if (!PyArg_ParseTuple(args, "OOffff", &keyObj, &nameObj, &r, &g, &b, &a))
+    if (!PyArg_ParseTuple(args, "OO&ffff", &keyObj, PyUnicode_STStringConverter, &name, &r, &g, &b, &a))
     {
         PyErr_SetString(PyExc_TypeError, "PtSetLightValue expects a ptKey, a string, and four floats");
         PYTHON_RETURN_ERROR;
@@ -144,26 +143,16 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtSetLightValue, args, "Params: key,name,r,g,b,a
         PYTHON_RETURN_ERROR;
     }
     pyKey* key = pyKey::ConvertFrom(keyObj);
-    ST::string name;
-    if (PyString_CheckEx(nameObj))
-    {
-        name = PyString_AsStringEx(nameObj);
-    }
-    else
-    {
-        PyErr_SetString(PyExc_TypeError, "PtSetLightValue expects a ptKey, a string, and four floats");
-        PYTHON_RETURN_ERROR;
-    }
     cyMisc::SetLightColorValue(*key, name, r, g, b, a);
     PYTHON_RETURN_NONE;
 }
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtSetLightAnimStart, args, "Params: key,name,start\n Key is the key of scene object host to light, start is a bool. Name is the name of the light to manipulate")
 {
-    PyObject* keyObj = NULL;
-    PyObject* nameObj = NULL;
+    PyObject* keyObj = nullptr;
+    ST::string name;
     char start;
-    if (!PyArg_ParseTuple(args, "OOb", &keyObj, &nameObj, &start))
+    if (!PyArg_ParseTuple(args, "OO&b", &keyObj, PyUnicode_STStringConverter, &name, &start))
     {
         PyErr_SetString(PyExc_TypeError, "PtSetLightAnimStart expects a ptKey, a string, and a boolean");
         PYTHON_RETURN_ERROR;
@@ -174,16 +163,6 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtSetLightAnimStart, args, "Params: key,name,sta
         PYTHON_RETURN_ERROR;
     }
     pyKey* key = pyKey::ConvertFrom(keyObj);
-    ST::string name;
-    if (PyString_CheckEx(nameObj))
-    {
-        name = PyString_AsStringEx(nameObj);
-    }
-    else
-    {
-        PyErr_SetString(PyExc_TypeError, "PtSetLightAnimStart expects a ptKey, a string, and a boolean");
-        PYTHON_RETURN_ERROR;
-    }
     cyMisc::SetLightAnimationOn(*key, name, start != 0);
     PYTHON_RETURN_NONE;
 }
@@ -210,7 +189,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtIsEnterChatModeKeyBound, "Returns wheth
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtShootBulletFromScreen, args, "Params: selfkey, xPos, yPos, radius, range\nShoots a bullet from a position on the screen")
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     float xPos, yPos, radius, range;
     if (!PyArg_ParseTuple(args, "Offff", &keyObj, &xPos, &yPos, &radius, &range))
     {
@@ -229,8 +208,8 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtShootBulletFromScreen, args, "Params: selfkey,
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtShootBulletFromObject, args, "Params: selfkey, gunObj, radius, range\nShoots a bullet from an object")
 {
-    PyObject* selfKeyObj = NULL;
-    PyObject* gunSceneObj = NULL;
+    PyObject* selfKeyObj = nullptr;
+    PyObject* gunSceneObj = nullptr;
     float radius, range;
     if (!PyArg_ParseTuple(args, "OOff", &selfKeyObj, &gunSceneObj, &radius, &range))
     {
@@ -252,7 +231,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtGetPublicAgeList, args, "Params: ageName, cbOb
             "cbObject, if supplied should have a method called gotPublicAgeList(self,ageList). ageList is a list of tuple(ptAgeInfoStruct,nPlayersInAge)")
 {
     char* ageName;
-    PyObject* cbObject = NULL;
+    PyObject* cbObject = nullptr;
     if (!PyArg_ParseTuple(args, "s|O", &ageName, &cbObject))
     {
         PyErr_SetString(PyExc_TypeError, "PtGetPublicAgeList expects a string and an optional object with a gotPublicAgeList() method");
@@ -265,8 +244,8 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtGetPublicAgeList, args, "Params: ageName, cbOb
 PYTHON_GLOBAL_METHOD_DEFINITION(PtCreatePublicAge, args, "Params: ageInfo, cbObject=None\nCreate a public instance of the given age.\n"
             "cbObject, if supplied should have a member called publicAgeCreated(self,ageInfo)")
 {
-    PyObject* ageInfoObj = NULL;
-    PyObject* cbObject = NULL;
+    PyObject* ageInfoObj = nullptr;
+    PyObject* cbObject = nullptr;
     if (!PyArg_ParseTuple(args, "O|O", &ageInfoObj, &cbObject))
     {
         PyErr_SetString(PyExc_TypeError, "PtCreatePublicAge expects a ptAgeInfoStruct object and an optional object with a publicAgeCreated() method");
@@ -286,7 +265,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtRemovePublicAge, args, "Params: ageInstanceGui
             "cbObject, if supplied should have a member called publicAgeRemoved(self,ageInstanceGuid)")
 {
     char* ageInstanceGUID;
-    PyObject* cbObject = NULL;
+    PyObject* cbObject = nullptr;
     if (!PyArg_ParseTuple(args, "s|O", &ageInstanceGUID, &cbObject))
     {
         PyErr_SetString(PyExc_TypeError, "PtRemovePublicAge expects a string and an optional object with a publicAgeRemoved() method");
@@ -310,7 +289,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtSetClearColor, args, "Params: red,green,blue\n
 
 PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtGetLocalKILevel, "returns local player's ki level")
 {
-    return PyInt_FromLong(cyMisc::GetKILevel());
+    return PyLong_FromLong(cyMisc::GetKILevel());
 }
 
 PYTHON_BASIC_GLOBAL_METHOD_DEFINITION(PtClearCameraStack, cyMisc::ClearCameraStack, "clears all cameras")
@@ -323,12 +302,12 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtGetCameraNumber, args, "Params: x\nReturns cam
         PyErr_SetString(PyExc_TypeError, "PtGetCameraNumber expects an int");
         PYTHON_RETURN_ERROR;
     }
-    return PyString_FromSTString(cyMisc::GetCameraNumber(x));
+    return PyUnicode_FromSTString(cyMisc::GetCameraNumber(x));
 }
 
 PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtGetNumCameras, "returns camera stack size")
 {
-    return PyInt_FromLong(cyMisc::GetNumCameras());
+    return PyLong_FromLong(cyMisc::GetNumCameras());
 }
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtRebuildCameraStack, args, "Params: name,ageName\nPush camera with this name on the stack")
@@ -414,24 +393,24 @@ PYTHON_GLOBAL_METHOD_DEFINITION_WKEY(PtDebugPrint, args, kwargs, "Params: *msgs,
         if (kwargs && PyDict_Check(kwargs)) {
             PyObject* value = PyDict_GetItemString(kwargs, "level");
             if (value) {
-                if (PyInt_Check(value))
-                    level = PyInt_AsLong(value);
+                if (PyLong_Check(value))
+                    level = PyLong_AsLong(value);
                 else
                     break;
             }
 
             value = PyDict_GetItemString(kwargs, "sep");
             if (value) {
-                if (PyString_CheckEx(value))
-                    sep = PyString_AsStringEx(value);
+                if (PyUnicode_Check(value))
+                    sep = PyUnicode_AsSTString(value);
                 else
                     break;
             }
 
             value = PyDict_GetItemString(kwargs, "end");
             if (value) {
-                if (PyString_CheckEx(value))
-                    end = PyString_AsStringEx(value);
+                if (PyUnicode_Check(value))
+                    end = PyUnicode_AsSTString(value);
                 else
                     break;
             }
@@ -440,7 +419,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION_WKEY(PtDebugPrint, args, kwargs, "Params: *msgs,
         ST::string_stream ss;
         for (size_t i = 0; i < PySequence_Fast_GET_SIZE(args); ++i) {
             PyObject* theMsg = PySequence_Fast_GET_ITEM(args, i);
-            if (PyString_CheckEx(theMsg))
+            if (PyUnicode_Check(theMsg))
                 Py_XINCREF(theMsg);
             else
                 theMsg = PyObject_Str(theMsg);
@@ -448,7 +427,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION_WKEY(PtDebugPrint, args, kwargs, "Params: *msgs,
             if (i != 0)
                 ss << sep;
             if (theMsg) {
-                ss << PyString_AsStringEx(theMsg);
+                ss << PyUnicode_AsSTString(theMsg);
                 Py_DECREF(theMsg);
             } else {
                 PyErr_Format(PyExc_RuntimeError, "Failed to `str()` argument index %n", i);
@@ -472,7 +451,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtSetAlarm, args, "Params: secs, cbObject, cbCon
             "cbObject is a python object with the method onAlarm(int context)\ncbContext is an integer.")
 {
     float secs;
-    PyObject* cbObject = NULL;
+    PyObject* cbObject = nullptr;
     unsigned long cbContext;
     if (!PyArg_ParseTuple(args, "fOl", &secs, &cbObject, &cbContext))
     {
@@ -498,7 +477,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtSaveScreenShot, args, "Params: fileName,width=
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtStartScreenCapture, args, "Params: selfKey,width=800,height=600\nStarts a capture of the screen")
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     unsigned short width = 800, height = 600;
     if (!PyArg_ParseTuple(args, "O|hh", &keyObj, &width, &height))
     {
@@ -518,7 +497,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtStartScreenCapture, args, "Params: selfKey,wid
 PYTHON_GLOBAL_METHOD_DEFINITION(PtSendKIGZMarkerMsg, args, "Params: markerNumber,sender\nSame as PtSendKIMessageInt except 'sender' could get a notify message back\n")
 {
     long markerNumber;
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     if (!PyArg_ParseTuple(args, "lO", &markerNumber, &keyObj))
     {
         PyErr_SetString(PyExc_TypeError, "PtSendKIGZMarkerMsg expects a long and a ptKey");
@@ -537,7 +516,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtSendKIGZMarkerMsg, args, "Params: markerNumber
 PYTHON_GLOBAL_METHOD_DEFINITION(PtSendKIRegisterImagerMsg, args, "Params: imagerName, sender\nSends a message to the KI to register the specified imager")
 {
     char* name;
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     if (!PyArg_ParseTuple(args, "sO", &name, &keyObj))
     {
         PyErr_SetString(PyExc_TypeError, "PtSendKIRegisterImagerMsg expects a string and a ptKey");
@@ -555,7 +534,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtSendKIRegisterImagerMsg, args, "Params: imager
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtWearMaintainerSuit, args, "Params: key,wearOrNot\nWears or removes the maintainer suit of clothes")
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     char wearOrNot;
     if (!PyArg_ParseTuple(args, "Ob", &keyObj, &wearOrNot))
     {
@@ -574,7 +553,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtWearMaintainerSuit, args, "Params: key,wearOrN
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtWearDefaultClothing, args, "Params: key\nForces the avatar to wear the default clothing set")
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &keyObj))
     {
         PyErr_SetString(PyExc_TypeError, "PtWearDefaultClothing expects a ptKey");
@@ -597,8 +576,8 @@ PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtGetAgeTimeOfDayPercent, "Returns the cu
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtCheckVisLOS, args, "Params: startPoint,endPoint\nDoes LOS check from start to end")
 {
-    PyObject* startPointObj = NULL;
-    PyObject* endPointObj = NULL;
+    PyObject* startPointObj = nullptr;
+    PyObject* endPointObj = nullptr;
     if (!PyArg_ParseTuple(args, "OO", &startPointObj, &endPointObj))
     {
         PyErr_SetString(PyExc_TypeError, "PtCheckVisLOS expects two ptPoint3 objects");
@@ -639,8 +618,8 @@ PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtGetSupportedDisplayModes, "Returns a li
     for (std::vector<plDisplayMode>::iterator curArg = res.begin(); curArg != res.end(); ++curArg)
     {
         PyObject* tup = PyTuple_New(2);
-        PyTuple_SetItem(tup, 0, PyInt_FromLong((long)(*curArg).Width));
-        PyTuple_SetItem(tup, 1, PyInt_FromLong((long)(*curArg).Height));
+        PyTuple_SetItem(tup, 0, PyLong_FromLong((long)(*curArg).Width));
+        PyTuple_SetItem(tup, 1, PyLong_FromLong((long)(*curArg).Height));
 
         PyList_Append(retVal, tup);
     }
@@ -648,33 +627,33 @@ PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtGetSupportedDisplayModes, "Returns a li
 }
 PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtGetDesktopWidth, "Returns desktop width")
 {
-    return PyInt_FromLong((long)cyMisc::GetDesktopWidth());
+    return PyLong_FromLong((long)cyMisc::GetDesktopWidth());
 }
 
 PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtGetDesktopHeight, "Returns desktop height")
 {
-    return PyInt_FromLong((long)cyMisc::GetDesktopHeight());
+    return PyLong_FromLong((long)cyMisc::GetDesktopHeight());
 }
 
 PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtGetDesktopColorDepth, "Returns desktop ColorDepth")
 {
-    return PyInt_FromLong((long)cyMisc::GetDesktopColorDepth());
+    return PyLong_FromLong((long)cyMisc::GetDesktopColorDepth());
 }
 
 PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtGetDefaultDisplayParams, "Returns the default resolution and display settings")
 {
     PipelineParams *pp = cyMisc::GetDefaultDisplayParams();
     PyObject* tup = PyTuple_New(10);
-    PyTuple_SetItem(tup, 0, PyInt_FromLong((long)pp->Width));
-    PyTuple_SetItem(tup, 1, PyInt_FromLong((long)pp->Height));
-    PyTuple_SetItem(tup, 2, PyInt_FromLong((long)pp->Windowed));
-    PyTuple_SetItem(tup, 3, PyInt_FromLong((long)pp->ColorDepth));
-    PyTuple_SetItem(tup, 4, PyInt_FromLong((long)pp->AntiAliasingAmount));
-    PyTuple_SetItem(tup, 5, PyInt_FromLong((long)pp->AnisotropicLevel));
-    PyTuple_SetItem(tup, 6, PyInt_FromLong((long)pp->TextureQuality));
-    PyTuple_SetItem(tup, 7, PyInt_FromLong((long)pp->VideoQuality));
-    PyTuple_SetItem(tup, 8, PyInt_FromLong((long)pp->Shadows));
-    PyTuple_SetItem(tup, 9, PyInt_FromLong((long)pp->PlanarReflections));
+    PyTuple_SetItem(tup, 0, PyLong_FromLong((long)pp->Width));
+    PyTuple_SetItem(tup, 1, PyLong_FromLong((long)pp->Height));
+    PyTuple_SetItem(tup, 2, PyLong_FromLong((long)pp->Windowed));
+    PyTuple_SetItem(tup, 3, PyLong_FromLong((long)pp->ColorDepth));
+    PyTuple_SetItem(tup, 4, PyLong_FromLong((long)pp->AntiAliasingAmount));
+    PyTuple_SetItem(tup, 5, PyLong_FromLong((long)pp->AnisotropicLevel));
+    PyTuple_SetItem(tup, 6, PyLong_FromLong((long)pp->TextureQuality));
+    PyTuple_SetItem(tup, 7, PyLong_FromLong((long)pp->VideoQuality));
+    PyTuple_SetItem(tup, 8, PyLong_FromLong((long)pp->Shadows));
+    PyTuple_SetItem(tup, 9, PyLong_FromLong((long)pp->PlanarReflections));
     return tup;
 }
 
@@ -693,7 +672,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtSetGraphicsOptions, args, "Params: width, heig
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtSetBehaviorNetFlags, args, "Params: behKey, netForce, netProp\nSets net flags on the associated behavior")
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     char netForce;
     char netProp;
     if (!PyArg_ParseTuple(args, "Obb", &keyObj, &netForce, &netProp))
@@ -713,18 +692,14 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtSetBehaviorNetFlags, args, "Params: behKey, ne
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtSendFriendInvite, args, "Params: emailAddress, toName = \"Friend\"\nSends an email with invite code")
 {
-    char* emailIn = nullptr;
-    char* nameIn = nullptr;
-    if (!PyArg_ParseTuple(args, "es|es", "utf8", &emailIn, "utf8", &nameIn))
+    ST::string email;
+    ST::string name = ST_LITERAL("Friend");
+    if (!PyArg_ParseTuple(args, "O&|O&", PyUnicode_STStringConverter, &email,
+                          PyUnicode_STStringConverter, &name))
     {
         PyErr_SetString(PyExc_TypeError, "PtSendFriendInvite expects a string and optionally another string");
         PYTHON_RETURN_ERROR;
     }
-
-    ST::string email = emailIn;
-    ST::string name = nameIn ? nameIn : ST_LITERAL("Friend");
-    PyMem_Free(emailIn);
-    PyMem_Free(nameIn);
 
     if (email.size() >= kMaxEmailAddressLength)
     {
@@ -785,74 +760,76 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtVaultDownload, args, "Params: nodeId\nDownload
 // AddPlasmaMethods - the python method definitions
 //
 
-void cyMisc::AddPlasmaMethods4(std::vector<PyMethodDef> &methods)
+void cyMisc::AddPlasmaMethods4(PyObject* m)
 {
-    PYTHON_GLOBAL_METHOD(methods, PtRequestLOSScreen);
-    
-    PYTHON_GLOBAL_METHOD(methods, PtKillParticles);
-    PYTHON_GLOBAL_METHOD(methods, PtGetNumParticles);
-    PYTHON_GLOBAL_METHOD(methods, PtSetParticleOffset);
+    PYTHON_START_GLOBAL_METHOD_TABLE(cyMisc4)
+        PYTHON_GLOBAL_METHOD(PtRequestLOSScreen)
 
-    PYTHON_GLOBAL_METHOD(methods, PtSetLightValue);
-    PYTHON_GLOBAL_METHOD(methods, PtSetLightAnimStart);
-    
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtIsSinglePlayerMode);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtIsDemoMode);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtIsInternalRelease);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtIsEnterChatModeKeyBound);
-    
-    PYTHON_GLOBAL_METHOD(methods, PtShootBulletFromScreen);
-    PYTHON_GLOBAL_METHOD(methods, PtShootBulletFromObject);
-    
-    PYTHON_GLOBAL_METHOD(methods, PtGetPublicAgeList);
-    PYTHON_GLOBAL_METHOD(methods, PtCreatePublicAge);
-    PYTHON_GLOBAL_METHOD(methods, PtRemovePublicAge);
-    
-    PYTHON_GLOBAL_METHOD(methods, PtSetClearColor);
-    
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetLocalKILevel);
-    
-    PYTHON_BASIC_GLOBAL_METHOD(methods, PtClearCameraStack);
-    PYTHON_GLOBAL_METHOD(methods, PtGetCameraNumber);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetNumCameras);
-    PYTHON_GLOBAL_METHOD(methods, PtRebuildCameraStack);
-    PYTHON_BASIC_GLOBAL_METHOD(methods, PtRecenterCamera);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtFirstPerson);
-    
-    PYTHON_GLOBAL_METHOD(methods, PtFadeIn);
-    PYTHON_GLOBAL_METHOD(methods, PtFadeOut);
-    
-    PYTHON_GLOBAL_METHOD(methods, PtSetGlobalClickability);
-    PYTHON_GLOBAL_METHOD(methods, PtDebugAssert);
-    PYTHON_GLOBAL_METHOD(methods, PtDebugPrint);
-    PYTHON_GLOBAL_METHOD(methods, PtSetAlarm);
-    
-    PYTHON_GLOBAL_METHOD(methods, PtSaveScreenShot);
-    PYTHON_GLOBAL_METHOD(methods, PtStartScreenCapture);
-    
-    PYTHON_GLOBAL_METHOD(methods, PtSendKIGZMarkerMsg);
-    PYTHON_GLOBAL_METHOD(methods, PtSendKIRegisterImagerMsg);
-    
-    PYTHON_GLOBAL_METHOD(methods, PtWearMaintainerSuit);
-    PYTHON_GLOBAL_METHOD(methods, PtWearDefaultClothing);
-    
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetAgeTimeOfDayPercent);
-    
-    PYTHON_GLOBAL_METHOD(methods, PtCheckVisLOS);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtCheckVisLOSFromCursor);
+        PYTHON_GLOBAL_METHOD(PtKillParticles)
+        PYTHON_GLOBAL_METHOD(PtGetNumParticles)
+        PYTHON_GLOBAL_METHOD(PtSetParticleOffset)
 
-    PYTHON_GLOBAL_METHOD(methods, PtEnablePlanarReflections);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetSupportedDisplayModes);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetDesktopWidth);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetDesktopHeight);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetDesktopColorDepth);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetDefaultDisplayParams);
-    PYTHON_GLOBAL_METHOD(methods, PtSetGraphicsOptions);
+        PYTHON_GLOBAL_METHOD(PtSetLightValue)
+        PYTHON_GLOBAL_METHOD(PtSetLightAnimStart)
 
-    PYTHON_GLOBAL_METHOD(methods, PtSetBehaviorNetFlags);
-    PYTHON_GLOBAL_METHOD(methods, PtSendFriendInvite);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGuidGenerate);
-    PYTHON_GLOBAL_METHOD(methods, PtGetAIAvatarsByModelName);
-    PYTHON_GLOBAL_METHOD(methods, PtForceVaultNodeUpdate);
-    PYTHON_GLOBAL_METHOD(methods, PtVaultDownload);
+        PYTHON_GLOBAL_METHOD_NOARGS(PtIsSinglePlayerMode)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtIsDemoMode)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtIsInternalRelease)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtIsEnterChatModeKeyBound)
+
+        PYTHON_GLOBAL_METHOD(PtShootBulletFromScreen)
+        PYTHON_GLOBAL_METHOD(PtShootBulletFromObject)
+
+        PYTHON_GLOBAL_METHOD(PtGetPublicAgeList)
+        PYTHON_GLOBAL_METHOD(PtCreatePublicAge)
+        PYTHON_GLOBAL_METHOD(PtRemovePublicAge)
+
+        PYTHON_GLOBAL_METHOD(PtSetClearColor)
+
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetLocalKILevel)
+
+        PYTHON_BASIC_GLOBAL_METHOD(PtClearCameraStack)
+        PYTHON_GLOBAL_METHOD(PtGetCameraNumber)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetNumCameras)
+        PYTHON_GLOBAL_METHOD(PtRebuildCameraStack)
+        PYTHON_BASIC_GLOBAL_METHOD(PtRecenterCamera)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtFirstPerson)
+
+        PYTHON_GLOBAL_METHOD(PtFadeIn)
+        PYTHON_GLOBAL_METHOD(PtFadeOut)
+
+        PYTHON_GLOBAL_METHOD(PtSetGlobalClickability)
+        PYTHON_GLOBAL_METHOD(PtDebugAssert)
+        PYTHON_GLOBAL_METHOD(PtDebugPrint)
+        PYTHON_GLOBAL_METHOD(PtSetAlarm)
+
+        PYTHON_GLOBAL_METHOD(PtSaveScreenShot)
+        PYTHON_GLOBAL_METHOD(PtStartScreenCapture)
+
+        PYTHON_GLOBAL_METHOD(PtSendKIGZMarkerMsg)
+        PYTHON_GLOBAL_METHOD(PtSendKIRegisterImagerMsg)
+
+        PYTHON_GLOBAL_METHOD(PtWearMaintainerSuit)
+        PYTHON_GLOBAL_METHOD(PtWearDefaultClothing)
+
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetAgeTimeOfDayPercent)
+
+        PYTHON_GLOBAL_METHOD(PtCheckVisLOS)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtCheckVisLOSFromCursor)
+
+        PYTHON_GLOBAL_METHOD(PtEnablePlanarReflections)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetSupportedDisplayModes)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetDesktopWidth)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetDesktopHeight)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetDesktopColorDepth)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetDefaultDisplayParams)
+        PYTHON_GLOBAL_METHOD(PtSetGraphicsOptions)
+
+        PYTHON_GLOBAL_METHOD(PtSetBehaviorNetFlags)
+        PYTHON_GLOBAL_METHOD(PtSendFriendInvite)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGuidGenerate)
+        PYTHON_GLOBAL_METHOD(PtGetAIAvatarsByModelName)
+        PYTHON_GLOBAL_METHOD(PtForceVaultNodeUpdate)
+        PYTHON_GLOBAL_METHOD(PtVaultDownload)
+    PYTHON_END_GLOBAL_METHOD_TABLE(m, cyMisc4)
 }

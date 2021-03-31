@@ -64,8 +64,16 @@ public:
     plKey() : fKeyData(nullptr) { }
     plKey(std::nullptr_t) : fKeyData(nullptr) { }
     plKey(const plKey& rhs);
+    plKey(plKey&& rhs) : fKeyData(rhs.fKeyData) { rhs.fKeyData = nullptr; }
     ~plKey();
     plKey& operator=(const plKey& rhs);
+    plKey& operator=(std::nullptr_t);
+
+    plKey& operator=(plKey&& rhs)
+    {
+        std::swap(fKeyData, rhs.fKeyData);
+        return *this;
+    }
 
     bool operator==(const plKey& rhs) const { return fKeyData == rhs.fKeyData; }
     bool operator==(const plKeyData* rhs) const { return fKeyData == rhs; }
@@ -120,8 +128,8 @@ public:
 
     virtual uint16_t      GetActiveRefs() const = 0;
 
-    virtual uint16_t      GetNumNotifyCreated() const = 0;
-    virtual plRefMsg*   GetNotifyCreated(int i) const = 0;
+    virtual size_t      GetNumNotifyCreated() const = 0;
+    virtual plRefMsg*   GetNotifyCreated(size_t i) const = 0;
     virtual const hsBitVector& GetActiveBits() const = 0;
 
 protected:

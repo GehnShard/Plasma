@@ -41,16 +41,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
-#include "hsWindows.h"
+
+#include "MaxAPI.h"
 
 #include "resource.h"
 #include <set>
-
-#include <bmmlib.h>
-#include <IMtlEdit.h>
-#include <max.h>
-#include <pbbitmap.h>
-#pragma hdrstop
 
 #include "plTextureSearch.h"
 
@@ -65,7 +60,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
     static jvUniqueId gAssetID;
 #endif
 
-plTextureSearch::plTextureSearch() : fDlg(NULL)
+plTextureSearch::plTextureSearch() : fDlg()
 {
 #ifdef MAXASS_AVAILABLE
     gAssetID.SetEmpty();
@@ -108,17 +103,17 @@ void plTextureSearch::Toggle()
     else
     {
         DestroyWindow(fDlg);
-        fDlg = NULL;
+        fDlg = nullptr;
     }
 }
 
 
-BOOL plTextureSearch::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plTextureSearch::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     return Instance().DlgProc(hDlg, msg, wParam, lParam);
 }
 
-BOOL plTextureSearch::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plTextureSearch::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -197,7 +192,7 @@ BOOL plTextureSearch::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 
                     // Make sure the material is still in the scene (paranoid check)
                     MtlSet mtls;
-                    plMtlCollector::GetMtls(&mtls, nil, plMtlCollector::kPlasmaOnly | plMtlCollector::kNoMultiMtl);
+                    plMtlCollector::GetMtls(&mtls, nullptr, plMtlCollector::kPlasmaOnly | plMtlCollector::kNoMultiMtl);
                     if (mtls.find(mtl) != mtls.end())
                     {
                         // Put the material in the current slot of the material editor
@@ -226,7 +221,7 @@ static int FloorPow2(int value)
 void plTextureSearch::IUpdateTextures(plTextureSearch::Update update)
 {
     MtlSet mtls;
-    plMtlCollector::GetMtls(&mtls, nil, plMtlCollector::kPlasmaOnly | plMtlCollector::kNoMultiMtl);
+    plMtlCollector::GetMtls(&mtls, nullptr, plMtlCollector::kPlasmaOnly | plMtlCollector::kNoMultiMtl);
 
     char searchStr[256];
     GetDlgItemText(fDlg, IDC_FIND_EDIT, searchStr, sizeof(searchStr));
@@ -243,7 +238,7 @@ void plTextureSearch::IUpdateTextures(plTextureSearch::Update update)
     if (update == kUpdateSetSize)
     {
         int sel = ComboBox_GetCurSel(hCombo);
-        uint32_t data = ComboBox_GetItemData(hCombo, sel);
+        uint32_t data = (uint32_t)ComboBox_GetItemData(hCombo, sel);
         sizeX = LOWORD(data);
         sizeY = HIWORD(data);
     }
@@ -397,7 +392,7 @@ void plTextureSearch::IPickReplaceTexture()
     else
     {
         char fname[_MAX_FNAME+_MAX_EXT], ext[_MAX_EXT];
-        _splitpath(fFileName, NULL, NULL, fname, ext);
+        _splitpath(fFileName, nullptr, nullptr, fname, ext);
         strcat(fname, ext);
 
         SetDlgItemText(fDlg, IDC_REPLACE_BUTTON, fname);

@@ -57,57 +57,28 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnMessage/plSoundMsg.h"
 #include "plSound.h"
 
-plSoundEvent::plSoundEvent( Types type, plSound *owner )
-{
-    fType = type;
-    fBytePosTime = 0;
-    fOwner = owner;
-    fCallbacks.Reset();
-    fCallbackEndingFlags.Reset();
-}
-
-plSoundEvent::plSoundEvent( Types type, uint32_t bytePos, plSound *owner )
-{
-    fType = type;
-    fBytePosTime = bytePos;
-    fOwner = owner;
-    fCallbacks.Reset();
-    fCallbackEndingFlags.Reset();
-}
-
-plSoundEvent::plSoundEvent()
-{
-    fType = kStart;
-    fBytePosTime = 0;
-    fOwner = nil;
-    fCallbacks.Reset();
-    fCallbackEndingFlags.Reset();
-}
-
 plSoundEvent::~plSoundEvent()
 {
-    int     i;
-
-
-    for( i = 0; i < fCallbacks.GetCount(); i++ )
-        hsRefCnt_SafeUnRef( fCallbacks[ i ] ); 
+    for (plEventCallbackMsg* callback : fCallbacks)
+        hsRefCnt_SafeUnRef(callback);
 }
 
 void    plSoundEvent::AddCallback( plEventCallbackMsg *msg )
 {
     hsRefCnt_SafeRef( msg ); 
-    fCallbacks.Append( msg );
-    fCallbackEndingFlags.Append( 0 );
+    fCallbacks.emplace_back(msg);
+    fCallbackEndingFlags.emplace_back(0);
 }
 
 bool    plSoundEvent::RemoveCallback( plEventCallbackMsg *msg )
 {
-    int idx = fCallbacks.Find( msg );
-    if( idx != fCallbacks.kMissingIndex )
+    auto iter = std::find(fCallbacks.cbegin(), fCallbacks.cend(), msg);
+    if (iter != fCallbacks.cend())
     {
-        hsRefCnt_SafeUnRef( msg ); 
-        fCallbacks.Remove( idx );
-        fCallbackEndingFlags.Remove( idx );
+        hsRefCnt_SafeUnRef( msg );
+        const auto idx = iter - fCallbacks.cbegin();
+        fCallbacks.erase(iter);
+        fCallbackEndingFlags.erase(fCallbackEndingFlags.cbegin() + idx);
         return true;
     }
 
@@ -116,11 +87,7 @@ bool    plSoundEvent::RemoveCallback( plEventCallbackMsg *msg )
 
 void    plSoundEvent::SendCallbacks()
 {
-    int         j;
-    plSoundMsg  *sMsg;
-
-
-    for( j = fCallbacks.GetCount() - 1; j >= 0; j-- )
+    for (hsSsize_t j = fCallbacks.size() - 1; j >= 0; j--)
     {
         plEventCallbackMsg *msg = fCallbacks[ j ];
         
@@ -128,7 +95,7 @@ void    plSoundEvent::SendCallbacks()
             fOwner->IsLocallyOwned() == plSynchedObject::kYes )     
         {
             /// Do this a bit differently so we can do our MsgSend last
-            sMsg = nil;
+            plSoundMsg* sMsg = nullptr;
 
             // Ref to make sure the dispatcher doesn't delete it on us
             hsRefCnt_SafeRef( msg );
@@ -154,7 +121,7 @@ void    plSoundEvent::SendCallbacks()
                 plgDispatch::MsgSend( msg, true );
             }
 
-            if( sMsg != nil )
+            if (sMsg != nullptr)
             {
                 plgDispatch::MsgSend( sMsg, true );
                 fCallbackEndingFlags[ j ] = 0xff;       // Our special flag to mean "hey, don't
@@ -163,11 +130,6 @@ void    plSoundEvent::SendCallbacks()
             }
         }
     }
-}
-
-uint32_t  plSoundEvent::GetNumCallbacks() const
-{
-    return fCallbacks.GetCount();
 }
 
 int plSoundEvent::GetType() const

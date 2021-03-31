@@ -70,46 +70,43 @@ bool        plInitSectionTokenReader::ParseLine( const char *line, uint32_t user
 
 void    plInitFileReader::IInitReaders( plInitSectionReader **readerArray )
 {
-    uint32_t      i;
+    for (size_t i = 0; readerArray[i] != nullptr; i++)
+        fSections.emplace_back(readerArray[i]);
 
-
-    for( i = 0; readerArray[ i ] != nil; i++ )
-        fSections.Append( readerArray[ i ] );
-
-    hsAssert( fSections.GetCount() > 0, "No sections for initFileReader" );
+    hsAssert(!fSections.empty(), "No sections for initFileReader");
 
     fCurrSection = fSections[ 0 ];
 }
 
 plInitFileReader::plInitFileReader( plInitSectionReader **readerArray, uint16_t lineSize )
 {
-    fCurrLine = nil;
+    fCurrLine = nullptr;
     fLineSize = lineSize;
-    fStream = fOurStream = nil;
+    fStream = fOurStream = nullptr;
     IInitReaders( readerArray );
-    fUnhandledSection = nil;
+    fUnhandledSection = nullptr;
 }
 
 plInitFileReader::plInitFileReader( const char *fileName, plInitSectionReader **readerArray, uint16_t lineSize )
 {
-    fCurrLine = nil;
+    fCurrLine = nullptr;
     fLineSize = lineSize;
-    fStream = fOurStream = nil;
+    fStream = fOurStream = nullptr;
     IInitReaders( readerArray );
     if( !Open( fileName ) )
         hsAssert( false, "Constructor open for plInitFileReader failed!" );
-    fUnhandledSection = nil;
+    fUnhandledSection = nullptr;
 }
 
 plInitFileReader::plInitFileReader( hsStream *stream, plInitSectionReader **readerArray, uint16_t lineSize )
 {
-    fCurrLine = nil;
+    fCurrLine = nullptr;
     fLineSize = lineSize;
-    fStream = fOurStream = nil;
+    fStream = fOurStream = nullptr;
     IInitReaders( readerArray );
     if( !Open( stream ) )
         hsAssert( false, "Constructor open for plInitFileReader failed!" );
-    fUnhandledSection = nil;
+    fUnhandledSection = nullptr;
 }
 
 plInitFileReader::~plInitFileReader()
@@ -120,7 +117,7 @@ plInitFileReader::~plInitFileReader()
 
 bool    plInitFileReader::Open( const char *fileName )
 {
-    if( fStream != nil )
+    if (fStream != nullptr)
     {
         hsAssert( false, "Unable to open initFileReader; already open" );
         return false;
@@ -128,7 +125,7 @@ bool    plInitFileReader::Open( const char *fileName )
 
     fOurStream = plEncryptedStream::OpenEncryptedFile( fileName );
 
-    if( fOurStream == nil )
+    if (fOurStream == nullptr)
         return false;
 
     fStream = fOurStream;
@@ -138,7 +135,7 @@ bool    plInitFileReader::Open( const char *fileName )
 
 bool    plInitFileReader::Open( hsStream *stream )
 {
-    if( fStream != nil )
+    if (fStream != nullptr)
     {
         hsAssert( false, "Unable to open initFileReader; already open" );
         return false;
@@ -150,9 +147,9 @@ bool    plInitFileReader::Open( hsStream *stream )
 
 bool    plInitFileReader::Parse( uint32_t userData )
 {
-    hsAssert( fStream != nil, "Nil stream in initFileReader::Parse(); file not yet open?" );
+    hsAssert(fStream != nullptr, "Nil stream in initFileReader::Parse(); file not yet open?");
 
-    if( fCurrLine == nil )
+    if (fCurrLine == nullptr)
         fCurrLine = new char[ fLineSize + 1 ];
 
     // Start parsing lines
@@ -165,17 +162,15 @@ bool    plInitFileReader::Parse( uint32_t userData )
         {
             // Yes--match against our sections and switch to the given one
             char *end = strchr( fCurrLine, ']' );
-            if( end != nil )
+            if (end != nullptr)
                 *end = 0;
 
-            uint32_t      i;
-
             bool foundSection = false;
-            for( i = 0; i < fSections.GetCount(); i++ )
+            for (plInitSectionReader* section : fSections)
             {
-                if( stricmp( fSections[ i ]->GetSectionName(), &fCurrLine[ 1 ] ) == 0 )
+                if (stricmp(section->GetSectionName(), &fCurrLine[1]) == 0)
                 {
-                    fCurrSection = fSections[ i ];
+                    fCurrSection = section;
                     foundSection = true;
                     break;
                 }
@@ -200,16 +195,16 @@ bool    plInitFileReader::Parse( uint32_t userData )
 
 void    plInitFileReader::Close()
 {
-    if( fStream == nil )
+    if (fStream == nullptr)
         return;
 
     if( fStream == fOurStream )
     {
         fStream->Close();
         delete fOurStream;
-        fOurStream = nil;
+        fOurStream = nullptr;
     }
 
-    fStream = nil;
+    fStream = nullptr;
 }
 

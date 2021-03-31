@@ -43,16 +43,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "HeadSpin.h"
 #include "plQuality.h"
 #include "hsResMgr.h"
-#include "hsTemplates.h"
 
 #include "plComponent.h"
 #include "plComponentReg.h"
 #include "MaxMain/plMaxNode.h"
-#include "resource.h"
+#include "MaxMain/MaxAPI.h"
 
-#include <iparamm2.h>
-#include <windowsx.h>
-#pragma hdrstop
+#include "resource.h"
 
 #include "pnMessage/plRefMsg.h"
 #include "plSurface/hsGMaterial.h"
@@ -92,13 +89,13 @@ protected:
     }
 
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         int id = LOWORD(wParam);
         int code = HIWORD(wParam);
 
         IParamBlock2 *pb = map->GetParamBlock();
-        HWND cbox = NULL;
+        HWND cbox = nullptr;
 
         int selection;
         switch (msg)
@@ -116,7 +113,7 @@ public:
 
         case WM_COMMAND:
         case CC_SPINNER_CHANGE:
-            int wave = SendMessage(GetDlgItem(hWnd, IDC_GRASS_WAVE), CB_GETCURSEL, 0, 0);
+            int wave = (int)SendMessage(GetDlgItem(hWnd, IDC_GRASS_WAVE), CB_GETCURSEL, 0, 0);
             if (id == IDC_GRASS_WAVE)
             {
                 if (wave != pb->GetInt(ParamID(plGrassComponent::kWave)))
@@ -139,7 +136,7 @@ public:
         }
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static GrassCompDlgProc gGrassCompDlgProc;
 
@@ -233,7 +230,7 @@ ParamBlockDesc2 gGrassBk
     end
 );
 
-plGrassComponent::plGrassComponent() : fShader(nil)
+plGrassComponent::plGrassComponent() : fShader()
 {
     fClassDesc = &gGrassDesc;
     fClassDesc->MakeAutoParamBlocks(this);
@@ -271,7 +268,7 @@ bool plGrassComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     plObjRefMsg* refMsg = new plObjRefMsg(node->GetKey(), plRefMsg::kOnRequest, -1, plObjRefMsg::kModifier);
     hsgResMgr::ResMgr()->AddViaNotify(fShader->GetKey(), refMsg, plRefFlags::kActiveRef);
 
-    hsTArray<hsGMaterial*> mats;
+    std::vector<hsGMaterial*> mats;
     hsMaterialConverter::Instance().CollectConvertedMaterials(hsMaterialConverter::Instance().GetBaseMtl(node), mats);
     hsgResMgr::ResMgr()->SendRef(mats[0]->GetKey(), new plGenRefMsg(fShader->GetKey(), plRefMsg::kOnRequest, 0, plGrassShaderMod::kRefMaterial), plRefFlags::kActiveRef);
 
@@ -282,7 +279,7 @@ bool plGrassComponent::DeInit(plMaxNode* node, plErrorMsg* pErrMsg)
 {
     if( fShader )
         fShader->GetKey()->UnRefObject();
-    fShader = nil;
+    fShader = nullptr;
 
     return true;
 }
@@ -290,14 +287,14 @@ bool plGrassComponent::DeInit(plMaxNode* node, plErrorMsg* pErrMsg)
 plGrassShaderMod* plGrassComponent::GetShader(INode* node)
 {
     if( !node )
-        return nil;
+        return nullptr;
 
     plComponentBase *comp = ((plMaxNodeBase*)node)->ConvertToComponent();
     if( !comp )
-        return nil;
+        return nullptr;
 
     if( comp->ClassID() != GRASS_COMPONENT_CLASS_ID )
-        return nil;
+        return nullptr;
 
     plGrassComponent *shader = (plGrassComponent*)comp;
     return shader->fShader;
@@ -306,7 +303,7 @@ plGrassShaderMod* plGrassComponent::GetShader(INode* node)
 plGrassShaderMod* plGrassComponent::GetShaderNode(plMaxNode* node)
 {
     if( !node )
-        return nil;
+        return nullptr;
 
     int n = node->NumAttachedComponents();
     int i;
@@ -319,5 +316,5 @@ plGrassShaderMod* plGrassComponent::GetShaderNode(plMaxNode* node)
             return shader->fShader;
         }
     }
-    return nil;
+    return nullptr;
 }

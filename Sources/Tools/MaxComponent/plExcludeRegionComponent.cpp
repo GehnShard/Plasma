@@ -45,11 +45,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plComponent.h"
 #include "plComponentReg.h"
 #include "MaxMain/plMaxNode.h"
-
-#include <iparamb2.h>
+#include "MaxMain/MaxAPI.h"
 
 #include "resource.h"
-#pragma hdrstop
 
 #include "plExcludeRegionComponent.h"
 
@@ -74,7 +72,7 @@ ParamBlockDesc2 gExcludeRegionBlock
 (
     plComponent::kBlkComp, _T("XRegionComp"), 0, &gExcludeRegionDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_XREGION, IDS_COMP_XREGION, 0, 0, NULL,
+    IDD_COMP_XREGION, IDS_COMP_XREGION, 0, 0, nullptr,
 
     kXRegionSafePoints,     _T("safePoints"),   TYPE_INODE_TAB, 0,      0, 0,
         p_ui,           TYPE_NODELISTBOX, IDC_LIST_SAFE, IDC_ADD_SAFE, 0, IDC_DEL_SAFE,
@@ -107,7 +105,7 @@ plKey plExcludeRegionComponent::GetKey(plMaxNode *node)
     if (it != fXRegionKeys.end())
         return it->second;
 
-    return nil;
+    return nullptr;
 }
 
 bool plExcludeRegionComponent::SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg)

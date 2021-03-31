@@ -46,27 +46,29 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
-#include <cmath>
-
 // singular
 #include "plAvTaskSeek.h"
 
+#include "hsTimer.h"
+#include "plgDispatch.h"
+
+#include <cmath>
+
 // local
-#include "plAvBrainHuman.h"
-#include "plAnimation/plAGAnim.h"
 #include "plArmatureMod.h"
 #include "plAvatarMgr.h"
+#include "plAvBrainHuman.h"
 #include "plPhysicalControllerCore.h"
 
 // other
-#include "plMessage/plAvatarMsg.h"
-#include "pnMessage/plCameraMsg.h"
 #include "pnInputCore/plControlEventCodes.h"
+#include "pnMessage/plCameraMsg.h"
+#include "pnSceneObject/plCoordinateInterface.h"
+
+#include "plAnimation/plAGAnim.h"
+#include "plMessage/plAvatarMsg.h"
 #include "plPipeline/plDebugText.h"
 #include "plStatusLog/plStatusLog.h"
-#include "pnSceneObject/plCoordinateInterface.h"
-#include "hsTimer.h"
-#include "plgDispatch.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -164,7 +166,7 @@ plAvTaskSeek::plAvTaskSeek(plAvSeekMsg *msg)
 
 // plAvTaskSeek ------------------------
 // -------------
-plAvTaskSeek::plAvTaskSeek(plKey target)
+plAvTaskSeek::plAvTaskSeek(const plKey& target)
 {
     IInitDefaults();
 
@@ -173,35 +175,31 @@ plAvTaskSeek::plAvTaskSeek(plKey target)
 
 // plAvTaskSeek -------------------------------------------------------------------------------------------
 // -------------
-plAvTaskSeek::plAvTaskSeek(plKey target, plAvAlignment align, const ST::string& animName, bool moving)
+plAvTaskSeek::plAvTaskSeek(const plKey& target, plAvAlignment align, ST::string animName, bool moving)
 {
     IInitDefaults();
 
     fMovingTarget = moving;
     fAlign = align;
-    fAnimName = animName;
+    fAnimName = std::move(animName);
 
     SetTarget(target);
 }
 
-void plAvTaskSeek::SetTarget(plKey target)
+void plAvTaskSeek::SetTarget(const plKey& target)
 {
     hsAssert(target, "Bad key to seek task");
     if(target)
-    {
         fSeekObject = plSceneObject::ConvertNoRef(target->ObjectIsLoaded());
-    }
     else
-    {
-        fSeekObject = nil;
-    }
+        fSeekObject = nullptr;
 }
-    
+
 void plAvTaskSeek::SetTarget(hsPoint3 &pos, hsPoint3 &lookAt)
 {
     fSeekPos = pos;
     hsVector3 up(0.f, 0.f, 1.f);
-    float angle = atan2(lookAt.fY - pos.fY, lookAt.fX - pos.fX) + M_PI / 2;
+    float angle = std::atan2(lookAt.fY - pos.fY, lookAt.fX - pos.fX) + hsConstants::half_pi<float>;
     fSeekRot.SetAngleAxis(angle, up);
 }
 
@@ -312,7 +310,7 @@ void plAvTaskSeek::Finish(plArmatureMod *avatar, plArmatureBrain *brain, double 
 
 void plAvTaskSeek::LeaveAge(plArmatureMod *avatar)
 {
-    fSeekObject = nil;
+    fSeekObject = nullptr;
     fState = kSeekAbort;
 }
 
@@ -457,7 +455,7 @@ bool plAvTaskSeek::ITryFinish(plArmatureMod *avatar, plAvBrainHuman *brain, doub
 
     newRotation.Normalize();
     if (hsCheckBits(fFlags, kSeekFlagRotationOnly))
-        avatar->SetPositionAndRotationSim(nil, &newRotation);
+        avatar->SetPositionAndRotationSim(nullptr, &newRotation);
     else
         avatar->SetPositionAndRotationSim(&newPosition, &newRotation);
 
@@ -514,12 +512,12 @@ bool plAvTaskSeek::IFinishRotation(hsQuat &newRotation,
 bool plAvTaskSeek::IUpdateObjective(plArmatureMod *avatar)
 {
     // This is an entirely valid case. It just means our goal is fixed.
-    if (fSeekObject == nil)
+    if (fSeekObject == nullptr)
         return true;
 
     // goal here is to express the target matrix in the avatar's PHYSICAL space
     hsMatrix44 targL2W = fSeekObject->GetLocalToWorld();
-    const plCoordinateInterface* subworldCI = nil;
+    const plCoordinateInterface* subworldCI = nullptr;
     if (avatar->GetController())
         subworldCI = avatar->GetController()->GetSubworldCI();
     if (subworldCI)
@@ -542,7 +540,7 @@ bool plAvTaskSeek::IUpdateObjective(plArmatureMod *avatar)
                 plAGAnim *anim = avatar->FindCustomAnim(fAnimName);
                 // don't need to do this every frame; the animation doesn't change.
                 // *** cache the adjustment;
-                GetStartToEndTransform(anim, nil, &adjustment, "Handle");   // actually getting end-to-start
+                GetStartToEndTransform(anim, nullptr, &adjustment, "Handle");   // actually getting end-to-start
                 // ... but we do still need to multiply by the (potentially changed) target
                 targL2W = targL2W * adjustment;
             }
@@ -621,7 +619,7 @@ float QuatAngleDiff(const hsQuat &a, const hsQuat &b)
     } 
 
     // Calling acos on 1.0 is returning an undefined value. Need to check for it.
-    float epsilon = 0.00001;
+    float epsilon = 0.00001f;
     if (fabs(cos_t - 1.f) < epsilon)
         return 0;
 

@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #define PLFACTORY_PRIVATE
-#include "HeadSpin.h"
 #include "plFactory.h"
 #include "hsStream.h"
 #include "plCreatable.h"
@@ -52,11 +51,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plCreatableStrings.h"
 
 
-static plFactory*   theFactory = nil;
+static plFactory*   theFactory = nullptr;
 
 plFactory::plFactory()
 {
-    fCreators.SetCountAndZero(plCreatableIndex::plNumClassIndices);
+    fCreators.resize(plCreatableIndex::plNumClassIndices);
 }
 
 plFactory::~plFactory()
@@ -70,7 +69,7 @@ bool plFactory::ICreateTheFactory()
 
     theFactory = new plFactory;
 
-    return theFactory != nil;
+    return theFactory != nullptr;
 }
 
 uint16_t plFactory::IGetNumClasses()
@@ -80,13 +79,12 @@ uint16_t plFactory::IGetNumClasses()
 
 void plFactory::IForceShutdown()
 {
-    int i;
-    for( i = 0; i < fCreators.GetCount(); i++ )
+    for (size_t i = 0; i < fCreators.size(); i++)
     {
         if( fCreators[i] )
         {
             UnRef();
-            fCreators[i] = nil;
+            fCreators[i] = nullptr;
         }
     }
 }
@@ -94,7 +92,7 @@ void plFactory::IForceShutdown()
 void plFactory::IShutdown()
 {
     delete theFactory;
-    theFactory = nil;
+    theFactory = nullptr;
 }
 
 uint16_t plFactory::IRegister(uint16_t hClass, plCreator* worker)
@@ -118,7 +116,7 @@ bool plFactory::CanCreate(uint16_t hClass)
     if( hClass >= theFactory->IGetNumClasses() )    // invalid index
         return false;
 
-    return ( theFactory->fCreators[ hClass ] != nil );  // check creator
+    return (theFactory->fCreators[hClass] != nullptr);  // check creator
 }
 
 plCreatable* plFactory::ICreate(uint16_t hClass)
@@ -130,9 +128,9 @@ plCreatable* plFactory::ICreate(uint16_t hClass)
 
     if (!(hClass & 0x8000))
     {
-        hsAssert( false, "Invalid class index or nil creator : plFactory::Create()" );  
+        hsAssert( false, ST::format("Invalid class index ({04X}) or nil creator : plFactory::Create()", hClass).c_str());
     }
-    return nil;
+    return nullptr;
 }
 
 void plFactory::UnRegister(uint16_t hClass, plCreator* worker)
@@ -148,7 +146,7 @@ void plFactory::UnRegister(uint16_t hClass, plCreator* worker)
 
 void plFactory::IUnRegister(uint16_t hClass)
 {
-    fCreators[hClass] = nil;
+    fCreators[hClass] = nullptr;
 }
 
 uint16_t plFactory::Register(uint16_t hClass, plCreator* worker)
@@ -163,7 +161,7 @@ uint16_t plFactory::Register(uint16_t hClass, plCreator* worker)
 plCreatable* plFactory::Create(uint16_t hClass)
 {
     if( !theFactory && !ICreateTheFactory() )
-            return nil;
+        return nullptr;
 
     return theFactory->ICreate(hClass);
 }
@@ -180,7 +178,7 @@ uint16_t plFactory::GetNumClasses()
 
 bool plFactory::IDerivesFrom(uint16_t hBase, uint16_t hDer)
 {
-    if( hDer >= fCreators.GetCount() )
+    if (hDer >= fCreators.size())
         return false;
 
     return fCreators[hDer] ? fCreators[hDer]->HasBaseClass(hBase) : false;
@@ -189,7 +187,7 @@ bool plFactory::IDerivesFrom(uint16_t hBase, uint16_t hDer)
 bool plFactory::DerivesFrom(uint16_t hBase, uint16_t hDer)
 {
     if( !theFactory && !ICreateTheFactory() )
-        return 0;
+        return false;
 
     return theFactory->IDerivesFrom(hBase, hDer);
 }
@@ -201,12 +199,11 @@ uint16_t plFactory::FindClassIndex(const char* className)
 
     if (className && theFactory)
     {
-        int i;
-        for( i = 0; i < theFactory->fCreators.GetCount(); i++ )
+        for (plCreator* creator : theFactory->fCreators)
         {
-            if( theFactory->fCreators[i] && !stricmp(className, theFactory->fCreators[i]->ClassName()) )
+            if (creator && stricmp(className, creator->ClassName()) == 0)
             {
-                return theFactory->fCreators[i]->ClassIndex();
+                return creator->ClassIndex();
             }
         }
     }
@@ -216,7 +213,7 @@ uint16_t plFactory::FindClassIndex(const char* className)
 
 bool plFactory::IIsValidClassIndex(uint16_t hClass)
 {
-    return ( hClass < fCreators.GetCount() );
+    return (hClass < fCreators.size());
 }
 
 bool plFactory::IsValidClassIndex(uint16_t hClass)
@@ -251,7 +248,7 @@ void plFactory::SetTheFactory(plFactory* fac)
         hsRefCnt_SafeUnRef(theFactory);
         if( theFactory->RefCnt() < 2 )
             delete theFactory;
-        theFactory = nil;
+        theFactory = nullptr;
     }
 
 }
@@ -259,7 +256,7 @@ void plFactory::SetTheFactory(plFactory* fac)
 plFactory* plFactory::GetTheFactory()
 {
     if( !theFactory && !ICreateTheFactory() )
-            return nil;
+        return nullptr;
 
     return theFactory;
 }
@@ -292,66 +289,5 @@ const char  *plFactory::GetNameOfClass(uint16_t type)
     }
 
     hsAssert(type < GetNumClasses() || type==0xffff,"InValid type");
-    return nil;
+    return nullptr;
 }
-
-#ifdef HS_DEBUGGING
-
-/*
-**
-**  Function Name:          Validate
-**  Input(s):               Void
-**  Output(s):              Void
-**  Function Description:   This function examines all the Workers in the Factory and compares their Factory 
-**                              index to the Enums found in plCreatableIndex.  If they are Keyed objects, and
-**                              larger than 512 on the Factory index, or non-Keyed objects with a Factory
-**                              index of less than 512, exit with an Error Message.  Otherwise continue through
-**                              the iteration of Factory Indices.
-**
-**
-*/
-
-void plFactory::IValidate(uint16_t keyIndex)
-{
-
-    int FactoryIndex = GetNumClasses();
-
-    bool bogus = false;
-
-    for(int iter=0; iter < FactoryIndex; iter++)
-    {
-        if (IDerivesFrom(keyIndex, iter))
-        {
-            if(iter >= KEYED_OBJ_DELINEATOR && theFactory->fCreators[iter])
-            {
-                char Buffer[512];
-                sprintf(Buffer, "Object %s is a hsKeyedObject, Must appear before 'KEYED_OBJ_DELINEATOR' in plCreatableIndex.h\n",GetNameOfClass(iter));
-                hsStatusMessage(Buffer);
-                bogus = true;
-            } 
-            
-        }
-        else
-        {
-            if(iter < KEYED_OBJ_DELINEATOR && theFactory->fCreators[iter])
-            {
-                char Buffer[512];
-                sprintf(Buffer, "Object %s is NOT a hsKeyedObject, Must appear after 'KEYED_OBJ_DELINEATOR' in plCreatableIndex.h\n",GetNameOfClass(iter));
-                hsStatusMessage(Buffer);
-                bogus = true;
-            
-            } 
-        }
-    }
-    hsAssert(!bogus,"The class(s) you just added to plCreatableIndex.h in wrong spot, see output window");
-
-}  
-
-void plFactory::Validate(uint16_t keyIndex)
-{
-    theFactory->IValidate(keyIndex);
-
-}
-
-
-#endif

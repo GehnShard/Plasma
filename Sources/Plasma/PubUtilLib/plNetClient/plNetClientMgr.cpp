@@ -39,79 +39,52 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "plCreatableIndex.h"
-#include "hsTimer.h"
-#include "hsStream.h"
+
 #include "plNetClientMgr.h"
+
+#include "plNetLinkingMgr.h"
+
+#include "plCreatableIndex.h"
 #include "plgDispatch.h"
 #include "plPhysical.h"
-#include "plNetClientMsgHandler.h"
-#include "plNetLinkingMgr.h"
-#include "plNetCommon/plNetObjectDebugger.h"
-
-#include "pnUtils/pnUtils.h"
 #include "plProduct.h"
-#include "pnNetCommon/plSynchedObject.h"
-#include "pnNetCommon/plNetServers.h"
-#include "pnNetCommon/plSDLTypes.h"
-#include "pnKeyedObject/plKey.h"
-#include "pnKeyedObject/plFixedKey.h"
-#include "pnKeyedObject/hsKeyedObject.h"
-#include "pnSceneObject/plSceneObject.h"
-#include "pnSceneObject/plObjInterface.h"
-#include "pnSceneObject/plCoordinateInterface.h"
+#include "hsTimer.h"
+
 #include "pnMessage/plClientMsg.h"
-#include "pnMessage/plSDLModifierMsg.h"
 #include "pnMessage/plPlayerPageMsg.h"
+#include "pnMessage/plSDLModifierMsg.h"
 #include "pnMessage/plTimeMsg.h"
-#include "pnModifier/plModifier.h"
-#include "pnAsyncCore/pnAsyncCore.h"
+#include "pnNetCommon/pnNetCommon.h"
+#include "pnSceneObject/plCoordinateInterface.h"
 
 #include "plAgeLoader/plAgeLoader.h"
-#include "plAgeLoader/plResPatcher.h"
-#include "plNetClientRecorder/plNetClientRecorder.h"
-#include "plScene/plSceneNode.h"
-#include "plNetCommon/plNetCommonConstants.h"
-#include "plNetMessage/plNetMessage.h"
-#include "plMessage/plLoadAvatarMsg.h"
-#include "plMessage/plLoadCloneMsg.h"
-#include "plMessage/plSynchEnableMsg.h"
-#include "plMessage/plLinkToAgeMsg.h"
-#include "plMessage/plLoadAgeMsg.h"
+#include "plAvatar/plAvatarClothing.h"
+#include "plAvatar/plAvatarMgr.h"
 #include "plMessage/plAgeLoadedMsg.h"
-#include "plMessage/plCCRMsg.h"
 #include "plMessage/plAvatarMsg.h"
-#include "plMessage/plNetVoiceListMsg.h"
-#include "plMessage/plNetCommMsgs.h"
+#include "plMessage/plCCRMsg.h"
+#include "plMessage/plLoadAvatarMsg.h"
 #include "plMessage/plNetClientMgrMsg.h"
+#include "plMessage/plNetVoiceListMsg.h"
 #include "plMessage/plResPatcherMsg.h"
+#include "plMessage/plSynchEnableMsg.h"
 #include "plMessage/plVaultNotifyMsg.h"
+#include "plModifier/plResponderModifier.h"
+#include "plNetClientRecorder/plNetClientRecorder.h"
+#include "plNetCommon/plNetObjectDebugger.h"
+#include "plNetMessage/plNetMessage.h"
+#include "plNetTransport/plNetTransportMember.h"
+#include "plProgressMgr/plProgressMgr.h"
 #include "plResMgr/plKeyFinder.h"
 #include "plResMgr/plPageInfo.h"
-#include "plNetTransport/plNetTransportMember.h"
-#include "plAgeDescription/plAgeDescription.h"
-#include "plAvatar/plAvatarClothing.h"
-#include "plAvatar/plArmatureMod.h"
-#include "plAvatar/plAvatarMgr.h"
-#include "plSurface/plLayerInterface.h"
-#include "plStatusLog/plStatusLog.h"
+#include "plScene/plSceneNode.h"
 #include "plSDL/plSDL.h"
-#include "plUnifiedTime/plUnifiedTime.h"
-#include "plFile/plEncryptedStream.h"
-#include "plProgressMgr/plProgressMgr.h"
+#include "plStatusLog/plStatusLog.h"
+#include "plSurface/plLayerAnimation.h"
 #include "plVault/plVault.h"
 
 #include "pfMessage/pfKIMsg.h"  // Move this to PubUtil level
 
-#if 1   // for debugging
-#include "plCreatableIndex.h"   
-#include "plModifier/plResponderModifier.h"
-#include "plSurface/plLayerAnimation.h"
-#endif
-
-#include <algorithm>
-#include <sstream>
-#include <cmath>
 
 
 ////////////////////////////////////////////////////////////////////
@@ -126,24 +99,12 @@ plNetClientMgr::PendingLoad::~PendingLoad()
 //
 // CONSTRUCT
 //
-#pragma warning(disable:4355)   // this used in initializer list
-plNetClientMgr::plNetClientMgr() : 
-        fLocalPlayerKey(nil),
-        fMsgHandler(this),
-        fJoinOrder(0),
-        fTaskProgBar(nullptr),
-        fMsgRecorder(nil),
-        fServerTimeOffset(0),
-        fTimeSamples(0),
-        fLastTimeUpdate(0),
-        fListenListMode(kListenList_Distance),
-        fAgeSDLObjectKey(nil),
-        fExperimentalLevel(0),
-        fOverrideAgeTimeOfDayPercent(-1.f),
-        fNumInitialSDLStates(0),
-        fRequiredNumInitialSDLStates(0),
-        fDisableMsg(nil),
-        fIsOwner(true)
+plNetClientMgr::plNetClientMgr()
+    : fLocalPlayerKey(), fMsgHandler(this), fJoinOrder(), fTaskProgBar(),
+      fMsgRecorder(), fServerTimeOffset(), fTimeSamples(), fLastTimeUpdate(),
+      fListenListMode(kListenList_Distance), fAgeSDLObjectKey(), fExperimentalLevel(),
+      fOverrideAgeTimeOfDayPercent(-1.f), fNumInitialSDLStates(), fRequiredNumInitialSDLStates(),
+      fDisableMsg(), fIsOwner(true), fIniPlayerID(), fPingServerType()
 {   
 #ifndef HS_DEBUGGING
     // release code will timeout inactive players on servers by default
@@ -154,7 +115,6 @@ plNetClientMgr::plNetClientMgr() :
 //  fPlayerVault.SetPlayerName("SinglePlayer"); // in a MP game, this will be replaced with a player name like 'Atrus'
     fTransport.SetNumChannels(kNetNumChannels); 
 }
-#pragma warning(default:4355)
 
 //
 // DESTRUCT
@@ -166,7 +126,7 @@ plNetClientMgr::~plNetClientMgr()
     IDeInitNetClientComm(); 
 
     if (this==GetInstance())
-        SetInstance(nil);       // we're going down boys
+        SetInstance(nullptr);       // we're going down boys
     IClearPendingLoads();
     delete fTaskProgBar;
 }
@@ -190,7 +150,7 @@ void plNetClientMgr::Shutdown()
     if (fMsgRecorder)
     {
         delete fMsgRecorder;
-        fMsgRecorder = nil;
+        fMsgRecorder = nullptr;
     }
     for (int i = 0; i < fMsgPlayers.size(); i++)
         delete fMsgPlayers[i];
@@ -234,11 +194,11 @@ void plNetClientMgr::IAddCloneRoom()
 void plNetClientMgr::IRemoveCloneRoom()
 {
     plKey cloneRoomKey = hsgResMgr::ResMgr()->FindKey(kNetClientCloneRoom_KEY);
-    plSceneNode *cloneRoom = cloneRoomKey ? plSceneNode::ConvertNoRef(cloneRoomKey->ObjectIsLoaded()) : nil;
+    plSceneNode *cloneRoom = cloneRoomKey ? plSceneNode::ConvertNoRef(cloneRoomKey->ObjectIsLoaded()) : nullptr;
     if (cloneRoom)
     {
         cloneRoom->UnRegisterAs(kNetClientCloneRoom_KEY);
-        cloneRoom = nil;
+        cloneRoom = nullptr;
     }
 }       
 
@@ -409,9 +369,8 @@ int plNetClientMgr::IPrepMsg(plNetMessage* msg)
             int i;
             for(i=0;i<rl->GetNumReceivers();i++)
             {
-                int idx=fTransport.FindMember(rl->GetReceiverPlayerID(i));
-                hsAssert(idx!=-1, "error finding transport mbr");
-                plNetTransportMember* tm = fTransport.GetMember(idx);
+                plNetTransportMember* tm = fTransport.GetMemberByID(rl->GetReceiverPlayerID(i));
+                hsAssert(tm, "error finding transport mbr");
                 if (tm->IsPeerToPeer())
                     fTransport.SubscribeToChannelGrp(tm, kNetChanListenListUpdate);
             }
@@ -784,10 +743,10 @@ int plNetClientMgr::IsLocallyOwned(const plSynchedObject* obj) const
 plSynchedObject* plNetClientMgr::GetLocalPlayer(bool forceLoad) const
 { 
     if (forceLoad)
-        return fLocalPlayerKey ? plSynchedObject::ConvertNoRef(fLocalPlayerKey->GetObjectPtr()) : nil; 
+        return fLocalPlayerKey ? plSynchedObject::ConvertNoRef(fLocalPlayerKey->GetObjectPtr()) : nullptr;
     else
         return fLocalPlayerKey ?
-            plSynchedObject::ConvertNoRef(fLocalPlayerKey->ObjectIsLoaded()) : nil; 
+            plSynchedObject::ConvertNoRef(fLocalPlayerKey->ObjectIsLoaded()) : nullptr;
 }
 
 plSynchedObject* plNetClientMgr::GetNPC(uint32_t i) const
@@ -822,7 +781,7 @@ bool plNetClientMgr::IsNPCKey(const plKey& npc, int* idx) const
 //
 plSynchedObject* plNetClientMgr::GetRemotePlayer(int i) const
 { 
-    return fRemotePlayerKeys[i] ? plSynchedObject::ConvertNoRef(fRemotePlayerKeys[i]->ObjectIsLoaded()) : nil; 
+    return fRemotePlayerKeys[i] ? plSynchedObject::ConvertNoRef(fRemotePlayerKeys[i]->ObjectIsLoaded()) : nullptr;
 }
 
 //
@@ -895,13 +854,13 @@ bool plNetClientMgr::MsgReceive( plMessage* msg )
         hsAssert(ref->fType==kAgeSDLHook, "unknown ref msg context");
         if (ref->GetContext()==plRefMsg::kOnCreate)
         {
-            hsAssert(fAgeSDLObjectKey==nil, "already have a ref to age sdl hook");
+            hsAssert(fAgeSDLObjectKey == nullptr, "already have a ref to age sdl hook");
             fAgeSDLObjectKey = ref->GetRef()->GetKey();
             DebugMsg("Age SDL hook object created, uoid={}", fAgeSDLObjectKey->GetUoid().StringIze());
         }
         else
         {
-            fAgeSDLObjectKey=nil;
+            fAgeSDLObjectKey = nullptr;
             DebugMsg("Age SDL hook object destroyed");
         }
         return true;
@@ -920,7 +879,7 @@ bool plNetClientMgr::MsgReceive( plMessage* msg )
     if (plNetCommAuthMsg * authMsg = plNetCommAuthMsg::ConvertNoRef(msg)) {
         if (IS_NET_ERROR(authMsg->result)) {
             char str[256];
-            StrPrintf(str, arrsize(str), "Authentication failed: %S", NetErrorToString(authMsg->result));
+            snprintf(str, std::size(str), "Authentication failed: %S", NetErrorToString(authMsg->result));
             QueueDisableNet(true, str);
             return false;   // @@@ TODO: Handle this failure better
         }
@@ -931,7 +890,7 @@ bool plNetClientMgr::MsgReceive( plMessage* msg )
     if (plNetCommActivePlayerMsg * activePlrMsg = plNetCommActivePlayerMsg::ConvertNoRef(msg)) {
         if (IS_NET_ERROR(activePlrMsg->result)) {
             char str[256];
-            StrPrintf(str, arrsize(str), "SetActivePlayer failed: %S", NetErrorToString(activePlrMsg->result));
+            snprintf(str, std::size(str), "SetActivePlayer failed: %S", NetErrorToString(activePlrMsg->result));
             QueueDisableNet(true, str);
             return false;   // @@@ TODO: Handle this failure better.
         }
@@ -965,7 +924,7 @@ bool plNetClientMgr::MsgReceive( plMessage* msg )
     plCCRInvisibleMsg* invisMsg=plCCRInvisibleMsg::ConvertNoRef(msg);
     if (invisMsg)
     {
-        ::LogMsg(kLogDebug, "plNetClientMgr::MsgReceive - Got plCCRInvisibleMsg");
+        DebugMsg("plNetClientMgr::MsgReceive - Got plCCRInvisibleMsg");
         MakeCCRInvisible(invisMsg->fAvKey, invisMsg->fInvisLevel);
         return true;
     }
@@ -1097,8 +1056,8 @@ ST::string plNetClientMgr::GetPlayerName(const plKey avKey) const
     if (!avKey || avKey == GetLocalPlayerKey())
         return NetCommGetPlayer()->playerName;
 
-    plNetTransportMember* mbr=TransportMgr().GetMember(TransportMgr().FindMember(avKey));
-    return mbr ? mbr->GetPlayerName() : ST::null;
+    plNetTransportMember* mbr = TransportMgr().GetMemberByKey(avKey);
+    return mbr ? mbr->GetPlayerName() : ST::string();
 }
 
 ST::string plNetClientMgr::GetPlayerNameById (unsigned playerId) const {
@@ -1106,8 +1065,8 @@ ST::string plNetClientMgr::GetPlayerNameById (unsigned playerId) const {
     if (NetCommGetPlayer()->playerInt == playerId)
         return NetCommGetPlayer()->playerName;
 
-    plNetTransportMember * mbr = TransportMgr().GetMember(TransportMgr().FindMember(playerId));
-    return mbr ? mbr->GetPlayerName() : ST::null;
+    plNetTransportMember* mbr = TransportMgr().GetMemberByID(playerId);
+    return mbr ? mbr->GetPlayerName() : ST::string();
 }
 
 unsigned plNetClientMgr::GetPlayerIdByName (const ST::string & name) const {
@@ -1115,8 +1074,8 @@ unsigned plNetClientMgr::GetPlayerIdByName (const ST::string & name) const {
     if (name.compare_i(NetCommGetPlayer()->playerName) == 0)
         return NetCommGetPlayer()->playerInt;
 
-    unsigned n = TransportMgr().GetNumMembers();
-    for (unsigned i = 0; i < n; ++i)
+    size_t n = TransportMgr().GetNumMembers();
+    for (size_t i = 0; i < n; ++i)
         if (plNetTransportMember * member = TransportMgr().GetMember(i))
             if (0 == name.compare(member->GetPlayerName()))
                 return member->GetPlayerID();
@@ -1259,20 +1218,19 @@ void plNetClientMgr::IDisableNet () {
     }
 
     hsRefCnt_SafeUnRef(fDisableMsg);
-    fDisableMsg = nil;
+    fDisableMsg = nullptr;
 }
 
 bool plNetClientMgr::IHandlePlayerPageMsg(plPlayerPageMsg *playerMsg)
 {
     bool result = false;
     plKey playerKey = playerMsg->fPlayer;
-    int idx;
 
     if(playerMsg->fUnload)
     {
         if (GetLocalPlayerKey() == playerKey)
         {
-            fLocalPlayerKey = nil;
+            fLocalPlayerKey = nullptr;
             DebugMsg("Net: Unloading local player {}", playerKey->GetName());
 
             // notify server - NOTE: he might not still be around to get this...
@@ -1280,7 +1238,7 @@ bool plNetClientMgr::IHandlePlayerPageMsg(plPlayerPageMsg *playerMsg)
             npp.SetNetProtocol(kNetProtocolCli2Game);
             SendMsg(&npp);
         }
-        else if (IsRemotePlayerKey(playerKey, &idx))
+        else if (int idx; IsRemotePlayerKey(playerKey, &idx))
         {
             fRemotePlayerKeys.erase(fRemotePlayerKeys.begin()+idx); // remove key from list
             DebugMsg("Net: Unloading remote player {}", playerKey->GetName());
@@ -1310,8 +1268,7 @@ bool plNetClientMgr::IHandlePlayerPageMsg(plPlayerPageMsg *playerMsg)
                 const plCoordinateInterface* co = playerSO->GetCoordinateInterface();
                 if (co)
                 {
-                    int i;
-                    for(i=0;i<co->GetNumChildren();i++)
+                    for (size_t i = 0; i < co->GetNumChildren(); i++)
                     {
                         if (co->GetChild(i) && co->GetChild(i)->GetOwner())
                                 const_cast<plSceneObject*>(co->GetChild(i)->GetOwner())->SetSynchFlagsBit(plSynchedObject::kAllStateIsVolatile);
@@ -1327,12 +1284,12 @@ bool plNetClientMgr::IHandlePlayerPageMsg(plPlayerPageMsg *playerMsg)
             {
                 hsLogEntry(DebugMsg("Adding REMOTE player {}\n", playerKey->GetName()));
                 playerSO->SetNetGroupConstant(plNetGroup::kNetGroupRemotePlayer);
-                idx=fTransport.FindMember(playerMsg->fClientID);
-                if( idx != -1 )
+                plNetTransportMember* mbr = fTransport.GetMemberByID(playerMsg->fClientID);
+                if (mbr)
                 {
                     hsAssert(playerKey, "NIL KEY?");
                     hsAssert(!playerKey->GetName().empty(), "UNNAMED KEY");
-                    fTransport.GetMember(idx)->SetAvatarKey(playerKey);
+                    mbr->SetAvatarKey(playerKey);
                 }
                 else
                 {
@@ -1354,18 +1311,17 @@ bool plNetClientMgr::IFindModifier(plSynchedObject* obj, int16_t classIdx)
 {
     plLayerAnimation* layer = plLayerAnimation::ConvertNoRef(obj);
     if (layer)
-        return (layer->GetSDLModifier() != nil);
+        return (layer->GetSDLModifier() != nullptr);
 
     plResponderModifier* resp = plResponderModifier::ConvertNoRef(obj);
     if (resp)
-        return (resp->GetSDLModifier() != nil);
+        return (resp->GetSDLModifier() != nullptr);
 
     int cnt=0;
     plSceneObject* sceneObj=plSceneObject::ConvertNoRef(obj);
     if (sceneObj)
     {
-        int i;
-        for(i=0; i<sceneObj->GetNumModifiers(); i++)
+        for (size_t i = 0; i < sceneObj->GetNumModifiers(); i++)
             if (sceneObj->GetModifier(i) && sceneObj->GetModifier(i)->ClassIndex()==classIdx)
                 cnt++;
     }

@@ -53,17 +53,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _plDXSettings_h
 #define _plDXSettings_h
 
-#include "hsMatrix44.h"
-#include "plPipeline/plFogEnvironment.h"
-#include "hsGeometry3.h"
-#include "hsTemplates.h"
-#include "hsColorRGBA.h"
+#include <vector>
+
 #include "hsBitVector.h"
-#include "plPipeline/plStencil.h"
+#include "hsColorRGBA.h"
+#include "hsGeometry3.h"
+#include "hsMatrix44.h"
 #include "hsPoint2.h"
+#include "hsPoolVector.h"
+#include "plViewTransform.h"
+
+#include "plPipeline/plFogEnvironment.h"
+#include "plPipeline/plStencil.h"
 #include "plPipeline/plCullTree.h"
 #include "plPipeline/hsWinRef.h"
-#include "plViewTransform.h"
 
 //// General Settings /////////////////////////////////////////////////////////
 
@@ -102,7 +105,7 @@ class plDXGeneralSettings
         IDirect3DPixelShader9           *fCurrPixelShader;
         DWORD                           fCurrFVFFormat;
 
-        HRESULT                 fDXError;
+        hsCOMError              fDXError;
         char                    fErrorStr[ 256 ];
 
         void    Reset();
@@ -125,7 +128,7 @@ class plDXFogSettings
 
         void    Reset()
         {
-            fEnvPtr = nil;
+            fEnvPtr = nullptr;
             fMode = D3DFOG_NONE;
             fIsVertex = 0;
             fIsShader = 0;
@@ -150,16 +153,15 @@ class plDXLightSettings
         plLightInfo*            fActiveList;
         plDXLightRef*           fRefList;
         plDXPipeline*           fPipeline;
-        hsTArray<plLightInfo*>  fProjEach;
-        hsTArray<plLightInfo*>  fProjAll;
+        std::vector<plLightInfo*> fProjEach;
+        std::vector<plLightInfo*> fProjAll;
 
-        hsTArray<plLightInfo*>  fCharLights;
-        hsTArray<plLightInfo*>  fVisLights;
+        hsPoolVector<plDXLightRef*> fShadowLights;
 
-        uint32_t                          fNextShadowLight;
-        hsTArray<plDXLightRef*>     fShadowLights;
-
-        plDXLightSettings();
+        plDXLightSettings()
+            : fActiveList(), fRefList(), fPipeline(),
+              fNextIndex(), fLastIndex(), fTime()
+        { }
 
         // Sets member variables to initial states. Does NOT release anything.
         void    Reset( plDXPipeline *pipe );

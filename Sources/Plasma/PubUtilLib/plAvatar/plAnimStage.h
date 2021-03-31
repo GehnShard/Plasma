@@ -47,19 +47,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef PL_ANIM_STAGE_INC
 #define PL_ANIM_STAGE_INC
 
-#include <vector>
 #include "hsMatrix44.h"
+
+#include <vector>
+
 #include "pnFactory/plCreatable.h"
 
-class plMessage;
 class plAGAnimInstance;
-class plArmatureMod;
-class plArmatureMod;
-class hsStream;
-class hsResMgr;
 class plArmatureBrain;
+class plArmatureMod;
 class plDebugText;
+class plMessage;
 class plMultistageBehMod;
+class hsResMgr;
+class hsStream;
 
 // PLANIMSTAGE
 // In a multi-stage behavior, each stage is specified in one of these classes
@@ -233,8 +234,8 @@ public:
     void DumpDebug(bool active, int &x, int &y, int lineHeight, plDebugText &debugTxt);
 
     // STANDARD PLASMA PROTOCOL
-    virtual void Read(hsStream *stream, hsResMgr *mgr);
-    virtual void Write(hsStream *stream, hsResMgr *mgr);
+    void Read(hsStream *stream, hsResMgr *mgr) override;
+    void Write(hsStream *stream, hsResMgr *mgr) override;
 
     virtual void SaveAux(hsStream *stream, hsResMgr *mgr);
     virtual void LoadAux(hsStream *stream, hsResMgr *mgr, double time);

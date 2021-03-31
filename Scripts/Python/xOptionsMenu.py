@@ -54,9 +54,11 @@ This is the python handler for the Options Menu
 MaxVersionNumber = 8
 MinorVersionNumber = 4
 
+import functools
 import os
 
 from Plasma import *
+from PlasmaConstants import *
 from PlasmaTypes import *
 from PlasmaKITypes import *
 import PlasmaControlKeys
@@ -88,6 +90,7 @@ kLiveMovieName = "avi/URULiveIntro.webm"
 kDemoMovieName = "avi/UruPreview.webm"
 gPreviewStarted = 0
 prevAudioDeviceName = None
+gAudioDevices = ()
 
 # =====================================
 # Aspect Ratios
@@ -425,7 +428,6 @@ kOptionFadeInSeconds = 0.5
 gOriginalAmbientVolume = 1.0
 gOriginalSFXVolume = 1.0
 gOriginalMusicVolume = 1.0
-gFirstReltoVisit = True
 
 gMouseSensitivity = "150"
 gSmoothCam = "0"
@@ -446,6 +448,7 @@ class xOptionsMenu(ptModifier):
         
         self.restartWarn = False
         self.goingToCalibration = 0
+        self.refreshBindings = True
 
     def OnFirstUpdate(self):
         global WebLaunchCmd
@@ -497,11 +500,9 @@ class xOptionsMenu(ptModifier):
         if gJournalBook:
             gJournalBook.hide()
 
-    def OnPageLoad(self,what,room):
-        global gFirstReltoVisit
-
-        if room in {u"Personal_psnlMYSTII", u"Personal_District_psnlMYSTII"} and gFirstReltoVisit:
-            gFirstReltoVisit = False
+    def OnServerInitComplete(self):
+        if self.refreshBindings:
+            self.refreshBindings = False
 
             vault = ptVault()
             entry = vault.findChronicleEntry("KeyMap")
@@ -517,14 +518,18 @@ class xOptionsMenu(ptModifier):
             else:
                 PtAtTimeCallback (self.key, 5, 999)
 
+    def OnAccountUpdate(self, notify, result, playerID):
+        # If a new player is set, we'll want to reload the key bindings from their vault.
+        if notify == PtAccountUpdateType.kActivePlayer and playerID:
+            self.refreshBindings = True
+
     def OnNotify(self,state,id,events):
-        global gFirstReltoVisit
         "Notify - should only be needed for credits book"
         PtDebugPrint("xOptionsMenu: Notify  state=%f, id=%d" % (state,id),level=kDebugDumpLevel)
 
         if id == -1:
             PtDebugPrint("Options Menu got notify, resetting First Visit status")
-            gFirstReltoVisit = True
+            self.refreshBindings = True
             return
 
         # is it a notification from the scene input interface or PlayerBook?
@@ -724,7 +729,7 @@ class xOptionsMenu(ptModifier):
                 kmID = control.getTagID()
                 if kmID == kKMOkBtn:
                     KeyMapDlg.dialog.hide()
-                elif kmID in gKM1ControlCodesRow1.viewkeys():
+                elif kmID in gKM1ControlCodesRow1.keys():
                     NewKeyMapString = ""
                     # get the new keys and bind
                     km = ptKeyMap()
@@ -759,7 +764,7 @@ class xOptionsMenu(ptModifier):
                     self.IShowMappedKeys(KeyMapDlg.dialog,gKM1ControlCodesRow1,gKM1ControlCodesRow2)
                     # need to re-set the ini file, in case something got unmapped
                     #self.IMatchIniToGame()
-                elif kmID in gKM1ControlCodesRow2.viewkeys():
+                elif kmID in gKM1ControlCodesRow2.keys():
                     NewKeyMapString = ""
                     # get the new keys and bind
                     km = ptKeyMap()
@@ -1243,7 +1248,7 @@ class xOptionsMenu(ptModifier):
                     if self.restartAudio:
                         audio = ptAudioControl()
                         audioField = ptGUIControlKnob(AudioSettingsDlg.dialog.getControlFromTag(kAudioModeID))
-                        audModeNum = audio.getNumAudioDevices() - 1
+                        audModeNum = len(gAudioDevices) - 1
                         curSelection = round(audioField.getValue() * audModeNum) 
                         intCurSelection = int(curSelection)
 
@@ -1251,7 +1256,7 @@ class xOptionsMenu(ptModifier):
                         EAXcheckbox = ptGUIControlCheckBox(AudioSettingsDlg.dialog.getControlFromTag(kAudioModeCBID03))
                         audio.useEAXAcceleration(EAXcheckbox.isChecked())
 
-                        audio.setDeviceName(audio.getAudioDeviceName(intCurSelection), 1)
+                        audio.setPlaybackDevice(gAudioDevices[intCurSelection], 1)
                     self.WriteAudioControls()
 
             elif event == kAction or event == kValueChanged:
@@ -1309,23 +1314,21 @@ class xOptionsMenu(ptModifier):
                     self.restartAudio = 1
                     audio = ptAudioControl()
                     #~ PtDebugPrint("Number of Audio Devices: %d" % (audio.getNumAudioDevices()))
-                    audModeNum = audio.getNumAudioDevices() - 1
+                    audModeNum = len(gAudioDevices)  - 1
                     curSelection = round(control.getValue() * audModeNum)
                     intCurSelection = int(curSelection)
                     control.setValue(curSelection/audModeNum)
 
-                    audioDeviceName = audio.getAudioDeviceName(intCurSelection)
+                    audioDeviceName = gAudioDevices[intCurSelection]
 
                     audioModeCtrlTextBox = ptGUIControlTextBox(AudioSettingsDlg.dialog.getControlFromTag(kAudioModeTextID))
-                    curText = audioModeCtrlTextBox.getString()
-                    if curText != audio.getAudioDeviceName(intCurSelection):
-                        audioModeCtrlTextBox.setString(audioDeviceName)
+                    audioModeCtrlTextBox.setStringW(audio.getFriendlyDeviceName(audioDeviceName))
 
                     if audioDeviceName != prevAudioDeviceName:  #Only update the EAX checkbox when the mouse has been let up...
                         PtDebugPrint("Audio Device Name changed!")
                         prevAudioDeviceName = audioDeviceName
                         EAXcheckbox = ptGUIControlCheckBox(AudioSettingsDlg.dialog.getControlFromTag(kAudioModeCBID03))
-                        if not audio.supportsEAX(audioDeviceName):
+                        if not audio.isEAXSupported():
                             PtDebugPrint("Disabling EAX checkbox")
                             #Disable EAX checkbox
                             EAXcheckbox.disable()
@@ -1605,14 +1608,14 @@ class xOptionsMenu(ptModifier):
         videoField = ptGUIControlKnob(GraphicsSettingsDlg.dialog.getControlFromTag(kVideoAntiAliasingSliderTag))
         aaVal = int(videoField.getValue())
         antialias = 0
-        for key in kVideoAntiAliasing.viewkeys():
+        for key in kVideoAntiAliasing.keys():
             if kVideoAntiAliasing[key] == aaVal:
                 antialias = int(key)
         
         videoField = ptGUIControlKnob(GraphicsSettingsDlg.dialog.getControlFromTag(kVideoFilteringSliderTag))
         afVal = int(videoField.getValue())
         aniso = 0
-        for key in kVideoAnisoFiltering.viewkeys():
+        for key in kVideoAnisoFiltering.keys():
             if kVideoAnisoFiltering[key] == afVal:
                 aniso = int(key)
                 break
@@ -1653,7 +1656,7 @@ class xOptionsMenu(ptModifier):
             if windowed and (i[0] >= PtGetDesktopWidth() and i[1] >= PtGetDesktopHeight()):
                 continue
             vidResList.append("%ix%i" % (i[0], i[1]))
-        vidResList.sort(res_comp)
+        vidResList.sort(key=functools.cmp_to_key(res_comp))
         return vidResList
 
     def WriteAudioControls(self):
@@ -1669,7 +1672,7 @@ class xOptionsMenu(ptModifier):
 
         EAXcheckbox = ptGUIControlCheckBox(AudioSettingsDlg.dialog.getControlFromTag(kAudioModeCBID03))
 
-        xIniAudio.SetAudioMode( True, audio.getDeviceName(), EAXcheckbox.isChecked() )
+        xIniAudio.SetAudioMode( True, audio.getPlaybackDevice(), EAXcheckbox.isChecked() )
         #xIniAudio.SetAudioMode( audio.isEnabled(), audio.getDeviceName(), EAXcheckbox.isChecked() )
         #xIniAudio.SetAudioMode( audio.isEnabled(), audio.getDeviceName(), audio.isUsingEAXAcceleration() )
         #xIniAudio.SetMicLevel( audio.getMicLevel() )
@@ -1678,10 +1681,13 @@ class xOptionsMenu(ptModifier):
         xIniAudio.WriteIni()
 
     def InitAudioControlsGUI(self):
+        global gAudioDevices
         global prevAudioDeviceName
         
         xIniAudio.ReadIni()
         audio = ptAudioControl()
+
+        gAudioDevices = audio.getPlaybackDevices()
 
         audioField = ptGUIControlKnob(AudioSettingsDlg.dialog.getControlFromTag(kAudioNumberOfSoundsSliderTag))
         audioField.setValue( audio.getPriorityCutoff() )
@@ -1713,12 +1719,12 @@ class xOptionsMenu(ptModifier):
         respDisableItems.run(self.key, state="enableEAX")
 
         audioField = ptGUIControlKnob(AudioSettingsDlg.dialog.getControlFromTag(kAudioModeID))
-        numAudioDevices = audio.getNumAudioDevices() - 1.0
+        numAudioDevices = len(gAudioDevices) - 1.0
 
         if numAudioDevices > 0:
-            for num in range(audio.getNumAudioDevices()):
-                if audio.getAudioDeviceName(num) == audio.getDeviceName():
-                    if not audio.supportsEAX(audio.getDeviceName()):
+            for num, device in enumerate(gAudioDevices):
+                if gAudioDevices[num] == audio.getPlaybackDevice():
+                    if not audio.isEAXSupported():
                         EAXcheckbox.disable()
                         respDisableItems.run(self.key, state="disableEAX")
                         EAXcheckbox.setChecked(False)
@@ -1726,8 +1732,8 @@ class xOptionsMenu(ptModifier):
 
                     audioField.setValue(num/numAudioDevices)
                     audioModeCtrlTextBox = ptGUIControlTextBox(AudioSettingsDlg.dialog.getControlFromTag(kAudioModeTextID))
-                    audioDeviceName = prevAudioDeviceName = audio.getAudioDeviceName(num)
-                    audioModeCtrlTextBox.setString(audioDeviceName)
+                    audioDeviceName = prevAudioDeviceName = audio.getPlaybackDevice()
+                    audioModeCtrlTextBox.setStringW(audio.getFriendlyDeviceName(device))
         else:
             EAXcheckbox.disable()
             respDisableItems.run(self.key, state="disableEAX")
@@ -1825,7 +1831,6 @@ class xOptionsMenu(ptModifier):
         global gWalkAndPan
         global gStayInFirstPerson
         global gClickToTurn
-        import string
 
         AdvSettingsString = self.getChronicleVar("AdvSettings")
         AdvSettingsArray = []
@@ -1837,43 +1842,46 @@ class xOptionsMenu(ptModifier):
         else:
             AdvSettingsArray = AdvSettingsString.split()
 
-        value = string.atoi(AdvSettingsArray[0])
+        value = int(AdvSettingsArray[0])
         PtSetMouseTurnSensitivity(float(value))
         gMouseSensitivity = AdvSettingsArray[0]
 
-        value = string.atoi(AdvSettingsArray[1])
+        value = int(AdvSettingsArray[1])
         cam = ptCamera()
         cam.setSmootherCam(value)
         gSmoothCam = AdvSettingsArray[1]
 
-        value = string.atoi(AdvSettingsArray[2])
+        value = int(AdvSettingsArray[2])
         gMouseInvert = AdvSettingsArray[2]
         if value:
             PtSetMouseInverted()
         else:
             PtSetMouseUninverted()
 
-        value = string.atoi(AdvSettingsArray[3])
+        value = int(AdvSettingsArray[3])
         cam = ptCamera()
         cam.setWalkAndVerticalPan(value)
         gWalkAndPan = AdvSettingsArray[3]
 
-        value = string.atoi(AdvSettingsArray[4])
+        value = int(AdvSettingsArray[4])
         cam = ptCamera()
         cam.setStayInFirstPerson(value)
         gStayInFirstPerson = AdvSettingsArray[4]
 
-        value = string.atoi(AdvSettingsArray[5])
+        value = int(AdvSettingsArray[5])
         PtSetClickToTurn(value)
         gClickToTurn = AdvSettingsArray[5]
 
     def LoadKeyMap(self):
         km = ptKeyMap()
         KeyMapString = self.getChronicleVar("KeyMap")
+        if not KeyMapString:
+            PtDebugPrint("xOptionsMenu.LoadKeyMap():\tHmm... Empty chronicle...")
+            return
+
         KeyMapArray = KeyMapString.split()
-        counter = 0
         # set the key binds back to the saved
-        for control_code in defaultControlCodeBindsOrdered:
+        for counter, control_code in enumerate(defaultControlCodeBindsOrdered):
             if isinstance(control_code, str):
                 key1 = KeyMapArray[counter]
                 PtDebugPrint("Binding " + key1 + " to " + control_code)
@@ -1885,7 +1893,6 @@ class xOptionsMenu(ptModifier):
                 key2 = SubArray[1]
                 PtDebugPrint("Binding " + key1 + " & " + key2 + " to " + controlStr)
                 km.bindKey(key1,key2,controlStr)
-            counter += 1
 
     def IsThereACover(self,bookHtml):
         # search the bookhtml string looking for a cover
@@ -1896,7 +1903,7 @@ class xOptionsMenu(ptModifier):
 
     def IShowMappedKeys(self,dlg,mapRow1,mapRow2):
         km = ptKeyMap()
-        for cID in mapRow1.viewkeys():
+        for cID in mapRow1.keys():
             field = ptGUIControlEditBox(dlg.getControlFromTag(cID))
             field.setSpecialCaptureKeyMode(1)
             # set the mapping
@@ -1914,7 +1921,7 @@ class xOptionsMenu(ptModifier):
                 # if the first key is disabled, then the entire line should be! which is 100 less then the first field tag ID
                 ftext = ptGUIControlTextBox(dlg.getControlFromTag(cID-100))
                 ftext.hide()
-        for cID in mapRow2.viewkeys():
+        for cID in mapRow2.keys():
             field = ptGUIControlEditBox(dlg.getControlFromTag(cID))
             field.setSpecialCaptureKeyMode(1)
             # set the mapping
@@ -1954,8 +1961,11 @@ def res_comp(elem1, elem2):
     elem2w = int(elem2[:elem2.find("x")])
     elem2h = int(elem2[elem2.find("x") + 1:])
 
-    result = cmp(elem1w, elem2w)
+    # cmp is gone in Python 3
+    _cmp = lambda a, b: (a > b) - (a < b)
+
+    result = _cmp(elem1w, elem2w)
     if result == 0:
-        return cmp(elem1h, elem2h)
+        return _cmp(elem1h, elem2h)
     else:
         return result

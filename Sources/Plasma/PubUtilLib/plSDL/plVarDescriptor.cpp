@@ -39,12 +39,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "hsStream.h"
+
 #include "plSDL.h"
 
+#include "hsStream.h"
+
 #include "pnKeyedObject/plUoid.h"
-#include "pnNetCommon/plNetApp.h"
 #include "pnMessage/plMessage.h"
+#include "pnNetCommon/plNetApp.h"
 
 #include "plUnifiedTime/plUnifiedTime.h"
 
@@ -147,8 +149,7 @@ void plVarDescriptor::CopyFrom(const plVarDescriptor* other)
 //
 bool plVarDescriptor::Read(hsStream* s) 
 {
-    uint8_t version;
-    s->ReadLE(&version);
+    uint8_t version = s->ReadByte();
     if (version != kVersion)
     {
         if (plSDLMgr::GetInstance()->GetNetApp())
@@ -176,7 +177,7 @@ bool plVarDescriptor::Read(hsStream* s)
 //
 void plVarDescriptor::Write(hsStream* s) const
 {
-    s->WriteLE(kVersion);
+    s->WriteByte(kVersion);
     s->WriteSafeString(fName);
     plMsgStdStringHelper::Poke(fDisplayOptions, s);
     s->WriteLE32(fCount);
@@ -389,5 +390,5 @@ void plSDVarDescriptor::Write(hsStream* s) const
 
     s->WriteSafeString(GetStateDescriptor()->GetName());
     uint16_t version=GetStateDescriptor()->GetVersion();
-    s->WriteLE(version);
+    s->WriteLE16(version);
 }

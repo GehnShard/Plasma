@@ -62,7 +62,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plMessage/plDynamicTextMsg.h"
 #include "pnKeyedObject/plKey.h"
 #include "plProfile.h"
-#include "plStatusLog/plStatusLog.h"
 #include "plFont.h"
 #include "plFontCache.h"
 #include "plResMgr/plLocalization.h"
@@ -77,8 +76,8 @@ plProfile_Extern(MemMipmaps);
 
 plDynamicTextMap::plDynamicTextMap()
     : fVisWidth(0), fVisHeight(0), fHasAlpha(false), fPremultipliedAlpha(false), fJustify(kLeftJustify),
-      fInitBuffer(nullptr), fFontSize(0), fFontFlags(0),
-      fFontAntiAliasRGB(false), fFontBlockRGB(false), fHasCreateBeenCalled(false)
+      fInitBuffer(), fFontSize(), fFontFlags(), fShadowed(), fLineSpacing(),
+      fCurrFont(), fFontAntiAliasRGB(), fFontBlockRGB(), fHasCreateBeenCalled()
 {
     fFontColor.Set(0, 0, 0, 1);
 }
@@ -106,9 +105,9 @@ void    plDynamicTextMap::SetNoCreate( uint32_t width, uint32_t height, bool has
     fVisWidth = (uint16_t)width;
     fVisHeight = (uint16_t)height;
     fHasAlpha = hasAlpha;
-    fImage = nil;       // So we know we haven't actually done anything yet
+    fImage = nullptr;       // So we know we haven't actually done anything yet
     delete [] fInitBuffer;
-    fInitBuffer = nil;
+    fInitBuffer = nullptr;
 }
 
 //// Create ///////////////////////////////////////////////////////////////////
@@ -118,8 +117,8 @@ void    plDynamicTextMap::Create( uint32_t width, uint32_t height, bool hasAlpha
     SetConfig( hasAlpha ? kARGB32Config : kRGB32Config );
 
 
-    fVisWidth = (uint16_t)width;
-    fVisHeight = (uint16_t)height;
+    fVisWidth = width;
+    fVisHeight = height;
     fHasAlpha = hasAlpha;
     fPremultipliedAlpha = premultipliedAlpha;
 
@@ -137,7 +136,7 @@ void    plDynamicTextMap::Create( uint32_t width, uint32_t height, bool hasAlpha
 
     // Destroy the old texture ref, if we have one. This should force the 
     // pipeline to recreate one more suitable for our use
-    SetDeviceRef( nil );
+    SetDeviceRef(nullptr);
 
     // Some init color
     SetFont( "Arial", 12 );
@@ -162,12 +161,12 @@ void    plDynamicTextMap::Reset()
     fHasCreateBeenCalled = false;
 
     delete [] fInitBuffer;
-    fInitBuffer = nil;
+    fInitBuffer = nullptr;
 
-    fFontFace = ST::null;
+    fFontFace = ST::string();
 
     // Destroy the old texture ref, since we're no longer using it
-    SetDeviceRef( nil );
+    SetDeviceRef(nullptr);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -176,12 +175,12 @@ void    plDynamicTextMap::Reset()
 
 bool        plDynamicTextMap::IIsValid()
 {
-    if( GetImage() == nil && fHasCreateBeenCalled )
+    if (GetImage() == nullptr && fHasCreateBeenCalled)
     {
         // we are going to allocate the fImage at this point... when someone is looking for it
         fImage = (void *)IAllocateOSSurface( (uint16_t)fWidth, (uint16_t)fHeight );
         hsColorRGBA color;
-        if( fInitBuffer != nil )
+        if (fInitBuffer != nullptr)
         {
             IClearFromBuffer( fInitBuffer );
         }
@@ -196,7 +195,7 @@ bool        plDynamicTextMap::IIsValid()
         SetCurrLevel( 0 );
         // Destroy the old texture ref, if we have one. This should force the 
         // pipeline to recreate one more suitable for our use
-        SetDeviceRef( nil );
+        SetDeviceRef(nullptr);
         plProfile_NewMem(MemMipmaps, fTotalSize);
         plProfile_NewMem(DynaTextMem, fTotalSize);
 #ifdef MEMORY_LEAK_TRACER
@@ -204,7 +203,7 @@ bool        plDynamicTextMap::IIsValid()
 #endif
     }
 
-    if( GetImage() == nil )
+    if (GetImage() == nullptr)
         return false;
 
     return true;//fWriter->IsValid();
@@ -219,7 +218,7 @@ void plDynamicTextMap::PurgeImage()
     SetCurrLevel( 0 );
     // Destroy the old texture ref, if we have one. This should force the 
     // pipeline to recreate one more suitable for our use
-    SetDeviceRef( nil );
+    SetDeviceRef(nullptr);
 }
 
 //// IAllocateOSSurface ///////////////////////////////////////////////////////
@@ -238,12 +237,12 @@ uint32_t* plDynamicTextMap::IAllocateOSSurface( uint16_t width, uint16_t height 
 void    plDynamicTextMap::IDestroyOSSurface()
 {
 #ifdef MEMORY_LEAK_TRACER
-    if( fImage != nil )
+    if (fImage != nullptr)
         IRemoveFromMemRecord( (uint8_t *)fImage );
 #endif
 
     delete[] (uint32_t*)fImage;
-    fImage = nil;
+    fImage = nullptr;
 
     plProfile_Dec(DynaTexts);
     plProfile_DelMem(DynaTextMem, fTotalSize);
@@ -263,8 +262,8 @@ uint32_t  plDynamicTextMap::Read( hsStream *s )
     // The funny thing is that we don't read anything like a mipmap; we just
     // keep the width and height and call Create() after we read those in
 
-    fVisWidth = (uint16_t)(s->ReadLE32());
-    fVisHeight = (uint16_t)(s->ReadLE32());
+    fVisWidth = s->ReadLE32();
+    fVisHeight = s->ReadLE32();
     fHasAlpha = s->ReadBool();
     totalRead += 2 * 4;
 
@@ -278,12 +277,12 @@ uint32_t  plDynamicTextMap::Read( hsStream *s )
         totalRead += initSize * 4;
     }
     else
-        fInitBuffer = nil;
+        fInitBuffer = nullptr;
 
     Create( fVisWidth, fVisHeight, fHasAlpha );
     
     delete [] fInitBuffer;
-    fInitBuffer = nil;
+    fInitBuffer = nullptr;
 
     return totalRead;
 }
@@ -298,8 +297,8 @@ uint32_t  plDynamicTextMap::Write( hsStream *s )
     s->WriteLE32( fVisHeight );
     s->WriteBool( fHasAlpha );
 
-    s->WriteLE32( fInitBuffer != nil ? fVisWidth * fVisHeight * sizeof( uint32_t ) : 0 );
-    if( fInitBuffer != nil )
+    s->WriteLE32(fInitBuffer != nullptr ? uint32_t(fVisWidth * fVisHeight * sizeof(uint32_t)) : 0U);
+    if (fInitBuffer != nullptr)
     {
         s->WriteLE32( fVisWidth * fVisHeight, fInitBuffer );
     }
@@ -319,9 +318,9 @@ uint32_t  plDynamicTextMap::Write( hsStream *s )
 void    plDynamicTextMap::SetInitBuffer( uint32_t *buffer )
 {
     delete [] fInitBuffer;
-    if( buffer == nil )
+    if (buffer == nullptr)
     {
-        fInitBuffer = nil;
+        fInitBuffer = nullptr;
         return;
     }
 
@@ -348,7 +347,7 @@ plMipmap *plDynamicTextMap::Clone() const
         alreadyWarned = true;
     }
 
-    return nil;
+    return nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -361,7 +360,6 @@ void    plDynamicTextMap::IClearFromBuffer( uint32_t *clearBuffer )
 {
     int         y;
     uint32_t      *data = (uint32_t *)fImage, *srcData = clearBuffer;
-    uint8_t       *destAlpha = nil;
 
 
     if( !IIsValid() )
@@ -446,7 +444,7 @@ void    plDynamicTextMap::SetFont( const ST::string &face, uint16_t size, uint8_
     fCurrFont = plFontCache::GetInstance().GetFont( fFontFace, (uint8_t)fFontSize,
                         ( ( fFontFlags & kFontBold ) ? plFont::kFlagBold : 0 ) | 
                         ( ( fFontFlags & kFontItalic ) ? plFont::kFlagItalic : 0 ) );
-    if ( fCurrFont == nil )
+    if (fCurrFont == nullptr)
     {
         if (!fCurrFont)
             hsStatusMessageF("Font missing - %s. Using Arial", fFontFace.c_str("nil"));
@@ -588,7 +586,7 @@ uint16_t      plDynamicTextMap::CalcStringWidth( const wchar_t *text, uint16_t *
     uint32_t firstClipped;
     fCurrFont->SetRenderFlag( plFont::kRenderClip | plFont::kRenderWrap, false );
     fCurrFont->CalcStringExtents( text, w, h, a, firstClipped, lastX, lastY );
-    if( height != nil )
+    if (height != nullptr)
         *height = h;
     return w;
 }
@@ -625,13 +623,13 @@ void    plDynamicTextMap::CalcWrappedStringSize( const wchar_t *text, uint16_t *
     fCurrFont->CalcStringExtents( text, w, h, a, firstClipped, lX, lY );
     *width = w;
     *height = h;
-    if( firstClippedChar != nil )
+    if (firstClippedChar != nullptr)
         *firstClippedChar = firstClipped;
-    if( maxAscent != nil )
+    if (maxAscent != nullptr)
         *maxAscent = a;
-    if( lastX != nil )
+    if (lastX != nullptr)
         *lastX = lX;
-    if( lastY != nil )
+    if (lastY != nullptr)
         *lastY = lY;
 }
 
@@ -778,7 +776,7 @@ void    plDynamicTextMap::FlushToHost()
         return;
 
     // Dirty the mipmap's deviceRef, if there is one
-    if( GetDeviceRef() != nil )
+    if (GetDeviceRef() != nullptr)
         GetDeviceRef()->SetDirty( true );
 }
 
@@ -790,10 +788,8 @@ void    plDynamicTextMap::FlushToHost()
 hsMatrix44  plDynamicTextMap::GetLayerTransform()
 {
     hsMatrix44  xform;
-    hsVector3   scale;
-
-    scale.Set( (float)GetVisibleWidth() / (float)GetWidth(), 
-               (float)GetVisibleHeight() / (float)GetHeight(), 1.f );
+    hsVector3   scale((float)GetVisibleWidth() / (float)GetWidth(),
+                      (float)GetVisibleHeight() / (float)GetHeight(), 1.f);
 
     xform.MakeScaleMat( &scale );
     return xform;
@@ -804,7 +800,7 @@ hsMatrix44  plDynamicTextMap::GetLayerTransform()
 bool    plDynamicTextMap::MsgReceive( plMessage *msg )
 {
     plDynamicTextMsg    *textMsg = plDynamicTextMsg::ConvertNoRef( msg );
-    if( textMsg != nil )
+    if (textMsg != nullptr)
     {
         if( textMsg->fCmd & plDynamicTextMsg::kClear )
             ClearToColor( textMsg->fClearColor );
@@ -842,15 +838,15 @@ bool    plDynamicTextMap::MsgReceive( plMessage *msg )
 
         if( textMsg->fCmd & plDynamicTextMsg::kDrawImage )
         {
-            plMipmap *mip = plMipmap::ConvertNoRef( textMsg->fImageKey ? textMsg->fImageKey->ObjectIsLoaded() : nil);
-            if( mip != nil )
+            plMipmap *mip = plMipmap::ConvertNoRef(textMsg->fImageKey ? textMsg->fImageKey->ObjectIsLoaded() : nullptr);
+            if (mip != nullptr)
                 DrawImage( textMsg->fX, textMsg->fY, mip, textMsg->fFlags ? kImgBlend : kImgNoAlpha );
         }
 
         if( textMsg->fCmd & plDynamicTextMsg::kDrawClippedImage )
         {
-            plMipmap *mip = plMipmap::ConvertNoRef( textMsg->fImageKey ? textMsg->fImageKey->ObjectIsLoaded() : nil);
-            if( mip != nil )
+            plMipmap *mip = plMipmap::ConvertNoRef(textMsg->fImageKey ? textMsg->fImageKey->ObjectIsLoaded() : nullptr);
+            if (mip != nullptr)
                 DrawClippedImage( textMsg->fX, textMsg->fY, mip, textMsg->fLeft, textMsg->fTop, 
                                 textMsg->fRight, textMsg->fBottom, textMsg->fFlags ? kImgBlend : kImgNoAlpha );
         }
@@ -889,9 +885,9 @@ void    plDynamicTextMap::Swap( plDynamicTextMap *other )
     fImage = ptr;
 
     // Invalidate both device refs (don't risk swapping THOSE)
-    if( GetDeviceRef() != nil )
+    if (GetDeviceRef() != nullptr)
         GetDeviceRef()->SetDirty( true );
-    if( other->GetDeviceRef() != nil )
+    if (other->GetDeviceRef() != nullptr)
         other->GetDeviceRef()->SetDirty( true );
 
     // Swap DTMap info

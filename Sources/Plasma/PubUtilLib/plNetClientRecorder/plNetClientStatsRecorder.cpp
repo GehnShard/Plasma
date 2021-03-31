@@ -40,19 +40,15 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "plNetClientRecorder.h"
-#include "hsStream.h"
-#include "plNetMessage/plNetMessage.h"
+
 #include "plCreatableIndex.h"
 #include "plgDispatch.h"
-#include "plSDL/plSDL.h"
-#include "pnNetCommon/plNetApp.h"
+#include "hsStream.h"
 
-#include "plMessage/plLinkToAgeMsg.h"
-#include "plMessage/plLoadAvatarMsg.h"
-#include "plMessage/plLinkToAgeMsg.h"
 #include "pnMessage/plNotifyMsg.h"
-#include "plMessage/plAgeLoadedMsg.h"
 
+#include "plNetMessage/plNetMessage.h"
+#include "plSDL/plSDL.h"
 #include "plStatusLog/plStatusLog.h"
 
 
@@ -98,8 +94,8 @@ void plNetClientStatsRecorder::ILogMsg(plNetMessage* msg, const char* preText)
         if (gameMsg->StreamInfo()->GetStreamType() == CLASS_INDEX_SCOPED(plNotifyMsg))
         {
             plNotifyMsg* notifyMsg = plNotifyMsg::ConvertNoRef(gameMsg->GetContainedMsg());
-            int numEvents = notifyMsg->GetEventCount();
-            for (int i = 0; i < numEvents; i++)
+            size_t numEvents = notifyMsg->GetEventCount();
+            for (size_t i = 0; i < numEvents; i++)
             {
                 const char* eventName = "";
 

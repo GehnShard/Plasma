@@ -39,15 +39,19 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "plAGApplicator.h"
-#include "plAGModifier.h"
-#include "hsResMgr.h"
 
+#include "plAGApplicator.h"
+
+#include "hsResMgr.h"
+#include "hsStream.h"
+
+#include "plAGChannel.h"
+#include "plAGModifier.h"
 
 // ctor --------
 // -----
 plAGApplicator::plAGApplicator()
-: fChannel(nil),
+: fChannel(),
   fEnabled(true)
 {
 };
@@ -55,7 +59,7 @@ plAGApplicator::plAGApplicator()
 // ctor -------------------------------
 // -----
 plAGApplicator::plAGApplicator(const ST::string &channelName)
-: fChannel(nil),
+: fChannel(),
   fEnabled(true),
   fChannelName(channelName)
 {
@@ -86,7 +90,7 @@ ST::string plAGApplicator::GetChannelName()
 plAGChannel *plAGApplicator::MergeChannel(plAGApplicator *app, plAGChannel *channel, 
                                           plScalarChannel *blend, int blendPriority)    
 {
-    plAGChannel *result = nil;
+    plAGChannel *result = nullptr;
     if(fChannel)
     {
         if (CanCombine(app))
@@ -137,7 +141,7 @@ void plAGApplicator::Read(hsStream *stream, hsResMgr *mgr)
     plCreatable::Read(stream, mgr);
 
     fEnabled = stream->ReadBool();
-    fChannel = nil; // Whatever is reading this applicator in should know what channel to assign it
+    fChannel = nullptr; // Whatever is reading this applicator in should know what channel to assign it
     fChannelName = stream->ReadSafeString();
 }
 

@@ -39,45 +39,45 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "plFontConverter.h"
-#include "plFontFreeType.h"
 
-#ifdef Q_OS_WIN
+#include "plFontConverter.h"
+
 #include "HeadSpin.h"
 #include "hsWindows.h"
-#endif
 
 #include "pnAllCreatables.h"
+
+#include "pnKeyedObject/plKeyImp.h"
+#include "pnKeyedObject/plUoid.h"
+
+#include "plGImage/plBitmap.h"
+#include "plGImage/plFont.h"
+#include "plGImage/plMipmap.h"
+#include "plMessage/plResMgrHelperMsg.h"
 #include "plResMgr/plResManager.h"
 #include "plResMgr/plResMgrCreatable.h"
 #include "plResMgr/plResMgrSettings.h"
-#include "plMessage/plResMgrHelperMsg.h"
-REGISTER_CREATABLE(plResMgrHelperMsg);
-
-#include "plGImage/plFont.h"
-REGISTER_CREATABLE(plFont);
-
-#include "plGImage/plBitmap.h"
-#include "plGImage/plMipmap.h"
-REGISTER_NONCREATABLE(plBitmap);
-REGISTER_CREATABLE(plMipmap);
-
-#include "pnKeyedObject/plUoid.h"
-#include "pnKeyedObject/plKeyImp.h"
-
-#include <QApplication>
-#include <QDialog>
-#include <QMessageBox>
-#include <QFileDialog>
-#include <QProgressDialog>
-#include <QDragEnterEvent>
-#include <QMimeData>
-#include "ui_MainDialog.h"
-#include "ui_FonChooser.h"
-#include "ui_FreeType.h"
-#include "ui_FreeTypeBatch.h"
 
 #include <functional>
+#include <QApplication>
+#include <QDialog>
+#include <QDragEnterEvent>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QMimeData>
+#include <QProgressDialog>
+
+
+#include "plFontFreeType.h"
+#include "res/ui_MainDialog.h"
+#include "res/ui_FonChooser.h"
+#include "res/ui_FreeType.h"
+#include "res/ui_FreeTypeBatch.h"
+
+REGISTER_NONCREATABLE(plBitmap);
+REGISTER_CREATABLE(plFont);
+REGISTER_CREATABLE(plMipmap);
+REGISTER_CREATABLE(plResMgrHelperMsg);
 
 static void IAboutDialog(QWidget *parent)
 {
@@ -240,7 +240,7 @@ void plFontConverter::ExportP2F()
             /*
             sprintf( fileName, "%s-%d", gFont->GetFace(), gFont->GetSize() );
 
-            if( gFont->GetKey() == nil )
+            if (gFont->GetKey() == nullptr)
                 hsgResMgr::ResMgr()->NewKey( fileName, gFont, plLocation::kGlobalFixedLoc );
             */
             fFont->WriteRaw(&stream);
@@ -348,14 +348,14 @@ class plMyBDFCallback : public plBDFConvertCallback
     uint16_t  fPoint;
 
 public:
-    plMyBDFCallback(QWidget *parent) : fProgress(parent) { }
+    plMyBDFCallback(QWidget *parent) : fProgress(parent), fPoint() { }
 
-    void NumChars(uint16_t chars) HS_OVERRIDE
+    void NumChars(uint16_t chars) override
     {
         fProgress.SetRange(chars);
     }
 
-    void CharDone() HS_OVERRIDE
+    void CharDone() override
     {
         fPoint++;
         fProgress.SetValue(fPoint);
@@ -433,13 +433,13 @@ void plFontConverter::IImportFON(const plFileName &path)
 
     // FON files are really just resource modules
     IMakeNewFont();
-    HMODULE file = LoadLibraryExA(path.AsString().c_str(), nil, LOAD_LIBRARY_AS_DATAFILE | DONT_RESOLVE_DLL_REFERENCES);
+    HMODULE file = LoadLibraryExA(path.AsString().c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE | DONT_RESOLVE_DLL_REFERENCES);
     if (file == nullptr)
     {
         char msg[512];
 
         FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            nil, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)msg, sizeof(msg), nil);
+            nullptr, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)msg, sizeof(msg), nullptr);
 
         QMessageBox::critical(this, tr("Error"),
                 tr("Failure importing FON file: can't open as resource library (%1)").arg(msg));
@@ -480,7 +480,7 @@ void plFontConverter::IImportFON(const plFileName &path)
             char msg[512];
 
             FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                nil, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)msg, sizeof(msg), nil);
+                nullptr, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)msg, sizeof(msg), nullptr);
 
             QMessageBox::critical(this, tr("Error"),
                     tr("Failure importing FON file: can't enumerate resources (%1)").arg(msg));
@@ -498,7 +498,7 @@ class NumListValidator : public QValidator
 public:
     NumListValidator(QObject *parent = nullptr) : QValidator(parent) { }
 
-    State validate(QString &input, int &pos) const HS_OVERRIDE
+    State validate(QString &input, int &pos) const override
     {
         for (int ch = 0; ch < input.size(); ++ch)
         {
@@ -562,7 +562,7 @@ void plFontConverter::IBatchFreeType(const plFileName &path, void *init)
         plFontFreeType *ft2Convert = reinterpret_cast<plFontFreeType *>(fFont);
 
         info.fSize = size;
-        if (!ft2Convert->ImportFreeType(path, &info, nil))
+        if (!ft2Convert->ImportFreeType(path, &info, nullptr))
         {
             QMessageBox::critical(this, tr("ERROR"), tr("Failure converting TrueType file"));
             continue;

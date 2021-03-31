@@ -48,7 +48,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _pfGUIControlHandlers_h
 #define _pfGUIControlHandlers_h
 
-#include "hsStream.h"
+#include "HeadSpin.h"
+
+class pfGUIControlMod;
+class hsStream;
 
 //// pfGUICtrlProcObject Definition //////////////////////////////////////////
 //  Any control which "does something" (buttons, edit boxes on Enter/Return, 
@@ -76,7 +79,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 //  Dialogs will use a similar functionality, but with more functions available.
 
-class pfGUIControlMod;
 class pfGUICtrlProcObject
 {
     protected:
@@ -129,7 +131,7 @@ class pfGUICtrlProcWriteableObject : public pfGUICtrlProcObject
         pfGUICtrlProcWriteableObject( uint32_t type ) : fType( type ) { }
         virtual ~pfGUICtrlProcWriteableObject() { }
 
-        virtual void    DoSomething( pfGUIControlMod *ctrl ) = 0;
+        void    DoSomething(pfGUIControlMod *ctrl) override = 0;
 
         static void Write( pfGUICtrlProcWriteableObject *obj, hsStream *s );
 
@@ -145,8 +147,8 @@ class pfGUIConsoleCmdProc : public pfGUICtrlProcWriteableObject
 
         char            *fCommand;
 
-        virtual void    IRead( hsStream *s );
-        virtual void    IWrite( hsStream *s );
+        void    IRead(hsStream *s) override;
+        void    IWrite(hsStream *s) override;
     
     public:
 
@@ -154,7 +156,7 @@ class pfGUIConsoleCmdProc : public pfGUICtrlProcWriteableObject
         pfGUIConsoleCmdProc( const char *cmd );
         virtual ~pfGUIConsoleCmdProc();
 
-        virtual void    DoSomething( pfGUIControlMod *ctrl );
+        void    DoSomething(pfGUIControlMod *ctrl) override;
 
         void            SetCommand( const char *cmd );
 };
@@ -165,15 +167,15 @@ class pfGUIPythonScriptProc : public pfGUICtrlProcWriteableObject
 {
     protected:
 
-        virtual void    IRead( hsStream *s );
-        virtual void    IWrite( hsStream *s );
+        void    IRead(hsStream *s) override;
+        void    IWrite(hsStream *s) override;
     
     public:
 
         pfGUIPythonScriptProc();
         virtual ~pfGUIPythonScriptProc();
 
-        virtual void    DoSomething( pfGUIControlMod *ctrl );
+        void    DoSomething(pfGUIControlMod *ctrl) override;
 };
 
 //// Simple Runtime Ones /////////////////////////////////////////////////////
@@ -182,15 +184,15 @@ class pfGUICloseDlgProc : public pfGUICtrlProcWriteableObject
 {
     protected:
 
-        virtual void    IRead( hsStream *s ) {}
-        virtual void    IWrite( hsStream *s ) {}
+        void    IRead(hsStream *s) override { }
+        void    IWrite(hsStream *s) override { }
 
     public:
 
         pfGUICloseDlgProc() : pfGUICtrlProcWriteableObject( kCloseDlg ) {}
         virtual ~pfGUICloseDlgProc() {}
 
-        virtual void    DoSomething( pfGUIControlMod *ctrl );
+        void    DoSomething(pfGUIControlMod *ctrl) override;
 };
 
 #endif // _pfGUIControlHandlers_h

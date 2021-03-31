@@ -60,36 +60,36 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 class plExportLogErrorMsg : public plErrorMsg {
 public:
     plExportLogErrorMsg(const char* efile, const char* label, const char* msg) : plErrorMsg(label, msg)
-        { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile=nil; }
+        { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile = nullptr; }
     plExportLogErrorMsg(const char* efile, bool bogus = false) : plErrorMsg(bogus)
-        { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile=nil; }
+        { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile = nullptr; }
     plExportLogErrorMsg(const char* efile, bool bogus, const char* label, const char* msg) 
         : plErrorMsg(bogus, label, msg)
-            { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile=nil; }
+            { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile = nullptr; }
     plExportLogErrorMsg(const char* efile, bool bogus, const char* label, const char* format, const char* str) 
         : plErrorMsg(bogus, label, format, str)
-            { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile=nil; }
+            { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile = nullptr; }
     plExportLogErrorMsg(const char* efile, bool bogus, const char* label, const char* format, const char* str1, const char* str2) 
         : plErrorMsg(bogus, label, format, str1, str2)
-            { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile=nil; }
+            { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile = nullptr; }
     plExportLogErrorMsg(const char* efile, bool bogus, const char* label, const char* format, int n) 
         : plErrorMsg(bogus, label, format, n)
-            { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile=nil; }
+            { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile = nullptr; }
     plExportLogErrorMsg(const char* efile, bool bogus, const char* label, const char* format, int n, int m) 
         : plErrorMsg(bogus, label, format, n, m)
-            { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile=nil; }
+            { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile = nullptr; }
     plExportLogErrorMsg(const char* efile, bool bogus, const char* label, const char* format, float f) 
         : plErrorMsg(bogus, label, format, f)
-            { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile=nil; }
+            { strncpy(fErrfile_name,efile,ERROR_LOGFILE_NAME_LEN-1); fErrfile = nullptr; }
     ~plExportLogErrorMsg();
 
-    virtual bool Ask(); // if b is true and user says yes to displayed query, return true, else false
-    virtual bool CheckAndAsk(); // if b is true and user says YES, throw self. only asks if b is true. returns true if b is true but user says no, else false
-    virtual bool CheckAskOrCancel(); // if b is true ( if YES, throw, else if NO return 0, else (CANCEL) return 1
-    virtual bool Show(); // if b is true, displays message, returns true
-    virtual bool Check(); // if b was true, throws self, else return false
-    virtual bool CheckAndShow(); // if b was true, shows message box then throws self, else return false
-    virtual void Quit(); // if b, quietly just throw with no message
+    bool Ask() override; // if b is true and user says yes to displayed query, return true, else false
+    bool CheckAndAsk() override; // if b is true and user says YES, throw self. only asks if b is true. returns true if b is true but user says no, else false
+    bool CheckAskOrCancel() override; // if b is true ( if YES, throw, else if NO return 0, else (CANCEL) return 1
+    bool Show() override; // if b is true, displays message, returns true
+    bool Check() override; // if b was true, throws self, else return false
+    bool CheckAndShow() override; // if b was true, shows message box then throws self, else return false
+    void Quit() override; // if b, quietly just throw with no message
 
 protected:
     virtual void IWriteErrorFile(const char* label, const char* msg);
@@ -137,13 +137,13 @@ public:
     plExportLogErrorDbg(bool bogus, const char* label, const char* format, int n, int m) : plExportLogErrorMsg("") { }
     plExportLogErrorDbg(bool bogus, const char* label, const char* format, float f) : plExportLogErrorMsg("") { }
 
-    bool Ask() { return false; }
-    bool CheckAndAsk() { return false; }
-    bool CheckAskOrCancel();
-    bool Show() { return false; }
-    bool Check() { return false; }
-    bool CheckAndShow() { return false; }
-    void Quit() { }
+    bool Ask() override { return false; }
+    bool CheckAndAsk() override { return false; }
+    bool CheckAskOrCancel() override;
+    bool Show() override { return false; }
+    bool Check() override { return false; }
+    bool CheckAndShow() override { return false; }
+    void Quit() override { }
 };
 
 #else // keep them as exactly the same as errormessage

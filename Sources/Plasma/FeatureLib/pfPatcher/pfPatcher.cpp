@@ -47,17 +47,18 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pfPatcher.h"
 
 #include "HeadSpin.h"
-#include "plAudioCore/plAudioFileReader.h"
-#include "plCompression/plZlibStream.h"
-#include "pnEncryption/plChecksum.h"
 #include "plFileSystem.h"
-#include "pnNetBase/pnNbError.h"
-#include "plNetGameLib/plNetGameLib.h"
-#include "plStatusLog/plStatusLog.h"
 #include "hsStream.h"
 #include "hsThread.h"
 #include "hsTimer.h"
 
+#include "pnEncryption/plChecksum.h"
+#include "pnNetBase/pnNbError.h"
+
+#include "plAudioCore/plAudioFileReader.h"
+#include "plCompression/plZlibStream.h"
+#include "plNetGameLib/plNetGameLib.h"
+#include "plStatusLog/plStatusLog.h"
 
 template<typename... _Args>
 static inline void PatcherLogGreen(const char* format, _Args&&... args)
@@ -127,7 +128,7 @@ struct pfPatcherQueuedFile
           fServerPath(ST::string::from_wchar(file.downloadName)), fChecksum(),
           fFileSize(file.fileSize), fZipSize(file.zipSize), fFlags(file.flags)
     {
-        ST::string temp(file.md5, arrsize(file.md5));
+        ST::string temp(file.md5, std::size(file.md5));
         fChecksum.SetFromHexString(temp.c_str());
     }
 
@@ -185,11 +186,11 @@ struct pfPatcherWorker : public hsThread
     pfPatcherWorker();
     ~pfPatcherWorker();
 
-    void OnQuit() HS_OVERRIDE;
+    void OnQuit() override;
 
-    void EndPatch(ENetError result, const ST::string& msg=ST::null);
+    void EndPatch(ENetError result, const ST::string& msg={});
     bool IssueRequest();
-    void Run() HS_OVERRIDE;
+    void Run() override;
     void IHashFile(pfPatcherQueuedFile& file);
     void IDecompressSound(const pfPatcherQueuedFile& sound) const;
     void ProcessFile();
@@ -210,7 +211,7 @@ class pfPatcherStream : public plZlibStream
     ST::string IMakeStatusMsg() const
     {
         float secs = hsTimer::GetSeconds<float>() - fDLStartTime;
-        float bytesPerSec = fBytesWritten / secs;
+        auto bytesPerSec = uint64_t(fBytesWritten / secs);
         return plFileSystem::ConvertFileSize(bytesPerSec) + "/s";
     }
 
@@ -251,7 +252,7 @@ public:
             Open(fFilename, "wb");
     }
 
-    bool Open(const plFileName& filename, const char* mode) HS_OVERRIDE
+    bool Open(const plFileName& filename, const char* mode) override
     {
         hsAssert(filename == fFilename, "trying to save to a different file, eh?");
         bool retVal = plZlibStream::Open(filename, mode);
@@ -260,7 +261,7 @@ public:
         return retVal;
     }
 
-    uint32_t Write(uint32_t count, const void* buf) HS_OVERRIDE
+    uint32_t Write(uint32_t count, const void* buf) override
     {
         // tick whatever progress bar we have
         IUpdateProgress(count);
@@ -272,13 +273,13 @@ public:
             return fOutput->Write(count, buf);
     }
 
-    bool AtEnd() HS_OVERRIDE { return fOutput->AtEnd(); }
-    uint32_t GetEOF() HS_OVERRIDE { return fOutput->GetEOF(); }
-    uint32_t GetPosition() const HS_OVERRIDE { return fOutput->GetPosition(); }
-    uint32_t Read(uint32_t count, void* buf) HS_OVERRIDE { return fOutput->Read(count, buf); }
-    void Rewind() HS_OVERRIDE { fOutput->Rewind(); }
-    void SetPosition(uint32_t pos) HS_OVERRIDE { fOutput->SetPosition(pos); }
-    void Skip(uint32_t deltaByteCount) HS_OVERRIDE { fOutput->Skip(deltaByteCount); }
+    bool AtEnd() override { return fOutput->AtEnd(); }
+    uint32_t GetEOF() override { return fOutput->GetEOF(); }
+    uint32_t GetPosition() const override { return fOutput->GetPosition(); }
+    uint32_t Read(uint32_t count, void* buf) override { return fOutput->Read(count, buf); }
+    void Rewind() override { fOutput->Rewind(); }
+    void SetPosition(uint32_t pos) override { fOutput->SetPosition(pos); }
+    void Skip(uint32_t deltaByteCount) override { fOutput->Skip(deltaByteCount); }
 
     uint32_t GetFlags() const { return fFlags; }
     plFileName GetFileName() const { return fFilename; }
@@ -361,8 +362,8 @@ static void IPreloaderManifestDownloadCB(ENetError result, void* param, const wc
         // so, we need to ask the AuthSrv about our game code
         {
             hsLockGuard(patcher->fRequestMut);
-            patcher->fRequests.emplace_back(ST::null, pfPatcherWorker::Request::kPythonList);
-            patcher->fRequests.emplace_back(ST::null, pfPatcherWorker::Request::kSdlList);
+            patcher->fRequests.emplace_back(ST::string(), pfPatcherWorker::Request::kPythonList);
+            patcher->fRequests.emplace_back(ST::string(), pfPatcherWorker::Request::kSdlList);
         }
 
         // continue pumping requests

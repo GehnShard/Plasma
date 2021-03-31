@@ -51,13 +51,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "HeadSpin.h"
-#include "hsWindows.h"
-#include "../resource.h"
 
-#include <iparamm2.h>
-#include <stdmat.h>
-#include <triobj.h>
-#pragma hdrstop
+#include "MaxMain/MaxAPI.h"
+
+#include "../resource.h"
 
 #include "plDynamicEnvLayer.h"
 
@@ -75,14 +72,14 @@ extern HINSTANCE hInstance;
 class plDynamicEnvLayerClassDesc : public ClassDesc2
 {
 public:
-    int             IsPublic()      { return TRUE; }
-    void*           Create(BOOL loading = FALSE) { return new plDynamicEnvLayer(); }
-    const TCHAR*    ClassName()     { return GetString(IDS_DYNAMIC_ENVMAP_LAYER); }
-    SClass_ID       SuperClassID()  { return TEXMAP_CLASS_ID; }
-    Class_ID        ClassID()       { return DYNAMIC_ENV_LAYER_CLASS_ID; }
-    const TCHAR*    Category()      { return TEXMAP_CAT_ENV; }
-    const TCHAR*    InternalName()  { return _T("PlasmaDynamicEnvMapLayer"); }
-    HINSTANCE       HInstance()     { return hInstance; }
+    int             IsPublic() override     { return TRUE; }
+    void*           Create(BOOL loading = FALSE) override { return new plDynamicEnvLayer(); }
+    const TCHAR*    ClassName() override    { return GetString(IDS_DYNAMIC_ENVMAP_LAYER); }
+    SClass_ID       SuperClassID() override { return TEXMAP_CLASS_ID; }
+    Class_ID        ClassID() override      { return DYNAMIC_ENV_LAYER_CLASS_ID; }
+    const TCHAR*    Category() override     { return TEXMAP_CAT_ENV; }
+    const TCHAR*    InternalName() override { return _T("PlasmaDynamicEnvMapLayer"); }
+    HINSTANCE       HInstance() override    { return hInstance; }
 };
 static plDynamicEnvLayerClassDesc plDynamicEnvLayerDesc;
 ClassDesc2* GetDynamicEnvLayerDesc() { return &plDynamicEnvLayerDesc; }
@@ -92,10 +89,10 @@ ClassDesc2* GetDynamicEnvLayerDesc() { return &plDynamicEnvLayerDesc; }
 //// Constructor/Destructor ///////////////////////////////////////////////////
 
 plDynamicEnvLayer::plDynamicEnvLayer() :
-    fBitmapPB(NULL),
-    fUVGen(NULL),
-    fTexHandle(NULL),
-    fTexTime(0),
+    fBitmapPB(),
+    fUVGen(),
+    fTexHandle(),
+    fTexTime(),
     fIValid(NEVER)
 {
     plDynamicEnvLayerDesc.MakeAutoParamBlocks(this);
@@ -181,7 +178,7 @@ RefTargetHandle plDynamicEnvLayer::GetReference( int i )
     {
         case kRefUVGen:     return fUVGen;
         case kRefBitmap:    return fBitmapPB;
-        default: return NULL;
+        default:            return nullptr;
     }
 }
 
@@ -214,7 +211,7 @@ IParamBlock2    *plDynamicEnvLayer::GetParamBlock( int i )
     switch( i )
     {
         case 0: return fBitmapPB;
-        default: return NULL;
+        default: return nullptr;
     }
 }
 
@@ -223,7 +220,7 @@ IParamBlock2    *plDynamicEnvLayer::GetParamBlockByID( BlockID id )
     if( fBitmapPB->ID() == id )
         return fBitmapPB;
     else
-        return NULL;
+        return nullptr;
 }
 
 //// Clone ////////////////////////////////////////////////////////////////////
@@ -250,7 +247,7 @@ Animatable  *plDynamicEnvLayer::SubAnim( int i )
     switch( i )
     {
         case kRefBitmap:    return fBitmapPB;
-        default: return NULL;
+        default:            return nullptr;
     }
 }
 
@@ -372,7 +369,7 @@ void plDynamicEnvLayer::IDiscardTexHandle()
     if (fTexHandle)
     {
         fTexHandle->DeleteThis();
-        fTexHandle = NULL;
+        fTexHandle = nullptr;
     }
 }
 
@@ -384,10 +381,10 @@ void plDynamicEnvLayer::ActivateTexDisplay(BOOL onoff)
 
 BITMAPINFO *plDynamicEnvLayer::GetVPDisplayDIB(TimeValue t, TexHandleMaker& thmaker, Interval &valid, BOOL mono, BOOL forceW, BOOL forceH)
 {
-    return NULL;
+    return nullptr;
 }
 
-DWORD plDynamicEnvLayer::GetActiveTexHandle(TimeValue t, TexHandleMaker& thmaker) 
+DWORD_PTR plDynamicEnvLayer::GetActiveTexHandle(TimeValue t, TexHandleMaker& thmaker)
 {
     // FIXME: ignore validity for now
     if (fTexHandle && fIValid.InInterval(t))// && texTime == CalcFrame(t)) 
@@ -413,7 +410,7 @@ DWORD plDynamicEnvLayer::GetActiveTexHandle(TimeValue t, TexHandleMaker& thmaker
 
 bool    plDynamicEnvLayer::MustBeUnique()
 {
-    if( fBitmapPB->GetINode( kBmpAnchorNode ) == nil )
+    if (fBitmapPB->GetINode(kBmpAnchorNode) == nullptr)
         return true;
 
     return false;

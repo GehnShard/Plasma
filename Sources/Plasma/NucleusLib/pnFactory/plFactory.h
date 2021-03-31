@@ -43,11 +43,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plFactory_inc
 #define plFactory_inc
 
-#ifdef PLFACTORY_PRIVATE
-    #include "hsTemplates.h"
-#endif
 #include "hsRefCnt.h"
 #include "HeadSpin.h"
+#ifdef PLFACTORY_PRIVATE
+    #include <vector>
+#endif
 
 class plCreator;
 class plCreatable;
@@ -58,7 +58,7 @@ class plFactory : public hsRefCnt
 {
 #ifdef PLFACTORY_PRIVATE
 private:
-    hsTArray<plCreator*>        fCreators;
+    std::vector<plCreator*> fCreators;
 
     void                IForceShutdown();
     void                IUnRegister(uint16_t hClass);
@@ -100,11 +100,6 @@ public:
     static void         SetTheFactory(plFactory* fac);
 
     static const char   *GetNameOfClass(uint16_t type);
-
-#ifdef HS_DEBUGGING
-    void                IValidate(uint16_t keyIndex);
-    static  void        Validate(uint16_t keyIndex);
-#endif
 };
 
 

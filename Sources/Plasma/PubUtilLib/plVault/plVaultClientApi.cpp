@@ -47,9 +47,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 
 #include "Pch.h"
-#pragma hdrstop
 
-#ifdef CLIENT
 
 /*****************************************************************************
 *
@@ -83,17 +81,17 @@ struct RelVaultNodeLink : THashKeyVal<unsigned> {
     bool                        seen;
 
     RelVaultNodeLink(bool seen, unsigned ownerId, unsigned nodeId)
-        : THashKeyVal<unsigned>(nodeId), node(hsRef<RelVaultNode>::New()), ownerId(ownerId), seen(seen)
+        : THashKeyVal<unsigned>(nodeId), node(new RelVaultNode, hsStealRef), ownerId(ownerId), seen(seen)
     { }
 
-    RelVaultNodeLink (bool seen, unsigned ownerId, unsigned nodeId, RelVaultNode * node)
-        : THashKeyVal<unsigned>(nodeId), node(node), ownerId(ownerId), seen(seen)
+    RelVaultNodeLink (bool seen, unsigned ownerId, unsigned nodeId, hsRef<RelVaultNode> node)
+        : THashKeyVal<unsigned>(nodeId), node(std::move(node)), ownerId(ownerId), seen(seen)
     { }
 };
 
 
 struct IRelVaultNode {
-    RelVaultNode * node;        // MUST be a weak ref!
+    hsWeakRef<RelVaultNode> node;
     
     HASHTABLEDECL(
         RelVaultNodeLink,
@@ -107,14 +105,14 @@ struct IRelVaultNode {
         link
     ) children;
 
-    IRelVaultNode (RelVaultNode * node);
+    IRelVaultNode(hsWeakRef<RelVaultNode> node);
     ~IRelVaultNode ();
 
     // Unlink our node from all our parent and children
     void UnlinkFromRelatives ();
     
     // Unlink the node from our parent and children lists
-    void Unlink (RelVaultNode * other);
+    void Unlink(hsWeakRef<RelVaultNode> other);
 };
 
 
@@ -127,12 +125,12 @@ struct VaultCreateNodeTrans {
     hsRef<RelVaultNode>         node;
 
     VaultCreateNodeTrans ()
-        : callback(nil), state(nil), param(nil), nodeId(0), node(nil) { }
+        : callback(), state(), param(), nodeId() { }
 
     VaultCreateNodeTrans (FVaultCreateNodeCallback _callback,
                           void * _state, void * _param)
         : callback(_callback), state(_state), param(_param),
-          nodeId(0), node(nil) { }
+          nodeId() { }
 
     static void VaultNodeCreated (
         ENetError           result,
@@ -153,7 +151,7 @@ struct VaultFindNodeTrans {
     FVaultFindNodeCallback      callback;
     void *                      param;
 
-    VaultFindNodeTrans () : callback(nil), param(nil) { }
+    VaultFindNodeTrans () : callback(), param() { }
 
     VaultFindNodeTrans (FVaultFindNodeCallback _callback, void * _param)
         : callback(_callback), param(_param) { }
@@ -180,8 +178,8 @@ struct VaultDownloadTrans {
     ENetError   result;
 
     VaultDownloadTrans ()
-        : callback(nil), cbParam(nil), progressCallback(nil), cbProgressParam(nil),
-          nodeCount(0), nodesLeft(0), vaultId(0), result(kNetSuccess)
+        : callback(), cbParam(), progressCallback(), cbProgressParam(),
+          nodeCount(), nodesLeft(), vaultId(), result(kNetSuccess)
     {
     }
 
@@ -189,7 +187,7 @@ struct VaultDownloadTrans {
                         void * _cbParam, FVaultProgressCallback _progressCallback,
                         void * _cbProgressParam, unsigned _vaultId)
         : callback(_callback), cbParam(_cbParam), progressCallback(_progressCallback),
-          cbProgressParam(_cbProgressParam), nodeCount(0), nodesLeft(0),
+          cbProgressParam(_cbProgressParam), nodeCount(), nodesLeft(),
           vaultId(_vaultId), result(kNetSuccess), tag(_tag)
     {
     }
@@ -214,7 +212,7 @@ struct VaultAgeInitTrans {
     void *                  cbParam;
 
     VaultAgeInitTrans()
-        : callback(nil), cbState(nil), cbParam(nil) { }
+        : callback(), cbState(), cbParam() { }
 
     VaultAgeInitTrans(FVaultInitAgeCallback _callback,
                       void * state, void * param)
@@ -235,10 +233,10 @@ struct AddChildNodeFetchTrans {
     std::atomic<long>           opCount;
 
     AddChildNodeFetchTrans()
-        : callback(nil), cbParam(nil), result(kNetSuccess), opCount(0) { }
+        : callback(), cbParam(), result(kNetSuccess), opCount() { }
 
     AddChildNodeFetchTrans(FVaultAddChildNodeCallback _callback, void * _param)
-        : callback(_callback), cbParam(_param), result(kNetSuccess), opCount(0) { }
+        : callback(_callback), cbParam(_param), result(kNetSuccess), opCount() { }
 
     static void VaultNodeFetched (
         ENetError           result,
@@ -289,8 +287,8 @@ static bool s_processPlayerInbox = false;
 *
 ***/
 
-static void VaultProcessVisitNote(RelVaultNode * rvnVisit);
-static void VaultProcessUnvisitNote(RelVaultNode * rvnUnVisit);
+static void VaultProcessVisitNote(hsWeakRef<RelVaultNode> rvnVisit);
+static void VaultProcessUnvisitNote(hsWeakRef<RelVaultNode> rvnUnVisit);
 
 static void VaultNodeFetched (
     ENetError           result,
@@ -338,31 +336,31 @@ static void VaultNodeAddedDownloadCallback(ENetError result, void * param) {
 static void BuildNodeTree (
     const NetVaultNodeRef   refs[],
     unsigned                refCount,
-    TArray<unsigned> *      newNodeIds,
-    TArray<unsigned> *      existingNodeIds,
+    std::vector<unsigned> * newNodeIds,
+    std::vector<unsigned> * existingNodeIds,
     bool                    notifyNow = true
 ) {
     for (unsigned i = 0; i < refCount; ++i) {
         // Find/Create global links
         RelVaultNodeLink * parentLink = s_nodes.Find(refs[i].parentId);
         if (!parentLink) {
-            newNodeIds->Add(refs[i].parentId);
+            newNodeIds->emplace_back(refs[i].parentId);
             parentLink = new RelVaultNodeLink(false, 0, refs[i].parentId);
             parentLink->node->SetNodeId_NoDirty(refs[i].parentId);
             s_nodes.Add(parentLink);
         }
         else {
-            existingNodeIds->Add(refs[i].parentId);
+            existingNodeIds->emplace_back(refs[i].parentId);
         }
         RelVaultNodeLink * childLink = s_nodes.Find(refs[i].childId);
         if (!childLink) {
-            newNodeIds->Add(refs[i].childId);
+            newNodeIds->emplace_back(refs[i].childId);
             childLink = new RelVaultNodeLink(refs[i].seen, refs[i].ownerId, refs[i].childId);
             childLink->node->SetNodeId_NoDirty(refs[i].childId);
             s_nodes.Add(childLink);
         }
         else {
-            existingNodeIds->Add(refs[i].childId);
+            existingNodeIds->emplace_back(refs[i].childId);
             if (unsigned ownerId = refs[i].ownerId)
                 childLink->ownerId = ownerId;
         }
@@ -399,7 +397,7 @@ static void BuildNodeTree (
 }
 
 //============================================================================
-static void InitFetchedNode (RelVaultNode * rvn) {
+static void InitFetchedNode(hsWeakRef<RelVaultNode> rvn) {
 
     switch (rvn->GetNodeType()) {
         case plVault::kNodeType_SDL: {
@@ -416,16 +414,17 @@ static void FetchRefOwners (
     NetVaultNodeRef *           refs,
     unsigned                    refCount
 ) {
-    TArray<unsigned> ownerIds;
-    {   for (unsigned i = 0; i < refCount; ++i)
-            if (unsigned ownerId = refs[i].ownerId)
-                ownerIds.Add(ownerId);
+    std::vector<unsigned> ownerIds;
+    for (unsigned i = 0; i < refCount; ++i) {
+        if (unsigned ownerId = refs[i].ownerId)
+            ownerIds.emplace_back(ownerId);
     }
-    QSORT(unsigned, ownerIds.Ptr(), ownerIds.Count(), elem1 < elem2);
+    std::sort(ownerIds.begin(), ownerIds.end());
     NetVaultNode templateNode;
     templateNode.SetNodeType(plVault::kNodeType_PlayerInfo);
-    {   unsigned prevId = 0;
-        for (unsigned i = 0; i < ownerIds.Count(); ++i) {
+    {
+        unsigned prevId = 0;
+        for (size_t i = 0; i < ownerIds.size(); ++i) {
             if (ownerIds[i] != prevId) {
                 prevId = ownerIds[i];
                 VaultPlayerInfoNode access(&templateNode);
@@ -435,7 +434,7 @@ static void FetchRefOwners (
                 NetCliAuthVaultNodeFind(
                     &templateNode,
                     VaultNodeFound,
-                    nil
+                    nullptr
                 );
             }
         }
@@ -456,20 +455,20 @@ static void FetchNodesFromRefs (
 
     *fetchCount = 0;
     
-    TArray<unsigned> newNodeIds;
-    TArray<unsigned> existingNodeIds;
+    std::vector<unsigned> newNodeIds;
+    std::vector<unsigned> existingNodeIds;
     
     BuildNodeTree(refs, refCount, &newNodeIds, &existingNodeIds);
 
-    TArray<unsigned> nodeIds;
-    nodeIds.Add(newNodeIds.Ptr(), newNodeIds.Count());
-    nodeIds.Add(existingNodeIds.Ptr(), existingNodeIds.Count());
-    QSORT(unsigned, nodeIds.Ptr(), nodeIds.Count(), elem1 < elem2);
+    std::vector<unsigned> nodeIds;
+    nodeIds.insert(nodeIds.end(), newNodeIds.begin(), newNodeIds.end());
+    nodeIds.insert(nodeIds.end(), existingNodeIds.begin(), existingNodeIds.end());
+    std::sort(nodeIds.begin(), nodeIds.end());
 
     // Fetch the nodes that do not yet have a nodetype
     unsigned prevId = 0;
-    for (unsigned i = 0; i < nodeIds.Count(); ++i) {
-        RelVaultNodeLink * link = s_nodes.Find(nodeIds[i]);
+    for (unsigned nodeId : nodeIds) {
+        RelVaultNodeLink * link = s_nodes.Find(nodeId);
         if (link->node->GetNodeType() != 0)
             continue;
         // filter duplicates
@@ -477,7 +476,7 @@ static void FetchNodesFromRefs (
             continue;
         prevId = link->node->GetNodeId();
         NetCliAuthVaultNodeFetch(
-            nodeIds[i],
+            nodeId,
             fetchCallback,
             fetchParam
         );
@@ -505,7 +504,7 @@ static void VaultNodeFound (
             return;
 
         // Start fetching the node          
-        NetCliAuthVaultNodeFetch(nodeIds[i], VaultNodeFetched, nil);
+        NetCliAuthVaultNodeFetch(nodeIds[i], VaultNodeFetched, nullptr);
     }
 }
 
@@ -602,20 +601,20 @@ static void VaultNodeAdded (
     NetVaultNodeRef refs[] = {
         { parentId, childId, ownerId }
     };
-    TArray<unsigned> newNodeIds;
-    TArray<unsigned> existingNodeIds;
+    std::vector<unsigned> newNodeIds;
+    std::vector<unsigned> existingNodeIds;
     
-    BuildNodeTree(refs, arrsize(refs), &newNodeIds, &existingNodeIds, false);
+    BuildNodeTree(refs, std::size(refs), &newNodeIds, &existingNodeIds, false);
 
-    TArray<unsigned> nodeIds;
-    nodeIds.Add(newNodeIds.Ptr(), newNodeIds.Count());
-    nodeIds.Add(existingNodeIds.Ptr(), existingNodeIds.Count());
-    QSORT(unsigned, nodeIds.Ptr(), nodeIds.Count(), elem1 < elem2);
+    std::vector<unsigned> nodeIds;
+    nodeIds.insert(nodeIds.end(), newNodeIds.begin(), newNodeIds.end());
+    nodeIds.insert(nodeIds.end(), existingNodeIds.begin(), existingNodeIds.end());
+    std::sort(nodeIds.begin(), nodeIds.end());
 
     // Fetch the nodes that do not yet have a nodetype
     unsigned prevId = 0;
     unsigned i = 0;
-    for (; i < nodeIds.Count(); ++i) {
+    for (; i < nodeIds.size(); ++i) {
         RelVaultNodeLink * link = s_nodes.Find(nodeIds[i]);
         if (link->node->GetNodeType() != 0)
             continue;
@@ -628,8 +627,8 @@ static void VaultNodeAdded (
             nodeIds[i],
             VaultNodeAddedDownloadCallback,
             (void*)(uintptr_t)nodeIds[i],
-            nil,
-            nil
+            nullptr,
+            nullptr
         );
     }
     
@@ -700,7 +699,7 @@ static void SaveDirtyNodes () {
             if (bytesWritten >= kMaxBytesPerSaveUpdate)
                 break;
             if (link->node->IsDirty()) {
-                if (unsigned bytes = NetCliAuthVaultNodeSave(link->node, nil, nil)) {
+                if (unsigned bytes = NetCliAuthVaultNodeSave(link->node.Get(), nullptr, nullptr); bytes) {
                     bytesWritten += bytes;
                     link->node->Print("Saving", 0);
                 }
@@ -711,9 +710,9 @@ static void SaveDirtyNodes () {
 
 //============================================================================
 static hsRef<RelVaultNode> GetChildFolderNode (
-    RelVaultNode *  parent,
-    unsigned        folderType,
-    unsigned        maxDepth
+    hsWeakRef<RelVaultNode> parent,
+    unsigned                folderType,
+    unsigned                maxDepth
 ) {
     if (!parent)
         return nullptr;
@@ -723,9 +722,9 @@ static hsRef<RelVaultNode> GetChildFolderNode (
 
 //============================================================================
 static hsRef<RelVaultNode> GetChildPlayerInfoListNode (
-    RelVaultNode *  parent,
-    unsigned        folderType,
-    unsigned        maxDepth
+    hsWeakRef<RelVaultNode> parent,
+    unsigned                folderType,
+    unsigned                maxDepth
 ) {
     if (!parent)
         return nullptr;
@@ -773,7 +772,7 @@ void VaultCreateNodeTrans::VaultNodeFetched (
     if (IS_NET_SUCCESS(result))
         trans->node = s_nodes.Find(node->GetNodeId())->node;
     else
-        trans->node = nil;
+        trans->node = nullptr;
     
     trans->Complete(result);
 }
@@ -1014,10 +1013,9 @@ void AddChildNodeFetchTrans::VaultNodeFetched (
 ***/
 
 //============================================================================
-IRelVaultNode::IRelVaultNode (RelVaultNode * node)
-:   node(node)
-{
-}
+IRelVaultNode::IRelVaultNode(hsWeakRef<RelVaultNode> node)
+    : node(std::move(node))
+{ }
 
 //============================================================================
 IRelVaultNode::~IRelVaultNode () {
@@ -1049,18 +1047,18 @@ void IRelVaultNode::UnlinkFromRelatives () {
 
 
 //============================================================================
-void IRelVaultNode::Unlink (RelVaultNode * other) {
+void IRelVaultNode::Unlink(hsWeakRef<RelVaultNode> other) {
     ASSERT(other != node);
     
     RelVaultNodeLink * link;
-    if (nil != (link = parents.Find(other->GetNodeId()))) {
+    if (link = parents.Find(other->GetNodeId()); link != nullptr) {
         // make them non-findable in our parents table
         link->link.Unlink();
         // remove us from other's tables.
         link->node->state->Unlink(node);
         delete link;
     }
-    if (nil != (link = children.Find(other->GetNodeId()))) {
+    if (link = children.Find(other->GetNodeId()); link != nullptr) {
         // make them non-findable in our children table
         link->link.Unlink();
         // remove us from other's tables.
@@ -1116,10 +1114,10 @@ bool RelVaultNode::IsChildOf (unsigned parentId, unsigned maxDepth) {
 }
 
 //============================================================================
-void RelVaultNode::GetRootIds (TArray<unsigned> * nodeIds) {
+void RelVaultNode::GetRootIds (std::vector<unsigned> * nodeIds) {
     RelVaultNodeLink * link = state->parents.Head();
     if (!link) {
-        nodeIds->Add(GetNodeId());
+        nodeIds->emplace_back(GetNodeId());
     }
     else {
         for (; link; link = state->parents.Next(link))
@@ -1135,28 +1133,28 @@ unsigned RelVaultNode::RemoveChildNodes (unsigned maxDepth) {
 
 //============================================================================
 void RelVaultNode::GetChildNodeIds (
-    TArray<unsigned> *  nodeIds,
+    std::vector<unsigned> * nodeIds,
     unsigned            maxDepth
 ) {
     if (!maxDepth)
         return;
     RelVaultNodeLink * link = state->children.Head();
     for (; link; link = state->children.Next(link)) {
-        nodeIds->Add(link->node->GetNodeId());
+        nodeIds->emplace_back(link->node->GetNodeId());
         link->node->GetChildNodeIds(nodeIds, maxDepth-1);
     }
 }
 
 //============================================================================
 void RelVaultNode::GetParentNodeIds (
-    TArray<unsigned> *  nodeIds,
+    std::vector<unsigned> * nodeIds,
     unsigned            maxDepth
 ) {
     if (!maxDepth)
         return;
     RelVaultNodeLink * link = state->parents.Head();
     for (; link; link = state->parents.Next(link)) {
-        nodeIds->Add(link->node->GetNodeId());
+        nodeIds->emplace_back(link->node->GetNodeId());
         link->node->GetParentNodeIds(nodeIds, maxDepth-1);
     }
 }
@@ -1164,8 +1162,8 @@ void RelVaultNode::GetParentNodeIds (
 
 //============================================================================
 hsRef<RelVaultNode> RelVaultNode::GetParentNode (
-    NetVaultNode *      templateNode,
-    unsigned            maxDepth
+    hsWeakRef<NetVaultNode> templateNode,
+    unsigned                maxDepth
 ) {
     if (maxDepth == 0)
         return nullptr;
@@ -1173,7 +1171,7 @@ hsRef<RelVaultNode> RelVaultNode::GetParentNode (
     RelVaultNodeLink * link;
     link = state->parents.Head();
     for (; link; link = state->parents.Next(link)) {
-        if (link->node->Matches(templateNode))
+        if (link->node->Matches(templateNode.Get()))
             return link->node;
     }
     
@@ -1188,8 +1186,8 @@ hsRef<RelVaultNode> RelVaultNode::GetParentNode (
 
 //============================================================================
 hsRef<RelVaultNode> RelVaultNode::GetChildNode (
-    NetVaultNode *      templateNode,
-    unsigned            maxDepth
+    hsWeakRef<NetVaultNode> templateNode,
+    unsigned                maxDepth
 ) {
     if (maxDepth == 0)
         return nullptr;
@@ -1197,7 +1195,7 @@ hsRef<RelVaultNode> RelVaultNode::GetChildNode (
     RelVaultNodeLink * link;
     link = state->children.Head();
     for (; link; link = state->children.Next(link)) {
-        if (link->node->Matches(templateNode))
+        if (link->node->Matches(templateNode.Get()))
             return link->node;
     }
     
@@ -1277,14 +1275,14 @@ void RelVaultNode::GetChildNodes (
 
 //============================================================================
 void RelVaultNode::GetChildNodes (
-    NetVaultNode *          templateNode,
+    hsWeakRef<NetVaultNode> templateNode,
     unsigned                maxDepth,
     RelVaultNode::RefList * nodes
 ) {
     RelVaultNodeLink * link;
     link = state->children.Head();
     for (; link; link = state->children.Next(link)) {
-        if (link->node->Matches(templateNode))
+        if (link->node->Matches(templateNode.Get()))
             nodes->push_back(link->node);
 
         link->node->GetChildNodes(
@@ -1474,7 +1472,7 @@ void VaultRegisterCallback (VaultCallback * cb) {
 void VaultUnregisterCallback (VaultCallback * cb) {
     ASSERT(cb->internal);
     delete cb->internal;
-    cb->internal = nil;
+    cb->internal = nullptr;
 }
 
 
@@ -1498,10 +1496,10 @@ void VaultInitialize () {
 void VaultDestroy () {
     s_running = false;
 
-    NetCliAuthVaultSetRecvNodeChangedHandler(nil);
-    NetCliAuthVaultSetRecvNodeAddedHandler(nil);
-    NetCliAuthVaultSetRecvNodeRemovedHandler(nil);
-    NetCliAuthVaultSetRecvNodeDeletedHandler(nil);
+    NetCliAuthVaultSetRecvNodeChangedHandler(nullptr);
+    NetCliAuthVaultSetRecvNodeAddedHandler(nullptr);
+    NetCliAuthVaultSetRecvNodeRemovedHandler(nullptr);
+    NetCliAuthVaultSetRecvNodeDeletedHandler(nullptr);
 
     VaultClearDeviceInboxMap();
     
@@ -1527,12 +1525,12 @@ void VaultUpdate () {
 
 //============================================================================
 hsRef<RelVaultNode> VaultGetNode (
-    NetVaultNode * templateNode
+    hsWeakRef<NetVaultNode> templateNode
 ) {
     ASSERT(templateNode);
     RelVaultNodeLink * link = s_nodes.Head();
     while (link) {
-        if (link->node->Matches(templateNode))
+        if (link->node->Matches(templateNode.Get()))
             return link->node;
         link = s_nodes.Next(link);
     }
@@ -1601,10 +1599,10 @@ void VaultAddChildNode (
                 { parentId, childId, ownerId }
             };
 
-            TArray<unsigned> newNodeIds;
-            TArray<unsigned> existingNodeIds;
+            std::vector<unsigned> newNodeIds;
+            std::vector<unsigned> existingNodeIds;
 
-            BuildNodeTree(refs, arrsize(refs), &newNodeIds, &existingNodeIds);
+            BuildNodeTree(refs, std::size(refs), &newNodeIds, &existingNodeIds);
         
             if (!childLink->node->GetNodeType() || !parentLink->node->GetNodeType()) {
                 // One or more nodes need to be fetched before the callback is made
@@ -1663,8 +1661,8 @@ void VaultAddChildNode (
         parentId,
         childId,
         ownerId,
-        madeCallback ? nil : callback,
-        madeCallback ? nil : param
+        madeCallback ? nullptr : callback,
+        madeCallback ? nullptr : param
     );
 }
 
@@ -1708,7 +1706,7 @@ void VaultAddChildNodeAndWait (
     while (!param.complete) {
         NetClientUpdate();
         plgDispatch::Dispatch()->MsgQueueProcess();
-        AsyncSleep(10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     
     if (IS_NET_ERROR(param.result))
@@ -1787,21 +1785,21 @@ void VaultPublishNode (
         }
     }
     
-    VaultAddChildNode(rvn->GetNodeId(), nodeId, VaultGetPlayerId(), nil, nil);
+    VaultAddChildNode(rvn->GetNodeId(), nodeId, VaultGetPlayerId(), nullptr, nullptr);
 }
 
 //============================================================================
 void VaultSendNode (
-    RelVaultNode*   srcNode,
-    unsigned        dstPlayerId
+    hsWeakRef<RelVaultNode> srcNode,
+    unsigned                dstPlayerId
 ) {
-    NetCliAuthVaultNodeSave(srcNode, nil, nil);
+    NetCliAuthVaultNodeSave(srcNode.Get(), nullptr, nullptr);
     NetCliAuthVaultSendNode(srcNode->GetNodeId(), dstPlayerId);
 }
 
 //============================================================================
 void VaultCreateNode (
-    NetVaultNode *              templateNode,
+    hsWeakRef<NetVaultNode>     templateNode,
     FVaultCreateNodeCallback    callback,
     void *                      state,
     void *                      param
@@ -1815,7 +1813,7 @@ void VaultCreateNode (
     }
     
     NetCliAuthVaultNodeCreate(
-        templateNode,
+        templateNode.Get(),
         VaultCreateNodeTrans::VaultNodeCreated,
         trans
     );
@@ -1843,7 +1841,7 @@ void VaultCreateNode (
 namespace _VaultCreateNodeAndWait {
 
 struct _CreateNodeParam {
-    RelVaultNode *  node;
+    hsWeakRef<RelVaultNode> node;
     ENetError       result;
     bool            complete;
 };
@@ -1851,7 +1849,7 @@ static void _CreateNodeCallback (
     ENetError       result,
     void *          ,
     void *          vparam,
-    RelVaultNode *  node
+    hsWeakRef<RelVaultNode>  node
 ) {
     _CreateNodeParam * param = (_CreateNodeParam *)vparam;
     param->node     = node;
@@ -1862,7 +1860,7 @@ static void _CreateNodeCallback (
 } // namespace _VaultCreateNodeAndWait
 
 hsRef<RelVaultNode> VaultCreateNodeAndWait (
-    NetVaultNode *              templateNode,
+    hsWeakRef<NetVaultNode>     templateNode,
     ENetError *                 result
 ) {
     using namespace _VaultCreateNodeAndWait;
@@ -1873,14 +1871,14 @@ hsRef<RelVaultNode> VaultCreateNodeAndWait (
     VaultCreateNode(
         templateNode,
         _CreateNodeCallback,
-        nil,
+        nullptr,
         &param
     );
     
     while (!param.complete) {
         NetClientUpdate();
         plgDispatch::Dispatch()->MsgQueueProcess();
-        AsyncSleep(10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     
     *result = param.result;
@@ -1917,7 +1915,7 @@ static void _SaveNodeCallback (
 } // namespace _VaultForceSaveNodeAndWait
 
 void VaultForceSaveNodeAndWait (
-    NetVaultNode *      node
+    hsWeakRef<NetVaultNode> node
 ) {
     using namespace _VaultForceSaveNodeAndWait;
     
@@ -1925,7 +1923,7 @@ void VaultForceSaveNodeAndWait (
     memset(&param, 0, sizeof(param));
     
     NetCliAuthVaultNodeSave(
-        node,
+        node.Get(),
         _SaveNodeCallback,
         &param
     );
@@ -1933,20 +1931,20 @@ void VaultForceSaveNodeAndWait (
     while (!param.complete) {
         NetClientUpdate();
         plgDispatch::Dispatch()->MsgQueueProcess();
-        AsyncSleep(10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
 //============================================================================
 void VaultFindNodes (
-    NetVaultNode *          templateNode,
+    hsWeakRef<NetVaultNode> templateNode,
     FVaultFindNodeCallback  callback,
     void *                  param
 ) {
     VaultFindNodeTrans * trans = new VaultFindNodeTrans(callback, param);
 
     NetCliAuthVaultNodeFind(
-        templateNode,
+        templateNode.Get(),
         VaultFindNodeTrans::VaultNodeFound,
         trans
     );  
@@ -1955,7 +1953,7 @@ void VaultFindNodes (
 //============================================================================
 namespace _VaultFindNodesAndWait {
     struct _FindNodeParam {
-        TArray<unsigned>    nodeIds;
+        std::vector<unsigned> nodeIds;
         ENetError           result;
         bool                complete;
 
@@ -1970,7 +1968,7 @@ namespace _VaultFindNodesAndWait {
         const unsigned      nodeIds[]
     ) {
         _FindNodeParam * param = (_FindNodeParam *)vparam;
-        param->nodeIds.Set(nodeIds, nodeIdCount);
+        param->nodeIds.assign(nodeIds, nodeIds + nodeIdCount);
         param->result   = result;
         param->complete = true;
     }
@@ -1978,14 +1976,14 @@ namespace _VaultFindNodesAndWait {
 } // namespace _VaultFindNodesAndWait
 
 void VaultFindNodesAndWait (
-    NetVaultNode *          templateNode,
-    TArray<unsigned> *      nodeIds
+    hsWeakRef<NetVaultNode> templateNode,
+    std::vector<unsigned> * nodeIds
 ) {
     using namespace _VaultFindNodesAndWait;
 
     _FindNodeParam  param;
     NetCliAuthVaultNodeFind(
-        templateNode,
+        templateNode.Get(),
         _FindNodeCallback,
         &param
     );
@@ -1993,21 +1991,21 @@ void VaultFindNodesAndWait (
     while (!param.complete) {
         NetClientUpdate();
         plgDispatch::Dispatch()->MsgQueueProcess();
-        AsyncSleep(10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     if (IS_NET_SUCCESS(param.result))
-        nodeIds->Add(param.nodeIds.Ptr(), param.nodeIds.Count());
+        nodeIds->insert(nodeIds->end(), param.nodeIds.begin(), param.nodeIds.end());
 }
 
 //============================================================================
 void VaultLocalFindNodes (
-    NetVaultNode *          templateNode,
-    TArray<unsigned> *      nodeIds
+    hsWeakRef<NetVaultNode> templateNode,
+    std::vector<unsigned> * nodeIds
 ) {
-    for (RelVaultNodeLink * link = s_nodes.Head(); link != nil; link = s_nodes.Next(link)) {
-        if (link->node->Matches(templateNode))
-            nodeIds->Add(link->node->GetNodeId());
+    for (RelVaultNodeLink * link = s_nodes.Head(); link != nullptr; link = s_nodes.Next(link)) {
+        if (link->node->Matches(templateNode.Get()))
+            nodeIds->emplace_back(link->node->GetNodeId());
     }
 }
 
@@ -2019,7 +2017,7 @@ namespace _VaultFetchNodesAndWait {
         void *              param,
         NetVaultNode *      node
     ) {
-        ::VaultNodeFetched(result, nil, node);
+        ::VaultNodeFetched(result, nullptr, node);
         
         --(*reinterpret_cast<std::atomic<unsigned>*>(param));
     }
@@ -2052,7 +2050,7 @@ void VaultFetchNodesAndWait (
 
     while (nodeCount) {
         NetClientUpdate();
-        AsyncSleep(10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }   
 }
 
@@ -2188,7 +2186,7 @@ bool VaultGetLinkToMyNeighborhood (plAgeLinkStruct * link) {
         info.CopyTo(link->GetAgeInfo());
     }
 
-    return node != nil;
+    return node != nullptr;
 }
 
 //============================================================================
@@ -2209,7 +2207,7 @@ bool VaultGetLinkToMyPersonalAge (plAgeLinkStruct * link) {
         info.CopyTo(link->GetAgeInfo());
     }
 
-    return node != nil;
+    return node != nullptr;
 }
 
 //============================================================================
@@ -2230,7 +2228,7 @@ bool VaultGetLinkToCity (plAgeLinkStruct * link) {
         info.CopyTo(link->GetAgeInfo());
     }
 
-    return node != nil;
+    return node != nullptr;
 }
 
 //============================================================================
@@ -2315,7 +2313,7 @@ bool VaultAddOwnedAgeSpawnPoint (const plUUID& ageInstId, const plSpawnPointInfo
         if (!fldr)
             break;
 
-        TArray<unsigned> nodeIds;
+        std::vector<unsigned> nodeIds;
         fldr->GetChildNodeIds(&nodeIds, 1);
 
         NetVaultNode templateNode;
@@ -2323,8 +2321,8 @@ bool VaultAddOwnedAgeSpawnPoint (const plUUID& ageInstId, const plSpawnPointInfo
         VaultAgeInfoNode access(&templateNode);
         access.SetAgeInstanceGuid(ageInstId);
         
-        for (unsigned i = 0; i < nodeIds.Count(); ++i) {
-            link = VaultGetNode(nodeIds[i]);
+        for (unsigned nodeId : nodeIds) {
+            link = VaultGetNode(nodeId);
             if (!link)
                 continue;
             if (link->GetChildNode(&templateNode, 1)) {
@@ -2352,7 +2350,7 @@ bool VaultSetOwnedAgePublicAndWait (const plAgeInfoStruct * info, bool publicOrN
 }
 
 //============================================================================
-bool VaultSetAgePublicAndWait (NetVaultNode * ageInfoNode, bool publicOrNot) {
+bool VaultSetAgePublicAndWait(hsWeakRef<NetVaultNode> ageInfoNode, bool publicOrNot) {
     NetCliAuthSetAgePublic(ageInfoNode->GetNodeId(), publicOrNot);
 
     VaultAgeInfoNode access(ageInfoNode);
@@ -2445,7 +2443,7 @@ static void _CreateNodeCallback (
     ENetError       result,
     void *          ,
     void *          vparam,
-    RelVaultNode *  node
+    hsWeakRef<RelVaultNode> node
 ) {
     _CreateNodeParam * param = (_CreateNodeParam *)vparam;
     if (IS_NET_SUCCESS(result))
@@ -2501,14 +2499,14 @@ bool VaultRegisterOwnedAgeAndWait (const plAgeLinkStruct * link) {
                 link->GetAgeInfo(),
                 kNilUuid,
                 _InitAgeCallback,
-                nil,
+                nullptr,
                 &param
             );
 
             while (!param.complete) {
                 NetClientUpdate();
                 plgDispatch::Dispatch()->MsgQueueProcess();
-                AsyncSleep(10);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             
             if (IS_NET_ERROR(param.result)) {
@@ -2526,14 +2524,14 @@ bool VaultRegisterOwnedAgeAndWait (const plAgeLinkStruct * link) {
             VaultCreateNode(
                 plVault::kNodeType_AgeLink,
                 _CreateNodeCallback,
-                nil,
+                nullptr,
                 &param
             );
 
             while (!param.complete) {
                 NetClientUpdate();
                 plgDispatch::Dispatch()->MsgQueueProcess();
-                AsyncSleep(10);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             
             if (IS_NET_ERROR(param.result)) {
@@ -2553,14 +2551,14 @@ bool VaultRegisterOwnedAgeAndWait (const plAgeLinkStruct * link) {
                 ageInfoId,
                 _FetchVaultCallback,
                 &param,
-                nil,
-                nil
+                nullptr,
+                nullptr
             );
             
             while (!param.complete) {
                 NetClientUpdate();
                 plgDispatch::Dispatch()->MsgQueueProcess();
-                AsyncSleep(10);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             
             if (IS_NET_ERROR(param.result)) {
@@ -2617,7 +2615,7 @@ bool VaultRegisterOwnedAgeAndWait (const plAgeLinkStruct * link) {
             while (!param1.complete && !param2.complete && !param3.complete) {
                 NetClientUpdate();
                 plgDispatch::Dispatch()->MsgQueueProcess();
-                AsyncSleep(10);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             
             if (IS_NET_ERROR(param1.result)) {
@@ -2679,7 +2677,7 @@ namespace _VaultRegisterOwnedAge {
             LogMsg(kLogError, "VaultRegisterOwnedAge: Failed to add playerInfo to ageOwners (async)");
     }
 
-    void _CreateAgeLinkNode(ENetError result, void* state, void* param, RelVaultNode* node) {
+    void _CreateAgeLinkNode(ENetError result, void* state, void* param, hsWeakRef<RelVaultNode> node) {
         if (IS_NET_ERROR(result)) {
             LogMsg(kLogError, "VaultRegisterOwnedAge: Failed to create AgeLink (async)");
             delete (_Params*)param;
@@ -2696,13 +2694,13 @@ namespace _VaultRegisterOwnedAge {
         // Make some refs
         hsRef<RelVaultNode> agesIOwn = VaultGetAgesIOwnFolder();
         hsRef<RelVaultNode> plyrInfo = VaultGetPlayerInfoNode();
-        VaultAddChildNode(agesIOwn->GetNodeId(), node->GetNodeId(), 0, (FVaultAddChildNodeCallback)_AddAgeLinkNode, nil); 
-        VaultAddChildNode(node->GetNodeId(), (uint32_t)((uintptr_t)p->fAgeInfoId), 0, (FVaultAddChildNodeCallback)_AddAgeInfoNode, nil);
+        VaultAddChildNode(agesIOwn->GetNodeId(), node->GetNodeId(), 0, (FVaultAddChildNodeCallback)_AddAgeLinkNode, nullptr);
+        VaultAddChildNode(node->GetNodeId(), (uint32_t)((uintptr_t)p->fAgeInfoId), 0, (FVaultAddChildNodeCallback)_AddAgeInfoNode, nullptr);
 
         // Add our PlayerInfo to important places
         if (hsRef<RelVaultNode> rvnAgeInfo = VaultGetNode((uint32_t)((uintptr_t)p->fAgeInfoId))) {
             if (hsRef<RelVaultNode> rvnAgeOwners = rvnAgeInfo->GetChildPlayerInfoListNode(plVault::kAgeOwnersFolder, 1))
-                VaultAddChildNode(rvnAgeOwners->GetNodeId(), plyrInfo->GetNodeId(), 0, (FVaultAddChildNodeCallback)_AddPlayerInfoNode, nil);
+                VaultAddChildNode(rvnAgeOwners->GetNodeId(), plyrInfo->GetNodeId(), 0, (FVaultAddChildNodeCallback)_AddPlayerInfoNode, nullptr);
         }
 
         // Fire off vault callbacks
@@ -2721,7 +2719,7 @@ namespace _VaultRegisterOwnedAge {
             LogMsg(kLogError, "VaultRegisterOwnedAge: Failed to download age vault (async)");
             delete (_Params*)param;
         } else
-            VaultCreateNode(plVault::kNodeType_AgeLink, (FVaultCreateNodeCallback)_CreateAgeLinkNode, nil, param);
+            VaultCreateNode(plVault::kNodeType_AgeLink, (FVaultCreateNodeCallback)_CreateAgeLinkNode, nullptr, param);
     }
 
     void _InitAgeCallback(ENetError result, void* state, void* param, uint32_t ageVaultId, uint32_t ageInfoVaultId) {
@@ -2735,8 +2733,8 @@ namespace _VaultRegisterOwnedAge {
                 ageInfoVaultId,
                 (FVaultDownloadCallback)_DownloadCallback,
                 p,
-                nil,
-                nil);
+                nullptr,
+                nullptr);
         } else
             LogMsg(kLogError, "VaultRegisterOwnedAge: Failed to init age (async)");
     }
@@ -2746,7 +2744,7 @@ void VaultRegisterOwnedAge(const plAgeLinkStruct* link) {
     using namespace _VaultRegisterOwnedAge;
 
     hsRef<RelVaultNode> agesIOwn = VaultGetAgesIOwnFolder();
-    if (agesIOwn == nil) {
+    if (agesIOwn == nullptr) {
         LogMsg(kLogError, "VaultRegisterOwnedAge: Couldn't find the stupid AgesIOwnfolder!");
         return;
     }
@@ -2760,7 +2758,7 @@ void VaultRegisterOwnedAge(const plAgeLinkStruct* link) {
     VaultInitAge(link->GetAgeInfo(), 
         kNilUuid, 
         (FVaultInitAgeCallback)_InitAgeCallback, 
-        nil,
+        nullptr,
         new plSpawnPointInfo(link->SpawnPoint()));
 }
 
@@ -2805,7 +2803,7 @@ static void _CreateNodeCallback (
     ENetError       result,
     void *          ,
     void *          vparam,
-    RelVaultNode *  node
+    hsWeakRef<RelVaultNode> node
 ) {
     _CreateNodeParam * param = (_CreateNodeParam *)vparam;
     if (IS_NET_SUCCESS(result))
@@ -2861,14 +2859,14 @@ bool VaultRegisterVisitAgeAndWait (const plAgeLinkStruct * link) {
                 link->GetAgeInfo(),
                 kNilUuid,
                 _InitAgeCallback,
-                nil,
+                nullptr,
                 &param
             );
 
             while (!param.complete) {
                 NetClientUpdate();
                 plgDispatch::Dispatch()->MsgQueueProcess();
-                AsyncSleep(10);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             
             if (IS_NET_ERROR(param.result)) {
@@ -2886,14 +2884,14 @@ bool VaultRegisterVisitAgeAndWait (const plAgeLinkStruct * link) {
             VaultCreateNode(
                 plVault::kNodeType_AgeLink,
                 _CreateNodeCallback,
-                nil,
+                nullptr,
                 &param
             );
 
             while (!param.complete) {
                 NetClientUpdate();
                 plgDispatch::Dispatch()->MsgQueueProcess();
-                AsyncSleep(10);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             
             if (IS_NET_ERROR(param.result)) {
@@ -2913,14 +2911,14 @@ bool VaultRegisterVisitAgeAndWait (const plAgeLinkStruct * link) {
                 ageInfoId,
                 _FetchVaultCallback,
                 &param,
-                nil,
-                nil
+                nullptr,
+                nullptr
             );
             
             while (!param.complete) {
                 NetClientUpdate();
                 plgDispatch::Dispatch()->MsgQueueProcess();
-                AsyncSleep(10);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             
             if (IS_NET_ERROR(param.result)) {
@@ -2976,7 +2974,7 @@ bool VaultRegisterVisitAgeAndWait (const plAgeLinkStruct * link) {
             while (!param1.complete && !param2.complete && !param3.complete) {
                 NetClientUpdate();
                 plgDispatch::Dispatch()->MsgQueueProcess();
-                AsyncSleep(10);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             
             if (IS_NET_ERROR(param1.result)) {
@@ -3024,7 +3022,7 @@ namespace _VaultRegisterVisitAge {
         }
     };
 
-    void _CreateAgeLinkNode(ENetError result, void* state, void* param, RelVaultNode* node) {
+    void _CreateAgeLinkNode(ENetError result, void* state, void* param, hsWeakRef<RelVaultNode> node) {
         if (IS_NET_ERROR(result)) {
             LogMsg(kLogError, "RegisterVisitAge: Failed to create AgeLink (async)");
             delete (_Params*)param;
@@ -3037,13 +3035,13 @@ namespace _VaultRegisterVisitAge {
         // Add ourselves to the Can Visit folder of the age
         if (hsRef<RelVaultNode> playerInfo = VaultGetPlayerInfoNode()) {
             if (hsRef<RelVaultNode> canVisit = ageInfo->GetChildPlayerInfoListNode(plVault::kCanVisitFolder, 1))
-                VaultAddChildNode(canVisit->GetNodeId(), playerInfo->GetNodeId(), 0, nil, nil);
+                VaultAddChildNode(canVisit->GetNodeId(), playerInfo->GetNodeId(), 0, nullptr, nullptr);
         }
 
         // Get our AgesICanVisit folder
         if (hsRef<RelVaultNode> iCanVisit = VaultGetAgesICanVisitFolder()) {
-            VaultAddChildNode(node->GetNodeId(), ageInfo->GetNodeId(), 0, nil, nil);
-            VaultAddChildNode(iCanVisit->GetNodeId(), node->GetNodeId(), 0, nil, nil);
+            VaultAddChildNode(node->GetNodeId(), ageInfo->GetNodeId(), 0, nullptr, nullptr);
+            VaultAddChildNode(iCanVisit->GetNodeId(), node->GetNodeId(), 0, nullptr, nullptr);
         }
 
         // Update the AgeLink with a spawn point
@@ -3069,7 +3067,7 @@ namespace _VaultRegisterVisitAge {
         }
 
         // Create the AgeLink node 
-        VaultCreateNode(plVault::kNodeType_AgeLink, (FVaultCreateNodeCallback)_CreateAgeLinkNode, nil, param);
+        VaultCreateNode(plVault::kNodeType_AgeLink, (FVaultCreateNodeCallback)_CreateAgeLinkNode, nullptr, param);
     }
     
     void _InitAgeCallback(ENetError result, void* state, void* param, uint32_t ageVaultId, uint32_t ageInfoId) {
@@ -3087,8 +3085,8 @@ namespace _VaultRegisterVisitAge {
                       ageInfoId,
                       (FVaultDownloadCallback)_DownloadCallback,
                       param,
-                      nil,
-                      nil
+                      nullptr,
+                      nullptr
         );
     }
 };
@@ -3110,7 +3108,7 @@ void VaultRegisterVisitAge(const plAgeLinkStruct* link) {
     VaultInitAge(link->GetAgeInfo(),
                  kNilUuid,
                  (FVaultInitAgeCallback)_InitAgeCallback,
-                 nil,
+                 nullptr,
                  p
     );
 }
@@ -3149,10 +3147,10 @@ bool VaultUnregisterOwnedAgeAndWait (const plAgeInfoStruct * info) {
             playerInfoId = rvnPlayerInfo->GetNodeId();
 
         // remove our playerInfo from the ageOwners folder
-        VaultRemoveChildNode(ageOwnersId, playerInfoId, nil, nil);
+        VaultRemoveChildNode(ageOwnersId, playerInfoId, nullptr, nullptr);
         
         // remove the link from AgesIOwn folder 
-        VaultRemoveChildNode(agesIOwnId, ageLinkId, nil, nil);
+        VaultRemoveChildNode(agesIOwnId, ageLinkId, nullptr, nullptr);
 
         // delete the link node since link nodes aren't shared with anyone else
     //  VaultDeleteNode(ageLinkId);
@@ -3204,10 +3202,10 @@ bool VaultUnregisterVisitAgeAndWait (const plAgeInfoStruct * info) {
             playerInfoId = rvnPlayerInfo->GetNodeId();
 
         // remove our playerInfo from the ageVisitors folder
-        VaultRemoveChildNode(ageVisitorsId, playerInfoId, nil, nil);
+        VaultRemoveChildNode(ageVisitorsId, playerInfoId, nullptr, nullptr);
 
         // remove the link from AgesICanVisit folder    
-        VaultRemoveChildNode(agesICanVisitId, ageLinkId, nil, nil);
+        VaultRemoveChildNode(agesICanVisitId, ageLinkId, nullptr, nullptr);
         
         // delete the link node since link nodes aren't shared with anyone else
     //  VaultDeleteNode(ageLinkId);
@@ -3268,7 +3266,7 @@ void VaultAddChronicleEntryAndWait (
         chrnNode.SetEntryValue(entryValue);
         ENetError result;
         if (hsRef<RelVaultNode> rvnChrn = VaultCreateNodeAndWait(&templateNode, &result))
-            VaultAddChildNode(rvnFldr->GetNodeId(), rvnChrn->GetNodeId(), 0, nil, nil);
+            VaultAddChildNode(rvnFldr->GetNodeId(), rvnChrn->GetNodeId(), 0, nullptr, nullptr);
     }
 }
 
@@ -3432,7 +3430,7 @@ bool VaultRegisterMTStationAndWait (
 }
 
 //============================================================================
-void VaultProcessVisitNote(RelVaultNode * rvnVisit) {
+void VaultProcessVisitNote(hsWeakRef<RelVaultNode> rvnVisit) {
     if (hsRef<RelVaultNode> rvnInbox = VaultGetPlayerInboxFolder()) {
         VaultTextNoteNode visitAcc(rvnVisit);
         plAgeLinkStruct link;
@@ -3441,12 +3439,12 @@ void VaultProcessVisitNote(RelVaultNode * rvnVisit) {
             VaultRegisterVisitAge(&link);
         }
         // remove it from the inbox
-        VaultRemoveChildNode(rvnInbox->GetNodeId(), rvnVisit->GetNodeId(), nil, nil);
+        VaultRemoveChildNode(rvnInbox->GetNodeId(), rvnVisit->GetNodeId(), nullptr, nullptr);
     }
 }
 
 //============================================================================
-void VaultProcessUnvisitNote(RelVaultNode * rvnUnVisit) {
+void VaultProcessUnvisitNote(hsWeakRef<RelVaultNode> rvnUnVisit) {
     if (hsRef<RelVaultNode> rvnInbox = VaultGetPlayerInboxFolder()) {
         VaultTextNoteNode unvisitAcc(rvnUnVisit);
         plAgeInfoStruct info;
@@ -3455,7 +3453,7 @@ void VaultProcessUnvisitNote(RelVaultNode * rvnUnVisit) {
             VaultUnregisterVisitAgeAndWait(&info);
         }
         // remove it from the inbox
-        VaultRemoveChildNode(rvnInbox->GetNodeId(), rvnUnVisit->GetNodeId(), nil, nil);
+        VaultRemoveChildNode(rvnInbox->GetNodeId(), rvnUnVisit->GetNodeId(), nullptr, nullptr);
     }
 }
 
@@ -3478,7 +3476,7 @@ void VaultProcessPlayerInbox () {
                     VaultRegisterVisitAge(&link);
                 }
                 // remove it from the inbox
-                VaultRemoveChildNode(rvnInbox->GetNodeId(), rvnVisit->GetNodeId(), nil, nil);
+                VaultRemoveChildNode(rvnInbox->GetNodeId(), rvnVisit->GetNodeId(), nullptr, nullptr);
             }
         }
         {   // Process new unvisit requests
@@ -3497,7 +3495,7 @@ void VaultProcessPlayerInbox () {
                     VaultUnregisterVisitAgeAndWait(&info);
                 }
                 // remove it from the inbox
-                VaultRemoveChildNode(rvnInbox->GetNodeId(), rvnUnVisit->GetNodeId(), nil, nil);
+                VaultRemoveChildNode(rvnInbox->GetNodeId(), rvnUnVisit->GetNodeId(), nullptr, nullptr);
             }
         }
     }
@@ -3556,55 +3554,55 @@ hsRef<RelVaultNode> VaultGetAgeInfoNode () {
 hsRef<RelVaultNode> VaultGetAgeChronicleFolder () {
     if (hsRef<RelVaultNode> rvn = GetAgeNode())
         return rvn->GetChildFolderNode(plVault::kChronicleFolder, 1);
-    return nil;
+    return nullptr;
 }
 
 //============================================================================
 hsRef<RelVaultNode> VaultGetAgeDevicesFolder () {
     if (hsRef<RelVaultNode> rvn = GetAgeNode())
         return rvn->GetChildFolderNode(plVault::kAgeDevicesFolder, 1);
-    return nil;
+    return nullptr;
 }
 
 //============================================================================
 hsRef<RelVaultNode> VaultGetAgeAgeOwnersFolder () {
     if (hsRef<RelVaultNode> rvn = GetAgeInfoNode())
         return rvn->GetChildPlayerInfoListNode(plVault::kAgeOwnersFolder, 1);
-    return nil;
+    return nullptr;
 }
 
 //============================================================================
 hsRef<RelVaultNode> VaultGetAgeCanVisitFolder () {
     if (hsRef<RelVaultNode> rvn = GetAgeInfoNode())
         return rvn->GetChildPlayerInfoListNode(plVault::kCanVisitFolder, 1);
-    return nil;
+    return nullptr;
 }
 
 //============================================================================
 hsRef<RelVaultNode> VaultGetAgePeopleIKnowAboutFolder () {
     if (hsRef<RelVaultNode> rvn = GetAgeNode())
         return rvn->GetChildPlayerInfoListNode(plVault::kPeopleIKnowAboutFolder, 1);
-    return nil;
+    return nullptr;
 }
 
 //============================================================================
 hsRef<RelVaultNode> VaultGetAgeSubAgesFolder () {
     if (hsRef<RelVaultNode> rvn = GetAgeNode())
         return rvn->GetChildAgeInfoListNode(plVault::kSubAgesFolder, 1);
-    return nil;
+    return nullptr;
 }
 
 //============================================================================
 hsRef<RelVaultNode> VaultGetAgePublicAgesFolder () {
     hsAssert(false, "eric, implement me");
-    return nil;
+    return nullptr;
 }
 
 //============================================================================
 hsRef<RelVaultNode> VaultAgeGetBookshelfFolder () {
     if (hsRef<RelVaultNode> rvn = GetAgeNode())
         return rvn->GetChildAgeInfoListNode(plVault::kAgesIOwnFolder, 1);
-    return nil;
+    return nullptr;
 }
 
 //============================================================================
@@ -3630,7 +3628,7 @@ hsRef<RelVaultNode> VaultFindAgeSubAgeLink (const plAgeInfoStruct * info) {
 //============================================================================
 hsRef<RelVaultNode> VaultFindAgeChronicleEntry(const ST::string& entryName, int entryType) {
     hsAssert(false, "eric, implement me");
-    return nil;
+    return nullptr;
 }
 
 //============================================================================
@@ -3678,7 +3676,7 @@ void VaultAgeRemoveDevice (const ST::string& deviceName) {
         VaultTextNoteNode access(&templateNode);
         access.SetNoteTitle(deviceName);
         if (hsRef<RelVaultNode> device = folder->GetChildNode(&templateNode, 1)) {
-            VaultRemoveChildNode(folder->GetNodeId(), device->GetNodeId(), nil, nil);
+            VaultRemoveChildNode(folder->GetNodeId(), device->GetNodeId(), nullptr, nullptr);
 
             auto it = s_ageDeviceInboxes.find(deviceName);
             if (it != s_ageDeviceInboxes.end())
@@ -3754,9 +3752,7 @@ hsRef<RelVaultNode> VaultAgeGetDeviceInbox (const ST::string& deviceName) {
 
     if (it != s_ageDeviceInboxes.end()) {
         hsRef<RelVaultNode> parentNode;
-        const wchar_t * inboxName = nil;
 
-        //if (StrCmp(devInbox->inboxName, DEFAULT_DEVICE_INBOX) == 0) {
         if (it->second == DEFAULT_DEVICE_INBOX)
             parentNode = VaultAgeGetDevice(deviceName);
         else
@@ -3886,7 +3882,7 @@ static void _CreateNodeCallback (
     ENetError       result,
     void *          ,
     void *          vparam,
-    RelVaultNode *  node
+    hsWeakRef<RelVaultNode> node
 ) {
     _CreateNodeParam * param = (_CreateNodeParam *)vparam;
     if (IS_NET_SUCCESS(result))
@@ -3946,14 +3942,14 @@ bool VaultAgeFindOrCreateSubAgeLinkAndWait (
             info,
             parentAgeInstId,
             _InitAgeCallback,
-            nil,
+            nullptr,
             &param
         );
 
         while (!param.complete) {
             NetClientUpdate();
             plgDispatch::Dispatch()->MsgQueueProcess();
-            AsyncSleep(10);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         
         if (IS_NET_ERROR(param.result)) {
@@ -3971,14 +3967,14 @@ bool VaultAgeFindOrCreateSubAgeLinkAndWait (
         VaultCreateNode(
             plVault::kNodeType_AgeLink,
             _CreateNodeCallback,
-            nil,
+            nullptr,
             &param
         );
 
         while (!param.complete) {
             NetClientUpdate();
             plgDispatch::Dispatch()->MsgQueueProcess();
-            AsyncSleep(10);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         
         if (IS_NET_ERROR(param.result)) {
@@ -3998,14 +3994,14 @@ bool VaultAgeFindOrCreateSubAgeLinkAndWait (
             ageInfoId,
             _FetchVaultCallback,
             &param,
-            nil,
-            nil
+            nullptr,
+            nullptr
         );
         
         while (!param.complete) {
             NetClientUpdate();
             plgDispatch::Dispatch()->MsgQueueProcess();
-            AsyncSleep(10);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         
         if (IS_NET_ERROR(param.result)) {
@@ -4041,7 +4037,7 @@ bool VaultAgeFindOrCreateSubAgeLinkAndWait (
         while (!param1.complete && !param2.complete) {
             NetClientUpdate();
             plgDispatch::Dispatch()->MsgQueueProcess();
-            AsyncSleep(10);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         
         if (IS_NET_ERROR(param1.result)) {
@@ -4069,16 +4065,16 @@ bool VaultAgeFindOrCreateSubAgeLinkAndWait (
 
 //============================================================================
 namespace _VaultCreateSubAge {
-    void _CreateNodeCallback(ENetError result, void* state, void* param, RelVaultNode* node) {
+    void _CreateNodeCallback(ENetError result, void* state, void* param, hsWeakRef<RelVaultNode> node) {
         if (IS_NET_ERROR(result)) {
             LogMsg(kLogError, "CreateSubAge: Failed to create AgeLink (async)");
             return;
         }
 
         // Add the children to the right places
-        VaultAddChildNode(node->GetNodeId(), (uint32_t)((uintptr_t)param), 0, nil, nil);
+        VaultAddChildNode(node->GetNodeId(), (uint32_t)((uintptr_t)param), 0, nullptr, nullptr);
         if (hsRef<RelVaultNode> saFldr = VaultGetAgeSubAgesFolder())
-            VaultAddChildNode(saFldr->GetNodeId(), node->GetNodeId(), 0, nil, nil);
+            VaultAddChildNode(saFldr->GetNodeId(), node->GetNodeId(), 0, nullptr, nullptr);
         else
             LogMsg(kLogError, "CreateSubAge: Couldn't find SubAges folder (async)");
 
@@ -4099,7 +4095,7 @@ namespace _VaultCreateSubAge {
         // Create the AgeLink node
         VaultCreateNode(plVault::kNodeType_AgeLink,
                         (FVaultCreateNodeCallback)_CreateNodeCallback,
-                        nil,
+                        nullptr,
                         param
         );
     }
@@ -4115,8 +4111,8 @@ namespace _VaultCreateSubAge {
                       ageInfoId,
                       (FVaultDownloadCallback)_DownloadCallback,
                       (void*)(uintptr_t)ageInfoId,
-                      nil,
-                      nil
+                      nullptr,
+                      nullptr
         );
     }
 }; // namespace _VaultCreateSubAge
@@ -4140,8 +4136,8 @@ bool VaultAgeFindOrCreateSubAgeLink(const plAgeInfoStruct* info, plAgeLinkStruct
     VaultInitAge(info,
                  parentUuid,
                  (FVaultInitAgeCallback)_InitAgeCallback,
-                 nil,
-                 nil
+                 nullptr,
+                 nullptr
     );
 
     return false;
@@ -4188,7 +4184,7 @@ static void _CreateNodeCallback (
     ENetError       result,
     void *          ,
     void *          vparam,
-    RelVaultNode *  node
+    hsWeakRef<RelVaultNode> node
 ) {
     _CreateNodeParam * param = (_CreateNodeParam *)vparam;
     if (IS_NET_SUCCESS(result))
@@ -4283,14 +4279,14 @@ bool VaultAgeFindOrCreateChildAgeLinkAndWait (
             info,
             parentAgeInstId,
             _InitAgeCallback,
-            nil,
+            nullptr,
             &param
         );
 
         while (!param.complete) {
             NetClientUpdate();
             plgDispatch::Dispatch()->MsgQueueProcess();
-            AsyncSleep(10);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         
         if (IS_NET_ERROR(param.result)) {
@@ -4308,14 +4304,14 @@ bool VaultAgeFindOrCreateChildAgeLinkAndWait (
         VaultCreateNode(
             plVault::kNodeType_AgeLink,
             _CreateNodeCallback,
-            nil,
+            nullptr,
             &param
         );
 
         while (!param.complete) {
             NetClientUpdate();
             plgDispatch::Dispatch()->MsgQueueProcess();
-            AsyncSleep(10);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         
         if (IS_NET_ERROR(param.result)) {
@@ -4335,14 +4331,14 @@ bool VaultAgeFindOrCreateChildAgeLinkAndWait (
             ageInfoId,
             _FetchVaultCallback,
             &param,
-            nil,
-            nil
+            nullptr,
+            nullptr
         );
         
         while (!param.complete) {
             NetClientUpdate();
             plgDispatch::Dispatch()->MsgQueueProcess();
-            AsyncSleep(10);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         
         if (IS_NET_ERROR(param.result)) {
@@ -4378,7 +4374,7 @@ bool VaultAgeFindOrCreateChildAgeLinkAndWait (
         while (!param1.complete && !param2.complete) {
             NetClientUpdate();
             plgDispatch::Dispatch()->MsgQueueProcess();
-            AsyncSleep(10);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         
         if (IS_NET_ERROR(param1.result)) {
@@ -4411,7 +4407,7 @@ namespace _VaultCreateChildAge {
         void* fAgeInfoId;
     };
 
-    void _CreateNodeCallback(ENetError result, void* state, void* param, RelVaultNode* node) {
+    void _CreateNodeCallback(ENetError result, void* state, void* param, hsWeakRef<RelVaultNode> node) {
         if (IS_NET_ERROR(result)) {
             LogMsg(kLogError, "CreateChildAge: Failed to create AgeLink (async)");
             delete (_Params*)param;
@@ -4421,8 +4417,8 @@ namespace _VaultCreateChildAge {
         _Params* p = (_Params*)param;
 
         // Add the children to the right places
-        VaultAddChildNode(node->GetNodeId(), (uint32_t)((uintptr_t)p->fAgeInfoId), 0, nil, nil);
-        VaultAddChildNode((uint32_t)((uintptr_t)p->fChildAgesFldr), node->GetNodeId(), 0, nil, nil);
+        VaultAddChildNode(node->GetNodeId(), (uint32_t)((uintptr_t)p->fAgeInfoId), 0, nullptr, nullptr);
+        VaultAddChildNode((uint32_t)((uintptr_t)p->fChildAgesFldr), node->GetNodeId(), 0, nullptr, nullptr);
 
         // Send the VaultNotify that the plNetLinkingMgr wants...
         plVaultNotifyMsg * msg = new plVaultNotifyMsg;
@@ -4443,8 +4439,8 @@ namespace _VaultCreateChildAge {
 
         // Create the AgeLink node
         VaultCreateNode(plVault::kNodeType_AgeLink,
-                        (FVaultCreateNodeCallback)_CreateNodeCallback,
-                        nil,
+                        _CreateNodeCallback,
+                        nullptr,
                         param
         );
     }
@@ -4464,8 +4460,8 @@ namespace _VaultCreateChildAge {
                       ageInfoId,
                       (FVaultDownloadCallback)_DownloadCallback,
                       param,
-                      nil,
-                      nil
+                      nullptr,
+                      nullptr
         );
     }
 }; // namespace _VaultCreateAge
@@ -4488,7 +4484,7 @@ uint8_t VaultAgeFindOrCreateChildAgeLink(
         rvnParentInfo = VaultGetAgeInfoNode();
 
     // Test to make sure nothing went horribly wrong...
-    if (rvnParentInfo == nil) {
+    if (rvnParentInfo == nullptr) {
         LogMsg(kLogError, "CreateChildAge: Couldn't find the parent ageinfo (async)");
         return hsFail;
     }
@@ -4519,7 +4515,7 @@ uint8_t VaultAgeFindOrCreateChildAgeLink(
             VaultInitAge(info,
                          accParentInfo.GetAgeInstanceGuid(),
                          (FVaultInitAgeCallback)_InitAgeCallback,
-                         nil,
+                         nullptr,
                          p
             );
             retval = false;
@@ -4602,7 +4598,7 @@ void VaultDownloadAndWait (
     while (!param.complete) {
         NetClientUpdate();
         plgDispatch::Dispatch()->MsgQueueProcess();
-        AsyncSleep(10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
@@ -4622,11 +4618,11 @@ void VaultCull (unsigned vaultId) {
         if (link->node->GetNodeType() > plVault::kNodeType_VNodeMgrLow && link->node->GetNodeType() < plVault::kNodeType_VNodeMgrHigh)
             continue;
 
-        TArray<unsigned> nodeIds;
+        std::vector<unsigned> nodeIds;
         link->node->GetRootIds(&nodeIds);
         bool foundRoot = false;
-        for (unsigned i = 0; i < nodeIds.Count(); ++i) {
-            RelVaultNodeLink * root = s_nodes.Find(nodeIds[i]);
+        for (unsigned nodeId : nodeIds) {
+            RelVaultNodeLink * root = s_nodes.Find(nodeId);
             if (root && root->node->GetNodeType() > plVault::kNodeType_VNodeMgrLow && root->node->GetNodeType() < plVault::kNodeType_VNodeMgrHigh) {
                 foundRoot = true;
                 break;
@@ -4671,5 +4667,3 @@ hsRef<RelVaultNode> VaultGetGlobalInbox () {
     }
     return result;
 }
-
-#endif // def CLIENT

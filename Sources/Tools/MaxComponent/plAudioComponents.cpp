@@ -54,7 +54,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <map>
 #include <shlwapi.h>
-#pragma hdrstop
 
 
 #include "plInterp/plAnimEaseTypes.h"
@@ -425,7 +424,7 @@ const char* plBaseSoundEmitterComponent::GetSoundFileName( plBaseSoundEmitterCom
         return fCompPB->GetStr( (ParamID)kSoundFileName );
 
     hsAssert( false, "Getting a sound that isn't supported on this component" );
-    return nil;
+    return nullptr;
 }
 
 bool plBaseSoundEmitterComponent::DeInit( plMaxNode *node, plErrorMsg *pErrMsg )
@@ -458,7 +457,7 @@ void    plBaseSoundEmitterComponent::SetCreateGrouped( plMaxNode *baseNode, int 
 
 bool plBaseSoundEmitterComponent::IValidate(plMaxNode *node, plErrorMsg *pErrMsg)
 {
-    if( GetSoundFileName( kBaseSound ) == nil )
+    if (GetSoundFileName(kBaseSound) == nullptr)
     {
         pErrMsg->Set(true, "Sound 3D FileName Error", "The Sound 3D component %s is missing a filename.", node->GetName()).Show();
         pErrMsg->Set(false);
@@ -547,14 +546,14 @@ void    plBaseSoundEmitterComponent::IGrabSoftRegion( plSound *sound, plErrorMsg
     if( fCompPB->GetInt( (ParamID)kSndSoftRegionEnable, 0 ) != 0 )
     {
         plSoftVolBaseComponent* softComp = plSoftVolBaseComponent::GetSoftComponent( fCompPB->GetINode( (ParamID)kSndSoftRegion ) );
-        if( softComp != nil )
+        if (softComp != nullptr)
         {
             plKey softKey = softComp->GetSoftVolume();
-            if( softKey != nil )
+            if (softKey != nullptr)
             {
                 // Make sure we set checkListener on the sucker
                 plSoftVolume *vol = plSoftVolume::ConvertNoRef( softKey->GetObjectPtr() );
-                if( vol != nil )
+                if (vol != nullptr)
                 {
                     vol->SetCheckListener();
                     hsgResMgr::ResMgr()->AddViaNotify( softKey, new plGenRefMsg( sound->GetKey(), plRefMsg::kOnCreate, 0, plSound::kSoftRegion ), plRefFlags::kActiveRef );
@@ -658,16 +657,16 @@ plSoundBuffer *plBaseSoundEmitterComponent::IGetSourceBuffer(const plFileName &f
         keyName += ":R";
 
     key = srcNode->FindPageKey( plSoundBuffer::Index(), keyName );
-    if( key != nil )
+    if (key != nullptr)
         return plSoundBuffer::ConvertNoRef( key->GetObjectPtr() );
 
     // Not yet created, so make a new one
     plSoundBuffer   *buffer = new plSoundBuffer( rfilename, srcBufferFlags );
     if( !buffer->IsValid() )
     {
-        // Invalid, so delete and return nil
+        // Invalid, so delete and return nullptr
         delete buffer;
-        return nil;
+        return nullptr;
     }
 
     // We'll put it in a location parallel to the age, say, (age,district,"sounds")
@@ -693,7 +692,7 @@ plSoundBuffer *plBaseSoundEmitterComponent::IGetSourceBuffer(const plFileName &f
 bool    plBaseSoundEmitterComponent::LookupLatestAsset( const char *waveName, char *retPath, plErrorMsg *errMsg )
 {
     MaxAssInterface* assetMan = GetMaxAssInterface();
-    if( assetMan == nil )
+    if (assetMan == nullptr)
         return false;       // No AssetMan available
 
     // Try to find it in assetMan
@@ -722,15 +721,15 @@ bool    plBaseSoundEmitterComponent::LookupLatestAsset( const char *waveName, ch
 plSoundBuffer   *plBaseSoundEmitterComponent::IProcessSourceBuffer( plMaxNode *maxNode, plErrorMsg *errMsg )
 {
     const char    *fileName = GetSoundFileName( kBaseSound );
-    if( fileName == nil )
-        return nil;
+    if (fileName == nullptr)
+        return nullptr;
 
     plSoundBuffer *srcBuffer = GetSourceBuffer( fileName, maxNode, ICalcSourceBufferFlags() );
-    if( srcBuffer == nil )
+    if (srcBuffer == nullptr)
     {
         IShowError( kSrcBufferInvalid, "The file specified for the sound 3D component %s is invalid. "
                                         "This emitter will not be exported.", GetINode()->GetName(), errMsg );
-        return nil;
+        return nullptr;
     }
 
     return srcBuffer;
@@ -738,11 +737,11 @@ plSoundBuffer   *plBaseSoundEmitterComponent::IProcessSourceBuffer( plMaxNode *m
 
 void    plBaseSoundEmitterComponent::UpdateSoundFileSelection()
 {
-    plSoundBuffer   *baseBuffer = nil;
+    plSoundBuffer   *baseBuffer = nullptr;
 
 
     // Attempt to load the sound in
-    if( GetSoundFileName( kBaseSound ) == nil )
+    if (GetSoundFileName(kBaseSound) == nullptr)
     {
         // Disable this feature by default
         fCompPB->SetValue( (ParamID)kSndAllowChannelSelect, 0, 0 );
@@ -757,7 +756,7 @@ void    plBaseSoundEmitterComponent::UpdateSoundFileSelection()
         else
         {
             baseBuffer = new plSoundBuffer( GetSoundFileName( kBaseSound ) );
-            if( baseBuffer != nil && baseBuffer->IsValid() )
+            if (baseBuffer != nullptr && baseBuffer->IsValid())
             {
                 // Update our stereo channel selection if necessary
                 if( baseBuffer->GetHeader().fNumChannels == 1 )
@@ -775,7 +774,7 @@ void    plBaseSoundEmitterComponent::UpdateSoundFileSelection()
         }
     }
 
-    if( baseBuffer != nil )
+    if (baseBuffer != nullptr)
         delete baseBuffer;
 }
 
@@ -832,10 +831,10 @@ bool    plBaseSoundEmitterComponent::UpdateCategories( HWND dialogBox, int &cate
 
 SegmentMap *GetCompWaveSegmentMap(const char *file)
 {
-    if( file == nil )
-        return nil;
+    if (file == nullptr)
+        return nullptr;
 
-    return GetWaveSegmentMap( file, nil );
+    return GetWaveSegmentMap(file, nullptr);
 
 /*
     const char *path = plMaxConfig::GetClientPath();
@@ -843,10 +842,10 @@ SegmentMap *GetCompWaveSegmentMap(const char *file)
     {
         char fullpath[MAX_PATH];
         sprintf(fullpath, "%sSfx\\%s", path, file);
-        return GetWaveSegmentMap(fullpath, nil);
+        return GetWaveSegmentMap(fullpath, nullptr);
     }
 
-    return nil;
+    return nullptr;
 */
 }
 
@@ -915,7 +914,7 @@ bool    plBaseSoundEmitterComponent::AddToAnim( plAGAnim *anim, plMaxNode *node 
     }
 
     ctl = cc.MakeScalarController( GetParamBlock2Controller(fCompPB,  (ParamID)kSoundVolumeSlider ), node, start, end );
-    if( ctl != nil )
+    if (ctl != nullptr)
     {
         // Better only do this when the sound component is applied to only one object...
         if( fIndices.size() != 1 )
@@ -938,7 +937,7 @@ bool    plBaseSoundEmitterComponent::AddToAnim( plAGAnim *anim, plMaxNode *node 
 
 struct indexinfo
 {
-    indexinfo::indexinfo() { pNode = nil; fIndex = -1; }
+    indexinfo::indexinfo() { pNode = nullptr; fIndex = -1; }
     plMaxNode*  pNode;
     int         fIndex; 
 };
@@ -953,9 +952,9 @@ int GetSoundNameAndIdx(plComponentBase *comp, plMaxNodeBase *node, const char*& 
         idx = ((plBaseSoundEmitterComponent *)comp)->GetSoundIdx((plMaxNode*)node);
     }
     if(node->CanConvert())
-        name = idx < 0 ? nil : comp->GetINode()->GetName();
+        name = idx < 0 ? nullptr : comp->GetINode()->GetName();
     else
-        name = nil;
+        name = nullptr;
     return idx;
 }
 
@@ -1022,7 +1021,7 @@ protected:
         char fileName[ MAX_PATH ], dirName[ MAX_PATH ];
         const char* name = soundComponent->GetSoundFileName( which );
 
-        if( name != nil )
+        if (name != nullptr)
             strcpy( fileName, name );
         else
             strcpy( fileName, _T( "" ) );
@@ -1057,11 +1056,11 @@ protected:
 
 
         custButton = GetICustButton( GetDlgItem( hDlg, dlgBtnItemToSet ) );
-        if( custButton != nil )
+        if (custButton != nullptr)
         {
             const char* origName = soundComponent->GetSoundFileName( which );
 
-            if( origName != nil && strlen( origName ) > 0 )
+            if (origName != nullptr && strlen(origName) > 0)
             {
                 strcpy( fileName, origName );
                 ::PathStripPath( fileName );
@@ -1102,11 +1101,11 @@ protected:
 #endif
 
         // Update the button now
-        if( hDlg != nil )
+        if (hDlg != nullptr)
             IUpdateSoundButton( soundComponent, hDlg, dlgBtnItemToSet, which );
     }
 
-    BOOL DlgProc( TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         plBaseSoundEmitterComponent *soundComp = (plBaseSoundEmitterComponent *)map->GetParamBlock()->GetOwner();
 
@@ -1115,19 +1114,19 @@ protected:
         {
             case WM_INITDIALOG:
                 CheckDlgButton(hWnd, IDC_SND_TRACKVIEW, soundComp->fAllowUnhide ? BST_CHECKED : BST_UNCHECKED );
-                return true;
+                return TRUE;
             
             case WM_COMMAND:
                 if( LOWORD( wParam ) == IDC_SND_TRACKVIEW )
                 {
                     soundComp->fAllowUnhide = ( IsDlgButtonChecked( hWnd, IDC_SND_TRACKVIEW ) == BST_CHECKED );
                     plComponentShow::Update();
-                    return true;
+                    return TRUE;
                 }
                 break;
         }
         
-        return false;
+        return FALSE;
     }
 };
 
@@ -1143,7 +1142,7 @@ static plSingleCompSelProc gSoundSoftVolumeSelProc( kSndSoftRegion, IDC_COMP_SOU
 class plSoundSoftVolAccessor : public PBAccessor
 {
 public:
-    void Set( PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t )
+    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override
     {
         if( id == kSndSoftRegion )
         {
@@ -1173,11 +1172,11 @@ enum
 
 static ParamBlockDesc2 sSoundSharedPB
 (
-    plComponent::kBlkComp + 2, _T("Sound Shared Params"), 0, nil, P_AUTO_CONSTRUCT + P_AUTO_UI + P_MULTIMAP, plComponent::kRefComp,
+    plComponent::kBlkComp + 2, _T("Sound Shared Params"), 0, nullptr, P_AUTO_CONSTRUCT + P_AUTO_UI + P_MULTIMAP, plComponent::kRefComp,
 
     2,  // Number of rollouts
-    kSndSharedParams,           IDD_COMP_SOUNDBASE,         IDS_COMP_SOUNDBASE,         0, 0, nil,
-    kSoundFadeParams,               IDD_COMP_SOUND_FADEPARAMS,  IDS_COMP_SOUNDFADEPARAMS,   0, 0, nil,
+    kSndSharedParams,           IDD_COMP_SOUNDBASE,         IDS_COMP_SOUNDBASE,         0, 0, nullptr,
+    kSoundFadeParams,               IDD_COMP_SOUND_FADEPARAMS,  IDS_COMP_SOUNDFADEPARAMS,   0, 0, nullptr,
 
     // params
 
@@ -1258,7 +1257,7 @@ static ParamBlockDesc2 sSoundSharedPB
 
 //// ParamBlock Macros for Waveform Properties Rollout ///////////////////////////////////////////
 
-#define sSndWaveformPropsHeader     kSndWaveformParams, IDD_COMP_SOUNDSRC, IDS_COMP_SOUNDSRC, 0, 0, NULL
+#define sSndWaveformPropsHeader     kSndWaveformParams, IDD_COMP_SOUNDSRC, IDS_COMP_SOUNDSRC, 0, 0, nullptr
 
 #define sSndWaveformPropsParamTemplate \
                                                                                                             \
@@ -1321,7 +1320,7 @@ class plEAXPropsDlgProc : public plSingleCompSelProc
 
     void    ISwapOutOcclusion( IParamBlock2 *pb )
     {
-        if( pb == nil )
+        if (pb == nullptr)
             return;
 
         if( pb->GetInt( (ParamID)kEAXWhichOccSwapped ) == 0 )
@@ -1344,12 +1343,12 @@ class plEAXPropsDlgProc : public plSingleCompSelProc
         // Set to "none swapped"
         pb->SetValue( (ParamID)kEAXWhichOccSwapped, 0, (int)-1 );
 
-        fLastBlockSwapped = nil;
+        fLastBlockSwapped = nullptr;
     }
 
     void    ISwapInOcclusion( IParamBlock2 *pb, int which )
     {
-        if( pb == nil )
+        if (pb == nullptr)
             return;
 
         if( which == 0 )
@@ -1370,7 +1369,7 @@ class plEAXPropsDlgProc : public plSingleCompSelProc
         }
 
         pb->SetValue( (ParamID)kEAXWhichOccSwapped, 0, (int)which );
-        if( pb->GetMap() != nil )
+        if (pb->GetMap() != nullptr)
             pb->GetMap()->UpdateUI( 0 );
 
         fLastBlockSwapped = pb;
@@ -1404,7 +1403,7 @@ public:
 
     void    FlushSwappedPBs()
     {
-        if( fLastBlockSwapped != nil )
+        if (fLastBlockSwapped != nullptr)
             ISwapOutOcclusion( fLastBlockSwapped );
     }
 
@@ -1421,7 +1420,7 @@ public:
         float   occLFValues[] = { EAX_MATERIAL_SINGLEWINDOWLF, EAX_MATERIAL_DOUBLEWINDOWLF, EAX_MATERIAL_THINDOORLF,
                                 EAX_MATERIAL_THICKDOORLF, EAX_MATERIAL_WOODWALLLF, EAX_MATERIAL_BRICKWALLLF,
                                 EAX_MATERIAL_STONEWALLLF, EAX_MATERIAL_CURTAINLF };
-        int16_t   occRoomValues[] = { EAX_MATERIAL_SINGLEWINDOWROOMRATIO, EAX_MATERIAL_DOUBLEWINDOWROOMRATIO, EAX_MATERIAL_THINDOORROOMRATIO,
+        float   occRoomValues[] = { EAX_MATERIAL_SINGLEWINDOWROOMRATIO, EAX_MATERIAL_DOUBLEWINDOWROOMRATIO, EAX_MATERIAL_THINDOORROOMRATIO,
                                 EAX_MATERIAL_THICKDOORROOMRATIO, EAX_MATERIAL_WOODWALLROOMRATIO, EAX_MATERIAL_BRICKWALLROOMRATIO,
                                 EAX_MATERIAL_STONEWALLROOMRATIO, EAX_MATERIAL_CURTAINROOMRATIO };
 
@@ -1438,9 +1437,9 @@ public:
         fPresets[ 0 ].fRoomRatio = 1.5f;
     }
 
-    void DeleteThis() {}
+    void DeleteThis() override { }
 
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         IParamBlock2 *pblock = map->GetParamBlock();
 
@@ -1454,7 +1453,7 @@ public:
             
             case WM_DESTROY:
                 ISwapOutOcclusion( pblock );
-                return 0;
+                return FALSE;
 
             case WM_SHOWWINDOW:
                 if( wParam )
@@ -1464,7 +1463,7 @@ public:
                 }
                 else
                     ISwapOutOcclusion( pblock );
-                return 0;
+                return FALSE;
 
             case WM_COMMAND:
                 if( LOWORD( wParam ) == IDC_EAX_STARTOCC || LOWORD( wParam ) == IDC_EAX_ENDOCC )
@@ -1473,7 +1472,7 @@ public:
                     // from the temp ones
                     ISwapOutOcclusion( pblock );
                     ISwapInOcclusion( pblock, ( LOWORD( wParam ) == IDC_EAX_STARTOCC ) ? 0 : 1 );
-                    return true;
+                    return TRUE;
                 }
                 else if( LOWORD( wParam ) == IDC_EAX_OCCPRESET && HIWORD( wParam ) == CBN_SELCHANGE )
                 {
@@ -1486,7 +1485,7 @@ public:
                         pblock->SetValue( (ParamID)kEAXTempOcclusionLFRatio, 0, fPresets[ idx ].fLFRatio );
                         pblock->SetValue( (ParamID)kEAXTempOcclusionRoomRatio, 0, fPresets[ idx ].fRoomRatio );
                     }
-                    return true;
+                    return TRUE;
                 }
                 break;
         }   
@@ -1508,10 +1507,10 @@ static plEAXPropsDlgProc    sEAXPropsDlgProc;
 //static ParamBlockDesc2    sSndEAXPropsParamTemplate
 //(
     /// Main def
-//  plComponent::kBlkComp + 1, _T("sndEAXProps"), 0, nil, P_AUTO_UI + P_MULTIMAP + P_AUTO_CONSTRUCT, plComponent::kRefComp, 
+//  plComponent::kBlkComp + 1, _T("sndEAXProps"), 0, nullptr, P_AUTO_UI + P_MULTIMAP + P_AUTO_CONSTRUCT, plComponent::kRefComp,
 
 //  1, 
-//  kSndEAXParams, IDD_COMP_EAXBUFFER, IDS_COMP_EAXBUFFER, 0, 0, nil,   
+//  kSndEAXParams, IDD_COMP_EAXBUFFER, IDS_COMP_EAXBUFFER, 0, 0, nullptr,
 
 #define sSndEAXPropsParamTemplate \
                                                                                                             \
@@ -1678,14 +1677,14 @@ void    plBaseSoundEmitterComponent::IGrabEAXParams( plSound *sound, plErrorMsg 
                                                     fCompPB->GetFloat( (ParamID)kEAXEndOcclusionDirectRatio ) );
 
             plSoftVolBaseComponent* softComp = plSoftVolBaseComponent::GetSoftComponent( fCompPB->GetINode( (ParamID)kEAXOcclusionRegion ) );
-            if( softComp != nil )
+            if (softComp != nullptr)
             {
                 plKey softKey = softComp->GetSoftVolume();
-                if( softKey != nil )
+                if (softKey != nullptr)
                 {
                     // Make sure we set checkListener on the sucker
                     plSoftVolume *vol = plSoftVolume::ConvertNoRef( softKey->GetObjectPtr() );
-                    if( vol != nil )
+                    if (vol != nullptr)
                     {
                         vol->SetCheckListener();
                         hsgResMgr::ResMgr()->AddViaNotify( softKey, new plGenRefMsg( sound->GetKey(), plRefMsg::kOnCreate, 0, plSound::kRefSoftOcclusionRegion ), plRefFlags::kActiveRef );
@@ -1760,25 +1759,25 @@ public:
 
     // Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
-    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
-    virtual bool    IsLocalOnly() const { if( fCompPB->GetInt( (ParamID)kSndIsLocalOnly ) ) return true; else return false; }
+    bool    IsLocalOnly() const override { if (fCompPB->GetInt((ParamID)kSndIsLocalOnly)) return true; else return false; }
 
 
-    virtual bool    ConvertGrouped( plMaxNode *baseNode, hsTArray<plBaseSoundEmitterComponent *> &groupArray, plErrorMsg *pErrMsg );
+    bool    ConvertGrouped(plMaxNode *baseNode, std::vector<plBaseSoundEmitterComponent *> &groupArray, plErrorMsg *pErrMsg) override;
 
 protected:
 
     bool IValidate(plMaxNode *node, plErrorMsg *pErrMsg);
 
-    virtual bool    IAllowStereoFiles() const { return false; }
+    bool    IAllowStereoFiles() const override { return false; }
 
     void    ISetParameters( plWin32Sound *destSound, plErrorMsg *pErrMsg );
 
-    virtual bool    IGetCategoryList( char **&catList, int *&catKonstantList );
+    bool    IGetCategoryList(char **&catList, int *&catKonstantList) override;
 };
 
 class plSoundComponentProc : public plAudioBaseComponentProc
@@ -1788,7 +1787,7 @@ class plSoundComponentProc : public plAudioBaseComponentProc
     ParamID fCategoryParamID;
 
 public:
-    void DeleteThis() {}
+    void DeleteThis() override { }
 
     void ILoadLoops(HWND hLoop, IParamBlock2 *pb)
     {
@@ -1806,7 +1805,7 @@ public:
             for (SegmentMap::iterator it = segMap->begin(); it != segMap->end(); it++)
             {
                 SegmentSpec *spec = it->second;
-                int idx = SendMessage(hLoop, CB_ADDSTRING, 0, (LPARAM)spec->fName.c_str());
+                int idx = (int)SendMessage(hLoop, CB_ADDSTRING, 0, (LPARAM)spec->fName.c_str());
                 SendMessage(hLoop, CB_SETITEMDATA, idx, 1);
 
                 if (!spec->fName.compare(loop))
@@ -1821,7 +1820,7 @@ public:
             SendMessage(hLoop, CB_SETCURSEL, 0, 0);
     }
 
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch( msg )
         {
@@ -1830,7 +1829,7 @@ public:
                     IParamBlock2 *pblock = map->GetParamBlock();
 
                     plSound3DEmitterComponent *soundComp = (plSound3DEmitterComponent *)map->GetParamBlock()->GetOwner();
-                    hsAssert( soundComp != nil, "Problem trying to select a sound file" );
+                    hsAssert(soundComp != nullptr, "Problem trying to select a sound file");
 
                     IUpdateSoundButton( soundComp, hWnd, IDC_COMP_SOUND3D_FILENAME_BTN, plBaseSoundEmitterComponent::kBaseSound );
                     
@@ -1859,7 +1858,7 @@ public:
         case WM_COMMAND:
             if (HIWORD(wParam) == CBN_SELCHANGE && LOWORD(wParam) == IDC_LOOP_COMBO)
             {
-                int idx = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
+                int idx = (int)SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
                 if (idx == CB_ERR || SendMessage((HWND)lParam, CB_GETITEMDATA, idx, 0) == 0)
                     map->GetParamBlock()->SetValue((ParamID)kSoundLoopName, 0, "");
                 else
@@ -1868,12 +1867,12 @@ public:
                     SendMessage((HWND)lParam, CB_GETLBTEXT, idx, (LPARAM)buf);
                     map->GetParamBlock()->SetValue((ParamID)kSoundLoopName, 0, buf);
                 }
-                return true;
+                return TRUE;
             }
             else if( LOWORD( wParam ) == IDC_COMP_SOUND3D_FILENAME_BTN )
             {
                 plSound3DEmitterComponent *soundComp = (plSound3DEmitterComponent *)map->GetParamBlock()->GetOwner();
-                hsAssert( soundComp != nil, "Problem trying to select a sound file" );
+                hsAssert(soundComp != nullptr, "Problem trying to select a sound file");
                 
                 ISelectSoundFile( soundComp, hWnd, IDC_COMP_SOUND3D_FILENAME_BTN, plBaseSoundEmitterComponent::kBaseSound );
             }
@@ -1883,7 +1882,7 @@ public:
                 int idx = ComboBox_GetCurSel( ctrl );
                 if( idx != CB_ERR )
                 {
-                    int cat = ComboBox_GetItemData( ctrl, idx );
+                    int cat = (int)ComboBox_GetItemData(ctrl, idx);
                     map->GetParamBlock()->SetValue( (ParamID)fCategoryParamID, 0, cat );
                 }
                 else
@@ -1900,11 +1899,11 @@ public:
 class plSoundFadeParamsDlgProc : public plAudioBaseComponentProc
 {
     public:
-        void DeleteThis() {}
+        void DeleteThis() override { }
 
-        BOOL DlgProc( TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
+        INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
         {
-            const char          *types[] = { "Linear", "Logarithmic", "Exponential", NULL };
+            const char          *types[] = { "Linear", "Logarithmic", "Exponential", nullptr };
             IParamBlock2    *pb = map->GetParamBlock();
             BOOL            enable;
 
@@ -1957,7 +1956,7 @@ class plSoundFadeParamsDlgProc : public plAudioBaseComponentProc
 
             }
 
-            return false;
+            return FALSE;
         }
 };  
 
@@ -2167,7 +2166,7 @@ bool plSound3DEmitterComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
         fIndex = fIndices[node];
 
     plSoundBuffer *srcBuffer = IProcessSourceBuffer( node, pErrMsg );
-    if( srcBuffer == nil )
+    if (srcBuffer == nullptr)
         return false;
 
     const plAudioInterface* ai = node->GetSceneObject()->GetAudioInterface();
@@ -2176,7 +2175,7 @@ bool plSound3DEmitterComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
 
     ST::string keyName = ST::string::from_utf8(GetINode()->GetName());
 
-    plWin32Sound *sound = nil;
+    plWin32Sound *sound = nullptr;
 
     if (!strcmp(node->GetName(), "LinkSoundSource"))
         sound = new plWin32LinkSound;
@@ -2205,7 +2204,7 @@ bool plSound3DEmitterComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
 }
 
 // Converts an array of components into a single grouped sound
-bool    plSound3DEmitterComponent::ConvertGrouped( plMaxNode *baseNode, hsTArray<plBaseSoundEmitterComponent *> &groupArray, plErrorMsg *pErrMsg )
+bool plSound3DEmitterComponent::ConvertGrouped(plMaxNode *baseNode, std::vector<plBaseSoundEmitterComponent *> &groupArray, plErrorMsg *pErrMsg)
 {
     ST::string keyName;
 
@@ -2220,30 +2219,29 @@ bool    plSound3DEmitterComponent::ConvertGrouped( plMaxNode *baseNode, hsTArray
     // allocate it here).
     // Also also also build up a volume array parallel to startPoses that represents the individual volume
     // setting for each sound in the group
-    hsTArray<uint32_t>        startPoses;
-    hsTArray<float>      volumes;
-    hsLargeArray<uint8_t>     mergedData;
-    int                     i;
+    std::vector<uint32_t>   startPoses;
+    std::vector<float>      volumes;
+    std::vector<uint8_t>    mergedData;
     plWAVHeader             mergedHeader;
 
-    for( i = 0; i < groupArray.GetCount(); i++ )
+    for (plBaseSoundEmitterComponent* groupComponent : groupArray)
     {
         // Make sure they're all 3D sounds...
-        if( groupArray[ i ]->ClassID() != SOUND_3D_COMPONENT_ID )
+        if (groupComponent->ClassID() != SOUND_3D_COMPONENT_ID)
         {
             char msg[ 512 ];
             sprintf( msg, "The sound component %s isn't a 3D sound, which is necessary for making grouped sounds. "
-                        "Make sure all the sounds in this group are 3D sounds.", groupArray[ i ]->GetINode()->GetName() );
+                        "Make sure all the sounds in this group are 3D sounds.", groupComponent->GetINode()->GetName());
             IShowError( kSrcBufferInvalid, msg, baseNode->GetName(), pErrMsg );
 
             // Attempt to recover
-            startPoses.Append( mergedData.GetCount() );
-            volumes.Append( 1.f );
+            startPoses.emplace_back((uint32_t)mergedData.size());
+            volumes.emplace_back(1.f);
             continue;
         }
 
         // Grab the buffer for this sound directly from the original source
-        plFileName fileName = groupArray[ i ]->GetSoundFileName( kBaseSound );
+        plFileName fileName = groupComponent->GetSoundFileName(kBaseSound);
 
         plSoundBuffer   *buffer = new plSoundBuffer( fileName );
         if( !buffer->IsValid() || !buffer->EnsureInternal() )
@@ -2266,19 +2264,19 @@ bool    plSound3DEmitterComponent::ConvertGrouped( plMaxNode *baseNode, hsTArray
             if( !worked )
             {
                 char msg[ 512 ];
-                sprintf( msg, "The sound file %s cannot be loaded for component %s.", fileName.AsString().c_str(), groupArray[ i ]->GetINode()->GetName() );
+                sprintf(msg, "The sound file %s cannot be loaded for component %s.", fileName.AsString().c_str(), groupComponent->GetINode()->GetName());
                 IShowError( kSrcBufferInvalid, msg, baseNode->GetName(), pErrMsg );
                 delete buffer;
 
                 // Attempt to recover
-                startPoses.Append( mergedData.GetCount() );
-                volumes.Append( 1.f );
+                startPoses.emplace_back((uint32_t)mergedData.size());
+                volumes.emplace_back(1.f);
                 continue;
             }
         }
         
         // Get a header (they should all be the same)
-        if( i == 0 )
+        if (groupArray.empty())
             mergedHeader = buffer->GetHeader();
         else
         {
@@ -2291,25 +2289,22 @@ bool    plSound3DEmitterComponent::ConvertGrouped( plMaxNode *baseNode, hsTArray
                 delete buffer;
 
                 // Attempt to recover
-                startPoses.Append( mergedData.GetCount() );
-                volumes.Append( 1.f );
+                startPoses.emplace_back((uint32_t)mergedData.size());
+                volumes.emplace_back(1.f);
                 continue;
             }
         }
 
         // Grab the data from this buffer and merge it
-        // HACK: SetCount() won't copy the old data over, Expand() won't up the use count, so do
-        // an expand-and-setCount combo.
-        uint32_t pos = mergedData.GetCount();
-        startPoses.Append( pos );
-        mergedData.Expand( pos + buffer->GetDataLength() );
-        mergedData.SetCount( pos + buffer->GetDataLength() );
+        uint32_t pos = (uint32_t)mergedData.size();
+        startPoses.emplace_back(pos);
+        mergedData.resize(pos + buffer->GetDataLength());
         memcpy( &mergedData[ pos ], buffer->GetData(), buffer->GetDataLength() );
 
         delete buffer;
 
         // Also keep track of what the volume should be for this particular sound
-        volumes.Append( groupArray[ i ]->GetSoundVolume() );
+        volumes.emplace_back(groupComponent->GetSoundVolume());
     }
 
     /// We got a merged buffer, so make a plSoundBuffer from it
@@ -2320,13 +2315,13 @@ bool    plSound3DEmitterComponent::ConvertGrouped( plMaxNode *baseNode, hsTArray
     keyName = ST::format("{}_MergedSound", GetINode()->GetName());
 
     plKey buffKey = baseNode->FindPageKey( plSoundBuffer::Index(), keyName );   
-    if( buffKey != nil )
+    if (buffKey != nullptr)
         plPluginResManager::ResMgr()->NukeKeyAndObject( buffKey );
 
     // Create a new one...
     plSoundBuffer   *mergedBuffer = new plSoundBuffer();
-    mergedBuffer->SetInternalData( mergedHeader, mergedData.GetCount(), mergedData.AcquireArray() );
-    mergedData.Reset();
+    mergedBuffer->SetInternalData(mergedHeader, mergedData.size(), mergedData.data());
+    mergedData.clear();
     // The buffer may be shared across multiple sources. We could or together the LoadMasks of all
     // the nodes that use it, or we can just go with the default loadmask of Always load, and
     // count on it never getting dragged into memory if nothing that references it does.
@@ -2340,7 +2335,7 @@ bool    plSound3DEmitterComponent::ConvertGrouped( plMaxNode *baseNode, hsTArray
 
     keyName = ST::string::from_utf8(GetINode()->GetName());
     plWin32GroupedSound *sound = new plWin32GroupedSound;
-    sound->SetPositionArray( startPoses.GetCount(), startPoses.AcquireArray(), volumes.AcquireArray() );
+    sound->SetPositionArray(startPoses.size(), startPoses.data(), volumes.data());
     sound->SetProperty( plSound::kPropLoadOnlyOnCall, true );
 
     hsgResMgr::ResMgr()->NewKey( keyName, sound, baseNode->GetLocation(), baseNode->GetLoadMask() );
@@ -2371,18 +2366,18 @@ public:
 
     // Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
-    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
-    virtual bool    IsLocalOnly() const { if( fCompPB->GetInt( (ParamID)kSndIsLocalOnly ) ) return true; else return false; }
+    bool    IsLocalOnly() const override { if (fCompPB->GetInt((ParamID)kSndIsLocalOnly)) return true; else return false; }
 
 protected:
-    virtual uint32_t ICalcSourceBufferFlags() const;
+    uint32_t ICalcSourceBufferFlags() const override;
 
     bool IValidate(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool    IGetCategoryList( char **&catList, int *&catKonstantList );
+    bool    IGetCategoryList(char **&catList, int *&catKonstantList) override;
 };
 
 //Max desc stuff necessary below.
@@ -2482,11 +2477,11 @@ bool plBackgroundMusicComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     plWinAudible* pAudible = (plWinAudible*)ai->GetAudible();
 
     plSoundBuffer *srcBuffer = IProcessSourceBuffer( node, pErrMsg );
-    if( srcBuffer == nil )
+    if (srcBuffer == nullptr)
         return false;
 
     ST::string keyName = ST::format("{}_Win32BgndSnd", GetINode()->GetName());
-    plWin32Sound *sound = nil;
+    plWin32Sound *sound = nullptr;
 
     if( srcBuffer->GetDataLengthInSecs() > 4.f )
         sound = new plWin32StreamingSound;
@@ -2546,20 +2541,20 @@ public:
 
     // Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
-    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
-    virtual void    UpdateSoundFileSelection() { }
+    void    UpdateSoundFileSelection() override { }
 
 protected:
 
     bool    IValidate(plMaxNode *node, plErrorMsg *pErrMsg);
 
-    virtual bool    IGetCategoryList( char **&catList, int *&catKonstantList );
+    bool    IGetCategoryList(char **&catList, int *&catKonstantList) override;
 
-    virtual bool    IHasWaveformProps() const { return false; }
+    bool    IHasWaveformProps() const override { return false; }
 };
 
 //Max desc stuff necessary below.
@@ -2636,7 +2631,7 @@ bool plGUISoundComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     plWinAudible* pAudible = (plWinAudible*)ai->GetAudible();
 
     plSoundBuffer *srcBuffer = GetSourceBuffer( fileName, node, ICalcSourceBufferFlags() );
-    if( srcBuffer == nil )
+    if (srcBuffer == nullptr)
     {
         pErrMsg->Set( true, node->GetName(), "The file specified for the sound 3D component %s is invalid. This emitter will not be exported.", GetINode()->GetName() ).Show();
         pErrMsg->Set( false );
@@ -2709,14 +2704,14 @@ public:
 
 public:
     plEAXListenerComponent();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *pNode, plErrorMsg *errMsg);
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *errMsg) override;
 
-    bool PreConvert(plMaxNode *pNode, plErrorMsg *errMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *errMsg);
+    bool PreConvert(plMaxNode *pNode, plErrorMsg *errMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *errMsg) override;
 
     const char *GetCustFileName() const;
     void        SetCustFile( const char *path );
@@ -2729,7 +2724,7 @@ public:
 class plEAXListenerAccessor : public PBAccessor
 {
 public:
-    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)
+    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override
     {
         if (id == plEAXListenerComponent::kRefSoftRegion )
         {
@@ -2752,7 +2747,7 @@ protected:
 
     
         const char *name = listenerComp->GetCustFileName();
-        if( name != nil )
+        if (name != nullptr)
             strcpy( fileName, name );
         else
             strcpy( fileName, _T( "" ) );
@@ -2786,7 +2781,7 @@ public:
     {
     }
 
-    BOOL DlgProc( TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         IParamBlock2    *pb = map->GetParamBlock();
 
@@ -2809,7 +2804,7 @@ public:
                     ComboBox_SetCurSel( comboBox, pb->GetInt( (ParamID)plEAXListenerComponent::kRefPreset ) );
 
                     ICustButton *custButton = GetICustButton( GetDlgItem( hWnd, IDC_EAX_CUSTFILE ) );
-                    if( custButton != nil )
+                    if (custButton != nullptr)
                     {
                         custButton->SetText( pb->GetStr( (ParamID)plEAXListenerComponent::kRefCustFile ) );
                         ReleaseICustButton( custButton );
@@ -2820,7 +2815,7 @@ public:
             case WM_COMMAND:    
                 if( LOWORD( wParam ) == IDC_EAX_PRESET_COMBO )
                 {
-                    int sel = SendDlgItemMessage( hWnd, IDC_EAX_PRESET_COMBO, CB_GETCURSEL, 0, 0 );
+                    int sel = (int)SendDlgItemMessage(hWnd, IDC_EAX_PRESET_COMBO, CB_GETCURSEL, 0, 0);
                     if( sel != CB_ERR )
                         pb->SetValue( (ParamID)plEAXListenerComponent::kRefPreset, 0, sel );
                     return true;
@@ -2832,7 +2827,7 @@ public:
                     if( IGetCustFileName( comp ) )
                     {
                         ICustButton *custButton = GetICustButton( GetDlgItem( hWnd, IDC_EAX_CUSTFILE ) );
-                        if( custButton != nil )
+                        if (custButton != nullptr)
                         {
                             custButton->SetText( pb->GetStr( (ParamID)plEAXListenerComponent::kRefCustFile ) );
                             ReleaseICustButton( custButton );
@@ -2845,7 +2840,7 @@ public:
         return plSingleCompSelProc::DlgProc( t, map, hWnd, msg, wParam, lParam );
     }
 
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 
 static plEAXListenerDlgProc gEAXListenerDlgProc;
@@ -3032,7 +3027,7 @@ void    plEAXListenerComponent::SetCustFile( const char *path )
         { "flLFReference", kRefLFReference, 1 },
         { "flRoomRolloffFactor", kRefRoomRolloffFactor, 1 },
         { "dwFlags", kRefFlags, 0 },
-        { nil, 0, 0 } };
+        { nullptr, 0, 0 } };
 
     // Read the file and set settings from it
     if( !presetFile.Open( path, "rt" ) )
@@ -3043,18 +3038,18 @@ void    plEAXListenerComponent::SetCustFile( const char *path )
     }
 
     // Loop and find our keywords
-    for( i = 0; myMap[ i ].fKeyword != nil && !presetFile.AtEnd(); )
+    for (i = 0; myMap[i].fKeyword != nullptr && !presetFile.AtEnd(); )
     {
         char line[ 512 ];
 
         // Read a line from the file until we find our keyword
         presetFile.ReadLn( line, sizeof( line ) );
-        if( strstr( line, myMap[ i ].fKeyword ) == nil )
+        if (strstr(line, myMap[i].fKeyword) == nullptr)
             continue;
 
         // Read the next line, with our value
         presetFile.ReadLn( line, sizeof( line ) );
-        float value = atof( line );
+        float value = strtof(line, nullptr);
         if( myMap[ i ].fType == 0 )
             fCompPB->SetValue( myMap[ i ].fParamID, 0, (int)value );
         else
@@ -3063,7 +3058,7 @@ void    plEAXListenerComponent::SetCustFile( const char *path )
         i++;
     }
 
-    if( myMap[ i ].fKeyword != nil )
+    if (myMap[i].fKeyword != nullptr)
     {
         hsAssert( false, "Couldn't find all of the keywords in the settings file. Oh well" );
     }
@@ -3072,7 +3067,7 @@ void    plEAXListenerComponent::SetCustFile( const char *path )
     presetFile.Close();
 
     // Update our helper reminder string
-    _splitpath( path, nil, nil, file, nil );
+    _splitpath(path, nullptr, nullptr, file, nullptr);
     fCompPB->SetValue( (ParamID)kRefCustFile, 0, file );
 }
 
@@ -3105,7 +3100,7 @@ plKey plAudioComp::GetRandomSoundKey(plComponentBase *comp, plMaxNode *node)
             return rndSnd->fSoundMods[node]->GetKey();
     }
 
-    return nil;
+    return nullptr;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -3153,11 +3148,11 @@ class plRandomSoundComponentProc : public ParamMap2UserDlgProc
 public:
     plRandomSoundComponentProc() {}
 
-    BOOL DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 
-    void DeleteThis() {}
+    void DeleteThis() override { }
     void UpdateDisplay(IParamMap2 *pm);
-    virtual void Update(TimeValue t, Interval& valid, IParamMap2* pmap) { UpdateDisplay(pmap); }
+    void Update(TimeValue t, Interval& valid, IParamMap2* pmap) override { UpdateDisplay(pmap); }
 };
 
 static plRandomSoundComponentProc gRandomSoundComponentProc;
@@ -3177,7 +3172,7 @@ void plRandomSoundComponentProc::UpdateDisplay(IParamMap2 *pm)
     while (startIdx < endIdx)
     {
         INode *curNode = pb->GetINode(ParamID(kSoundList), 0, startIdx);
-        if (curNode == nil)
+        if (curNode == nullptr)
         {
             comp->RemoveSound(startIdx);
             endIdx--;
@@ -3188,7 +3183,7 @@ void plRandomSoundComponentProc::UpdateDisplay(IParamMap2 *pm)
     }
 }
 
-BOOL plRandomSoundComponentProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plRandomSoundComponentProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     IParamBlock2 *pb = pm->GetParamBlock();
     HWND hList = GetDlgItem(hWnd, IDC_COMP_RS_GROUPLIST);
@@ -3239,7 +3234,7 @@ ParamBlockDesc2 gRandomSoundBk
  plComponent::kBlkComp, _T("RandomSound"), 0, &gRandomSoundDesc, P_AUTO_CONSTRUCT + P_AUTO_UI + P_MULTIMAP, plComponent::kRefComp,
 
     2, 
-    kRandomSoundMain, IDD_COMP_RANDOMSOUND, IDS_COMP_RANDOMSOUNDS, 0, 0, NULL,
+    kRandomSoundMain, IDD_COMP_RANDOMSOUND, IDS_COMP_RANDOMSOUNDS, 0, 0, nullptr,
     kRandomSoundGroup, IDD_COMP_RANDOMSOUND_GROUPS, IDS_COMP_RANDOMSOUNDS_GROUPS, 0, APPENDROLL_CLOSED, &gRandomSoundComponentProc,
 
     // Main rollout
@@ -3373,9 +3368,9 @@ bool plRandomSoundComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     }
 
     plRandomSoundMod* mod = fSoundMods[node];
-    plSound *pSound = nil;
-    const plAudioInterface* ai = nil;
-    plWinAudible* pAudible = nil;
+    plSound *pSound = nullptr;
+    const plAudioInterface* ai = nullptr;
+    plWinAudible* pAudible = nullptr;
 
 
     if( fCompPB->GetInt((ParamID)kAutoStart) )
@@ -3440,7 +3435,7 @@ bool plRandomSoundComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     {
         ai = node->GetSceneObject()->GetAudioInterface();
         pAudible = (plWinAudible*)ai->GetAudible();
-        hsTArray<plBaseSoundEmitterComponent *> comps;
+        std::vector<plBaseSoundEmitterComponent *> comps;
 
         plRandomSoundModGroup *groups = new plRandomSoundModGroup[kMaxGroups];
         int i;
@@ -3452,18 +3447,17 @@ bool plRandomSoundComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
             {
                 groups[i].fGroupedIdx = -1; 
                 groups[i].fNumSounds = 0;
-                groups[i].fIndices = nil;
+                groups[i].fIndices = nullptr;
                 continue;
             }
 
             groups[i].fIndices = new uint16_t[numSounds];
 
-            hsTArray<uint16_t> indices;
-            int j;
+            std::vector<uint16_t> indices;
 
             if( !fCompPB->GetInt( (ParamID)kCombineSounds ) )
             {
-                for (j = 0; j < numSounds; j++)
+                for (int j = 0; j < numSounds; j++)
                 {
                     plMaxNode *compNode = (plMaxNode*)fCompPB->GetINode(ParamID(kSoundList), 0, numSoFar + j);
                     if (compNode)
@@ -3472,38 +3466,32 @@ bool plRandomSoundComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
                         int idx = comp->GetSoundIdx((plMaxNode*)node);
                         if (idx >= 0)
                         {
-                            indices.Append(idx);
+                            indices.emplace_back(idx);
                         }
                     }
                 }
-                groups[i].fNumSounds = indices.GetCount();
-                for (j = 0; j < indices.GetCount(); j++)
-                {   
-                    groups[i].fIndices[j] = indices[j];
-                }
+                groups[i].fNumSounds = (uint16_t)indices.size();
+                std::copy(indices.cbegin(), indices.cend(), groups[i].fIndices);
             }
             else
             {
                 // Build array of components to give to ConvertGrouped()
-                for (j = 0; j < numSounds; j++)
+                for (int j = 0; j < numSounds; j++)
                 {
                     plMaxNode *compNode = (plMaxNode*)fCompPB->GetINode(ParamID(kSoundList), 0, numSoFar + j);
                     if (compNode)
                     {
                         plBaseSoundEmitterComponent *comp = (plBaseSoundEmitterComponent *)compNode->ConvertToComponent();
-                        comps.Append( comp );
+                        comps.emplace_back(comp);
                         // Stupid, i know. Leave me alone, PG is playing.
-                        indices.Append( comps.GetCount() - 1 );
+                        indices.emplace_back((uint16_t)(comps.size() - 1));
                     }
                 }
 
                 // Get index from first (should be the same for all of 'em)
                 groups[i].fGroupedIdx = comps[ 0 ]->GetSoundIdx( (plMaxNode *)node );
-                groups[i].fNumSounds = indices.GetCount();
-                for (j = 0; j < indices.GetCount(); j++)
-                {
-                    groups[i].fIndices[j] = indices[ j ];
-                }
+                groups[i].fNumSounds = (uint16_t)indices.size();
+                std::copy(indices.cbegin(), indices.cend(), groups[i].fIndices);
             }
                 
             numSoFar += groups[i].fNumSounds;
@@ -3525,9 +3513,10 @@ bool plRandomSoundComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     {
         ai = node->GetSceneObject()->GetAudioInterface();
         pAudible = (plWinAudible*)ai->GetAudible();
-        int numSounds = pAudible->GetNumSounds();
+        size_t numSounds = pAudible->GetNumSounds();
         
-        if(numSounds == 0) return true;
+        if (numSounds == 0)
+            return true;
         
         pSound = pAudible->GetSound(0); // Get sound ptr
         int highestPriority = pSound->GetPriority();
@@ -3536,7 +3525,7 @@ bool plRandomSoundComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
         int distToLowest = 9 - highestPriority;
         if( distToLowest <= 0) distToLowest = 1;    // just incase
 
-        for( int i = 0; i < numSounds; i++)
+        for (size_t i = 0; i < numSounds; i++)
         {
             pSound = pAudible->GetSound(i); // Get sound ptr
 
@@ -3627,11 +3616,11 @@ protected:
 
 public:
     plPhysicsSndGroupComp();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
 
-    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
     enum Refs
     {
@@ -3649,10 +3638,10 @@ class plPhysicsSndGroupCompProc : public ParamMap2UserDlgProc
 public:
     plPhysicsSndGroupCompProc() {}
 
-    BOOL DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 
-    void DeleteThis() {}
-    virtual void Update(TimeValue t, Interval& valid, IParamMap2* pmap) {  }
+    void DeleteThis() override { }
+    void Update(TimeValue t, Interval& valid, IParamMap2* pmap) override { }
 
 protected:
 
@@ -3681,7 +3670,7 @@ protected:
         
         if( allowAll )
         {
-            int idx = SendMessage( hList, CB_ADDSTRING, 0, (LPARAM)"* All *" );
+            int idx = (int)SendMessage(hList, CB_ADDSTRING, 0, (LPARAM)"* All *");
             SendMessage( hList, CB_SETITEMDATA, idx, (LPARAM)-1 );
             if( currSel == -1 )
                 toSet = idx;
@@ -3689,7 +3678,7 @@ protected:
 
         for( i = 0; groups[ i ].group != plPhysicalSndGroup::kNone; i++ )
         {
-            int idx = SendMessage( hList, CB_ADDSTRING, 0, (LPARAM)groups[ i ].name );
+            int idx = (int)SendMessage(hList, CB_ADDSTRING, 0, (LPARAM)groups[i].name);
             SendMessage( hList, CB_SETITEMDATA, idx, (LPARAM)groups[ i ].group );
 
             if( groups[ i ].group == currSel )
@@ -3707,10 +3696,10 @@ protected:
             idx = 0;
 
         INode *impact = IGet( comp->GetParamBlock( 0 ), plPhysicsSndGroupComp::kRefImpactSounds, idx );
-        ::SetWindowText( GetDlgItem( hWnd, IDC_SND_IMPACT ), ( impact != nil ) ? impact->GetName() : "<none>" );
+        ::SetWindowText(GetDlgItem(hWnd, IDC_SND_IMPACT), (impact != nullptr) ? impact->GetName() : "<none>");
         
         INode *slide = IGet( comp->GetParamBlock( 0 ), plPhysicsSndGroupComp::kRefSlideSounds, idx );
-        ::SetWindowText( GetDlgItem( hWnd, IDC_SND_SLIDE ), ( slide != nil ) ? slide->GetName() : "<none>" );
+        ::SetWindowText(GetDlgItem(hWnd, IDC_SND_SLIDE), (slide != nullptr) ? slide->GetName() : "<none>");
     }
     
     void    ISet( IParamBlock2 *pb, ParamID which, int idx, INode *node )
@@ -3736,7 +3725,7 @@ protected:
     INode   *IGet( IParamBlock2 *pb, ParamID which, int idx )
     {
         if( pb->Count( which ) <= idx )
-            return nil;
+            return nullptr;
             
         return pb->GetINode( which, 0, idx );
     }
@@ -3745,7 +3734,7 @@ protected:
 static plPhysicsSndGroupCompProc gPhysicsSndGroupCompProc;
 
 
-BOOL plPhysicsSndGroupCompProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plPhysicsSndGroupCompProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     IParamBlock2 *pb = pm->GetParamBlock();
     HWND hList = GetDlgItem( hWnd, IDC_SND_GROUP );
@@ -3759,7 +3748,7 @@ BOOL plPhysicsSndGroupCompProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, 
                 IInitList( GetDlgItem( hWnd, IDC_SND_GROUP ), pb->GetInt( plPhysicsSndGroupComp::kRefGroup ), false );
                 IInitList( GetDlgItem( hWnd, IDC_SND_AGAINST ), -1, true );
 
-                int idx = SendMessage( hAgainst, CB_GETCURSEL, 0, 0 );
+                int idx = (int)SendMessage(hAgainst, CB_GETCURSEL, 0, 0);
                 if( idx != CB_ERR )
                 {
                     idx = (int)SendMessage( hAgainst, CB_GETITEMDATA, idx, 0 );
@@ -3774,7 +3763,7 @@ BOOL plPhysicsSndGroupCompProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, 
             {
                 if( LOWORD( wParam ) == IDC_SND_GROUP )
                 {
-                    int idx = SendMessage( hList, CB_GETCURSEL, 0, 0 );
+                    int idx = (int)SendMessage(hList, CB_GETCURSEL, 0, 0);
                     if( idx != CB_ERR )
                     {
                         pb->SetValue( (ParamID)plPhysicsSndGroupComp::kRefGroup, 0, (int)SendMessage( hList, CB_GETITEMDATA, idx, 0 ) );
@@ -3783,7 +3772,7 @@ BOOL plPhysicsSndGroupCompProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, 
                 }
                 else if( LOWORD( wParam ) == IDC_SND_AGAINST )
                 {
-                    int idx = SendMessage( hAgainst, CB_GETCURSEL, 0, 0 );
+                    int idx = (int)SendMessage(hAgainst, CB_GETCURSEL, 0, 0);
                     if( idx != CB_ERR )
                     {
                         idx = (int)SendMessage( hAgainst, CB_GETITEMDATA, idx, 0 );
@@ -3793,7 +3782,7 @@ BOOL plPhysicsSndGroupCompProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, 
             }
             else if( LOWORD( wParam ) == IDC_SND_CLEAR_IMPACT )
             {
-                int idx = SendMessage( hAgainst, CB_GETCURSEL, 0, 0 );
+                int idx = (int)SendMessage(hAgainst, CB_GETCURSEL, 0, 0);
                 if( idx != CB_ERR )
                 {
                     idx = (int)SendMessage( hAgainst, CB_GETITEMDATA, idx, 0 );
@@ -3802,26 +3791,26 @@ BOOL plPhysicsSndGroupCompProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, 
                         pb->Resize( (ParamID)plPhysicsSndGroupComp::kRefImpactSounds, 0 ); 
                     }
                     else
-                        ISet( pb, plPhysicsSndGroupComp::kRefImpactSounds, idx, nil );
+                        ISet(pb, plPhysicsSndGroupComp::kRefImpactSounds, idx, nullptr);
                     IUpdateBtns( hWnd, idx, comp );
                 }
             }
             else if( LOWORD( wParam ) == IDC_SND_CLEAR_SLIDE )
             {
-                int idx = SendMessage( hAgainst, CB_GETCURSEL, 0, 0 );
+                int idx = (int)SendMessage(hAgainst, CB_GETCURSEL, 0, 0);
                 if( idx != CB_ERR )
                 {
                     idx = (int)SendMessage( hAgainst, CB_GETITEMDATA, idx, 0 );
                     if( idx == -1 )
                         pb->Resize( (ParamID)plPhysicsSndGroupComp::kRefSlideSounds, 0 ); 
                     else
-                        ISet( pb, plPhysicsSndGroupComp::kRefSlideSounds, idx, nil );
+                        ISet(pb, plPhysicsSndGroupComp::kRefSlideSounds, idx, nullptr);
                     IUpdateBtns( hWnd, idx, comp );
                 }
             }
             else if( LOWORD( wParam ) == IDC_SND_IMPACT )
             {
-                int idx = SendMessage( hAgainst, CB_GETCURSEL, 0, 0 );
+                int idx = (int)SendMessage(hAgainst, CB_GETCURSEL, 0, 0);
                 if( idx != CB_ERR )
                 {
                     idx = (int)SendMessage( hAgainst, CB_GETITEMDATA, idx, 0 );
@@ -3836,7 +3825,7 @@ BOOL plPhysicsSndGroupCompProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, 
             }
             else if( LOWORD( wParam ) == IDC_SND_SLIDE )
             {
-                int idx = SendMessage( hAgainst, CB_GETCURSEL, 0, 0 );
+                int idx = (int)SendMessage(hAgainst, CB_GETCURSEL, 0, 0);
                 if( idx != CB_ERR )
                 {
                     idx = (int)SendMessage( hAgainst, CB_GETITEMDATA, idx, 0 );
@@ -3859,7 +3848,7 @@ BOOL plPhysicsSndGroupCompProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, 
 class plPhysicsSndGroupAccessor : public PBAccessor
 {
 public:
-    void Set( PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t )
+    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override
     {
         if( id == plPhysicsSndGroupComp::kRefImpactSounds || id == plPhysicsSndGroupComp::kRefSlideSounds )
         {
@@ -3910,7 +3899,7 @@ bool plPhysicsSndGroupComp::Convert( plMaxNode *node, plErrorMsg *pErrMsg )
 
     // Try to grab the SI from the current scene object. This'll have the pointer we want
     plSceneObject *obj = node->GetSceneObject();
-    if( obj != nil )
+    if (obj != nullptr)
     {
         const plSimulationInterface* si = obj->GetSimulationInterface();
         if (si)
@@ -3924,10 +3913,10 @@ bool plPhysicsSndGroupComp::Convert( plMaxNode *node, plErrorMsg *pErrMsg )
             for( i = 0; i < fCompPB->Count( (ParamID)kRefImpactSounds ); i++ )
             {
                 plMaxNode *targNode = (plMaxNode *)fCompPB->GetINode( (ParamID)kRefImpactSounds, 0, i );
-                if( targNode != nil )
+                if (targNode != nullptr)
                 {
                     plComponentBase *comp = targNode->ConvertToComponent();
-                    if( comp != nil )
+                    if (comp != nullptr)
                     {
                         // Check root node for random sound component
                         RandSoundKey = plAudioComp::GetRandomSoundKey( comp, node );
@@ -3954,10 +3943,10 @@ bool plPhysicsSndGroupComp::Convert( plMaxNode *node, plErrorMsg *pErrMsg )
             for( i = 0; i < fCompPB->Count( (ParamID)kRefSlideSounds ); i++ )
             {
                 plMaxNode *targNode = (plMaxNode *)fCompPB->GetINode( (ParamID)kRefSlideSounds, 0, i );
-                if( targNode != nil )
+                if (targNode != nullptr)
                 {
                     plComponentBase *comp = targNode->ConvertToComponent();
-                    if( comp != nil )
+                    if (comp != nullptr)
                     {
                         // Check root node for random sound component
                         RandSoundKey = plAudioComp::GetRandomSoundKey( comp, node );

@@ -47,7 +47,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include "pyGeometry3.h"
-#pragma hdrstop
 
 #include "pyVaultMarkerGameNode.h"
 #include "plVault/plVault.h"
@@ -66,7 +65,7 @@ ST::string pyVaultMarkerGameNode::GetGameName () const
         VaultMarkerGameNode access(fNode);
         return access.GetGameName();
     }
-    return ST::null;
+    return ST::string();
 }
 
 void pyVaultMarkerGameNode::SetGameName (const ST::string& name)
@@ -83,7 +82,7 @@ ST::string pyVaultMarkerGameNode::GetReward() const
         VaultMarkerGameNode access(fNode);
         return access.GetReward();
     }
-    return ST::null;
+    return ST::string();
 }
 
 void pyVaultMarkerGameNode::SetReward(const ST::string& value)
@@ -106,7 +105,7 @@ PyObject* pyVaultMarkerGameNode::GetMarkers() const
     PyObject* list = PyList_New(collector.size());
     for (size_t i = 0; i < collector.size(); ++i) {
         PyObject* marker_tup = PyTuple_New(4);
-        PyTuple_SET_ITEM(marker_tup, 0, PyInt_FromLong(collector[i].id));
+        PyTuple_SET_ITEM(marker_tup, 0, PyLong_FromLong(collector[i].id));
         PyTuple_SET_ITEM(marker_tup, 1, PyUnicode_FromSTString(collector[i].age));
         PyTuple_SET_ITEM(marker_tup, 2, pyPoint3::New(collector[i].pos));
         PyTuple_SET_ITEM(marker_tup, 3, PyUnicode_FromSTString(collector[i].description));

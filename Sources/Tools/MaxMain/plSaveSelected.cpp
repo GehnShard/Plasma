@@ -45,12 +45,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "MaxComponent/plComponent.h"
 #include "plMaxNode.h"
 
-#include <CommDlg.h>
-#include <iparamb2.h>
-#include <max.h>
-#include <notify.h>
-#include <vector>
-#pragma hdrstop
+#include "MaxAPI.h"
 
 
 
@@ -213,7 +208,7 @@ plMaxNode *IFindComponentRecur(plMaxNode *node, const char *name)
             return ret;
     }
 
-    return nil;
+    return nullptr;
 }
 
 void plMerge()
@@ -294,7 +289,7 @@ void plMerge()
             plComponentBase *comp = components[j];
 
             if (oldComp == comp)
-                components[j] = nil;
+                components[j] = nullptr;
             else if (comp)
             {
                 const char *temp = comp->GetINode()->GetName();

@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "cyMisc.h"
 #include "pyGlueHelpers.h"
@@ -61,14 +60,13 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtYesNoDialog, args, "Params: selfkey,dialogMess
             "And their answer will be returned in a Notify message.")
 {
     PyObject* keyObj = nullptr;
-    PyObject* text;
-    if (!PyArg_ParseTuple(args, "OO", &keyObj, &text) || !pyKey::Check(keyObj) ||
-        !PyString_CheckEx(text)) {
+    ST::string text;
+    if (!PyArg_ParseTuple(args, "OO&", &keyObj, PyUnicode_STStringConverter, &text) || !pyKey::Check(keyObj)) {
         PyErr_SetString(PyExc_TypeError, "PtYesNoDialog expects a ptKey and a string");
         PYTHON_RETURN_ERROR;
     }
     pyKey* key = pyKey::ConvertFrom(keyObj);
-    cyMisc::YesNoDialog(*key, PyString_AsStringEx(text));
+    cyMisc::YesNoDialog(*key, text);
     PYTHON_RETURN_NONE
 }
 
@@ -91,8 +89,8 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtExcludeRegionSet, args, "Params: senderKey,reg
             "- 'regionKey' is a ptKey of the exclude region\n"
             "- 'state' is either kExRegRelease or kExRegClear")
 {
-    PyObject* senderObj = NULL;
-    PyObject* regionObj = NULL;
+    PyObject* senderObj = nullptr;
+    PyObject* regionObj = nullptr;
     unsigned short stateVal;
     if (!PyArg_ParseTuple(args, "OOh", &senderObj, &regionObj, &stateVal))
     {
@@ -115,8 +113,8 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtExcludeRegionSetNow, args, "Params: senderKey,
             "- 'regionKey' is a ptKey of the exclude region\n"
             "- 'state' is either kExRegRelease or kExRegClear")
 {
-    PyObject* senderObj = NULL;
-    PyObject* regionObj = NULL;
+    PyObject* senderObj = nullptr;
+    PyObject* regionObj = nullptr;
     unsigned short stateVal;
     if (!PyArg_ParseTuple(args, "OOh", &senderObj, &regionObj, &stateVal))
     {
@@ -164,8 +162,8 @@ PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtGetFrameDeltaTime, "Returns the amount 
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtPageInNode, args, "Params: nodeName, netForce=false, ageName=\"\"\nPages in node, or a list of nodes")
 {
-    PyObject* nodeNameObj = NULL;
-    char* ageName = NULL;
+    PyObject* nodeNameObj = nullptr;
+    char* ageName = nullptr;
     char netForce = 0;
     if (!PyArg_ParseTuple(args, "O|bs", &nodeNameObj, &netForce, &ageName))
     {
@@ -173,9 +171,9 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtPageInNode, args, "Params: nodeName, netForce=
         PYTHON_RETURN_ERROR;
     }
     std::vector<std::string> nodeNames;
-    if (PyString_Check(nodeNameObj))
+    if (PyUnicode_Check(nodeNameObj))
     {
-        nodeNames.push_back(PyString_AsString(nodeNameObj));
+        nodeNames.emplace_back(PyUnicode_AsUTF8(nodeNameObj));
     }
     else if (PyList_Check(nodeNameObj))
     {
@@ -183,12 +181,12 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtPageInNode, args, "Params: nodeName, netForce=
         for (int i = 0; i < num; i++)
         {
             PyObject* listItem = PyList_GetItem(nodeNameObj, i);
-            if (!PyString_Check(listItem))
+            if (!PyUnicode_Check(listItem))
             {
                 PyErr_SetString(PyExc_TypeError, "PtPageInNode expects a string or list of strings, and optionally a string");
                 PYTHON_RETURN_ERROR;
             }
-            nodeNames.push_back(PyString_AsString(listItem));
+            nodeNames.emplace_back(PyUnicode_AsUTF8(listItem));
         }
     }
     else
@@ -228,7 +226,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtLimitAvatarLOD, args, "Params: LODlimit\nSets 
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtFogSetDefColor, args, "Params: color\nSets default fog color")
 {
-    PyObject* colorObj = NULL;
+    PyObject* colorObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &colorObj))
     {
         PyErr_SetString(PyExc_TypeError, "PtFogSetDefColor expects a ptColor object");
@@ -284,8 +282,8 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtLoadDialog, args, "Params: dialogName,selfKey=
             "If the dialog is already loaded then it won't load it again")
 {
     char* dialogName;
-    PyObject* keyObj = NULL;
-    char* ageName = NULL;
+    PyObject* keyObj = nullptr;
+    char* ageName = nullptr;
     if (!PyArg_ParseTuple(args, "s|Os", &dialogName, &keyObj, &ageName))
     {
         PyErr_SetString(PyExc_TypeError, "PtLoadDialog expects a string, and optionally a ptKey and second string");
@@ -385,7 +383,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION_NOARGS(PtIsGUIModal, "Returns true if the GUI is
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtSendPrivateChatList, args, "Params: chatList\nLock the local avatar into private vox messaging, and / or add new members to his chat list")
 {
-    PyObject* chatListObj = NULL;
+    PyObject* chatListObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &chatListObj))
     {
         PyErr_SetString(PyExc_TypeError, "PtSendPrivateChatList expects a list of ptPlayers");
@@ -419,7 +417,7 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtSendPrivateChatList, args, "Params: chatList\n
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtClearPrivateChatList, args, "Params: memberKey\nRemove the local avatar from private vox messaging, and / or clear members from his chat list")
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &keyObj))
     {
         PyErr_SetString(PyExc_TypeError, "PtClearPrivateChatList expects a ptKey");
@@ -440,75 +438,77 @@ PYTHON_GLOBAL_METHOD_DEFINITION(PtClearPrivateChatList, args, "Params: memberKey
 // AddPlasmaMethods - the python method definitions
 //
 
-void cyMisc::AddPlasmaMethods2(std::vector<PyMethodDef> &methods)
+void cyMisc::AddPlasmaMethods2(PyObject* m)
 {
-    PYTHON_GLOBAL_METHOD(methods, PtYesNoDialog);
-    PYTHON_GLOBAL_METHOD(methods, PtRateIt);
-    
-    PYTHON_GLOBAL_METHOD(methods, PtExcludeRegionSet);
-    PYTHON_GLOBAL_METHOD(methods, PtExcludeRegionSetNow);
+    PYTHON_START_GLOBAL_METHOD_TABLE(cyMisc2)
+        PYTHON_GLOBAL_METHOD(PtYesNoDialog)
+        PYTHON_GLOBAL_METHOD(PtRateIt)
 
-    PYTHON_GLOBAL_METHOD(methods, PtAcceptInviteInGame);
+        PYTHON_GLOBAL_METHOD(PtExcludeRegionSet)
+        PYTHON_GLOBAL_METHOD(PtExcludeRegionSetNow)
 
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetTime);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetGameTime);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtGetFrameDeltaTime);
+        PYTHON_GLOBAL_METHOD(PtAcceptInviteInGame)
 
-    PYTHON_GLOBAL_METHOD(methods, PtPageInNode);
-    PYTHON_GLOBAL_METHOD(methods, PtPageOutNode);
-    
-    PYTHON_GLOBAL_METHOD(methods, PtLimitAvatarLOD);
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetTime)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetGameTime)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtGetFrameDeltaTime)
 
-    PYTHON_GLOBAL_METHOD(methods, PtFogSetDefColor);
-    PYTHON_GLOBAL_METHOD(methods, PtFogSetDefLinear);
-    PYTHON_GLOBAL_METHOD(methods, PtFogSetDefExp);
-    PYTHON_GLOBAL_METHOD(methods, PtFogSetDefExp2);
+        PYTHON_GLOBAL_METHOD(PtPageInNode)
+        PYTHON_GLOBAL_METHOD(PtPageOutNode)
 
-    PYTHON_GLOBAL_METHOD(methods, PtLoadDialog);
-    PYTHON_GLOBAL_METHOD(methods, PtUnloadDialog);
-    PYTHON_GLOBAL_METHOD(methods, PtIsDialogLoaded);
-    PYTHON_GLOBAL_METHOD(methods, PtShowDialog);
-    PYTHON_GLOBAL_METHOD(methods, PtHideDialog);
-    PYTHON_GLOBAL_METHOD(methods, PtGetDialogFromTagID);
-    PYTHON_GLOBAL_METHOD(methods, PtGetDialogFromString);
-    PYTHON_GLOBAL_METHOD_NOARGS(methods, PtIsGUIModal);
+        PYTHON_GLOBAL_METHOD(PtLimitAvatarLOD)
 
-    PYTHON_GLOBAL_METHOD(methods, PtSendPrivateChatList);
-    PYTHON_GLOBAL_METHOD(methods, PtClearPrivateChatList);
+        PYTHON_GLOBAL_METHOD(PtFogSetDefColor)
+        PYTHON_GLOBAL_METHOD(PtFogSetDefLinear)
+        PYTHON_GLOBAL_METHOD(PtFogSetDefExp)
+        PYTHON_GLOBAL_METHOD(PtFogSetDefExp2)
+
+        PYTHON_GLOBAL_METHOD(PtLoadDialog)
+        PYTHON_GLOBAL_METHOD(PtUnloadDialog)
+        PYTHON_GLOBAL_METHOD(PtIsDialogLoaded)
+        PYTHON_GLOBAL_METHOD(PtShowDialog)
+        PYTHON_GLOBAL_METHOD(PtHideDialog)
+        PYTHON_GLOBAL_METHOD(PtGetDialogFromTagID)
+        PYTHON_GLOBAL_METHOD(PtGetDialogFromString)
+        PYTHON_GLOBAL_METHOD_NOARGS(PtIsGUIModal)
+
+        PYTHON_GLOBAL_METHOD(PtSendPrivateChatList)
+        PYTHON_GLOBAL_METHOD(PtClearPrivateChatList)
+    PYTHON_END_GLOBAL_METHOD_TABLE(m, cyMisc2)
 }
 
 void cyMisc::AddPlasmaConstantsClasses(PyObject *m)
 {
-    PYTHON_ENUM_START(PtCCRPetitionType);
-    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kGeneralHelp,plNetCommon::PetitionTypes::kGeneralHelp);
-    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kBug,        plNetCommon::PetitionTypes::kBug);
-    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kFeedback,   plNetCommon::PetitionTypes::kFeedback);
-    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kExploit,    plNetCommon::PetitionTypes::kExploit);
-    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kHarass,     plNetCommon::PetitionTypes::kHarass);
-    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kStuck,      plNetCommon::PetitionTypes::kStuck);
-    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kTechnical,  plNetCommon::PetitionTypes::kTechnical);
-    PYTHON_ENUM_END(m, PtCCRPetitionType);
-    
-    PYTHON_ENUM_START(PtLanguage);
-    PYTHON_ENUM_ELEMENT(PtLanguage, kEnglish,       plLocalization::kEnglish);
-    PYTHON_ENUM_ELEMENT(PtLanguage, kFrench,        plLocalization::kFrench);
-    PYTHON_ENUM_ELEMENT(PtLanguage, kGerman,        plLocalization::kGerman);
-    PYTHON_ENUM_ELEMENT(PtLanguage, kSpanish,       plLocalization::kSpanish);
-    PYTHON_ENUM_ELEMENT(PtLanguage, kItalian,       plLocalization::kItalian);
-    PYTHON_ENUM_ELEMENT(PtLanguage, kJapanese,      plLocalization::kJapanese);
-    PYTHON_ENUM_ELEMENT(PtLanguage, kNumLanguages,  plLocalization::kNumLanguages);
-    PYTHON_ENUM_END(m, PtLanguage);
-    
-    PYTHON_ENUM_START(PtLOSReportType);
-    PYTHON_ENUM_ELEMENT(PtLOSReportType, kReportHit,        plLOSRequestMsg::kReportHit);
-    PYTHON_ENUM_ELEMENT(PtLOSReportType, kReportMiss,       plLOSRequestMsg::kReportMiss);
-    PYTHON_ENUM_ELEMENT(PtLOSReportType, kReportHitOrMiss,  plLOSRequestMsg::kReportHitOrMiss);
-    PYTHON_ENUM_END(m, PtLOSReportType);
-    
-    PYTHON_ENUM_START(PtLOSObjectType);
-    PYTHON_ENUM_ELEMENT(PtLOSObjectType, kClickables,       kClickables);
-    PYTHON_ENUM_ELEMENT(PtLOSObjectType, kCameraBlockers,   kCameraBlockers);
-    PYTHON_ENUM_ELEMENT(PtLOSObjectType, kCustom,           kCustom);
-    PYTHON_ENUM_ELEMENT(PtLOSObjectType, kShootable,        kShootable);
-    PYTHON_ENUM_END(m, PtLOSObjectType);
+    PYTHON_ENUM_START(PtCCRPetitionType)
+    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kGeneralHelp,plNetCommon::PetitionTypes::kGeneralHelp)
+    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kBug,        plNetCommon::PetitionTypes::kBug)
+    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kFeedback,   plNetCommon::PetitionTypes::kFeedback)
+    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kExploit,    plNetCommon::PetitionTypes::kExploit)
+    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kHarass,     plNetCommon::PetitionTypes::kHarass)
+    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kStuck,      plNetCommon::PetitionTypes::kStuck)
+    PYTHON_ENUM_ELEMENT(PtCCRPetitionType, kTechnical,  plNetCommon::PetitionTypes::kTechnical)
+    PYTHON_ENUM_END(m, PtCCRPetitionType)
+
+    PYTHON_ENUM_START(PtLanguage)
+    PYTHON_ENUM_ELEMENT(PtLanguage, kEnglish,       plLocalization::kEnglish)
+    PYTHON_ENUM_ELEMENT(PtLanguage, kFrench,        plLocalization::kFrench)
+    PYTHON_ENUM_ELEMENT(PtLanguage, kGerman,        plLocalization::kGerman)
+    PYTHON_ENUM_ELEMENT(PtLanguage, kSpanish,       plLocalization::kSpanish)
+    PYTHON_ENUM_ELEMENT(PtLanguage, kItalian,       plLocalization::kItalian)
+    PYTHON_ENUM_ELEMENT(PtLanguage, kJapanese,      plLocalization::kJapanese)
+    PYTHON_ENUM_ELEMENT(PtLanguage, kNumLanguages,  plLocalization::kNumLanguages)
+    PYTHON_ENUM_END(m, PtLanguage)
+
+    PYTHON_ENUM_START(PtLOSReportType)
+    PYTHON_ENUM_ELEMENT(PtLOSReportType, kReportHit,        plLOSRequestMsg::kReportHit)
+    PYTHON_ENUM_ELEMENT(PtLOSReportType, kReportMiss,       plLOSRequestMsg::kReportMiss)
+    PYTHON_ENUM_ELEMENT(PtLOSReportType, kReportHitOrMiss,  plLOSRequestMsg::kReportHitOrMiss)
+    PYTHON_ENUM_END(m, PtLOSReportType)
+
+    PYTHON_ENUM_START(PtLOSObjectType)
+    PYTHON_ENUM_ELEMENT(PtLOSObjectType, kClickables,       kClickables)
+    PYTHON_ENUM_ELEMENT(PtLOSObjectType, kCameraBlockers,   kCameraBlockers)
+    PYTHON_ENUM_ELEMENT(PtLOSObjectType, kCustom,           kCustom)
+    PYTHON_ENUM_ELEMENT(PtLOSObjectType, kShootable,        kShootable)
+    PYTHON_ENUM_END(m, PtLOSObjectType)
 }

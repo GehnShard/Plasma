@@ -46,15 +46,18 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //////////////////////////////////////////////////////////////////////////////
 
 #include "pfConsoleDirSrc.h"
+
+#include <string_theory/string_stream>
+
 #include "HeadSpin.h"
 #include "hsExceptions.h"
-#include <string_theory/string_stream>
+
 
 //// ParseDirectory //////////////////////////////////////////////////////////
 
 bool pfConsoleDirSrc::ParseDirectory(const plFileName& path, const char* mask /* = L"*.*" */)
 {
-    hsAssert( fEngine != nil, "Cannot do a dir execute without an engine!" );
+    hsAssert(fEngine != nullptr, "Cannot do a dir execute without an engine!");
 
     std::vector<plFileName> files = plFileSystem::ListDir(path, mask);
     for (auto iter = files.begin(); iter != files.end(); ++iter)

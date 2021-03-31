@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "pyGUIControlListBox.h"
 #include "pyImage.h"
@@ -55,7 +54,7 @@ PYTHON_DEFAULT_DEALLOC_DEFINITION(ptGUIControlListBox)
 
 PYTHON_INIT_DEFINITION(ptGUIControlListBox, args, keywords)
 {
-    PyObject *keyObject = NULL;
+    PyObject *keyObject = nullptr;
     if (!PyArg_ParseTuple(args, "O", &keyObject))
     {
         PyErr_SetString(PyExc_TypeError, "__init__ expects a ptKey");
@@ -111,7 +110,7 @@ PYTHON_BASIC_METHOD_DEFINITION(ptGUIControlListBox, clearAllElements, ClearAllEl
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptGUIControlListBox, getNumElements)
 {
-    return PyInt_FromLong(self->fThis->GetNumElements());
+    return PyLong_FromLong(self->fThis->GetNumElements());
 }
 
 PYTHON_METHOD_DEFINITION(ptGUIControlListBox, setElement, args)
@@ -148,7 +147,7 @@ PYTHON_METHOD_DEFINITION(ptGUIControlListBox, getElement, args)
         PyErr_SetString(PyExc_TypeError, "getElement expects an unsigned short");
         PYTHON_RETURN_ERROR;
     }
-    return PyString_FromSTString(self->fThis->GetElement(index));
+    return PyUnicode_FromSTString(self->fThis->GetElement(index));
 }
 
 PYTHON_METHOD_DEFINITION(ptGUIControlListBox, getElementW, args)
@@ -183,7 +182,7 @@ PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addString, args)
         PyErr_SetString(PyExc_TypeError, "addString expects a string");
         PYTHON_RETURN_ERROR;
     }
-    return PyInt_FromLong(self->fThis->AddString(text));
+    return PyLong_FromLong(self->fThis->AddString(text));
 }
 
 PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addStringW, args)
@@ -194,7 +193,7 @@ PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addStringW, args)
         PyErr_SetString(PyExc_TypeError, "addStringW expects a unicode string");
         PYTHON_RETURN_ERROR;
     }
-    return PyInt_FromLong(self->fThis->AddString(ST::string::from_wchar(text)));
+    return PyLong_FromLong(self->fThis->AddString(ST::string::from_wchar(text)));
 }
 
 PYTHON_METHOD_DEFINITION(ptGUIControlListBox, findString, args)
@@ -205,7 +204,7 @@ PYTHON_METHOD_DEFINITION(ptGUIControlListBox, findString, args)
         PyErr_SetString(PyExc_TypeError, "findString expects a string");
         PYTHON_RETURN_ERROR;
     }
-    return PyInt_FromLong(self->fThis->FindString(text));
+    return PyLong_FromLong(self->fThis->FindString(text));
 }
 
 PYTHON_METHOD_DEFINITION(ptGUIControlListBox, findStringW, args)
@@ -216,12 +215,12 @@ PYTHON_METHOD_DEFINITION(ptGUIControlListBox, findStringW, args)
         PyErr_SetString(PyExc_TypeError, "findStringW expects a unicode string");
         PYTHON_RETURN_ERROR;
     }
-    return PyInt_FromLong(self->fThis->FindString(ST::string::from_wchar(text)));
+    return PyLong_FromLong(self->fThis->FindString(ST::string::from_wchar(text)));
 }
 
 PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addImage, args)
 {
-    PyObject* imageObj = NULL;
+    PyObject* imageObj = nullptr;
     char respectAlphaFlag;
     if (!PyArg_ParseTuple(args, "Ob", &imageObj, &respectAlphaFlag))
     {
@@ -234,12 +233,12 @@ PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addImage, args)
         PYTHON_RETURN_ERROR;
     }
     pyImage* image = pyImage::ConvertFrom(imageObj);
-    return PyInt_FromLong(self->fThis->AddImage(*image, respectAlphaFlag != 0));
+    return PyLong_FromLong(self->fThis->AddImage(*image, respectAlphaFlag != 0));
 }
 
 PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addImageInBox, args)
 {
-    PyObject* imageObj = NULL;
+    PyObject* imageObj = nullptr;
     unsigned long x, y, width, height;
     char respectAlphaFlag;
     if (!PyArg_ParseTuple(args, "Ollllb", &imageObj, &x, &y, &width, &height, &respectAlphaFlag))
@@ -253,13 +252,13 @@ PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addImageInBox, args)
         PYTHON_RETURN_ERROR;
     }
     pyImage* image = pyImage::ConvertFrom(imageObj);
-    return PyInt_FromLong(self->fThis->AddImageInBox(*image, x, y, width, height, respectAlphaFlag != 0));
+    return PyLong_FromLong(self->fThis->AddImageInBox(*image, x, y, width, height, respectAlphaFlag != 0));
 }
 
 PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addStringWithColor, args)
 {
     char* text;
-    PyObject* colorObj = NULL;
+    PyObject* colorObj = nullptr;
     unsigned long inheritAlpha;
     if (!PyArg_ParseTuple(args, "sOl", &text, &colorObj, &inheritAlpha))
     {
@@ -272,13 +271,13 @@ PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addStringWithColor, args)
         PYTHON_RETURN_ERROR;
     }
     pyColor* color = pyColor::ConvertFrom(colorObj);
-    return PyInt_FromLong(self->fThis->AddTextWColor(text, *color, inheritAlpha));
+    return PyLong_FromLong(self->fThis->AddTextWColor(text, *color, inheritAlpha));
 }
 
 PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addStringWithColorWithSize, args)
 {
     char* text;
-    PyObject* colorObj = NULL;
+    PyObject* colorObj = nullptr;
     unsigned long inheritAlpha;
     long textSize;
     if (!PyArg_ParseTuple(args, "sOll", &text, &colorObj, &inheritAlpha, &textSize))
@@ -292,15 +291,15 @@ PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addStringWithColorWithSize, args)
         PYTHON_RETURN_ERROR;
     }
     pyColor* color = pyColor::ConvertFrom(colorObj);
-    return PyInt_FromLong(self->fThis->AddTextWColorWSize(text, *color, inheritAlpha, textSize));
+    return PyLong_FromLong(self->fThis->AddTextWColorWSize(text, *color, inheritAlpha, textSize));
 }
 
 PYTHON_METHOD_DEFINITION(ptGUIControlListBox, add2StringsWithColors, args)
 {
     char* text1;
-    PyObject* color1Obj = NULL;
+    PyObject* color1Obj = nullptr;
     char* text2;
-    PyObject* color2Obj = NULL;
+    PyObject* color2Obj = nullptr;
     unsigned long inheritAlpha;
     if (!PyArg_ParseTuple(args, "sOsOl", &text1, &color1Obj, &text2, &color2Obj, &inheritAlpha))
     {
@@ -327,7 +326,7 @@ PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addStringInBox, args)
         PyErr_SetString(PyExc_TypeError, "addStringInBox expects a string and two unsigned longs");
         PYTHON_RETURN_ERROR;
     }
-    return PyInt_FromLong(self->fThis->AddStringInBox(text, minWidth, minHeight));
+    return PyLong_FromLong(self->fThis->AddStringInBox(text, minWidth, minHeight));
 }
 
 PYTHON_BASIC_METHOD_DEFINITION(ptGUIControlListBox, scrollToBegin, ScrollToBegin)
@@ -382,19 +381,9 @@ PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addBranchW, args)
     }
     if (PyUnicode_Check(textObj))
     {
-        int strLen = PyUnicode_GetSize(textObj);
-        wchar_t* name = new wchar_t[strLen + 1];
-        PyUnicode_AsWideChar((PyUnicodeObject*)textObj, name, strLen);
-        name[strLen] = L'\0';
+        wchar_t* name = PyUnicode_AsWideCharString(textObj, nullptr);
         self->fThis->AddBranch(ST::string::from_wchar(name), initiallyOpen != 0);
-        delete [] name;
-        PYTHON_RETURN_NONE;
-    }
-    else if (PyString_Check(textObj))
-    {
-        // we'll allow this, just in case something goes weird
-        char* name = PyString_AsString(textObj);
-        self->fThis->AddBranch(name, initiallyOpen != 0);
+        PyMem_Free(name);
         PYTHON_RETURN_NONE;
     }
     else
@@ -437,11 +426,11 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptGUIControlListBox, getSelectionList)
 
 PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addImageAndSwatchesInBox, args)
 {
-    PyObject* imageObj = NULL;
+    PyObject* imageObj = nullptr;
     unsigned long x, y, width, height;
     char respectAlpha;
-    PyObject* primaryObj = NULL;
-    PyObject* secondaryObj = NULL;
+    PyObject* primaryObj = nullptr;
+    PyObject* secondaryObj = nullptr;
     if (!PyArg_ParseTuple(args, "OllllbOO", &imageObj, &x, &y, &width, &height, &respectAlpha, &primaryObj, &secondaryObj))
     {
         PyErr_SetString(PyExc_TypeError, "addImageAndSwatchesInBox expects a ptImage, four unsigned longs, a boolean, and two ptColor objects");
@@ -455,7 +444,7 @@ PYTHON_METHOD_DEFINITION(ptGUIControlListBox, addImageAndSwatchesInBox, args)
     pyImage* image = pyImage::ConvertFrom(imageObj);
     pyColor* primary = pyColor::ConvertFrom(primaryObj);
     pyColor* secondary = pyColor::ConvertFrom(secondaryObj);
-    return PyInt_FromLong(self->fThis->AddImageAndSwatchesInBox(*image, x, y, width, height, respectAlpha != 0, *primary, *secondary));
+    return PyLong_FromLong(self->fThis->AddImageAndSwatchesInBox(*image, x, y, width, height, respectAlpha != 0, *primary, *secondary));
 }
 
 PYTHON_METHOD_DEFINITION(ptGUIControlListBox, setGlobalSwatchSize, args)
@@ -543,14 +532,14 @@ PLASMA_DEFAULT_TYPE_WBASE(ptGUIControlListBox, pyGUIControl, "Params: ctrlKey\nP
 // required functions for PyObject interoperability
 PyObject *pyGUIControlListBox::New(pyKey& gckey)
 {
-    ptGUIControlListBox *newObj = (ptGUIControlListBox*)ptGUIControlListBox_type.tp_new(&ptGUIControlListBox_type, NULL, NULL);
+    ptGUIControlListBox *newObj = (ptGUIControlListBox*)ptGUIControlListBox_type.tp_new(&ptGUIControlListBox_type, nullptr, nullptr);
     newObj->fThis->fGCkey = gckey.getKey();
     return (PyObject*)newObj;
 }
 
 PyObject *pyGUIControlListBox::New(plKey objkey)
 {
-    ptGUIControlListBox *newObj = (ptGUIControlListBox*)ptGUIControlListBox_type.tp_new(&ptGUIControlListBox_type, NULL, NULL);
+    ptGUIControlListBox *newObj = (ptGUIControlListBox*)ptGUIControlListBox_type.tp_new(&ptGUIControlListBox_type, nullptr, nullptr);
     newObj->fThis->fGCkey = objkey;
     return (PyObject*)newObj;
 }

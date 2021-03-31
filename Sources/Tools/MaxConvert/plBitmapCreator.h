@@ -48,9 +48,8 @@ class plBitmap;
 class plErrorMsg;
 class plKey;
 class plLocation;
-class plMipmap;
 class hsMaxLayerBase;
-
+class plMipmap;
 
 class plBitmapData
 {
@@ -85,7 +84,7 @@ public:
         sig = 0;
         isStaticCubicEnvMap = false;
         invertAlpha = false;
-        faceNames[ 0 ] = faceNames[ 1 ] = faceNames[ 2 ] = faceNames[ 3 ] = faceNames[ 4 ] = faceNames[ 5 ] = nil;
+        faceNames[0] = faceNames[1] = faceNames[2] = faceNames[3] = faceNames[4] = faceNames[5] = nullptr;
         maxDimension = 0;
         clampFlags = 0;
         usePNG = false;

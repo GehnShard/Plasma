@@ -43,8 +43,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef hsBiExpander_inc
 #define hsBiExpander_inc
 
+#include "hsExceptions.h"
 #include "hsMemory.h"
-#include "hsTemplates.h"
+#include "hsExceptions.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////// Expander ///////////////////////////////////////////////////////
@@ -86,7 +87,7 @@ public:
     T*          Append();
     int32_t     Push(const T& t) { return Append(t); }
     T*          Push() { return Append(); }
-    T*          Top() { return fNumPost ? fArray + fNumPost-1 : nil; }
+    T*          Top() { return fNumPost ? fArray + fNumPost-1 : nullptr; }
     int32_t     Pop(T* t); // returns count of remaining
     int32_t     Pop();
     void        Reset();    // clears out everything
@@ -138,6 +139,7 @@ void hsExpander<T>::IExpand(int newSize)
 
 template <class T>
 hsExpander<T>::hsExpander(int32_t minSize, int32_t growBy)
+    : fCurrent(), fNumPost()
 {
     hsThrowIfBadParam(minSize < 0);
     hsThrowIfBadParam(growBy < 0);
@@ -147,8 +149,6 @@ hsExpander<T>::hsExpander(int32_t minSize, int32_t growBy)
     
     fArray  = new T[fMinSize];
     fNumPostAlloc = fMinSize;
-    
-    fNumPost = 0;
 }
 
 template <class T>
@@ -292,9 +292,9 @@ public:
     T*            Push(); // returns t's index
     int32_t       Append(const T&); // returns t's index
     int32_t       Push(const T&); // returns t's index
-    int32_t       Pop(T*t = nil) { return PopHead(t); } // returns count of remaining
-    int32_t       PopHead(T*t = nil); // returns count of remaining
-    int32_t       PopTail(T*t = nil); // returns count of remaining
+    int32_t       Pop(T* t = nullptr) { return PopHead(t); } // returns count of remaining
+    int32_t       PopHead(T* t = nullptr); // returns count of remaining
+    int32_t       PopTail(T* t = nullptr); // returns count of remaining
     void          Reset();    // clears out everything
 
     T&          Head() { return fArray[-fNumPre]; }

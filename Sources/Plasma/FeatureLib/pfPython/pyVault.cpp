@@ -47,7 +47,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <memory>
 #include <Python.h>
-#pragma hdrstop
 
 #ifdef BUILDING_PYPLASMA
 # error "pyVault is not compatible with pyPlasma.pyd. Use BUILDING_PYPLASMA macro to ifdef out unwanted headers."
@@ -74,7 +73,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnNetCommon/plNetApp.h"
 #include "plNetClient/plNetClientMgr.h"
 #include "plNetClient/plNetLinkingMgr.h"
-#include "plNetClientComm/plNetClientComm.h"
 #include "plMessage/plVaultNotifyMsg.h"
 
 #include "plSDL/plSDL.h"
@@ -109,7 +107,7 @@ static PyObject * GetAgeInfoList (unsigned folderType) {
 //////////////////////////////////////////////////
 PyObject* pyVault::GetPlayerInfo()
 {
-    PyObject * result = nil;
+    PyObject * result = nullptr;
     if (hsRef<RelVaultNode> rvnPlr = VaultGetPlayerNode()) {
         if (hsRef<RelVaultNode> rvnPlrInfo = rvnPlr->GetChildNode(plVault::kNodeType_PlayerInfo, 1))
             result = pyVaultPlayerInfoNode::New(rvnPlrInfo);
@@ -505,7 +503,7 @@ void pyVault::UnRegisterVisitAge( const char * guidstr )
 }
 
 //============================================================================
-void _InvitePlayerToAge(ENetError result, void* state, void* param, RelVaultNode* node)
+void _InvitePlayerToAge(ENetError result, void* state, void* param, hsWeakRef<RelVaultNode> node)
 {
     if (result == kNetSuccess)
         VaultSendNode(node, (uint32_t)((uintptr_t)param));
@@ -522,7 +520,7 @@ void pyVault::InvitePlayerToAge( const pyAgeLinkStruct & link, uint32_t playerID
 }
 
 //============================================================================
-void _UninvitePlayerToAge(ENetError result, void* state, void* param, RelVaultNode* node)
+void _UninvitePlayerToAge(ENetError result, void* state, void* param, hsWeakRef<RelVaultNode> node)
 {
     if (result == kNetSuccess)
         VaultSendNode(node, (uint32_t)((uintptr_t)param));
@@ -619,14 +617,15 @@ PyObject* pyVault::GetGlobalInbox()
 PyObject* pyVault::FindNode( pyVaultNode* templateNode ) const
 {
     // See if we already have a matching node locally
-    if (hsRef<RelVaultNode> rvn = VaultGetNode(templateNode->GetNode()))
+    hsWeakRef<NetVaultNode> node(templateNode->GetNode());
+    if (hsRef<RelVaultNode> rvn = VaultGetNode(node))
         return pyVaultNode::New(rvn);
     
     // See if a matching node exists on the server
-    TArray<unsigned> nodeIds;
-    VaultFindNodesAndWait(templateNode->GetNode(), &nodeIds);
+    std::vector<unsigned> nodeIds;
+    VaultFindNodesAndWait(node, &nodeIds);
     
-    if (nodeIds.Count()) {
+    if (!nodeIds.empty()) {
         // Only fetch the first matching node since this function returns a single node
         VaultFetchNodesAndWait(&nodeIds[0], 1);
         // If we fetched it successfully then it'll be in our local node cache now

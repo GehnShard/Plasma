@@ -41,17 +41,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
-#include "hsWindows.h"
 #include "hsStream.h"
 
-#include <bitmap.h>
-#include <iparamb2.h>
-#include <max.h>
+#include "MaxMain/MaxAPI.h"
 
 #include <set>
 #include <string>
 #include <vector>
-#pragma hdrstop
 
 #include "plExportDlg.h"
 #include "MaxComponent/plComponentBase.h"
@@ -80,8 +76,8 @@ protected:
 
     DWORD fLastExportTime;
 
-    static BOOL CALLBACK ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
-    BOOL DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+    static INT_PTR CALLBACK ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+    INT_PTR DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
     void IDestroy();
 
@@ -95,20 +91,22 @@ public:
     plExportDlgImp();
     ~plExportDlgImp();
 
-    virtual void Show();
+    void Show() override;
 
-    virtual bool IsExporting() { return fExporting; }
-    virtual bool IsAutoExporting() { return fAutoExporting; }
+    bool IsExporting() override { return fExporting; }
+    bool IsAutoExporting() override { return fAutoExporting; }
 
-    virtual bool GetDoPreshade() { return fPreshade; }
-    virtual bool GetPhysicalsOnly() { return fPhysicalsOnly; }
-    virtual bool GetDoLightMap() { return fLightMap; }
-    virtual const char* GetExportPage();
+    bool GetDoPreshade() override { return fPreshade; }
+    bool GetPhysicalsOnly() override { return fPhysicalsOnly; }
+    bool GetDoLightMap() override { return fLightMap; }
+    const char* GetExportPage() override;
 
-    virtual void StartAutoExport();
+    void StartAutoExport() override;
 };
 
-plExportDlgImp::plExportDlgImp() : fDlg(NULL), fPreshade(true), fPhysicalsOnly(false), fLightMap(true), fLastExportTime(0), fExporting(false), fAutoExporting(false)
+plExportDlgImp::plExportDlgImp()
+    : fDlg(), fPreshade(true), fPhysicalsOnly(false), fLightMap(true),
+      fLastExportTime(), fExporting(false), fAutoExporting(false)
 {
     plFileName path = plMaxConfig::GetPluginIni();
     fXPos = GetPrivateProfileIntW(L"Export", L"X", 0, path.WideString().data());
@@ -125,7 +123,7 @@ plExportDlgImp::plExportDlgImp() : fDlg(NULL), fPreshade(true), fPhysicalsOnly(f
 BOOL WritePrivateProfileIntW(LPCWSTR lpAppName, LPCWSTR lpKeyName, int val, LPCWSTR lpFileName)
 {
     wchar_t buf[12];
-    snwprintf(buf, 12, L"%d", val);
+    swprintf(buf, 12, L"%d", val);
 
     return WritePrivateProfileStringW(lpAppName, lpKeyName, buf, lpFileName);
 }
@@ -146,7 +144,7 @@ plExportDlg& plExportDlg::Instance()
     return theInstance;
 }
 
-BOOL plExportDlgImp::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plExportDlgImp::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     return ((plExportDlgImp&)Instance()).DlgProc(hDlg, msg, wParam, lParam);
 }
@@ -154,7 +152,7 @@ BOOL plExportDlgImp::ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM l
 const char* plExportDlgImp::GetExportPage()
 {
     if (fExportPage[0] == '\0')
-        return nil;
+        return nullptr;
     else
         return fExportPage;
 }
@@ -203,7 +201,7 @@ void plExportDlgImp::IInitDlg(HWND hDlg)
     sprintf(buf, "Last export took %d:%02d", fLastExportTime/60, fLastExportTime%60);
     SetDlgItemText(hDlg, IDC_LAST_EXPORT, buf);
 
-    SetWindowPos(hDlg, NULL, fXPos, fYPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+    SetWindowPos(hDlg, nullptr, fXPos, fYPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 
     //
     // Get the names of all the pages in this scene and put them in the combo
@@ -243,7 +241,7 @@ void plExportDlgImp::IInitDlg(HWND hDlg)
 
 #include "plFile/plBrowseFolder.h"
 
-BOOL plExportDlgImp::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plExportDlgImp::DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -340,7 +338,7 @@ void plExportDlgImp::IDoExport()
 
     // Do the export
     wchar_t exportPathTEMP[MAX_PATH];
-    GetDlgItemTextW(fDlg, IDC_CLIENT_PATH, exportPathTEMP, arrsize(exportPathTEMP));
+    GetDlgItemTextW(fDlg, IDC_CLIENT_PATH, exportPathTEMP, std::size(exportPathTEMP));
     plFileName exportPath = plFileName::Join(ST::string::from_wchar(exportPathTEMP), "Export.prd");
 
     // For export time stats
@@ -376,7 +374,7 @@ void plExportDlgImp::IDestroy()
         fYPos = rect.top;
 
         DestroyWindow(fDlg);
-        fDlg = NULL;
+        fDlg = nullptr;
     }
 }
 
@@ -409,7 +407,7 @@ static bool AutoExportDir(const char* inputDir, const char* outputDir, const plF
     
     char doneDir[MAX_PATH];
     sprintf(doneDir, "%s\\Done\\", inputDir);
-    CreateDirectory(doneDir, NULL);
+    CreateDirectory(doneDir, nullptr);
 
     // Don't give missing bitmap warnings
     TheManager->SetSilentMode(TRUE);
@@ -470,10 +468,10 @@ static void GetFileNameSection(const char* configFile, const char* keyName, std:
 
     char* seps = ",";
     char* token = strtok(source, seps);
-    while (token != NULL)
+    while (token != nullptr)
     {
         strings.push_back(token);
-        token = strtok(NULL, seps);
+        token = strtok(nullptr, seps);
     }
 }
 

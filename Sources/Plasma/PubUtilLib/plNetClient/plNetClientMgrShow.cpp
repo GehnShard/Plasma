@@ -39,17 +39,18 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include <cmath>
 
 #include "plNetClientMgr.h"
 #include "plNetLinkingMgr.h"
 
+#include <cmath>
+
 #include "pnSceneObject/plSceneObject.h"
 
-#include "plPipeline/plPlates.h"
-#include "plPipeline/plDebugText.h"
-#include "plNetTransport/plNetTransportMember.h"
 #include "plAvatar/plArmatureMod.h"
+#include "plNetTransport/plNetTransportMember.h"
+#include "plPipeline/plDebugText.h"
+#include "plPipeline/plPlates.h"
 #include "plScene/plRelevanceMgr.h"
 
 //
@@ -93,15 +94,13 @@ void plNetClientMgr::IShowLists()
     int baseY=y;
     txt.DrawString(x,y,"   Members",255,255,255,255,plDebugText::kStyleBold);
     y+=yOff;
-    plNetTransportMember** members=nil;
-    fTransport.GetMemberListDistSorted(members);
-    for(i=0;i<fTransport.GetNumMembers();i++)
+    std::vector<plNetTransportMember*> members = fTransport.GetMemberListDistSorted();
+    for (plNetTransportMember* mbr : members)
     {
-        plNetTransportMember* mbr=members[i];
         hsAssert(mbr, "ShowLists: nil member?");
         if (mbr->IsServer())
             continue;
-        player = (mbr->GetAvatarKey() ? plSceneObject::ConvertNoRef(mbr->GetAvatarKey()->ObjectIsLoaded()) : nil);
+        player = (mbr->GetAvatarKey() ? plSceneObject::ConvertNoRef(mbr->GetAvatarKey()->ObjectIsLoaded()) : nullptr);
         sprintf(str, "%s%s %s p2p=%d dist=%.1f",
             mbr->GetTransportFlags() & plNetTransportMember::kSendingVoice ? "V" : " ",
             mbr->GetTransportFlags() & plNetTransportMember::kSendingActions ? "A" : " ",
@@ -114,8 +113,6 @@ void plNetClientMgr::IShowLists()
             ~(plNetTransportMember::kSendingVoice|plNetTransportMember::kSendingActions));
     }
 
-    delete [] members;
-    
     // LISTENLIST
     x+=xOff;
     y=baseY;
@@ -222,8 +219,7 @@ void plNetClientMgr::IShowRelevanceRegions()
     const char* title = "Name / In / Care";
     txt.DrawString(x, y - yOff, title, 255, 255, 255, 255, plDebugText::kStyleBold);
 
-    plNetTransportMember** members = nil;
-    fTransport.GetMemberListDistSorted(members);
+    std::vector<plNetTransportMember*> members =  fTransport.GetMemberListDistSorted();
 
     //
     // Print out the player names in the first column
@@ -234,10 +230,8 @@ void plNetClientMgr::IShowRelevanceRegions()
     maxPlayerName = std::max(maxPlayerName, txt.CalcStringWidth(GetPlayerName().c_str()));
     y += yOff;
 
-    int i;
-    for (i = 0; i < fTransport.GetNumMembers(); i++)
+    for (plNetTransportMember* mbr : members)
     {
-        plNetTransportMember* mbr = members[i];
         hsAssert(mbr, "ShowLists: nil member?");
         if (mbr->IsServer())
             continue;
@@ -254,8 +248,8 @@ void plNetClientMgr::IShowRelevanceRegions()
     //
     // Print out the regions
     //
-    const hsBitVector* ourCare = nil;
-    const hsBitVector* ourIn = nil;
+    const hsBitVector* ourCare = nullptr;
+    const hsBitVector* ourIn = nullptr;
 
     plSceneObject* player = plSceneObject::ConvertNoRef(GetLocalPlayer());
     if (player)
@@ -264,22 +258,21 @@ void plNetClientMgr::IShowRelevanceRegions()
         if (avMod)
         {
             ourIn = &avMod->GetRelRegionImIn();
-            uint32_t width = IPrintRelRegion(*ourIn, x, y, nil);
+            uint32_t width = IPrintRelRegion(*ourIn, x, y, nullptr);
 
             ourCare = &avMod->GetRelRegionCareAbout();
-            IPrintRelRegion(*ourCare, x + width + xOff, y, nil);
+            IPrintRelRegion(*ourCare, x + width + xOff, y, nullptr);
 
             y += yOff;
         }
     }
 
-    for (i = 0; i < fTransport.GetNumMembers(); i++)
+    for (plNetTransportMember* mbr : members)
     {
-        plNetTransportMember* mbr = members[i];
         if (mbr->IsServer())
             continue;
 
-        player = (mbr->GetAvatarKey() ? plSceneObject::ConvertNoRef(mbr->GetAvatarKey()->ObjectIsLoaded()) : nil);
+        player = (mbr->GetAvatarKey() ? plSceneObject::ConvertNoRef(mbr->GetAvatarKey()->ObjectIsLoaded()) : nullptr);
         if (player)
         {
             const plArmatureMod* avMod = plArmatureMod::ConvertNoRef(player->GetModifierByType(plArmatureMod::Index()));
@@ -295,8 +288,6 @@ void plNetClientMgr::IShowRelevanceRegions()
             }
         }
     }
-
-    delete [] members;  
 }
 
 void plNetClientMgr::IShowAvatars()
@@ -304,7 +295,7 @@ void plNetClientMgr::IShowAvatars()
     plDebugText     &txt = plDebugText::Instance();
     txt.SetFont( "Courier New", 6 );
 
-    int y,x,i;
+    int y, x;
     const int yOff=10, xOff=285, startY=100, startX=10;
     char str[256];
 
@@ -312,8 +303,8 @@ void plNetClientMgr::IShowAvatars()
     x=startX;
     y=startY-yOff*3;
     plSceneObject *player = plSceneObject::ConvertNoRef(GetLocalPlayer());
-    hsPoint3 pos = (player ? player->GetLocalToWorld() * hsPoint3(0, 0, 0) : hsPoint3(0, 0, 0));
-    hsVector3 ori = (player ? player->GetLocalToWorld() * hsVector3(0, -1, 0) : hsVector3(0, 0, 0));
+    hsPoint3 pos = (player ? player->GetLocalToWorld() * hsPoint3() : hsPoint3());
+    hsVector3 ori = (player ? player->GetLocalToWorld() * hsVector3(0.f, -1.f, 0.f) : hsVector3());
     sprintf(str, "%s: pos(%.2f, %.2f, %.2f) ori(%.2f, %.2f, %.2f)",
             GetPlayerName().c_str(), pos.fX, pos.fY, pos.fZ, ori.fX, ori.fY, ori.fZ);
     txt.DrawString(x,y,str,255,255,255,255);
@@ -330,8 +321,8 @@ void plNetClientMgr::IShowAvatars()
             {
                 y+=yOff;
                 y+=yOff;
-                hsPoint3 pos = (pObj ? pObj->GetLocalToWorld() * hsPoint3(0, 0, 0) : hsPoint3(0, 0, 0));
-                hsVector3 ori = (pObj ? pObj->GetLocalToWorld() * hsVector3(0, -1, 0) : hsVector3(0, 0, 0));
+                hsPoint3 pos = (pObj ? pObj->GetLocalToWorld() * hsPoint3() : hsPoint3());
+                hsVector3 ori = (pObj ? pObj->GetLocalToWorld() * hsVector3(0.f, -1.f, 0.f) : hsVector3());
                 sprintf(str, "%s: pos(%.2f, %.2f, %.2f) ori(%.2f, %.2f, %.2f)",
                         pObj->GetKeyName().c_str(), pos.fX, pos.fY, pos.fZ, ori.fX, ori.fY, ori.fZ);
                 txt.DrawString(x,y,str,255,255,255,255);
@@ -344,18 +335,16 @@ void plNetClientMgr::IShowAvatars()
     y=startY;
     x=startX;
 
-    plNetTransportMember** members=nil;
-    fTransport.GetMemberListDistSorted(members);
-    for(i=0;i<fTransport.GetNumMembers();i++)
+    std::vector<plNetTransportMember*> members = fTransport.GetMemberListDistSorted();
+    for (plNetTransportMember* mbr : members)
     {
-        plNetTransportMember* mbr=members[i];
         hsAssert(mbr, "ShowLists: nil member?");
         if (mbr->IsServer())
             continue;
 
-        player = (mbr->GetAvatarKey() ? plSceneObject::ConvertNoRef(mbr->GetAvatarKey()->ObjectIsLoaded()) : nil);
-        pos = (player ? player->GetLocalToWorld() * hsPoint3(0, 0, 0) : hsPoint3(0, 0, 0));
-        ori = (player ? player->GetLocalToWorld() * hsVector3(0, -1, 0) : hsVector3(0, 0, 0));
+        player = (mbr->GetAvatarKey() ? plSceneObject::ConvertNoRef(mbr->GetAvatarKey()->ObjectIsLoaded()) : nullptr);
+        pos = (player ? player->GetLocalToWorld() * hsPoint3() : hsPoint3());
+        ori = (player ? player->GetLocalToWorld() * hsVector3(0.f, -1.f, 0.f) : hsVector3());
 
         sprintf(str, "%s: pos(%.2f, %.2f, %.2f) ori(%.2f, %.2f, %.2f)",
                 mbr->AsString().c_str(), pos.fX, pos.fY, pos.fZ, ori.fX, ori.fY, ori.fZ);
@@ -373,8 +362,8 @@ void plNetClientMgr::IShowAvatars()
                 {
                     y+=yOff;
                     y+=yOff;
-                    hsPoint3 pos = (pObj ? pObj->GetLocalToWorld() * hsPoint3(0, 0, 0) : hsPoint3(0, 0, 0));
-                    hsVector3 ori = (pObj ? pObj->GetLocalToWorld() * hsVector3(0, -1, 0) : hsVector3(0, 0, 0));
+                    hsPoint3 pos = (pObj ? pObj->GetLocalToWorld() * hsPoint3() : hsPoint3());
+                    hsVector3 ori = (pObj ? pObj->GetLocalToWorld() * hsVector3(0.f, -1.f, 0.f) : hsVector3());
                     sprintf(str, "%s: pos(%.2f, %.2f, %.2f) ori(%.2f, %.2f, %.2f)",
                             pObj->GetKeyName().c_str(), pos.fX, pos.fY, pos.fZ, ori.fX, ori.fY, ori.fZ);
                     txt.DrawString(x,y,str,255,255,255,255);
@@ -383,8 +372,6 @@ void plNetClientMgr::IShowAvatars()
         }
 
     }
-
-    delete [] members;
 
     txt.SetFont( "Courier New", 8 );
 }

@@ -45,6 +45,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "HeadSpin.h"
 #include "pnFactory/plCreatable.h"
 #include "pnUUID/pnUUID.h"
+#include <string_theory/string>
 
 class plClientGuid : public plCreatable
 {
@@ -88,8 +89,8 @@ public:
     bool    IsFlagSet( uint16_t flag ) const { return (fFlags&flag)!=0; }
     bool    IsFullyQualified() const { return HasAccountUUID()&&HasPlayerID();}
 
-    void    Read(hsStream * s, hsResMgr* =nil);
-    void    Write(hsStream * s, hsResMgr* =nil);
+    void    Read(hsStream * s, hsResMgr* = nullptr) override;
+    void    Write(hsStream * s, hsResMgr* = nullptr) override;
 
     bool    HasAccountUUID() const { return (fFlags&kAccountUUID&&!fAccountUUID.IsNull())?true:false;}
     bool    HasPlayerID() const { return (fFlags&kPlayerID&&fPlayerID>0)?true:false;}

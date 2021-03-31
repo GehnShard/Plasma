@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "pfGameGUIMgr/pfGUIButtonMod.h"
 
@@ -57,7 +56,7 @@ PYTHON_DEFAULT_DEALLOC_DEFINITION(ptGUIControlButton)
 
 PYTHON_INIT_DEFINITION(ptGUIControlButton, args, keywords)
 {
-    PyObject *keyObject = NULL;
+    PyObject *keyObject = nullptr;
     if (!PyArg_ParseTuple(args, "O", &keyObject))
     {
         PyErr_SetString(PyExc_TypeError, "__init__ expects a ptKey");
@@ -109,14 +108,14 @@ PLASMA_DEFAULT_TYPE_WBASE(ptGUIControlButton, pyGUIControl, "Params: ctrlKey\nPl
 // required functions for PyObject interoperability
 PyObject *pyGUIControlButton::New(pyKey& gckey)
 {
-    ptGUIControlButton *newObj = (ptGUIControlButton*)ptGUIControlButton_type.tp_new(&ptGUIControlButton_type, NULL, NULL);
+    ptGUIControlButton *newObj = (ptGUIControlButton*)ptGUIControlButton_type.tp_new(&ptGUIControlButton_type, nullptr, nullptr);
     newObj->fThis->fGCkey = gckey.getKey();
     return (PyObject*)newObj;
 }
 
 PyObject *pyGUIControlButton::New(plKey objkey)
 {
-    ptGUIControlButton *newObj = (ptGUIControlButton*)ptGUIControlButton_type.tp_new(&ptGUIControlButton_type, NULL, NULL);
+    ptGUIControlButton *newObj = (ptGUIControlButton*)ptGUIControlButton_type.tp_new(&ptGUIControlButton_type, nullptr, nullptr);
     newObj->fThis->fGCkey = objkey;
     return (PyObject*)newObj;
 }
@@ -137,9 +136,9 @@ void pyGUIControlButton::AddPlasmaClasses(PyObject *m)
 
 void pyGUIControlButton::AddPlasmaConstantsClasses(PyObject *m)
 {
-    PYTHON_ENUM_START(PtButtonNotifyTypes);
-    PYTHON_ENUM_ELEMENT(PtButtonNotifyTypes, kNotifyOnUp,           pfGUIButtonMod::kNotifyOnUp);
-    PYTHON_ENUM_ELEMENT(PtButtonNotifyTypes, kNotifyOnDown,         pfGUIButtonMod::kNotifyOnDown);
-    PYTHON_ENUM_ELEMENT(PtButtonNotifyTypes, kNotifyOnUpAndDown,    pfGUIButtonMod::kNotifyOnUpAndDown);
-    PYTHON_ENUM_END(m, PtButtonNotifyTypes);
+    PYTHON_ENUM_START(PtButtonNotifyTypes)
+    PYTHON_ENUM_ELEMENT(PtButtonNotifyTypes, kNotifyOnUp,           pfGUIButtonMod::kNotifyOnUp)
+    PYTHON_ENUM_ELEMENT(PtButtonNotifyTypes, kNotifyOnDown,         pfGUIButtonMod::kNotifyOnDown)
+    PYTHON_ENUM_ELEMENT(PtButtonNotifyTypes, kNotifyOnUpAndDown,    pfGUIButtonMod::kNotifyOnUpAndDown)
+    PYTHON_ENUM_END(m, PtButtonNotifyTypes)
 }

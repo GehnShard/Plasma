@@ -117,7 +117,7 @@ class minkDayClicks(ptResponder):
     def OnNotify(self,state,id,events):
         PtDebugPrint("minkDayClicks.OnNotify(): state=%s id=%d events=" % (state, id), events)
 
-        if id in ClickToResponder.viewkeys() and state and PtFindAvatar(events) == PtGetLocalAvatar():
+        if id in ClickToResponder.keys() and state and PtFindAvatar(events) == PtGetLocalAvatar():
             PtDebugPrint("minkDayClicks.OnNotify(): Clicked on %d, running %d" % (id, ClickToResponder[id].id))
             LocalAvatar = PtFindAvatar(events)
             clkCave01.disable()
@@ -136,5 +136,4 @@ class minkDayClicks(ptResponder):
             if id != behRespCage.id:
                 num = ResponderId.index(id) + 1
                 PtDebugPrint("minkDayClicks.OnNotify(): Should show %d" % (num))
-                code = "ageSDL[\"minkSymbolShow0%d\"] = (1,)" % (num)
-                exec(code)
+                ageSDL["minkSymbolShow0%d" % num] = (1,)

@@ -101,7 +101,7 @@ bool plUnifiedTime::SetToUTC()
     struct timeval tv;
     
     // get the secs and micros from Jan 1, 1970
-    int ret = gettimeofday(&tv, nil);
+    int ret = gettimeofday(&tv, nullptr);
     if (ret == 0)
     {
         fSecs = tv.tv_sec;
@@ -120,7 +120,7 @@ bool plUnifiedTime::SetToUTC()
 
 struct tm * plUnifiedTime::IGetTime(const time_t * timer) const
 {
-    struct tm * tm = nil;
+    struct tm * tm = nullptr;
     switch (fMode)
     {
     case kGmt:
@@ -142,49 +142,49 @@ plUnifiedTime::plUnifiedTime(plUnifiedTime_CtorNow,int mode)
 
 
 plUnifiedTime::plUnifiedTime(const timeval & tv)
-:   fMode(kGmt)
+    : fMode(kGmt)
 {
     *this = tv;
 }
 
 plUnifiedTime::plUnifiedTime(int mode, const struct tm & src)
-:   fMode((Mode)mode)
+    : fMode((Mode)mode), fMicros()
 {
     *this = src;
 }
 
 plUnifiedTime::plUnifiedTime(time_t t)
-:   fMode(kGmt)
+    : fMode(kGmt)
 {
     *this = t;
 }
 
 plUnifiedTime::plUnifiedTime(unsigned long t)
-:   fMode(kGmt)
+    : fMode(kGmt)
 {
     *this = t;
 }
 
 plUnifiedTime::plUnifiedTime(int year, int month, int day, int hour, int min, int sec, unsigned long usec, int dst)
-:   fMode(kGmt)
+    : fMode(kGmt), fMicros()
 {
     SetTime(year,month,day,hour,min,sec,usec,dst);
 }
 
 plUnifiedTime::plUnifiedTime(int mode, const char * buf, const char * fmt)
-:   fMode((Mode)mode)
+    : fMode((Mode)mode), fMicros()
 {
     FromString(buf,fmt);
 }
 
 plUnifiedTime::plUnifiedTime(const plUnifiedTime & src)
-:   fMode(src.fMode)
+    : fMode(src.fMode)
 {
     *this = src;
 }
 
 plUnifiedTime::plUnifiedTime(const plUnifiedTime * src)
-:   fMode(src->fMode)
+    : fMode(src->fMode)
 {
     *this = *src;
 }
@@ -322,7 +322,7 @@ const char* plUnifiedTime::PrintWMillis() const
 
 struct tm * plUnifiedTime::GetTm(struct tm * ptm) const
 {
-    if (ptm != nil)
+    if (ptm != nullptr)
     {
         *ptm = *IGetTime(&fSecs);
         return ptm;
@@ -364,29 +364,29 @@ int plUnifiedTime::GetMillis() const
     return fMicros/1000;
 }
 
-#pragma optimize( "g", off )    // disable global optimizations
+#ifdef _MSC_VER
+#   pragma optimize( "g", off )    // disable global optimizations
+#endif
 double plUnifiedTime::GetSecsDouble() const
 {
     double ret = GetSecs() + GetMicros() / 1000000.0;
     return ret;
 }
-#pragma optimize( "", on )  // restore optimizations to their defaults
+#ifdef _MSC_VER
+#   pragma optimize( "", on )  // restore optimizations to their defaults
+#endif
 
 void plUnifiedTime::Read(hsStream* s)
 {
-    s->LogSubStreamStart("UnifiedTime");
-    uint32_t secs;
-    s->LogReadLE(&secs,"Seconds");
-    fSecs = (time_t)secs;
-    s->LogReadLE(&fMicros,"MicroSeconds");
-    s->LogSubStreamEnd();
+    fSecs = (time_t)s->ReadLE32();
+    s->ReadLE32(&fMicros);
     // preserve fMode
 }
 
 void plUnifiedTime::Write(hsStream* s) const
 {
-    s->WriteLE((uint32_t)fSecs);
-    s->WriteLE(fMicros);
+    s->WriteLE32((uint32_t)fSecs);
+    s->WriteLE32(fMicros);
     // preserve fMode
 }
 
@@ -464,7 +464,7 @@ std::string plUnifiedTime::Format(const char * fmt) const
 {
     char buf[128];
     struct tm * t = IGetTime(&fSecs);
-    if (t == nil ||
+    if (t == nullptr ||
         !strftime(buf, sizeof(buf), fmt, t))
         buf[0] = '\0';
     return std::string(buf);
@@ -506,27 +506,27 @@ namespace pvt_strptime
 #define __isleap(year)  \
     ((year) % 4 == 0 && ((year) % 100 != 0 || (year) % 400 == 0))
     
-#define match_char(ch1, ch2) if (ch1 != ch2) return NULL
+#define match_char(ch1, ch2) if (ch1 != ch2) return nullptr
 #define match_string(cs1, s2) \
     (strnicmp((cs1), (s2), strlen (cs1)) ? 0 : ((s2) += strlen (cs1), 1))
 #define get_number(from, to, n) \
     do {                                          \
-    int __n = n;                                  \
-    val = 0;                                      \
-    while (*rp == ' ')                                \
-    ++rp;                                     \
-    if (*rp < '0' || *rp > '9')                           \
-    return NULL;                                  \
-    do {                                      \
-    val *= 10;                                \
-    val += *rp++ - '0';                           \
-    } while (--__n > 0 && val * 10 <= to && *rp >= '0' && *rp <= '9');        \
-    if (val < from || val > to)                           \
-    return NULL;                                  \
+        int __n = n;                              \
+        val = 0;                                  \
+        while (*rp == ' ')                        \
+            ++rp;                                 \
+        if (*rp < '0' || *rp > '9')               \
+            return nullptr;                       \
+        do {                                      \
+            val *= 10;                            \
+            val += *rp++ - '0';                   \
+        } while (--__n > 0 && val * 10 <= to && *rp >= '0' && *rp <= '9'); \
+        if (val < from || val > to)               \
+            return nullptr;                       \
     } while (0)
 #define recursive(new_fmt) \
     (*(new_fmt) != '\0'                               \
-    && (rp = strptime_internal (rp, (new_fmt), tm, mode)) != NULL)
+    && (rp = strptime_internal (rp, (new_fmt), tm, mode)) != nullptr)
     
     static char const weekday_name[][10] =
     {
@@ -570,7 +570,7 @@ namespace pvt_strptime
         struct tm *tp,
         int mode)
     {
-        struct tm *l = 0;
+        struct tm *l = nullptr;
         switch (mode)
         {
         case plUnifiedTime::kGmt:
@@ -580,7 +580,7 @@ namespace pvt_strptime
             l = localtime(t);
         }
         if (! l)
-            return 0;
+            return nullptr;
         *tp = *l;
         tp->tm_isdst = -1;
         return tp;
@@ -681,7 +681,7 @@ start_over:
                 }
                 if (cnt == 7)
                     /* Does not match a weekday name.  */
-                    return NULL;
+                    return nullptr;
                 tm->tm_wday = cnt;
                 have_wday = 1;
                 break;
@@ -699,14 +699,14 @@ start_over:
                 }
                 if (cnt == 12)
                     /* Does not match a month name.  */
-                    return NULL;
+                    return nullptr;
                 tm->tm_mon = cnt;
                 want_xday = 1;
                 break;
             case 'c':
                 /* Match locale's date and time format.  */
                 if (!recursive (HERE_D_T_FMT))
-                    return NULL;
+                    return nullptr;
                 want_xday = 1;
                 break;
             case 'C':
@@ -725,7 +725,7 @@ start_over:
                 break;
             case 'F':
                 if (!recursive ("%Y-%m-%d"))
-                    return NULL;
+                    return nullptr;
                 want_xday = 1;
                 break;
             case 'x':
@@ -733,7 +733,7 @@ start_over:
             case 'D':
                 /* Match standard day format.  */
                 if (!recursive (HERE_D_FMT))
-                    return NULL;
+                    return nullptr;
                 want_xday = 1;
                 break;
             case 'k':
@@ -779,15 +779,15 @@ start_over:
                     if (match_string (HERE_PM_STR, rp))
                         is_pm = 1;
                     else
-                        return NULL;
+                        return nullptr;
                     break;
             case 'r':
                 if (!recursive (HERE_T_FMT_AMPM))
-                    return NULL;
+                    return nullptr;
                 break;
             case 'R':
                 if (!recursive ("%H:%M"))
-                    return NULL;
+                    return nullptr;
                 break;
             case 's':
                 {
@@ -798,7 +798,7 @@ start_over:
                     time_t secs = 0;
                     if (*rp < '0' || *rp > '9')
                         /* We need at least one digit.  */
-                        return NULL;
+                        return nullptr;
                     
                     do
                     {
@@ -807,9 +807,9 @@ start_over:
                     }
                     while (*rp >= '0' && *rp <= '9');
                     
-                    if (time_r (&secs, tm, mode) == NULL)
+                    if (time_r(&secs, tm, mode) == nullptr)
                         /* Error in function.  */
-                        return NULL;
+                        return nullptr;
                 }
                 break;
             case 'S':
@@ -820,7 +820,7 @@ start_over:
                 /* Fall through.  */
             case 'T':
                 if (!recursive (HERE_T_FMT))
-                    return NULL;
+                    return nullptr;
                 break;
             case 'u':
                 get_number (1, 7, 1);
@@ -833,7 +833,7 @@ start_over:
                 break;
             case 'G':
                 if (*rp < '0' || *rp > '9')
-                    return NULL;
+                    return nullptr;
                     /* XXX Ignore the number since we would need some more
                 information to compute a real date.  */
                 do
@@ -935,11 +935,11 @@ start_over:
                     want_xday = 1;
                     break;
                 default:
-                    return NULL;
+                    return nullptr;
                 }
                 break;
                 default:
-                    return NULL;
+                    return nullptr;
     }
     }
     
@@ -988,9 +988,9 @@ bool plUnifiedTime::FromString(const char * buf, const char * fmt)
     struct tm tm;
     tm.tm_isdst = -1;
 #if !defined(HS_BUILD_FOR_UNIX)
-    bool result = (pvt_strptime::strptime_internal(buf, fmt, &tm, fMode)!=nil);
+    bool result = (pvt_strptime::strptime_internal(buf, fmt, &tm, fMode) != nullptr);
 #else
-    bool result = (strptime(buf, fmt, &tm)!=nil);
+    bool result = (strptime(buf, fmt, &tm) != nullptr);
 #endif
     if (result)
         *this = tm;
@@ -1013,7 +1013,7 @@ int32_t   plUnifiedTime::IGetLocalTimeZoneOffset()
         // Taken from devx.com from an article written by Danny Kalev
         // http://gethelp.devx.com/techtips/cpp_pro/10min/2001/10min1200-3.asp
 
-        time_t  currLocalTime = time( 0 );      // current local time
+        time_t  currLocalTime = time(nullptr);  // current local time
 
         struct tm   local = *gmtime( &currLocalTime );  // convert curr to GMT, store as tm
         

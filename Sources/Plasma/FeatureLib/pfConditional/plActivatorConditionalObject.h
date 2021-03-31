@@ -44,7 +44,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define plActivatorConditionalObject_inc
 
 #include "pnModifier/plConditionalObject.h"
-#include "hsTemplates.h"
 
 class plKey;
 
@@ -52,7 +51,7 @@ class plActivatorConditionalObject : public plConditionalObject
 {
 protected:
 
-    hsTArray<plKey> fActivators;
+    std::vector<plKey> fActivators;
 
 public:
     
@@ -62,14 +61,14 @@ public:
     CLASSNAME_REGISTER( plActivatorConditionalObject );
     GETINTERFACE_ANY( plActivatorConditionalObject, plConditionalObject );
     
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
     
-    void Evaluate() { }
+    void Evaluate() override { }
     void SetActivatorKey(plKey k);
-    void Reset() { SetSatisfied(false); }
+    void Reset() override { SetSatisfied(false); }
 
-    virtual void Read(hsStream* stream, hsResMgr* mgr); 
-    virtual void Write(hsStream* stream, hsResMgr* mgr);
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 
 };
 
@@ -83,7 +82,7 @@ public:
     CLASSNAME_REGISTER( plActivatorActivatorConditionalObject );
     GETINTERFACE_ANY( plActivatorActivatorConditionalObject, plActivatorConditionalObject );
     
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
     
 
 };
@@ -98,7 +97,7 @@ public:
     CLASSNAME_REGISTER( plVolActivatorConditionalObject );
     GETINTERFACE_ANY( plVolActivatorConditionalObject, plActivatorConditionalObject );
     
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
     
 
 };

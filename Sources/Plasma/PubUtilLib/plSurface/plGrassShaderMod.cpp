@@ -41,46 +41,41 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 #include "plGrassShaderMod.h"
 
-#include "hsTimer.h"
-#include "hsResMgr.h"
 #include "plgDispatch.h"
+#include "hsResMgr.h"
+#include "hsTimer.h"
+
+#include "hsGMaterial.h"
+#include "plLayer.h"
+#include "plShader.h"
 
 #include "pnKeyedObject/plUoid.h"
-
-//#include "pnSceneObject/plDrawInterface.h"
-
 #include "pnMessage/plObjRefMsg.h"
 #include "pnMessage/plTimeMsg.h"
+
 #include "plMessage/plMatRefMsg.h"
 #include "plMessage/plAgeLoadedMsg.h"
 #include "plMessage/plLayRefMsg.h"
 
-#include "plDrawable/plAccessGeometry.h"
-#include "plDrawable/plAccessSpan.h"
-#include "plDrawable/plAccessVtxSpan.h"
-
-#include "plSurface/hsGMaterial.h"
-#include "plSurface/plShader.h"
-#include "plSurface/plLayer.h"
 
 void plGrassWave::Write(hsStream *s)
 {
-    s->WriteLEScalar(fDistX);
-    s->WriteLEScalar(fDistY);
-    s->WriteLEScalar(fDistZ);
-    s->WriteLEScalar(fDirX);
-    s->WriteLEScalar(fDirY);
-    s->WriteLEScalar(fSpeed);
+    s->WriteLEFloat(fDistX);
+    s->WriteLEFloat(fDistY);
+    s->WriteLEFloat(fDistZ);
+    s->WriteLEFloat(fDirX);
+    s->WriteLEFloat(fDirY);
+    s->WriteLEFloat(fSpeed);
 }
 
 void plGrassWave::Read(hsStream *s)
 {
-    fDistX = s->ReadLEScalar();
-    fDistY = s->ReadLEScalar();
-    fDistZ = s->ReadLEScalar();
-    fDirX = s->ReadLEScalar();
-    fDirY = s->ReadLEScalar();
-    fSpeed = s->ReadLEScalar();
+    fDistX = s->ReadLEFloat();
+    fDistY = s->ReadLEFloat();
+    fDistZ = s->ReadLEFloat();
+    fDirX = s->ReadLEFloat();
+    fDirY = s->ReadLEFloat();
+    fSpeed = s->ReadLEFloat();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -130,7 +125,7 @@ void plGrassShaderMod::AddTarget(plSceneObject *object)
 
 void plGrassShaderMod::RemoveTarget(plSceneObject *object)
 {
-    fTarget = nil;
+    fTarget = nullptr;
 }
 
 bool plGrassShaderMod::MsgReceive(plMessage *msg)
@@ -160,13 +155,13 @@ bool plGrassShaderMod::MsgReceive(plMessage *msg)
             switch (refMsg->fType)
             {
             case kRefGrassVS:
-                fVShader = nil;
+                fVShader = nullptr;
                 break;
             case kRefGrassPS:
-                fPShader = nil;
+                fPShader = nullptr;
                 break;
             case kRefMaterial:
-                fMaterial = nil;
+                fMaterial = nullptr;
                 break;
             default:
                 break;
@@ -189,7 +184,7 @@ void plGrassShaderMod::Write(hsStream *stream, hsResMgr *mgr)
 {
     plModifier::Write(stream, mgr);
 
-    mgr->WriteKey(stream, fMaterial ? fMaterial->GetKey() : nil);
+    mgr->WriteKey(stream, fMaterial ? fMaterial->GetKey() : nullptr);
 
     int i;
     for (i = 0; i < kNumWaves; i++)
@@ -234,7 +229,10 @@ void plGrassShaderMod::ISetupShaders()
 
         vShader->SetNumConsts(plGrassVS::kNumConsts);
         vShader->SetVector(plGrassVS::kNumericConsts, 0.f, 0.5f, 1.f, 2.f);
-        vShader->SetVector(plGrassVS::kPiConsts, 1.f / (8.f*M_PI*4.f*4.f), M_PI/2.f, M_PI, M_PI*2.f);
+        vShader->SetVector(plGrassVS::kPiConsts, 1.f / (8.f*hsConstants::pi<float>*4.f*4.f),
+                                                 hsConstants::half_pi<float>,
+                                                 hsConstants::pi<float>,
+                                                 hsConstants::two_pi<float>);
         vShader->SetVector(plGrassVS::kSinConsts, -1.f/6.f, 1.f/120.f, -1.f/5040.f, 1.f/362880.f);
 
         IRefreshWaves(vShader);

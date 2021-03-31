@@ -49,7 +49,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 // PURPOSE: Class wrapper to map animation functions to plasma2 message
 //
 
-#include "hsTemplates.h"
 #include "pnKeyedObject/plKey.h"
 #include "pyGlueHelpers.h"
 
@@ -61,25 +60,25 @@ class cyPhysics
 {
 protected:
     plKey           fSender;
-    hsTArray<plKey> fRecvr;
+    std::vector<plKey> fRecvr;
     bool            fNetForce;
 
-    cyPhysics(plKey sender=nil,plKey recvr=nil);
+    cyPhysics(plKey sender = {}, plKey recvr = {});
 
 public:
     virtual ~cyPhysics() { }
 
     // required functions for PyObject interoperability
     PYTHON_CLASS_NEW_FRIEND(ptPhysics);
-    static PyObject *New(PyObject *sender = nil, PyObject *recvr = nil);
+    static PyObject *New(PyObject *sender = nullptr, PyObject *recvr = nullptr);
     PYTHON_CLASS_CHECK_DEFINITION; // returns true if the PyObject is a cyPhysics object
     PYTHON_CLASS_CONVERT_FROM_DEFINITION(cyPhysics); // converts a PyObject to a cyPhysics (throws error if not correct type)
 
     static void AddPlasmaClasses(PyObject *m);
 
     // setters
-    void SetSender(plKey &sender);
-    void AddRecvr(plKey &recvr);
+    void SetSender(plKey sender);
+    void AddRecvr(plKey recvr);
 
     virtual void SetNetForce(bool state) { fNetForce = state; }
 

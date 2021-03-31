@@ -51,7 +51,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _plBufferedFileReader_h
 #define _plBufferedFileReader_h
 
-#include "plAudioCore/plAudioFileReader.h"
+#include "plAudioFileReader.h"
 
 
 //// Class Definition ////////////////////////////////////////////////////////
@@ -62,14 +62,14 @@ public:
     plBufferedFileReader( const plFileName &path, plAudioCore::ChannelSelect whichChan = plAudioCore::kAll );
     virtual ~plBufferedFileReader();
 
-    virtual plWAVHeader &GetHeader();
-    virtual void    Close();
-    virtual uint32_t  GetDataSize() { return fBufferSize; }
-    virtual float   GetLengthInSecs();
-    virtual bool    SetPosition( uint32_t numBytes );
-    virtual bool    Read( uint32_t numBytes, void *buffer );
-    virtual uint32_t  NumBytesLeft();
-    virtual bool    IsValid() { return ( fBuffer != nil ) ? true : false; }
+    plWAVHeader &GetHeader() override;
+    void    Close() override;
+    uint32_t  GetDataSize() override { return fBufferSize; }
+    float   GetLengthInSecs() override;
+    bool    SetPosition(uint32_t numBytes) override;
+    bool    Read(uint32_t numBytes, void *buffer) override;
+    uint32_t  NumBytesLeft() override;
+    bool    IsValid() override { return (fBuffer != nullptr); }
 
 protected:
     uint32_t        fBufferSize;

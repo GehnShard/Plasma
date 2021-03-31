@@ -87,10 +87,10 @@ public:
     static void Update( double secs );
 
     // the python definitions
-    static void AddPlasmaMethods(std::vector<PyMethodDef> &methods);
-    static void AddPlasmaMethods2(std::vector<PyMethodDef> &methods);
-    static void AddPlasmaMethods3(std::vector<PyMethodDef> &methods);
-    static void AddPlasmaMethods4(std::vector<PyMethodDef> &methods);
+    static void AddPlasmaMethods(PyObject* m);
+    static void AddPlasmaMethods2(PyObject* m);
+    static void AddPlasmaMethods3(PyObject* m);
+    static void AddPlasmaMethods4(PyObject* m);
 
     static void AddPlasmaConstantsClasses(PyObject *m);
 
@@ -167,7 +167,7 @@ public:
     //
     //  PURPOSE    : Execute a console command from a python script
     //
-    static void TimerCallback(pyKey& selfkey, float time, uint32_t id);
+    static void TimerCallback(pyKey& selfkey, float time, int32_t id);
 
     /////////////////////////////////////////////////////////////////////////////
     //
@@ -786,7 +786,7 @@ public:
     //
     // PURPOSE    : Get the list of public ages for the given age name.
     //
-    static void GetPublicAgeList( const char * ageName, PyObject * cbObject=nil );
+    static void GetPublicAgeList(const char * ageName, PyObject * cbObject = nullptr);
 
     //////////////////////////////////////////////////////////////////////////////
     //
@@ -795,7 +795,7 @@ public:
     //
     // PURPOSE    : Add a public age to the list of available ones.
     //
-    static void CreatePublicAge( pyAgeInfoStruct * ageInfo, PyObject * cbObject=nil );
+    static void CreatePublicAge(pyAgeInfoStruct * ageInfo, PyObject * cbObject = nullptr);
 
     //////////////////////////////////////////////////////////////////////////////
     //
@@ -804,7 +804,7 @@ public:
     //
     // PURPOSE    : Remove a public age from the list of available ones.
     //
-    static void RemovePublicAge( const char * ageInstanceGuid, PyObject * cbObject=nil );
+    static void RemovePublicAge(const char * ageInstanceGuid, PyObject * cbObject = nullptr);
 
     //////////////////////////////////////////////////////////////////////////////
     //

@@ -47,7 +47,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include <exception>
-#pragma hdrstop
 
 #include "pyVaultNode.h"
 
@@ -83,8 +82,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 pyVaultNode::pyVaultNodeOperationCallback::pyVaultNodeOperationCallback(PyObject * cbObject)
 : fCbObject( cbObject )
-, fPyNodeRef(nil)
-, fContext(0)
+, fPyNodeRef()
+, fContext()
 {
     Py_XINCREF( fCbObject );
 }
@@ -102,7 +101,7 @@ void pyVaultNode::pyVaultNodeOperationCallback::VaultOperationStarted( uint32_t 
         // Call the callback.
         if (PyObject_HasAttrString( fCbObject, "vaultOperationStarted" ))
         {
-            PyObject* func = nil;
+            PyObject* func = nullptr;
             func = PyObject_GetAttrString( fCbObject, "vaultOperationStarted" );
             if ( func )
             {
@@ -125,7 +124,7 @@ void pyVaultNode::pyVaultNodeOperationCallback::VaultOperationComplete( uint32_t
         // Call the callback.
         if (PyObject_HasAttrString( fCbObject, "vaultOperationComplete" ))
         {
-            PyObject* func = nil;
+            PyObject* func = nullptr;
             func = PyObject_GetAttrString( fCbObject, "vaultOperationComplete" );
             if ( func )
             {
@@ -148,8 +147,8 @@ void pyVaultNode::pyVaultNodeOperationCallback::VaultOperationComplete( uint32_t
     delete this;  // commit hara-kiri
 }
 
-void pyVaultNode::pyVaultNodeOperationCallback::SetNode (RelVaultNode * rvn) {
-    fNode = rvn;
+void pyVaultNode::pyVaultNodeOperationCallback::SetNode(hsRef<RelVaultNode> rvn) {
+    fNode = std::move(rvn);
 }
 
 hsRef<RelVaultNode> pyVaultNode::pyVaultNodeOperationCallback::GetNode() const {
@@ -157,7 +156,7 @@ hsRef<RelVaultNode> pyVaultNode::pyVaultNodeOperationCallback::GetNode() const {
 }
 
 pyVaultNode::pyVaultNode()
-    : fNode(decltype(fNode)::New())
+    : fNode(new RelVaultNode, hsStealRef)
 {
 }
 
@@ -179,13 +178,13 @@ bool pyVaultNode::operator==(const pyVaultNode &vaultNode) const
 {
     hsRef<RelVaultNode> ours = GetNode();
     hsRef<RelVaultNode> theirs = vaultNode.GetNode();
-    if (ours == nil && theirs == nil)
+    if (ours == nullptr && theirs == nullptr)
         return true;
-    if (ours == nil || theirs == nil)
+    if (ours == nullptr || theirs == nullptr)
         return false;
     if (ours->GetNodeId() == theirs->GetNodeId())
         return true;
-    return ours->Matches(theirs);
+    return ours->Matches(theirs.Get());
 }
 
 // public getters
@@ -275,7 +274,7 @@ ST::string pyVaultNode::GetCreateAgeName() const
 {
     if (fNode)
         return fNode->GetCreateAgeName();
-    return ST::null;
+    return ST::string();
 }
 
 plUUID pyVaultNode::GetCreateAgeGuid() const
@@ -291,7 +290,7 @@ PyObject* pyVaultNode::GetCreateAgeCoords () {
     if (!fNode)
         PYTHON_RETURN_NONE;
 
-    return pyDniCoordinates::New(nil);
+    return pyDniCoordinates::New(nullptr);
 }
 
 void pyVaultNode::SetID( uint32_t v )
@@ -362,7 +361,6 @@ PyObject* pyVaultNode::AddNode(pyVaultNode* pynode, PyObject* cbObject, uint32_t
         // Hack the callbacks until vault notification is in place
         cb->VaultOperationStarted(cbContext);
 
-        int hsResult = hsOK;
         if ( !pynode->GetID() )
         {
             // Block here until node is created and fetched =(
@@ -375,8 +373,6 @@ PyObject* pyVaultNode::AddNode(pyVaultNode* pynode, PyObject* cbObject, uint32_t
             
             if (newNode)
                 pynode->fNode = newNode;
-            else
-                hsResult = hsFail;
         }
 
         PyObject* nodeRef = cb->fPyNodeRef = pyVaultNodeRef::New(fNode, pynode->fNode);
@@ -445,7 +441,7 @@ bool pyVaultNode::RemoveNode( pyVaultNode& pynode, PyObject* cbObject, uint32_t 
         // Hack the callbacks until vault notification is in place
         cb->VaultOperationStarted( cbContext );
 
-        VaultRemoveChildNode(fNode->GetNodeId(), pynode.fNode->GetNodeId(), nil, nil);
+        VaultRemoveChildNode(fNode->GetNodeId(), pynode.fNode->GetNodeId(), nullptr, nullptr);
 
         cb->SetNode(pynode.fNode);
         cb->fPyNodeRef = pyVaultNodeRef::New(fNode, pynode.fNode);
@@ -468,10 +464,10 @@ void pyVaultNode::RemoveAllNodes()
     if (!fNode)
         return;
         
-    TArray<unsigned> nodeIds;
+    std::vector<unsigned> nodeIds;
     fNode->GetChildNodeIds(&nodeIds, 1);
-    for (unsigned i = 0; i < nodeIds.Count(); ++i)
-        VaultRemoveChildNode(fNode->GetNodeId(), nodeIds[i], nil, nil);
+    for (unsigned id : nodeIds)
+        VaultRemoveChildNode(fNode->GetNodeId(), id, nullptr, nullptr);
 }
 
 // Add/Save this node to vault
@@ -566,10 +562,10 @@ int pyVaultNode::GetChildNodeCount()
     if (!fNode)
         return 0;
         
-    TArray<unsigned> nodeIds;
+    std::vector<unsigned> nodeIds;
     fNode->GetChildNodeIds(&nodeIds, 1);
     
-    return nodeIds.Count();
+    return int(nodeIds.size());
 }
 
 // Get the client ID from my Vault client.
@@ -589,12 +585,12 @@ bool pyVaultNode::HasNode( uint32_t nodeID )
 
 PyObject * pyVaultNode::GetNode2( uint32_t nodeID ) const
 {
-    PyObject * result = nil;
+    PyObject * result = nullptr;
     if ( fNode )
     {
-        hsRef<RelVaultNode> templateNode = new RelVaultNode;
-        templateNode->SetNodeId(nodeID);
-        if (hsRef<RelVaultNode> rvn = fNode->GetChildNode(templateNode, 1))
+        RelVaultNode templateNode;
+        templateNode.SetNodeId(nodeID);
+        if (hsRef<RelVaultNode> rvn = fNode->GetChildNode(&templateNode, 1))
             result = pyVaultNodeRef::New(fNode, rvn);
     }
     
@@ -606,10 +602,11 @@ PyObject * pyVaultNode::GetNode2( uint32_t nodeID ) const
 
 PyObject* pyVaultNode::FindNode( pyVaultNode * templateNode )
 {
-    PyObject * result = nil;
+    PyObject * result = nullptr;
     if ( fNode && templateNode->fNode )
     {
-        if (hsRef<RelVaultNode> rvn = fNode->GetChildNode(templateNode->fNode, 1))
+        hsWeakRef<NetVaultNode> node(templateNode->fNode);
+        if (hsRef<RelVaultNode> rvn = fNode->GetChildNode(node, 1))
             result = pyVaultNode::New(rvn);
     }
     

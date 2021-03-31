@@ -43,15 +43,16 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define PL_AGE_DESCRIPTION_H
 
 #include "HeadSpin.h"
-#include "hsTemplates.h"
+
+#include <vector>
 
 #include "plUnifiedTime/plUnifiedTime.h"
-#include "pnKeyedObject/plUoid.h"
 #include "plFile/plInitFileReader.h"
 
 //
 // Age Definition File Reader/Writer
 //
+class plLocation;
 class hsStream;
 
 class plAgePage
@@ -100,7 +101,7 @@ private:
     ST::string  fName;
 
     int32_t     fPageIterator;
-    hsTArray<plAgePage> fPages;
+    std::vector<plAgePage> fPages;
 
     plUnifiedTime fStart;
 
@@ -117,7 +118,7 @@ private:
     void    IDeInit();
 
     // Overload for plInitSectionTokenReader
-    virtual bool        IParseToken( const char *token, hsStringTokenizer *tokenizer, uint32_t userData );
+    bool        IParseToken(const char *token, hsStringTokenizer *tokenizer, uint32_t userData) override;
 
 public:
     static char kAgeDescPath[];
@@ -136,7 +137,7 @@ public:
     void Write(hsStream* stream) const;
 
     // Overload for plInitSectionTokenReader
-    virtual const char  *GetSectionName() const;
+    const char  *GetSectionName() const override;
 
     ST::string  GetAgeName() const { return fName; }
     void        SetAgeNameFromPath( const plFileName &path );
@@ -149,8 +150,8 @@ public:
 
     void        SeekFirstPage();
     plAgePage   *GetNextPage();
-    int         GetNumPages() const { return fPages.GetCount(); }
-    plAgePage   *FindPage( const ST::string &name ) const;
+    size_t      GetNumPages() const { return fPages.size(); }
+    const plAgePage   *FindPage(const ST::string &name) const;
     bool FindLocation(const plLocation& loc) const;
     plLocation  CalcPageLocation( const ST::string &page ) const;
 

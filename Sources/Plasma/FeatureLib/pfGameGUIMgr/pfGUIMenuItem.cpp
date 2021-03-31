@@ -47,33 +47,32 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //                                                                          //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "HeadSpin.h"
 #include "pfGUIMenuItem.h"
+
+#include "HeadSpin.h"
+#include "hsResMgr.h"
+
 #include "pfGameGUIMgr.h"
 #include "pfGUIControlHandlers.h"
 #include "pfGUIDialogMod.h"
 #include "pfGUIPopUpMenu.h"
 
-#include "plInputCore/plInputInterface.h"
 #include "pnMessage/plRefMsg.h"
-#include "plGImage/plDynamicTextMap.h"
-#include "plgDispatch.h"
-#include "hsResMgr.h"
 
+#include "plGImage/plDynamicTextMap.h"
+#include "plInputCore/plInputInterface.h"
 
 //// Constructor/Destructor //////////////////////////////////////////////////
 
 pfGUIMenuItem::pfGUIMenuItem()
+    : fName(), fReportingHover(), fSkinBuffersUpdated(true), fHowToSkin()
 {
-    fName = nil;
-    fSkin = nil;
-    fReportingHover = false;
-    fSkinBuffersUpdated = true;
+    fSkin = nullptr;
 }
 
 pfGUIMenuItem::~pfGUIMenuItem()
 {
-    SetSkin( nil, kTop );
+    SetSkin(nullptr, kTop);
     delete [] fName;
 }
 
@@ -87,13 +86,13 @@ void    pfGUIMenuItem::SetName( const char *name )
 void    pfGUIMenuItem::SetName( const wchar_t *name )
 {
     delete [] fName;
-    if (name != nil)
+    if (name != nullptr)
     {
         fName = new wchar_t[wcslen(name)+1];
         wcscpy(fName,name);
     }
     else
-        fName = nil;
+        fName = nullptr;
 
     IUpdate();
 }
@@ -103,10 +102,10 @@ void    pfGUIMenuItem::SetName( const wchar_t *name )
 void    pfGUIMenuItem::SetSkin( pfGUISkin *skin, HowToSkin s )
 {
     // Just a function wrapper for SendRef
-    if( fSkin != nil )
+    if (fSkin != nullptr)
         GetKey()->Release( fSkin->GetKey() );
 
-    if( skin != nil )
+    if (skin != nullptr)
         hsgResMgr::ResMgr()->SendRef( skin->GetKey(), new plGenRefMsg( GetKey(), plRefMsg::kOnCreate, -1, kRefSkin ), plRefFlags::kActiveRef );
 
     fHowToSkin = s;
@@ -140,11 +139,11 @@ void    pfGUIMenuItem::IUpdateSkinBuffers()
 {
     if( fSkinBuffersUpdated )
         return;
-    if( fSkin == nil )
+    if (fSkin == nullptr)
         return;
-    if( fDynTextMap == nil )
+    if (fDynTextMap == nullptr)
         return;
-    if( fSkin->GetTexture() == nil )
+    if (fSkin->GetTexture() == nullptr)
         return;
 
     uint16_t y = fDynTextMap->GetVisibleHeight();
@@ -160,7 +159,7 @@ void    pfGUIMenuItem::IUpdateSkinBuffers()
 
 void    pfGUIMenuItem::IUpdateSingleSkinBuffer( uint16_t y, bool sel )
 {
-    hsAssert( fSkin != nil && fDynTextMap != nil, "Invalid pointers in IUpdateSingleSkinBuffer()" );
+    hsAssert(fSkin != nullptr && fDynTextMap != nullptr, "Invalid pointers in IUpdateSingleSkinBuffer()");
 
 
     // Note: add 1 to the visible height so we get enough overlap to take care of mipmapping issues
@@ -274,10 +273,10 @@ void    pfGUIMenuItem::IUpdateSingleSkinBuffer( uint16_t y, bool sel )
 
 void    pfGUIMenuItem::IUpdate()
 {
-    if( fDynTextMap == nil )
+    if (fDynTextMap == nullptr)
         return;
 
-    if( fSkin != nil )
+    if (fSkin != nullptr)
     {
         IUpdateSkinBuffers();
 
@@ -314,18 +313,18 @@ void    pfGUIMenuItem::IUpdate()
 
     fDynTextMap->SetJustify( plDynamicTextMap::kLeftJustify );
 
-    if( fName != nil )
+    if (fName != nullptr)
     {
         uint16_t ht;
         fDynTextMap->CalcStringWidth( fName, &ht );
 
         int16_t x = 0, y = ( fDynTextMap->GetVisibleHeight() - ht ) >> 1;
-        if( fHowToSkin == kTop && fSkin != nil )
+        if (fHowToSkin == kTop && fSkin != nullptr)
             y += fSkin->GetElement( pfGUISkin::kTopSpan ).fHeight >> 1;
-        else if( fHowToSkin == kBottom && fSkin != nil )
+        else if (fHowToSkin == kBottom && fSkin != nullptr)
             y -= fSkin->GetElement( pfGUISkin::kTopSpan ).fHeight >> 1;
         
-        if( fSkin != nil )
+        if (fSkin != nullptr)
             x += fSkin->GetBorderMargin();
 
         if( fClicking )
@@ -338,7 +337,7 @@ void    pfGUIMenuItem::IUpdate()
 
         if( HasFlag( kDrawSubMenuArrow ) )
         {
-            if( fSkin != nil )
+            if (fSkin != nullptr)
             {
                 pfGUISkin::pfSRect element;
 
@@ -369,7 +368,7 @@ void    pfGUIMenuItem::IUpdate()
 
 void pfGUIMenuItem::PurgeDynaTextMapImage()
 {
-    if ( fDynTextMap != nil )
+    if (fDynTextMap != nullptr)
         fDynTextMap->PurgeImage();
 }
 
@@ -378,7 +377,7 @@ void pfGUIMenuItem::PurgeDynaTextMapImage()
 
 void    pfGUIMenuItem::GetTextExtents( uint16_t &width, uint16_t &height )
 {
-    if( fName == nil )
+    if (fName == nullptr)
         width = height = 0;
     else
         width = fDynTextMap->CalcStringWidth( fName, &height );
@@ -422,7 +421,7 @@ void    pfGUIMenuItem::HandleMouseDrag( hsPoint3 &mousePt, uint8_t modifiers )
 /*  if( !fClicking )
         return;
 
-    if( fDraggable == nil )
+    if (fDraggable == nullptr)
         return;
 
     if( !fDraggable->IsVisible() )
@@ -448,8 +447,8 @@ void    pfGUIMenuItem::HandleMouseHover( hsPoint3 &mousePt, uint8_t modifiers )
     {
         if( PointInBounds( mousePt ) )
         {
-            if( !fReportingHover && ( fDialog->GetControlOfInterest() == nil || 
-                                      fDialog->GetControlOfInterest() == this ) )
+            if (!fReportingHover && (fDialog->GetControlOfInterest() == nullptr ||
+                                     fDialog->GetControlOfInterest() == this))
             {
                 fReportingHover = true;
                 HandleExtendedEvent( kMouseHover );
@@ -460,7 +459,7 @@ void    pfGUIMenuItem::HandleMouseHover( hsPoint3 &mousePt, uint8_t modifiers )
         {
             fReportingHover = false;
             HandleExtendedEvent( kMouseExit );
-            fDialog->SetControlOfInterest( nil );
+            fDialog->SetControlOfInterest(nullptr);
         }
     }
 }

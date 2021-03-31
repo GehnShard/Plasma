@@ -70,9 +70,9 @@ protected:
 
     pyImage() // for python glue only, do NOT call
     {
-        fMipMapKey = nil;
+        fMipMapKey = nullptr;
 #ifndef BUILDING_PYPLASMA
-        fMipmap = nil;
+        fMipmap = nullptr;
 #endif
     } 
 
@@ -81,7 +81,7 @@ protected:
     {
         fMipMapKey = mipmapKey;
 #ifndef BUILDING_PYPLASMA
-        fMipmap = nil;
+        fMipmap = nullptr;
 #endif
     }
 
@@ -119,7 +119,7 @@ public:
     PYTHON_CLASS_CONVERT_FROM_DEFINITION(pyImage); // converts a PyObject to a pyImage (throws error if not correct type)
 
     static void AddPlasmaClasses(PyObject *m);
-    static void AddPlasmaMethods(std::vector<PyMethodDef> &methods);
+    static void AddPlasmaMethods(PyObject* m);
 
     void setKey(pyKey& mipmapKey);
 

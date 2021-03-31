@@ -89,26 +89,26 @@ protected:
     static bool ICheckMagicString(hsStream* s);
 
 public:
-    plSecureStream(bool deleteOnExit = false, uint32_t* key = nil); // uses default key if you don't pass one in
-    plSecureStream(hsStream* base, uint32_t* key = nil);
+    plSecureStream(bool deleteOnExit = false, uint32_t* key = nullptr); // uses default key if you don't pass one in
+    plSecureStream(hsStream* base, uint32_t* key = nullptr);
     ~plSecureStream();
 
-    virtual bool Open(const plFileName& name, const char* mode = "rb");
-    bool         Open(hsStream* stream);
-    virtual bool Close();
+    bool Open(const plFileName& name, const char* mode = "rb") override;
+    bool Open(hsStream* stream);
+    bool Close() override;
 
-    virtual uint32_t Read(uint32_t byteCount, void* buffer);
-    virtual uint32_t Write(uint32_t byteCount, const void* buffer);
-    virtual bool AtEnd();
-    virtual void Skip(uint32_t deltaByteCount);
-    virtual void Rewind();
-    virtual void FastFwd();
-    virtual uint32_t GetEOF();
+    uint32_t Read(uint32_t byteCount, void* buffer) override;
+    uint32_t Write(uint32_t byteCount, const void* buffer) override;
+    bool AtEnd() override;
+    void Skip(uint32_t deltaByteCount) override;
+    void Rewind() override;
+    void FastFwd() override;
+    uint32_t GetEOF() override;
 
     uint32_t GetActualFileSize() const {return fActualFileSize;}
 
-    static bool FileEncrypt(const plFileName& fileName, uint32_t* key = nil);
-    static bool FileDecrypt(const plFileName& fileName, uint32_t* key = nil);
+    static bool FileEncrypt(const plFileName& fileName, uint32_t* key = nullptr);
+    static bool FileDecrypt(const plFileName& fileName, uint32_t* key = nullptr);
 
     enum OpenSecureFileFlags
     {
@@ -120,10 +120,10 @@ public:
 
     // Attempts to create a read-binary stream for the requested file (delete the stream
     // when you are done with it!)
-    static hsStream* OpenSecureFile(const plFileName& fileName, const uint32_t flags = kRequireEncryption, uint32_t* key = nil);
+    static hsStream* OpenSecureFile(const plFileName& fileName, const uint32_t flags = kRequireEncryption, uint32_t* key = nullptr);
     // Attempts to create a write-binary stream for the requested file (delete the stream
     // when you are done with it!)
-    static hsStream* OpenSecureFileWrite(const plFileName& fileName, uint32_t* key = nil);
+    static hsStream* OpenSecureFileWrite(const plFileName& fileName, uint32_t* key = nullptr);
 
     static const uint32_t kDefaultKey[4]; // our default encryption key
 

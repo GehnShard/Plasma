@@ -43,14 +43,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "HeadSpin.h"
 #include "hsResMgr.h"
 
+#include "MaxMain/MaxAPI.h"
+
 #include "plComponentReg.h"
 #include "plBehavioralComponents.h"
 #include "plResponderComponent.h"
 #include "MaxMain/plMaxNode.h"
 #include "resource.h"
-
-#include <iparamm2.h>
-#pragma hdrstop
 
 #include "MaxMain/plPhysicalProps.h"
 
@@ -70,7 +69,7 @@ protected:
     }
 
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -91,7 +90,7 @@ public:
 
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plSittingComponentProc gSittingComponentProc;
 
@@ -150,7 +149,7 @@ bool plAvBehaviorSittingComponent::SetupProperties(plMaxNode* node, plErrorMsg *
 bool plAvBehaviorSittingComponent::PreConvert(plMaxNode* node, plErrorMsg* pErrMsg)
 {
     plMaxNode *detectNode = (plMaxNode*)fCompPB->GetINode(kDetector);
-    plComponentBase *detectComp = detectNode ? detectNode->ConvertToComponent() : nil;
+    plComponentBase *detectComp = detectNode ? detectNode->ConvertToComponent() : nullptr;
     if (detectComp)
     {
         bool hasFrontApproach = fCompPB->GetInt(ParamID(kApproachFront)) ? true : false;
@@ -179,10 +178,10 @@ bool plAvBehaviorSittingComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
         // XXX sitMod->SetSeekTime(fCompPB->GetFloat(kSeekTimeFloat));
 
         // Get all the keys who want to be notified when the avatar ass hits the seat
-        hsTArray<plKey> receivers;
+        std::vector<plKey> receivers;
         IGetReceivers(node, receivers);
-        for (int i = 0; i < receivers.Count(); i++)
-            sitMod->AddNotifyKey(receivers[i]);
+        for (const plKey& receiver : receivers)
+            sitMod->AddNotifyKey(receiver);
     }
 
     return true;

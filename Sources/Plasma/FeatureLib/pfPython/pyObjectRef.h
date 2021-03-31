@@ -44,6 +44,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define _pyObjectRef_h_
 
 #include <Python.h>
+#include "HeadSpin.h"
 
 /** RAII reference count helper for Python objects. */
 class pyObjectRef
@@ -62,7 +63,7 @@ public:
         Py_XINCREF(fPyObject);
     }
 
-    pyObjectRef(pyObjectRef&& move) HS_NOEXCEPT
+    pyObjectRef(pyObjectRef&& move) noexcept
         : fPyObject(move.fPyObject)
     {
         move.fPyObject = nullptr;
@@ -113,7 +114,7 @@ public:
         return *this;
     }
 
-    pyObjectRef& operator =(pyObjectRef&& rhs) HS_NOEXCEPT
+    pyObjectRef& operator =(pyObjectRef&& rhs) noexcept
     {
         Py_XDECREF(fPyObject);
         fPyObject = rhs.fPyObject;

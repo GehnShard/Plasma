@@ -44,26 +44,25 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define plDXVertexSahder_inc
 
 #include "plDXShader.h"
-#include "hsTemplates.h"
 
 struct IDirect3DDevice9;
-class plShader;
+struct IDirect3DVertexShader9;
 class plDXPipeline;
+class plShader;
 
 class plDXVertexShader : public plDXShader
 {
 protected:
     IDirect3DVertexShader9* fHandle;
-    hsTArray<DWORD>&    IMakeDecl(hsTArray<DWORD>& decl) const;
-    virtual HRESULT     ICreate(plDXPipeline* pipe);  // On error, sets error string.
+    HRESULT     ICreate(plDXPipeline* pipe) override;  // On error, sets error string.
 
-    virtual HRESULT     ISetConstants(plDXPipeline* pipe); // On error, sets error string.
+    HRESULT     ISetConstants(plDXPipeline* pipe) override; // On error, sets error string.
 
 public:
     plDXVertexShader(plShader* owner);
     virtual ~plDXVertexShader();
 
-    virtual void    Release();
+    void            Release() override;
     void            Link(plDXVertexShader** back) { plDXDeviceRef::Link((plDXDeviceRef**)back); }
 
     bool            VerifyFormat(uint8_t format) const;

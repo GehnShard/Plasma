@@ -45,6 +45,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *   
 ***/
 
+#include "Pch.h"
+
 #include "pnUtCrypt.h"
 #include "pnUtStr.h"
 #include "pnUtTime.h"
@@ -114,7 +116,7 @@ CryptKey * CryptKeyCreate (
     unsigned        bytes,
     const void *    data
 ) {
-    CryptKey * key = nil;
+    CryptKey * key = nullptr;
     switch (algorithm) {
         case kCryptRc4: {
             RC4_KEY * rc4 = new RC4_KEY;

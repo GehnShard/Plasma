@@ -45,11 +45,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAnimComponent.h"
 #include "plAudioComponents.h"
 #include "MaxMain/plMaxNode.h"
+#include "MaxMain/MaxAPI.h"
+
 #include "resource.h"
 
-#include <iparamm2.h>
 #include <vector>
-#pragma hdrstop
 
 #include "plResponderAnim.h"
 #include "plResponderComponentPriv.h"
@@ -186,7 +186,7 @@ const char *plResponderCmdAnim::GetCategory(int idx)
         return "Random Sound";
     }
 
-    return nil;
+    return nullptr;
 }
 
 const char *plResponderCmdAnim::GetName(int idx)
@@ -228,7 +228,7 @@ const char *plResponderCmdAnim::GetName(int idx)
         return "Synched Play";
     }
 
-    return nil;
+    return nullptr;
 }
 
 static const char *GetShortName(int type)
@@ -254,7 +254,7 @@ static const char *GetShortName(int type)
     case kRespondFastForwardAnim:   return "Anim FFwd";
     }
 
-    return nil;
+    return nullptr;
 }
 const char *plResponderCmdAnim::GetInstanceName(IParamBlock2 *pb)
 {
@@ -287,7 +287,7 @@ plComponentBase *plResponderCmdAnim::GetComponent(IParamBlock2 *pb)
     if (node)
         return node->ConvertToComponent();
     else
-        return nil;
+        return nullptr;
 }
 
 plMessage *plResponderCmdAnim::CreateMsg(plMaxNode* node, plErrorMsg *pErrMsg, IParamBlock2 *pb)
@@ -326,8 +326,8 @@ bool GetCompAndNode(IParamBlock2* pb, plMaxNode* node, plComponentBase*& comp, p
 
 plMessage *plResponderCmdAnim::ICreateAnimMsg(plMaxNode* node, plErrorMsg *pErrMsg, IParamBlock2 *pb)
 {
-    plAnimComponentBase *comp = nil;
-    plMaxNode *targNode = nil;
+    plAnimComponentBase *comp = nullptr;
+    plMaxNode *targNode = nullptr;
     if (!GetCompAndNode(pb, node, (plComponentBase*&)comp, targNode))
         throw "A valid animation component and node were not found";
 
@@ -491,7 +491,7 @@ void plResponderCmdAnim::GetWaitPoints(IParamBlock2 *pb, WaitPoints& waitPoints)
 
     if (animComp)
     {
-        plNotetrackAnim notetrackAnim(animComp, nil);
+        plNotetrackAnim notetrackAnim(animComp, nullptr);
         plAnimInfo info = notetrackAnim.GetAnimInfo(animName);
         ST::string marker;
         while (!(marker = info.GetNextMarkerName()).empty())
@@ -520,7 +520,7 @@ void plResponderCmdAnim::CreateWait(plMaxNode* node, plErrorMsg* pErrMsg, IParam
         plAnimComponent *animComp = (plAnimComponent*)GetComponent(pb);
         ST::string animName = animComp->GetAnimName();
 
-        plNotetrackAnim notetrackAnim(animComp, nil);
+        plNotetrackAnim notetrackAnim(animComp, nullptr);
         plAnimInfo info = notetrackAnim.GetAnimInfo(animName);
 
         eventMsg->fEvent = kTime;
@@ -539,16 +539,16 @@ class plResponderAnimProc : public plAnimCompProc
 {
 public:
     plResponderAnimProc();
-    virtual BOOL DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 
 protected:
-    virtual void IPickComponent(IParamBlock2* pb);
-    virtual void IPickNode(IParamBlock2* pb, plComponentBase* comp);
+    void IPickComponent(IParamBlock2* pb) override;
+    void IPickNode(IParamBlock2* pb, plComponentBase* comp) override;
 
-    virtual void ILoadUser(HWND hWnd, IParamBlock2* pb);
-    virtual bool IUserCommand(HWND hWnd, IParamBlock2* pb, int cmd, int resID);
+    void ILoadUser(HWND hWnd, IParamBlock2* pb) override;
+    bool IUserCommand(HWND hWnd, IParamBlock2* pb, int cmd, int resID) override;
 
-    virtual void IUpdateNodeButton(HWND hWnd, IParamBlock2* pb);
+    void IUpdateNodeButton(HWND hWnd, IParamBlock2* pb) override;
 };
 static plResponderAnimProc gResponderAnimProc;
 
@@ -560,7 +560,7 @@ plResponderAnimProc::plResponderAnimProc()
     fNodeParamID    = kRespAnimObject;
 }
 
-BOOL plResponderAnimProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plResponderAnimProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -580,7 +580,7 @@ BOOL plResponderAnimProc::DlgProc(TimeValue t, IParamMap2 *pm, HWND hWnd, UINT m
                 RECT itemRect, clientRect;
                 GetWindowRect(GetDlgItem(hWnd, IDC_LOOP_TEXT), &itemRect);
                 GetWindowRect(hWnd, &clientRect);
-                SetWindowPos(hWnd, NULL, 0, 0, clientRect.right-clientRect.left,
+                SetWindowPos(hWnd, nullptr, 0, 0, clientRect.right-clientRect.left,
                     itemRect.top-clientRect.top, SWP_NOMOVE | SWP_NOZORDER);
             }
 
@@ -651,7 +651,7 @@ void plResponderAnimProc::IPickComponent(IParamBlock2* pb)
 
 ParamBlockDesc2 gResponderAnimBlock
 (
-    kResponderAnimBlk, _T("animCmd"), 0, NULL, P_AUTO_UI,
+    kResponderAnimBlk, _T("animCmd"), 0, nullptr, P_AUTO_UI,
 
     IDD_COMP_RESPOND_ANIM, IDS_COMP_CMD_PARAMS, 0, 0, &gResponderAnimProc,
 
@@ -683,7 +683,7 @@ IParamBlock2 *plResponderCmdAnim::CreatePB(int idx)
     int type = IndexToOldType(idx);
 
     // Create the paramblock and save it's type
-    IParamBlock2 *pb = CreateParameterBlock2(&gResponderAnimBlock, nil);
+    IParamBlock2 *pb = CreateParameterBlock2(&gResponderAnimBlock, nullptr);
     pb->SetValue(kRespAnimType, 0, type);
 
     return pb;
@@ -711,7 +711,7 @@ protected:
     {
         if (userType && !strcmp(userType, kResponderNodeName))
         {
-            ISetNodeValue(nil);
+            ISetNodeValue(nullptr);
             fPB->SetValue(fTypeID, 0, kNodeResponder);
         }
         else
@@ -758,7 +758,7 @@ void plResponderAnimProc::ILoadUser(HWND hWnd, IParamBlock2 *pb)
         ST::string animName = ((plAnimComponent*)comp)->GetAnimName();
 
         // Get the shared animations for all the nodes this component is applied to
-        plNotetrackAnim anim(comp, nil);
+        plNotetrackAnim anim(comp, nullptr);
         plAnimInfo info = anim.GetAnimInfo(animName);
         // Get all the loops in this animation
         ST::string loopName;

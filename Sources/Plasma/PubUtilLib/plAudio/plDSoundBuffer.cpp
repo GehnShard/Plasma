@@ -69,25 +69,11 @@ plProfile_CreateCounterNoReset( "Allocated", "Sound", NumAllocated );
 
 //// Constructor/Destructor //////////////////////////////////////////////////
 
-plDSoundBuffer::plDSoundBuffer( uint32_t size, plWAVHeader &bufferDesc, bool enable3D, bool isLooping, bool tryStatic, bool streaming )
-{ 
-    fLooping = isLooping;
-    fValid = false;
-    fBufferDesc = nil;
-
-    fLockPtr = nil;
-    fLockLength = 0;
-
-    fStreaming = streaming;
-
-    buffer = 0;
-    source = 0; 
-    for(int i = 0; i < STREAMING_BUFFERS; ++i)
-    {
-        streamingBuffers[i] = 0;
-    }
-
-    IAllocate( size, bufferDesc, enable3D, tryStatic );
+plDSoundBuffer::plDSoundBuffer(uint32_t size, plWAVHeader &bufferDesc, bool enable3D, bool isLooping, bool tryStatic, bool streaming)
+    : fLooping(isLooping), fValid(), fBufferDesc(), fLockPtr(), fLockLength(), fStreaming(streaming),
+      buffer(), source(), streamingBuffers(), fType(kStatic), fStreamingBufferSize(), fNumQueuedBuffers(), fPrevVolume()
+{
+    IAllocate(size, bufferDesc, enable3D, tryStatic);
     fNumBuffers++;
 }
 
@@ -95,7 +81,6 @@ plDSoundBuffer::~plDSoundBuffer()
 {
     IRelease();
     fNumBuffers--;
-    
 }
 
 //// IAllocate ///////////////////////////////////////////////////////////////
@@ -139,7 +124,7 @@ void    plDSoundBuffer::IRelease()
     memset(streamingBuffers, 0, STREAMING_BUFFERS * sizeof(unsigned));
 
     delete fBufferDesc;
-    fBufferDesc = nil;
+    fBufferDesc = nullptr;
     fBufferSize = 0;
 
     fValid = false;
@@ -209,7 +194,7 @@ bool plDSoundBuffer::FillBuffer(void *data, unsigned bytes, plWAVHeader *header)
     // Just make it quiet for now
     SetScalarVolume(0);
     
-    alSourcef(source, AL_ROLLOFF_FACTOR, 0.3048);
+    alSourcef(source, AL_ROLLOFF_FACTOR, 0.3048f);
     alGetError();
     if( error != AL_NO_ERROR )
     {
@@ -282,7 +267,7 @@ bool plDSoundBuffer::SetupStreamingSource(plAudioFileReader *stream)
     SetScalarVolume(0);
     
     
-    alSourcef(source, AL_ROLLOFF_FACTOR, 0.3048);
+    alSourcef(source, AL_ROLLOFF_FACTOR, 0.3048f);
     error = alGetError();
     if( error != AL_NO_ERROR )
     {
@@ -347,7 +332,7 @@ bool plDSoundBuffer::SetupStreamingSource(void *data, unsigned bytes)
     alSourcei(source, AL_BUFFER, 0);
     SetScalarVolume(0);
     
-    alSourcef(source, AL_ROLLOFF_FACTOR, 0.3048);
+    alSourcef(source, AL_ROLLOFF_FACTOR, 0.3048f);
     error = alGetError();
     if( error != AL_NO_ERROR )
     {
@@ -505,7 +490,7 @@ bool plDSoundBuffer::SetupVoiceSource()
 
     SetScalarVolume(0);
     
-    alSourcef(source, AL_ROLLOFF_FACTOR, 0.3048);
+    alSourcef(source, AL_ROLLOFF_FACTOR, 0.3048f);
     error = alGetError();
     if( error != AL_NO_ERROR )
     {
@@ -719,7 +704,7 @@ uint32_t  plDSoundBuffer::bytePosToMSecs( uint32_t bytePos ) const
 
 uint32_t  plDSoundBuffer::GetBufferBytePos( float timeInSecs ) const
 {
-    hsAssert( fBufferDesc != nil, "Nil buffer description when calling GetBufferBytePos()" );
+    hsAssert(fBufferDesc != nullptr, "Nil buffer description when calling GetBufferBytePos()");
 
     uint32_t  uint8_t = (uint32_t)( timeInSecs * (float)fBufferDesc->fNumSamplesPerSec );
     uint8_t *= fBufferDesc->fBlockAlign;
@@ -745,7 +730,7 @@ void    plDSoundBuffer::SetEAXSettings(  plEAXSourceSettings *settings, bool for
 
 uint8_t   plDSoundBuffer::GetBlockAlign() const
 {
-    return ( fBufferDesc != nil ) ? fBufferDesc->fBlockAlign : 0;
+    return (fBufferDesc != nullptr) ? fBufferDesc->fBlockAlign : 0;
 }
 
 //// SetScalarVolume /////////////////////////////////////////////////////////
@@ -766,7 +751,6 @@ unsigned plDSoundBuffer::GetByteOffset()
 {
     ALint bytes;
     alGetSourcei(source, AL_BYTE_OFFSET, &bytes);
-    ALenum error = alGetError();
     return bytes;
 }
 
@@ -774,18 +758,15 @@ float plDSoundBuffer::GetTimeOffsetSec()
 {
     float time;
     alGetSourcef(source, AL_SEC_OFFSET, &time);
-    ALenum error = alGetError();
     return time;
 }
 
 void plDSoundBuffer::SetTimeOffsetSec(float seconds)
 {
     alSourcef(source, AL_SEC_OFFSET, seconds);
-    ALenum error = alGetError();
 }
 
 void plDSoundBuffer::SetTimeOffsetBytes(unsigned bytes)
 {
     alSourcei(source, AL_BYTE_OFFSET, bytes);
-    ALenum error = alGetError();
 }

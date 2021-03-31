@@ -45,7 +45,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 //////////////////////////////////////////////////////////////////////
 
-#pragma hdrstop
 
 #include "pyKeyMap.h"
 #include "plInputCore/plInputInterfaceMgr.h"
@@ -56,7 +55,7 @@ const char* pyKeyMap::ConvertVKeyToChar( uint32_t vk, uint32_t flags )
 {
     const char *key = plKeyMap::ConvertVKeyToChar( vk );
     static char shortKey[ 2 ];
-    if( key == nil )
+    if (key == nullptr)
     {
         if( isalnum( vk ) )
         {
@@ -135,7 +134,7 @@ void pyKeyMap::BindKey( const char* keyStr1, const char* keyStr2, const char* ac
         return;
     }
 
-    if( plInputInterfaceMgr::GetInstance() != nil )
+    if (plInputInterfaceMgr::GetInstance() != nullptr)
     {
         plKeyCombo key1 = IBindKeyToVKey( keyStr1 );
         if (keyStr2)
@@ -152,7 +151,7 @@ void pyKeyMap::BindKey( const char* keyStr1, const char* keyStr2, const char* ac
 void pyKeyMap::BindKeyToConsoleCommand( const char* keyStr1, const char* command)
 {
     
-    if( command && plInputInterfaceMgr::GetInstance() != nil )
+    if (command && plInputInterfaceMgr::GetInstance() != nullptr)
     {
         plKeyCombo key1;
         if (keyStr1)
@@ -195,7 +194,7 @@ plKeyCombo pyKeyMap::IBindKeyToVKey( const char *keyStr )
 
 uint32_t pyKeyMap::GetBindingKey1(uint32_t code)
 {
-    if( plInputInterfaceMgr::GetInstance() != nil )
+    if (plInputInterfaceMgr::GetInstance() != nullptr)
     {
         const plKeyBinding* keymap = plInputInterfaceMgr::GetInstance()->FindBinding((ControlEventCode)code);
         if ( keymap )
@@ -209,7 +208,7 @@ uint32_t pyKeyMap::GetBindingKey1(uint32_t code)
 
 uint32_t pyKeyMap::GetBindingFlags1(uint32_t code)
 {
-    if( plInputInterfaceMgr::GetInstance() != nil )
+    if (plInputInterfaceMgr::GetInstance() != nullptr)
     {
         const plKeyBinding* keymap = plInputInterfaceMgr::GetInstance()->FindBinding((ControlEventCode)code);
         if ( keymap )
@@ -223,7 +222,7 @@ uint32_t pyKeyMap::GetBindingFlags1(uint32_t code)
 
 uint32_t pyKeyMap::GetBindingKey2(uint32_t code)
 {
-    if( plInputInterfaceMgr::GetInstance() != nil )
+    if (plInputInterfaceMgr::GetInstance() != nullptr)
     {
         const plKeyBinding* keymap = plInputInterfaceMgr::GetInstance()->FindBinding((ControlEventCode)code);
         if ( keymap )
@@ -237,7 +236,7 @@ uint32_t pyKeyMap::GetBindingKey2(uint32_t code)
 
 uint32_t pyKeyMap::GetBindingFlags2(uint32_t code)
 {
-    if( plInputInterfaceMgr::GetInstance() != nil )
+    if (plInputInterfaceMgr::GetInstance() != nullptr)
     {
         const plKeyBinding* keymap = plInputInterfaceMgr::GetInstance()->FindBinding((ControlEventCode)code);
         if ( keymap )
@@ -251,7 +250,7 @@ uint32_t pyKeyMap::GetBindingFlags2(uint32_t code)
 
 uint32_t pyKeyMap::GetBindingKeyConsole(const char* command)
 {
-    if( plInputInterfaceMgr::GetInstance() != nil )
+    if (plInputInterfaceMgr::GetInstance() != nullptr)
     {
         const plKeyBinding* keymap = plInputInterfaceMgr::GetInstance()->FindBindingByConsoleCmd(command);
         if ( keymap )
@@ -265,7 +264,7 @@ uint32_t pyKeyMap::GetBindingKeyConsole(const char* command)
 
 uint32_t pyKeyMap::GetBindingFlagsConsole(const char* command)
 {
-    if( plInputInterfaceMgr::GetInstance() != nil )
+    if (plInputInterfaceMgr::GetInstance() != nullptr)
     {
         const plKeyBinding* keymap = plInputInterfaceMgr::GetInstance()->FindBindingByConsoleCmd(command);
         if ( keymap )
@@ -279,6 +278,6 @@ uint32_t pyKeyMap::GetBindingFlagsConsole(const char* command)
 
 void pyKeyMap::WriteKeyMap()
 {
-    if( plInputInterfaceMgr::GetInstance() != nil )
+    if (plInputInterfaceMgr::GetInstance() != nullptr)
         plInputInterfaceMgr::GetInstance()->WriteKeyMap();
 }

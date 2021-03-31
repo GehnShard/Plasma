@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "pyGUIControl.h"
 
@@ -85,9 +84,9 @@ pyGUIControl& pyGUIControl::Copy(const pyGUIControl& other)
 bool pyGUIControl::operator==(const pyGUIControl &gcobj) const
 {
     plKey theirs = ((pyGUIControl&)gcobj).getObjKey();
-    if ( fGCkey == nil && theirs == nil )
+    if (fGCkey == nullptr && theirs == nullptr)
         return true;
-    else if ( fGCkey != nil && theirs != nil )
+    else if (fGCkey != nullptr && theirs != nullptr)
         return (fGCkey->GetUoid()==theirs->GetUoid());
     else
         return false;
@@ -252,7 +251,7 @@ PyObject* pyGUIControl::GetObjectCenter()
         if ( pbmod )
             return pyPoint3::New(pbmod->GetObjectCenter());
     }
-    return pyPoint3::New(hsPoint3(0,0,0));
+    return pyPoint3::New();
 }
 
 

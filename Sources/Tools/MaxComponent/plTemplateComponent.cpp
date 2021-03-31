@@ -41,14 +41,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
-#include "hsTemplates.h"
 
 #include "plComponent.h"
 #include "plComponentReg.h"
 #include "plMiscComponents.h"
 #include "MaxMain/plMaxNode.h"
 #include "resource.h"
-#pragma hdrstop
 
 
 
@@ -63,7 +61,7 @@ static const char *GetPBString(IParamBlock2 *pb, ParamID id)
 {
     const char *str = pb->GetStr(id, 0);
     if (str && *str == '\0')
-        return nil;
+        return nullptr;
     return str;
 }
 
@@ -77,8 +75,8 @@ public:
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    virtual bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 CLASS_DESC(plTemplateComponent, gTemplateDesc, "Template", "CloneTemplate", "Clone", Class_ID(0x6742590b, 0x14fd2135))
@@ -115,7 +113,7 @@ const char* plTemplateComponent::IGetAgeName(plMaxNode *node)
         }
     }
 
-    return nil;
+    return nullptr;
 }
 
 #include "MaxMain/plMaxNodeData.h"
@@ -177,8 +175,8 @@ public:
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    virtual bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg);
-    virtual bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 };
 
 CLASS_DESC(plSpawnComponent, gSpawnDesc, "Instance", "CloneInst", "Clone", Class_ID(0x5702450d, 0x2c636131))
@@ -187,7 +185,7 @@ ParamBlockDesc2 gSpawnBlk
 (
     plComponent::kBlkComp, _T("Spawn"), 0, &gSpawnDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_TEMPLATE, IDS_COMP_CLONE_INST, 0, 0, NULL,
+    IDD_COMP_TEMPLATE, IDS_COMP_CLONE_INST, 0, 0, nullptr,
 
     kTemplateName,  _T("name"),     TYPE_STRING,    0, 0,
         p_ui,       TYPE_EDITBOX, IDC_NAME,

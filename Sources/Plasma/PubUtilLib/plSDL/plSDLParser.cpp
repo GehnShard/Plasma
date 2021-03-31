@@ -39,11 +39,15 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "HeadSpin.h"
+
 #include "plSDL.h"
-#include "plFile/plStreamSource.h"
-#include "pnNetCommon/pnNetCommon.h"
+
+#include "HeadSpin.h"
+
 #include "pnNetCommon/plNetApp.h"
+#include "pnNetCommon/pnNetCommon.h"
+
+#include "plFile/plStreamSource.h"
 
 static const int kTokenLen=256;
 
@@ -117,7 +121,7 @@ bool plSDLParser::IParseStateDesc(const plFileName& fileName, hsStream* stream, 
 
     if ( ok )
     {
-        ok = ( plSDLMgr::GetInstance()->FindDescriptor(curDesc->GetName(), curDesc->GetVersion())==nil );
+        ok = (plSDLMgr::GetInstance()->FindDescriptor(curDesc->GetName(), curDesc->GetVersion()) == nullptr);
         if ( !ok )
         {
             ST::string err = ST::format("Found duplicate SDL descriptor for {} version {}.\nFailed to parse file: {}",
@@ -134,7 +138,7 @@ bool plSDLParser::IParseStateDesc(const plFileName& fileName, hsStream* stream, 
     else
     {
         delete curDesc;
-        curDesc = nil;
+        curDesc = nullptr;
     }
 
     return false;
@@ -186,14 +190,14 @@ bool plSDLParser::IParseVarDesc(const plFileName& fileName, hsStream* stream, ch
     {
         hsAssert(strstr(token, "[") != nullptr && strstr(token, "]") != nullptr,
                  ST::format("invalid var syntax, missing [x], fileName={}", fileName).c_str());
-        char* ptr = strtok( token, seps );  // skip [
+        (void)strtok( token, seps );  // skip [
         
         hsAssert(curVar, ST::format("Missing current var.  Syntax problem with .sdl file, fileName={}", fileName).c_str());
         curVar->SetName(token);
         //
         // COUNT
         //
-        char* cntTok=strtok(nil, seps);     // kill ]
+        char* cntTok=strtok(nullptr, seps);     // kill ]
         int cnt = cntTok ? atoi(cntTok) : 0;
         curVar->SetCount(cnt);
         if (cnt==0)
@@ -316,8 +320,8 @@ bool plSDLParser::ILoadSDLFile(const plFileName& fileName) const
 
     stream->Rewind();
 
-    plVarDescriptor* curVar=nil;
-    plStateDescriptor* curDesc=nil;
+    plVarDescriptor* curVar = nullptr;
+    plStateDescriptor* curDesc = nullptr;
     char token[kTokenLen];
     bool parsingStateDesc=false;
     bool skip=false;
@@ -333,14 +337,14 @@ bool plSDLParser::ILoadSDLFile(const plFileName& fileName) const
         if (!strcmp(token, "VAR"))
         {
             parsingStateDesc=false;
-            curVar=nil;     // start fresh
+            curVar = nullptr;     // start fresh
             continue;
         }
         
         if (!strcmp(token, "STATEDESC"))
         {
             parsingStateDesc=true;
-            curDesc=nil;    // start fresh
+            curDesc = nullptr;    // start fresh
             continue;
         }
 

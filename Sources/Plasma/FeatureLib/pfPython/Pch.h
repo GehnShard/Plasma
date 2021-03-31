@@ -52,6 +52,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <algorithm>
 #include <array>
 #include <exception>
+#include <functional>
 #include <locale>
 #include <memory>
 #include <string>
@@ -63,6 +64,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <string_theory/string>
 #include <string_theory/string_stream>
+#include <string_theory/format>
 
 // Python Library Includes
 #include <Python.h>
@@ -76,7 +78,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsQuat.h"
 #include "hsResMgr.h"
 #include "hsStream.h"
-#include "hsTemplates.h"
 #include "hsTimer.h"
 #include "plAudible.h"
 #include "plgDispatch.h"

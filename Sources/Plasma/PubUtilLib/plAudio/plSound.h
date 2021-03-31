@@ -54,14 +54,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plSound_h
 #define plSound_h
 
-#include "hsTemplates.h"
 #include "hsGeometry3.h"
 #include "plEAXEffects.h"
-#include "pnNetCommon/plSynchedObject.h"
-#include "plAnimation/plAGChannel.h"
+
 #include "plAnimation/plAGApplicator.h"
 #include "plAudioCore/plSoundBuffer.h"
+#include "pnNetCommon/plSynchedObject.h"
 
+class plAGChannel;
 class hsResMgr;
 class hsStream;
 class plSoundProxy;
@@ -71,7 +71,6 @@ class plSoundMsg;
 class plSoftVolume;
 class plGraphPlate;
 struct hsMatrix44;
-class plSoundBuffer;
 class plSceneObject;
 class plSoundVolumeApplicator;
 
@@ -199,7 +198,7 @@ public:
     virtual void        SetMuted( bool muted );
     virtual bool        IsMuted() { return fMuted; }
     void                Disable() { fDistAttenuation = 0; }
-    virtual plSoundMsg* GetStatus(plSoundMsg* pMsg){return NULL;}
+    virtual plSoundMsg* GetStatus(plSoundMsg* pMsg) { return nullptr; }
     virtual void        SetConeOrientation(float x, float y, float z);
     virtual void        SetOuterVolume( const int v ); // volume for the outer cone (if applicable)
     virtual void        SetConeAngles( int inner, int outer );
@@ -230,16 +229,16 @@ public:
 
     virtual uint8_t       GetChannelSelect() const { return 0; }    // Only defined on Win32Sound right now, should be here tho
 
-    virtual void        Read(hsStream* s, hsResMgr* mgr);
-    virtual void        Write(hsStream* s, hsResMgr* mgr);
+    void        Read(hsStream* s, hsResMgr* mgr) override;
+    void        Write(hsStream* s, hsResMgr* mgr) override;
     
     virtual void        SetFadeInEffect( plFadeParams::Type type, float length );
     virtual void        SetFadeOutEffect( plFadeParams::Type type, float length );
     virtual float    CalcSoftVolume( bool enable, float distToListenerSquared );
     virtual void        UpdateSoftVolume( bool enable, bool firstTime = false );
 
-    virtual bool        MsgReceive( plMessage* pMsg );
-    virtual bool        DirtySynchState( const ST::string &sdlName = ST::null, uint32_t sendFlags = 0 ); // call when state has changed
+    bool        MsgReceive(plMessage* pMsg) override;
+    bool        DirtySynchState(const ST::string &sdlName = {}, uint32_t sendFlags = 0) override; // call when state has changed
 
     // Tests whether this sound is within range of the given position, not counting soft regions
     bool                IsWithinRange( const hsPoint3 &listenerPos, float *distSquared );
@@ -253,7 +252,7 @@ public:
     uint8_t               GetPriority() const { return fPriority; }
 
     // Visualization
-    virtual plDrawableSpans*    CreateProxy(const hsMatrix44& l2w, hsGMaterial* mat, hsTArray<uint32_t>& idx, plDrawableSpans* addTo);
+    virtual plDrawableSpans*    CreateProxy(const hsMatrix44& l2w, hsGMaterial* mat, std::vector<uint32_t>& idx, plDrawableSpans* addTo);
 
     // Forced loading/unloading (for when the audio system's LOD just doesn't cut it)
     virtual void        ForceLoad(  );
@@ -394,19 +393,19 @@ protected:
 class plSoundVolumeApplicator : public plAGApplicator
 {
 public:
-    plSoundVolumeApplicator() { }
-    plSoundVolumeApplicator( uint32_t index ) { fIndex = index; }
+    plSoundVolumeApplicator() : fIndex() { }
+    plSoundVolumeApplicator(uint32_t index) : fIndex(index) { }
 
     CLASSNAME_REGISTER( plSoundVolumeApplicator );
     GETINTERFACE_ANY( plSoundVolumeApplicator, plAGApplicator );
 
-    virtual plAGApplicator *CloneWithChannel( plAGChannel *channel );
-    virtual void            Write( hsStream *stream, hsResMgr *mgr );
-    virtual void            Read( hsStream *s, hsResMgr *mgr );
+    plAGApplicator *CloneWithChannel(plAGChannel *channel) override;
+    void            Write(hsStream *stream, hsResMgr *mgr) override;
+    void            Read(hsStream *s, hsResMgr *mgr) override;
 
 protected:
     uint32_t      fIndex;
-    virtual void IApply( const plAGModifier *mod, double time );
+    void IApply(const plAGModifier *mod, double time) override;
 };
 
 #endif //plWin32Sound_h

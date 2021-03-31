@@ -49,10 +49,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plPhysicalComponents.h"
 #include "plResponderComponent.h"
 #include "MaxMain/plMaxNode.h"
-#include "resource.h"
+#include "MaxMain/MaxAPI.h"
 
-#include <iparamm2.h>
-#pragma hdrstop
+#include "resource.h"
 
 #include "plVolumeGadgetComponent.h"
 
@@ -144,7 +143,7 @@ protected:
     }
 
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         if (msg == WM_COMMAND && HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == IDC_TRIGGER_ON_FACING_CHECK)
             IEnable(hWnd, Button_GetCheck((HWND)lParam) == BST_CHECKED);
@@ -153,7 +152,7 @@ public:
         return FALSE;
     }
 
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static VolumeDlgProc gVolumeDlgProc;
 
@@ -270,7 +269,7 @@ plKey plVolumeGadgetComponent::GetLogicOutKey(plMaxNode* node)
         return it->second;
 
 
-    return nil;
+    return nullptr;
 }
 
 void plVolumeGadgetComponent::CollectNonDrawables(INodeTab& nonDrawables) 
@@ -309,7 +308,7 @@ bool plVolumeGadgetComponent::SetupProperties(plMaxNode *node, plErrorMsg *pErrM
             {
                 pErrMsg->Set(true, "Volume Sensor Warning", "The Volume Sensor %s has a Proxy Surface %s that was Ignored.\nThe Sensors geometry will be used instead.", node->GetName(), boundNode->GetName()).Show();
                 pErrMsg->Set(false);
-                physProps->SetProxyNode(nil, node, pErrMsg);
+                physProps->SetProxyNode(nullptr, node, pErrMsg);
             }
     }
 
@@ -377,14 +376,14 @@ void plVolumeGadgetComponent::ICreateConditions(plMaxNode* node, plErrorMsg* err
 
     plLogicModifier *logic = plLogicModifier::ConvertNoRef(logicKey->GetObjectPtr());
 
-    hsTArray<plKey> receivers;
+    std::vector<plKey> receivers;
     IGetReceivers(node, receivers);
-    for (int i = 0; i < receivers.Count(); i++)
-        logic->AddNotifyReceiver(receivers[i]);
+    for (const plKey& receiver : receivers)
+        logic->AddNotifyReceiver(receiver);
 
 
     // Create the detector
-    plDetectorModifier* detector = nil;
+    plDetectorModifier* detector = nullptr;
     if (enter && fCompPB->GetInt(kVolumeTriggerOnFacing))
     {
         plObjectInVolumeAndFacingDetector* newDetector = new plObjectInVolumeAndFacingDetector;
@@ -410,7 +409,7 @@ void plVolumeGadgetComponent::ICreateConditions(plMaxNode* node, plErrorMsg* err
     ST::string tmpName = ST::format("{}_{}", IGetUniqueName(node), prefix);
     plKey detectorKey = hsgResMgr::ResMgr()->NewKey(tmpName, detector, loc);
     hsgResMgr::ResMgr()->AddViaNotify(detectorKey, new plObjRefMsg(obj->GetKey(), plRefMsg::kOnCreate, -1, plObjRefMsg::kModifier), plRefFlags::kActiveRef);
-    plVolumeSensorConditionalObject* boxCond=nil;
+    plVolumeSensorConditionalObject* boxCond = nullptr;
     if((fCompPB->GetInt(kSkipServerArbitration)==0))
     {//we want server arbitration
         boxCond = new plVolumeSensorConditionalObject;

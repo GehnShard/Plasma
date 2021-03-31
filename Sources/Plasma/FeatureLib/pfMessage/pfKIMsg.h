@@ -77,8 +77,8 @@ class pfKIMsg : public plMessage
         void IInit()
         {
             fCommand = kNoCommand;
-            fString = ST::null;
-            fUser = ST::null;
+            fString = ST::string();
+            fUser = ST::string();
             fPlayerID = 0;
             fFlags = 0;
             fDelay = 0.0;
@@ -177,34 +177,34 @@ class pfKIMsg : public plMessage
 
 #ifndef KI_CONSTANTS_ONLY
 
-        pfKIMsg() : plMessage( nil, nil, nil ) { SetBCastFlag( kBCastByExactType ); IInit(); }
-        pfKIMsg( uint8_t command ) : plMessage( nil, nil, nil ) { SetBCastFlag( kBCastByExactType ); IInit(); fCommand = command; }
-        pfKIMsg( plKey &receiver, uint8_t command ) : plMessage( nil, nil, nil ) { AddReceiver( receiver ); IInit(); fCommand = command; }
+        pfKIMsg() : plMessage(nullptr, nullptr, nullptr) { SetBCastFlag(kBCastByExactType); IInit(); }
+        pfKIMsg(uint8_t command) : plMessage(nullptr, nullptr, nullptr) { SetBCastFlag(kBCastByExactType); IInit(); fCommand = command; }
+        pfKIMsg(plKey &receiver, uint8_t command) : plMessage(nullptr, nullptr, nullptr) { AddReceiver(receiver); IInit(); fCommand = command; }
 
         CLASSNAME_REGISTER( pfKIMsg );
         GETINTERFACE_ANY( pfKIMsg, plMessage );
 
-        virtual void Read(hsStream* s, hsResMgr* mgr) 
+        void Read(hsStream* s, hsResMgr* mgr) override
         { 
             plMessage::IMsgRead( s, mgr ); 
-            s->ReadLE( &fCommand );
+            s->ReadByte(&fCommand);
             fUser = s->ReadSafeString();
             fPlayerID = s->ReadLE32();
             fString = s->ReadSafeWString();
             fFlags = s->ReadLE32();
-            fDelay = s->ReadLEScalar();
+            fDelay = s->ReadLEFloat();
             fValue = s->ReadLE32();
         }
         
-        virtual void Write(hsStream* s, hsResMgr* mgr) 
+        void Write(hsStream* s, hsResMgr* mgr) override
         { 
             plMessage::IMsgWrite( s, mgr ); 
-            s->WriteLE( fCommand );
+            s->WriteByte(fCommand);
             s->WriteSafeString( fUser );
             s->WriteLE32( fPlayerID );
             s->WriteSafeWString( fString );
             s->WriteLE32( fFlags );
-            s->WriteLEScalar(fDelay);
+            s->WriteLEFloat(fDelay);
             s->WriteLE32( fValue );
         }
 

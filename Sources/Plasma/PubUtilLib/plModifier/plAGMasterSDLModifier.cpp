@@ -40,15 +40,19 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "plAGMasterSDLModifier.h"
-#include "plSDL/plSDL.h"
-#include "plInterp/plAnimTimeConvert.h"
+
+#include "plgDispatch.h"
+#include "hsTimer.h"
+
+#include "pnKeyedObject/plMsgForwarder.h"
 #include "pnSceneObject/plSceneObject.h"
+
 #include "plAnimation/plAGMasterMod.h"
 #include "plAnimation/plAGAnimInstance.h"
-#include "plgDispatch.h"
-#include "pnMessage/plTimeMsg.h"
-#include "hsTimer.h"
+#include "plInterp/plAnimTimeConvert.h"
 #include "plMessage/plAnimCmdMsg.h"
+#include "plSDL/plSDL.h"
+
 
 // static vars
 char plAGMasterSDLModifier::AGMasterVarNames::kStrAtcs[]="atcs";
@@ -122,16 +126,16 @@ void plAGMasterSDLModifier::IPutCurrentStateIn(plStateDataRecord* dstState)
 //
 plAGMasterMod* plAGMasterSDLModifier::IGetObjectsAGMasterMod(plSceneObject* obj)
 {
-    int count = obj->GetNumModifiers();
+    size_t count = obj->GetNumModifiers();
 
-    for (int i = 0; i < count; i++)
+    for (size_t i = 0; i < count; i++)
     {
         plAGMasterMod * avMod = const_cast<plAGMasterMod*>(plAGMasterMod::ConvertNoRef(obj->GetModifier(i)));
         if(avMod)
             return avMod;
     }
 
-    return nil;
+    return nullptr;
 }
 
 //

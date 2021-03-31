@@ -43,27 +43,28 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plVirtualCam1_inc
 #define plVirtualCam1_inc
 
-#include "pnKeyedObject/hsKeyedObject.h"
-#include "hsMatrix44.h"
+#include "HeadSpin.h"
 #include "hsBitVector.h"
+#include "hsGeometry3.h"
+#include "hsMatrix44.h"
+
+#include "pnKeyedObject/hsKeyedObject.h"
+
 #include <vector>
 
-class plPipeline;
 class plCameraModifier1;
 class plCameraBrain1;
-class plSceneObject;
-class plKey;
-class hsGMaterial;
-class plDrawableSpans;
 class plCameraProxy;
-class plSceneNode;
-class plDebugInputInterface;
-class plPlate;
-
-#include "hsTemplates.h"
-
 struct CamTrans;
 struct hsColorRGBA;
+class plDebugInputInterface;
+class plDrawableSpans;
+class hsGMaterial;
+class plKey;
+class plPipeline;
+class plPlate;
+class plSceneNode;
+class plSceneObject;
 
 #define POS_TRANS_OFF       0
 #define POS_TRANS_FIXED     1
@@ -123,7 +124,7 @@ public:
     void SetPipeline(plPipeline* p); 
     void Init();
 
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
     static void SetFOV(float x, float y);
     static void SetFOV(plCameraModifier1* pCam);
     static void SetDepth(float h, float y);
@@ -145,9 +146,9 @@ public:
     bool    HasMovementFlag(int f) { return fMoveFlags.IsBitSet(f); }
     void    SetMovementFlag(int f, bool on = true) { fMoveFlags.SetBit(f, on);} 
         
-    hsPoint3 GetCameraPos() { return fOutputPos; }
-    hsPoint3 GetCameraPOA() { return fOutputPOA; }
-    hsVector3 GetCameraUp() { return fOutputUp; }
+    hsPoint3 GetCameraPos() const { return fOutputPos; }
+    hsPoint3 GetCameraPOA() const { return fOutputPOA; }
+    hsVector3 GetCameraUp() const { return fOutputUp; }
     void    SetCutNextTrans(); // used when player warps into a new camera region
 
     const hsMatrix44 GetCurrentMatrix() { return fMatrix; }
@@ -195,7 +196,6 @@ private:
     void FinishTransition();
     void SetRender(bool render);
     void IHandleCameraStatusLog(plCameraModifier1* pMod, int action);
-    void ICreatePlate();
     void FreezeOutput(int frames) { fFreezeCounter = frames; } // I hate this and I hate myself for doing it
     void UnFadeAvatarIn(int frames) { fFadeCounter = frames; } // ditto
     void FirstPersonOverride();
@@ -212,7 +212,6 @@ private:
     hsVector3           fOutputUp;
     int                 fTransPos;
     plDebugInputInterface*  fCameraDriveInterface;
-    plPlate*            fEffectPlate;
     FILE*               foutLog;
     plCameraVec         fCameraStack;
     int                 fFreezeCounter;

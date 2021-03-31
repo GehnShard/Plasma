@@ -64,7 +64,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 #include "hsStream.h"
-#include "hsTemplates.h"
+#include <vector>
 
 //// Base Section Class //////////////////////////////////////////////////////
 //  Define a derived version of this for each section of your init file.
@@ -103,7 +103,7 @@ class plInitSectionTokenReader : public plInitSectionReader
         plInitSectionTokenReader( const char *separators = ",=\t" );
 
         // Overridden for you. Override IParseToken()
-        virtual bool        ParseLine( const char *line, uint32_t userData );
+        bool        ParseLine(const char *line, uint32_t userData) override;
 };
 
 //// Main Reader Class ///////////////////////////////////////////////////////
@@ -120,7 +120,7 @@ class plInitFileReader
         uint32_t              fLineSize;
 
         plInitSectionReader             *fCurrSection;
-        hsTArray<plInitSectionReader *> fSections;
+        std::vector<plInitSectionReader *> fSections;
         plInitSectionReader* fUnhandledSection;
         
         void    IInitReaders( plInitSectionReader **readerArray );
@@ -144,7 +144,7 @@ class plInitFileReader
         bool    Parse( uint32_t userData = 0 );
         void    Close();
 
-        bool    IsOpen() const { return fStream != nil; }
+        bool    IsOpen() const { return fStream != nullptr; }
 };
 
 #endif //_plInitFileReader_h

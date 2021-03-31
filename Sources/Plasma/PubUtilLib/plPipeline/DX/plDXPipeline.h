@@ -42,6 +42,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _plDX9Pipeline_h
 #define _plDX9Pipeline_h
 
+#include <vector>
+
 #include "plPipeline/pl3DPipeline.h"
 #include "plDXSettings.h"
 #include "plDXDevice.h"
@@ -51,7 +53,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plPipeline/plFogEnvironment.h"
 #include "plPipeline/hsG3DDeviceSelector.h"
 #include "hsGeometry3.h"
-#include "hsTemplates.h"
 #include "hsColorRGBA.h"
 #include "hsGDeviceRef.h"
 #include "hsPoint2.h"
@@ -87,7 +88,8 @@ class plCullTree;
 class plShadowSlave;
 class plShadowCaster;
 
-struct D3DXMATRIX;
+struct _D3DMATRIX;
+typedef _D3DMATRIX D3DMATRIX;
 
 #ifdef HS_DEBUGGING
 #define HS_CHECK_RELEASE
@@ -109,7 +111,7 @@ extern void D3DSURF_MEMDEL(IDirect3DCubeTexture9* cTex);
 
 extern void plReleaseObject(IUnknown* x);
 
-#define  ReleaseObject(x)   if(x){ plReleaseObject(x); x=NULL; }
+#define  ReleaseObject(x)   if (x) { plReleaseObject(x); x = nullptr; }
 
 typedef LPDIRECT3D9 (WINAPI * Direct3DCreateProc)( UINT sdkVersion );
 
@@ -153,7 +155,7 @@ class plDXPlateManager : public plPlateManager
         void ICreateGeometry(plDXPipeline* pipe);
         void IReleaseGeometry();
 
-        virtual void    IDrawToDevice( plPipeline *pipe );
+        void    IDrawToDevice(plPipeline *pipe) override;
 };
 
 //// Class Definition /////////////////////////////////////////////////////////
@@ -264,11 +266,11 @@ protected:
     plDXLightSettings   fLights;
 
     // Shadows
-    hsTArray<plRenderTarget*>       fRenderTargetPool512;
-    hsTArray<plRenderTarget*>       fRenderTargetPool256;
-    hsTArray<plRenderTarget*>       fRenderTargetPool128;
-    hsTArray<plRenderTarget*>       fRenderTargetPool64;
-    hsTArray<plRenderTarget*>       fRenderTargetPool32;
+    std::vector<plRenderTarget*>    fRenderTargetPool512;
+    std::vector<plRenderTarget*>    fRenderTargetPool256;
+    std::vector<plRenderTarget*>    fRenderTargetPool128;
+    std::vector<plRenderTarget*>    fRenderTargetPool64;
+    std::vector<plRenderTarget*>    fRenderTargetPool32;
     enum { kMaxRenderTargetNext = 10 };
     uint32_t                          fRenderTargetNext[kMaxRenderTargetNext];
     plDXTextureRef*                 fULutTextureRef;
@@ -277,13 +279,13 @@ protected:
     IDirect3DVertexBuffer9*         fBlurVBuffers[kMaxRenderTargetNext];
     uint32_t                          fBlurVSHandle;
 
-    hsTArray<plClothingOutfit*>     fClothingOutfits;
-    hsTArray<plClothingOutfit*>     fPrevClothingOutfits;
+    std::vector<plClothingOutfit*>  fClothingOutfits;
+    std::vector<plClothingOutfit*>  fPrevClothingOutfits;
 
     // Debug stuff
     plDrawableSpans *fBoundsSpans;
     hsGMaterial     *fBoundsMat;
-    hsTArray<uint32_t>    fBSpansToDelete;
+    std::vector<uint32_t> fBSpansToDelete;
 
     plStatusLogDrawer   *fLogDrawer;
 
@@ -312,7 +314,7 @@ protected:
     bool        IFlipSurface();
     long        IGetBufferD3DFormat(uint8_t format) const;
     uint32_t    IGetBufferFormatSize(uint8_t format) const;
-    void        IGetVisibleSpans( plDrawableSpans* drawable, hsTArray<int16_t>& visList, plVisMgr* visMgr );
+    void        IGetVisibleSpans(plDrawableSpans* drawable, std::vector<int16_t>& visList, plVisMgr* visMgr);
     bool        ILoopOverLayers(const plRenderPrimFunc& render, hsGMaterial* material, const plSpan& span);
     void        IRenderBufferSpan( const plIcicle& span, 
                                     hsGDeviceRef *vb, hsGDeviceRef *ib, 
@@ -404,13 +406,13 @@ protected:
     // Visualization of active occluders
     void            IMakeOcclusionSnap();
 
-    bool            IAvatarSort(plDrawableSpans* d, const hsTArray<int16_t>& visList);
+    bool            IAvatarSort(plDrawableSpans* d, const std::vector<int16_t>& visList);
     void            IBlendVertsIntoBuffer( plSpan* span, 
                                             hsMatrix44* matrixPalette, int numMatrices,
                                             const uint8_t *src, uint8_t format, uint32_t srcStride, 
                                             uint8_t *dest, uint32_t destStride, uint32_t count, uint16_t localUVWChans )
                                                 { blend_vert_buffer.call(span, matrixPalette, numMatrices, src, format, srcStride, dest, destStride, count, localUVWChans); };
-    bool            ISoftwareVertexBlend( plDrawableSpans* drawable, const hsTArray<int16_t>& visList );
+    bool            ISoftwareVertexBlend(plDrawableSpans* drawable, const std::vector<int16_t>& visList);
 
 
     void            ILinkDevRef( plDXDeviceRef *ref, plDXDeviceRef **refList );
@@ -422,9 +424,9 @@ protected:
 
     // Error handling
     void    IAddErrorMessage( char *errStr );
-    void    ISetErrorMessage( char *errStr = nil );
+    void    ISetErrorMessage(char *errStr = nullptr);
     void    IGetD3DError();
-    void    IShowErrorMessage( char *errStr = nil );
+    void    IShowErrorMessage(char *errStr = nullptr);
     bool    ICreateFail( char *errStr );
 
     // Device initialization
@@ -461,7 +463,7 @@ protected:
     void        ISetAnisotropy(bool on);
 
     // Transforms
-    D3DXMATRIX&     IMatrix44ToD3DMatrix( D3DXMATRIX& dst, const hsMatrix44& src );
+    D3DMATRIX&     IMatrix44ToD3DMatrix( D3DMATRIX& dst, const hsMatrix44& src );
     void            ISetCullMode(bool flip=false);
     bool inline   IIsViewLeftHanded();
     bool            IGetClearViewPort(D3DRECT& r);
@@ -522,7 +524,7 @@ protected:
 
     // Avatar Texture Rendering
     double                      fAvRTShrinkValidSince;
-    hsTArray<plRenderTarget*>   fAvRTPool;
+    std::vector<plRenderTarget*>  fAvRTPool;
     uint16_t                      fAvRTWidth;
     uint32_t                      fAvNextFreeRT;
     void                    IFillAvRTPool();
@@ -532,7 +534,7 @@ protected:
     void                    IFreeAvRT(plRenderTarget* tex);
     void                    IPreprocessAvatarTextures();
     void                    IDrawClothingQuad(float x, float y, float w, float h, float uOff, float vOff, plMipmap *tex);
-    void                    IClearClothingOutfits(hsTArray<plClothingOutfit*>* outfits);
+    void                    IClearClothingOutfits(std::vector<plClothingOutfit*>* outfits);
 
     void IPrintDeviceInitError();
 
@@ -548,44 +550,44 @@ public:
     virtual IDirect3DDevice9*           GetD3DDevice() const { return fD3DDevice; }
 
     // Typical 3D device
-    virtual bool                        PreRender(plDrawable* drawable, hsTArray<int16_t>& visList, plVisMgr* visMgr=nil);
-    virtual bool                        PrepForRender(plDrawable* drawable, hsTArray<int16_t>& visList, plVisMgr* visMgr=nil);
+    bool                        PreRender(plDrawable* drawable, std::vector<int16_t>& visList, plVisMgr* visMgr=nullptr) override;
+    bool                        PrepForRender(plDrawable* drawable, std::vector<int16_t>& visList, plVisMgr* visMgr=nullptr) override;
 
-    virtual void                        PushRenderRequest(plRenderRequest* req);
-    virtual void                        PopRenderRequest(plRenderRequest* req);
+    void                        PushRenderRequest(plRenderRequest* req) override;
+    void                        PopRenderRequest(plRenderRequest* req) override;
 
-    void ResetDisplayDevice(int Width, int Height, int ColorDepth, bool Windowed, int NumAASamples, int MaxAnisotropicSamples, bool VSync = false );
+    void ResetDisplayDevice(int Width, int Height, int ColorDepth, bool Windowed, int NumAASamples, int MaxAnisotropicSamples, bool VSync = false) override;
 
-    virtual void                        ClearRenderTarget( plDrawable* d );
-    virtual void                        ClearRenderTarget( const hsColorRGBA* col = nil, const float* depth = nil );
-    virtual hsGDeviceRef*               MakeRenderTargetRef( plRenderTarget *owner );
-    virtual hsGDeviceRef*               SharedRenderTargetRef(plRenderTarget* sharer, plRenderTarget *owner);
+    void                        ClearRenderTarget(plDrawable* d) override;
+    void                        ClearRenderTarget(const hsColorRGBA* col = nullptr, const float* depth = nullptr) override;
+    hsGDeviceRef*               MakeRenderTargetRef(plRenderTarget *owner) override;
+    virtual hsGDeviceRef*       SharedRenderTargetRef(plRenderTarget* sharer, plRenderTarget *owner);
 
-    virtual bool                        BeginRender();
-    virtual bool                        EndRender();
-    virtual void                        RenderScreenElements();
+    bool                        BeginRender() override;
+    bool                        EndRender() override;
+    void                        RenderScreenElements() override;
 
-    virtual bool                        IsFullScreen() const { return fSettings.fFullscreen; }
-    virtual void                        Resize( uint32_t width, uint32_t height );
+    bool                        IsFullScreen() const override { return fSettings.fFullscreen; }
+    void                        Resize(uint32_t width, uint32_t height) override;
 
-    virtual bool                        CheckResources();
-    virtual void                        LoadResources();    // Tells us where it's a good time to load in unmanaged resources.
+    bool                        CheckResources() override;
+    void                        LoadResources() override;    // Tells us where it's a good time to load in unmanaged resources.
 
     // Create a debug text font object
-    virtual plTextFont      *MakeTextFont( char *face, uint16_t size );
+    plTextFont      *MakeTextFont(char *face, uint16_t size) override;
 
     // Create and/or Refresh geometry buffers
-    virtual void            CheckVertexBufferRef(plGBufferGroup* owner, uint32_t idx);
-    virtual void            CheckIndexBufferRef(plGBufferGroup* owner, uint32_t idx);
+    void            CheckVertexBufferRef(plGBufferGroup* owner, uint32_t idx) override;
+    void            CheckIndexBufferRef(plGBufferGroup* owner, uint32_t idx) override;
 
-    virtual bool            OpenAccess(plAccessSpan& dst, plDrawableSpans* d, const plVertexSpan* span, bool readOnly);
-    virtual bool            CloseAccess(plAccessSpan& acc);
+    bool            OpenAccess(plAccessSpan& dst, plDrawableSpans* d, const plVertexSpan* span, bool readOnly) override;
+    bool            CloseAccess(plAccessSpan& acc) override;
 
-    virtual void            CheckTextureRef(plLayerInterface* lay);     
-    static void             FreeManagedTexture(uint32_t sz) { hsAssert(fTexManaged >= sz, "Freeing mem we don't have"); fTexManaged -= sz; }
-    static void             AllocManagedTexture(uint32_t sz) { fTexManaged += sz; }
-    static void             FreeManagedVertex(uint32_t sz) { hsAssert(fVtxManaged >= sz, "Freeing mem we don't have"); fVtxManaged -= sz; }
-    static void             AllocManagedVertex(uint32_t sz) { fVtxManaged += sz; }
+    void            CheckTextureRef(plLayerInterface* lay) override;
+    static void     FreeManagedTexture(uint32_t sz) { hsAssert(fTexManaged >= sz, "Freeing mem we don't have"); fTexManaged -= sz; }
+    static void     AllocManagedTexture(uint32_t sz) { fTexManaged += sz; }
+    static void     FreeManagedVertex(uint32_t sz) { hsAssert(fVtxManaged >= sz, "Freeing mem we don't have"); fVtxManaged -= sz; }
+    static void     AllocManagedVertex(uint32_t sz) { fVtxManaged += sz; }
 
 #ifndef PLASMA_EXTERNAL_RELEASE
     static void ProfilePoolMem(D3DPOOL poolType, uint32_t size, bool add, const char *id);
@@ -595,33 +597,33 @@ public:
     static short    GetDXBitDepth( D3DFORMAT format );
 
     // Default fog settings
-    virtual void                        SetDefaultFogEnviron( plFogEnvironment *fog ) { fView.SetDefaultFog(*fog); fCurrFog.fEnvPtr = nil; }
+    void            SetDefaultFogEnviron(plFogEnvironment *fog) override { fView.SetDefaultFog(*fog); fCurrFog.fEnvPtr = nullptr; }
 
 
 
     // Overriden (Un)Register Light methods
-    virtual void                        RegisterLight(plLightInfo* light);
-    virtual void                        UnRegisterLight(plLightInfo* light);
+    void            RegisterLight(plLightInfo* light) override;
+    void            UnRegisterLight(plLightInfo* light) override;
 
-    virtual void                        SubmitClothingOutfit(plClothingOutfit* co);
+    void            SubmitClothingOutfit(plClothingOutfit* co) override;
 
-    virtual bool                        SetGamma(float eR, float eG, float eB);
-    virtual bool                        SetGamma(const uint16_t* const tabR, const uint16_t* const tabG, const uint16_t* const tabB);
+    bool            SetGamma(float eR, float eG, float eB) override;
+    bool            SetGamma(const uint16_t* const tabR, const uint16_t* const tabG, const uint16_t* const tabB) override;
 
-    virtual bool                        CaptureScreen( plMipmap *dest, bool flipVertical = false, uint16_t desiredWidth = 0, uint16_t desiredHeight = 0 );
-    virtual plMipmap*                   ExtractMipMap(plRenderTarget* targ);
+    bool            CaptureScreen(plMipmap *dest, bool flipVertical = false, uint16_t desiredWidth = 0, uint16_t desiredHeight = 0) override;
+    plMipmap*       ExtractMipMap(plRenderTarget* targ) override;
 
     /// Error handling
-    virtual const char                  *GetErrorString();
+    const char      *GetErrorString() override;
 
-    bool                                ManagedAlloced() const { return fManagedAlloced; }
+    bool            ManagedAlloced() const { return fManagedAlloced; }
 
-    virtual void                        GetSupportedColorDepths(hsTArray<int> &ColorDepths);
-    virtual void                        GetSupportedDisplayModes(std::vector<plDisplayMode> *res, int ColorDepth = 32 );
-    virtual int                         GetMaxAnisotropicSamples();
-    virtual int                         GetMaxAntiAlias(int Width, int Height, int ColorDepth);
+    virtual void    GetSupportedColorDepths(std::vector<int> &ColorDepths);
+    void            GetSupportedDisplayModes(std::vector<plDisplayMode> *res, int ColorDepth = 32) override;
+    int             GetMaxAnisotropicSamples() override;
+    int             GetMaxAntiAlias(int Width, int Height, int ColorDepth) override;
 
-    virtual void RenderSpans( plDrawableSpans *ice, const hsTArray<int16_t>& visList );
+    void RenderSpans(plDrawableSpans *ice, const std::vector<int16_t>& visList) override;
 
     //  CPU-optimized functions
 protected:

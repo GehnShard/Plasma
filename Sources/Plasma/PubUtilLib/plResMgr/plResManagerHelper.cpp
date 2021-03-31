@@ -51,30 +51,32 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //////////////////////////////////////////////////////////////////////////////
 
 #include "HeadSpin.h"
+#include "hsTimer.h"
+
 #include "plResManagerHelper.h"
 #include "plResManager.h"
 #include "plRegistryNode.h"
 #include "plRegistryHelpers.h"
-//#include "plRegistry.h"
 #include "plResMgrSettings.h"
 
 #include "pnKeyedObject/plFixedKey.h"
+
 #include "plMessage/plResMgrHelperMsg.h"
 #include "plStatusLog/plStatusLog.h"
-#include "hsTimer.h"
 
 #ifdef MCN_RESMGR_DEBUGGING
 
 static const int    kLogSize        = 40;
 static const float  kUpdateDelay    = 0.5f;
 
+#include "pnInputCore/plInputMap.h"
+#include "pnKeyedObject/plKeyImp.h"
+
 #include "plInputCore/plInputInterface.h"
 #include "plInputCore/plInputDevice.h"
 #include "plInputCore/plInputInterfaceMgr.h"
-#include "pnInputCore/plInputMap.h"
 #include "plMessage/plInputEventMsg.h"
 #include "plMessage/plInputIfaceMgrMsg.h"
-#include "pnKeyedObject/plKeyImp.h"
 
 #endif
 
@@ -90,7 +92,7 @@ static const float  kUpdateDelay    = 0.5f;
 
 //// Constructor/Destructor //////////////////////////////////////////////////
 
-plResManagerHelper  *plResManagerHelper::fInstance = nil;
+plResManagerHelper  *plResManagerHelper::fInstance = nullptr;
 
 plResManagerHelper::plResManagerHelper( plResManager *resMgr )
 {
@@ -99,7 +101,7 @@ plResManagerHelper::plResManagerHelper( plResManager *resMgr )
 
     fInShutdown = false;
 #ifdef MCN_RESMGR_DEBUGGING
-    fDebugScreen = nil;
+    fDebugScreen = nullptr;
     fCurrAge = -1;
     fCurrAgeExpanded = false;
     fRefreshing = false;
@@ -108,7 +110,7 @@ plResManagerHelper::plResManagerHelper( plResManager *resMgr )
 }
 plResManagerHelper::~plResManagerHelper()
 {
-    fInstance = nil;
+    fInstance = nullptr;
 }
 
 //// Shutdown ////////////////////////////////////////////////////////////////
@@ -131,7 +133,7 @@ void    plResManagerHelper::Init()
 bool    plResManagerHelper::MsgReceive( plMessage *msg )
 {
     plResMgrHelperMsg *refferMsg = plResMgrHelperMsg::ConvertNoRef( msg );
-    if( refferMsg != nil )
+    if (refferMsg != nullptr)
     {
         if( refferMsg->GetCommand() == plResMgrHelperMsg::kKeyRefList )
         {
@@ -140,7 +142,7 @@ bool    plResManagerHelper::MsgReceive( plMessage *msg )
             hsStatusMessage( "*** Dropping page keys after timed delay ***" );
 
             delete refferMsg->fKeyList;
-            refferMsg->fKeyList = nil;
+            refferMsg->fKeyList = nullptr;
         }
         else if( refferMsg->GetCommand() == plResMgrHelperMsg::kUpdateDebugScreen )
         {
@@ -176,7 +178,7 @@ void    plResManagerHelper::Write( hsStream *s, hsResMgr *mgr )
 
 void plResManagerHelper::LoadAndHoldPageKeys( plRegistryPageNode *page )
 {
-    hsAssert( GetKey() != nil, "Can't load and hold keys when we don't have a key for the helper" );
+    hsAssert(GetKey() != nullptr, "Can't load and hold keys when we don't have a key for the helper");
 
     // Create our msg
     plResMgrHelperMsg   *refferMsg = new plResMgrHelperMsg( plResMgrHelperMsg::kKeyRefList );
@@ -223,7 +225,7 @@ class plResMgrDebugInterface : public plInputInterface
         virtual bool    InterpretInputEvent( plInputEventMsg *pMsg )
         {
             plKeyEventMsg *pKeyMsg = plKeyEventMsg::ConvertNoRef( pMsg );
-            if( pKeyMsg != nil && pKeyMsg->GetKeyDown() )
+            if (pKeyMsg != nullptr && pKeyMsg->GetKeyDown())
             {
                 if( pKeyMsg->GetKeyCode() == KEY_UP && fParent->fCurrAge >= 0 )
                 {
@@ -286,7 +288,7 @@ void    plResManagerHelper::EnableDebugScreen( bool enable )
 #ifdef MCN_RESMGR_DEBUGGING
     if( enable )
     {
-        if( fDebugScreen == nil )
+        if (fDebugScreen == nullptr)
         {
             fDebugScreen = plStatusLogMgr::GetInstance().CreateStatusLog( kLogSize, "ResManager Status", plStatusLog::kFilledBackground | plStatusLog::kDontWriteFile );
             fRefreshing = true;
@@ -304,17 +306,17 @@ void    plResManagerHelper::EnableDebugScreen( bool enable )
     else
     {
         fRefreshing = false;
-        if( fDebugScreen != nil )
+        if (fDebugScreen != nullptr)
         {
             delete fDebugScreen;
-            fDebugScreen = nil;
+            fDebugScreen = nullptr;
 
             plInputIfaceMgrMsg *imsg = new plInputIfaceMgrMsg( plInputIfaceMgrMsg::kRemoveInterface );
             imsg->SetIFace( fDebugInput );
             imsg->Send();
 
             hsRefCnt_SafeUnRef( fDebugInput );
-            fDebugInput = nil;
+            fDebugInput = nullptr;
         }
     }
 #endif
@@ -343,7 +345,7 @@ class plDebugPrintIterator : public plRegistryPageIterator, plRegistryKeyIterato
             fAgeIndex = 0;
         }
 
-        virtual bool    EatPage( plRegistryPageNode *page )
+        bool    EatPage(plRegistryPageNode *page) override
         {
             if( fStep == 0 )
             {
@@ -351,20 +353,20 @@ class plDebugPrintIterator : public plRegistryPageIterator, plRegistryKeyIterato
                 fStep = 1;
                 fLines++;
             }
-            else if( fStep == 1 && page != nil && !page->IsLoaded() )
+            else if (fStep == 1 && page != nullptr && !page->IsLoaded())
             {
                 fStep = 2;
                 fLog->AddLine( 0xff80ff80, "Holding Pages" );
                 fLines++;
             }
     
-            if( page != nil && page->IsLoaded() )
+            if (page != nullptr && page->IsLoaded())
                 fLoadedCount++;
-            else if( page != nil )
+            else if (page != nullptr)
                 fHoldingCount++;
 
             // Changed ages?
-            if( page == nil || page->GetPageInfo().GetAge() != fCurrAge )
+            if (page == nullptr || page->GetPageInfo().GetAge() != fCurrAge)
             {
                 // Print some info for the last age we were on
                 if( fCurrAge[ 0 ] != 0 )
@@ -389,7 +391,7 @@ class plDebugPrintIterator : public plRegistryPageIterator, plRegistryKeyIterato
                     fAgeIndex++;
                 }
                 fPageCount = 0;
-                if( page != nil )
+                if (page != nullptr)
                     strncpy( fCurrAge, page->GetPageInfo().GetAge().c_str(), sizeof( fCurrAge ) - 1 );
                 else
                     fCurrAge[ 0 ] = 0;
@@ -412,7 +414,7 @@ class plDebugPrintIterator : public plRegistryPageIterator, plRegistryKeyIterato
 
             fPageCount++;
 
-            if( fParent->fCurrAge == fAgeIndex && fParent->fCurrAgeExpanded && page != nil )
+            if (fParent->fCurrAge == fAgeIndex && fParent->fCurrAgeExpanded && page != nullptr)
             {
                 // Count keys for this page
                 fTotalKeys = fLoadedKeys = fTotalSize = fLoadedSize = 0;
@@ -474,7 +476,7 @@ class plDebugPrintIterator : public plRegistryPageIterator, plRegistryKeyIterato
             return true;
         }
 
-        virtual bool    EatKey( const plKey& key )
+        bool    EatKey(const plKey& key) override
         {
             if( key->ObjectIsLoaded() )
             {
@@ -501,7 +503,7 @@ void    plResManagerHelper::IUpdateDebugScreen( bool force )
 
     plDebugPrintIterator    iter( this, fDebugScreen, loadedCnt, holdingCnt );
     fResManager->IterateAllPages( &iter );
-    iter.EatPage( nil );        // Force a final update
+    iter.EatPage(nullptr);        // Force a final update
 
     fDebugScreen->AddLineF( plStatusLog::kGreen, "{} pages loaded, {} holding", loadedCnt, holdingCnt );
 
@@ -527,13 +529,15 @@ void    plResManagerHelper::IUpdateDebugScreen( bool force )
 
     // Helper for VerifyKeyUnloaded
     bool    IVerifyKeyUnloadedRecur(const char* logFile, const plKey& baseKey, const plKey& upKey, const char* baseAge);
-    bool ILookForCyclesRecur(const char* logFile, const plKey& key, hsTArray<plKey>& tree, int& cycleStart);
+    bool ILookForCyclesRecur(const char* logFile, const plKey& key, std::vector<plKey>& tree, std::vector<plKey>::iterator& cycleStart);
 
-bool plResManager::ILookForCyclesRecur(const char* logFile, const plKey& key, hsTArray<plKey>& tree, int& cycleStart)
+bool plResManager::ILookForCyclesRecur(const char* logFile, const plKey& key, std::vector<plKey>& tree,
+                                       std::vector<plKey>::iterator& cycleStart)
 {
-    int idx = tree.Find(key);
-    tree.Append(key);
-    if (tree.kMissingIndex != idx)
+    auto idx = std::find(tree.begin(), tree.end(), key);
+    const bool found = (idx != tree.end());
+    tree.emplace_back(key);
+    if (found)
     {
         cycleStart = idx;
         // Found a cycle.
@@ -554,7 +558,7 @@ bool plResManager::ILookForCyclesRecur(const char* logFile, const plKey& key, hs
             }
         }
     }
-    tree.Pop();
+    tree.pop_back();
     return false;
 }
 
@@ -655,16 +659,15 @@ bool plResManager::VerifyKeyUnloaded(const char* logFile, const plKey& key)
         plStatusLog::AddLineS(logFile, "==================================");
         plStatusLog::AddLineSF(logFile, "Object {} [{}] page {} is loaded", key->GetName(), plFactory::GetNameOfClass(key->GetUoid().GetClassType()), page);
 
-        hsTArray<plKey> tree;
-        int cycleStart;
+        std::vector<plKey> tree;
+        std::vector<plKey>::iterator cycleStart;
         bool hasCycle = ILookForCyclesRecur(logFile, key, tree, cycleStart);
         if( hasCycle )
         {
             plStatusLog::AddLineSF(logFile, "\t{} [{}] held by dependency cycle", key->GetName(), plFactory::GetNameOfClass(key->GetUoid().GetClassType()));
-            int i;
-            for( i = cycleStart; i < tree.GetCount(); i++ )
+            for (auto it = cycleStart; it != tree.end(); ++it)
             {
-                plStatusLog::AddLineSF(logFile, "\t{} [{}]", tree[i]->GetName(), plFactory::GetNameOfClass(tree[i]->GetUoid().GetClassType()));
+                plStatusLog::AddLineSF(logFile, "\t{} [{}]", (*it)->GetName(), plFactory::GetNameOfClass((*it)->GetUoid().GetClassType()));
             }
             plStatusLog::AddLineS(logFile, "\tEnd Cycle");
             return true;
@@ -689,7 +692,7 @@ public:
         fRegistry = reg;
         fLogFile = logFile;
     }
-    virtual bool EatKey(const plKey& key)
+    bool EatKey(const plKey& key) override
     {
         fRegistry->VerifyKeyUnloaded(fLogFile, key);
         return true;
@@ -706,7 +709,7 @@ public:
     plValidatePageIterator(const char* age, plRegistryKeyIterator* iter) : fAge(age), fIter(iter) {}
 
 
-    virtual bool    EatPage( plRegistryPageNode *keyNode )
+    bool    EatPage(plRegistryPageNode *keyNode) override
     {
         if( !stricmp(fAge, keyNode->GetPageInfo().GetAge()) )
             return keyNode->IterateKeys( fIter );

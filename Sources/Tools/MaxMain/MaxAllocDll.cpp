@@ -41,19 +41,16 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include "HeadSpin.h"
-#include "hsWindows.h"
-
-#include <max.h>
-#pragma hdrstop
+#include "MaxAPI.h"
 
 #include "MaxAllocDll.h"
 
 typedef void* (*MAXMALLOC) (size_t size);
 typedef void (*MAXFREE) (void *memblock);
 
-static MAXMALLOC maxMalloc = NULL;
-static MAXFREE maxFree = NULL;
-static HINSTANCE maxAllocDll = NULL;
+static MAXMALLOC maxMalloc = nullptr;
+static MAXFREE maxFree = nullptr;
+static HINSTANCE maxAllocDll = nullptr;
 
 void LoadAllocDll()
 {
@@ -78,7 +75,7 @@ void LoadAllocDll()
 
         if (!maxAllocDll)
         {
-         ::MessageBox(NULL, "Couldn't load MaxAlloc.dll", "Error", MB_OK);
+            ::MessageBox(nullptr, "Couldn't load MaxAlloc.dll", "Error", MB_OK);
             exit(0);
         }
     }
@@ -93,7 +90,7 @@ void *plMaxMalloc(size_t size)
 
         if (!maxMalloc)
         {
-            ::MessageBox(NULL, "Couldn't find MaxMalloc in MaxAlloc.dll", "Error", MB_OK);
+            ::MessageBox(nullptr, "Couldn't find MaxMalloc in MaxAlloc.dll", "Error", MB_OK);
             exit(0);
         }
     }
@@ -110,7 +107,7 @@ void plMaxFree(void *memblock)
 
         if (!maxFree)
         {
-         ::MessageBox(NULL, "Couldn't find MaxFree in MaxAlloc.dll", "Error", MB_OK);
+            ::MessageBox(nullptr, "Couldn't find MaxFree in MaxAlloc.dll", "Error", MB_OK);
             exit(0);
         }
 

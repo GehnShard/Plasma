@@ -1,8 +1,3 @@
-include_directories("../../CoreLib")
-include_directories("../../NucleusLib/inc")
-include_directories("../../NucleusLib")
-include_directories("../../PubUtilLib")
-
 set(plNetMessage_SOURCES
     plNetMessage.cpp
     plNetMsgHelpers.cpp
@@ -16,7 +11,23 @@ set(plNetMessage_HEADERS
     plNetMsgVersion.h
 )
 
-add_library(plNetMessage STATIC ${plNetMessage_SOURCES} ${plNetMessage_HEADERS})
+plasma_library(plNetMessage SOURCES ${plNetMessage_SOURCES} ${plNetMessage_HEADERS})
+target_link_libraries(
+    plNetMessage
+    PUBLIC
+        CoreLib
+        pnFactory
+        pnKeyedObject
+        pnNetBase
+        pnNetCommon
+        plNetCommon
+        plUnifiedTime
+    PRIVATE
+        pnMessage
+        pnNucleusInc
+        plCompression
+        plSDL
+)
 
 source_group("Source Files" FILES ${plNetMessage_SOURCES})
 source_group("Header Files" FILES ${plNetMessage_HEADERS})

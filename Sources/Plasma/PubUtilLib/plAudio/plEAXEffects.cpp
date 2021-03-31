@@ -57,19 +57,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plEAXEffects.h"
 #include "plAudioCore/plAudioCore.h"
 #include "plDSoundBuffer.h"
-#include "hsTemplates.h"
 #include "plEAXListenerMod.h"
 #include "hsStream.h"
 #include "plAudioSystem.h"
 #include <al.h>
-
-#if HS_BUILD_FOR_WIN32
-#    if defined(DX_OLD_SDK) || defined(__MINGW32__)
-#        include <dxerr9.h>
-#    else
-#        include <dxerr.h>
-#    endif
-#endif
 
 #ifdef EAX_SDK_AVAILABLE
 #include <eax.h>
@@ -181,8 +172,8 @@ void    plEAXListener::Shutdown()
         return;
 
 #ifdef EAX_SDK_AVAILABLE
-    s_EAXSet = nil;
-    s_EAXGet = nil;
+    s_EAXSet = nullptr;
+    s_EAXGet = nullptr;
 #endif
     IRelease();
 }
@@ -285,7 +276,7 @@ void    plEAXListener::IMuteProperties( EAXREVERBPROPERTIES *props, float percen
 
 void    plEAXListener::ClearProcessCache()
 {
-    fLastBigRegion = nil;
+    fLastBigRegion = nullptr;
     fLastModCount = -1;
     fLastWasEmpty = false;
     fLastSingleStrength = -1.f;
@@ -300,76 +291,76 @@ void    plEAXListener::ClearProcessCache()
 //  can wisely skip is if our current big region == fLastBigRegion *and*
 //  the total strength is the same.
 
-void    plEAXListener::ProcessMods( hsTArray<plEAXListenerMod *> &modArray )
+void    plEAXListener::ProcessMods(const std::set<plEAXListenerMod*>& modArray )
 {
 #ifdef EAX_SDK_AVAILABLE
     int     i;
     float   totalStrength;
     bool    firstOne;
 
-    plEAXListenerMod        *thisBigRegion = nil;
+    plEAXListenerMod        *thisBigRegion = nullptr;
     EAXLISTENERPROPERTIES   finalProps;
     static int oldTime = timeGetTime();     // Get starting time
     int newTime;
     bool bMorphing = false;
 
-    static plStatusLog  *myLog = nil;
+    static plStatusLog  *myLog = nullptr;
 
-    if( myLog == nil && plgAudioSys::AreExtendedLogsEnabled() )
+    if (myLog == nullptr && plgAudioSys::AreExtendedLogsEnabled())
         myLog = plStatusLogMgr::GetInstance().CreateStatusLog( 30, "EAX Reverbs", plStatusLog::kFilledBackground | plStatusLog::kDeleteForMe | plStatusLog::kDontWriteFile );
-    else if( myLog != nil && !plgAudioSys::AreExtendedLogsEnabled() )
+    else if (myLog != nullptr && !plgAudioSys::AreExtendedLogsEnabled())
     {
         delete myLog;
-        myLog = nil;
+        myLog = nullptr;
     }
 
-    if( myLog != nil )
+    if (myLog != nullptr)
         myLog->Clear();
 
-    if( modArray.GetCount() != fLastModCount )
+    if( modArray.size() != fLastModCount )
     {
         DebugLog( "Clearing cache..." );
         ClearProcessCache();    // Code path changed, clear the entire cache
-        fLastModCount = modArray.GetCount();
+        fLastModCount = modArray.size();
     }
     else
     {
         DebugLog( "" );
     }
 
-    if( modArray.GetCount() > 0 )
+    if( modArray.size() > 0 )
     {
-        DebugLog( "{} regions to calc", modArray.GetCount() );
+        DebugLog( "{} regions to calc", modArray.size() );
 
         // Reset and find a new one if applicable
-        thisBigRegion = nil;
+        thisBigRegion = nullptr;
 
         // Accumulate settings from all the active listener regions (shouldn't be too many, we hope)
         totalStrength = 0.f;
         firstOne = true;
-        for( i = 0; i < modArray.GetCount(); i++ )
+        for (auto mod : modArray)
         {
-            float strength = modArray[ i ]->GetStrength();
-            DebugLog( "{4.2f} - {}", strength, modArray[ i ]->GetKey()->GetUoid().GetObjectName() );
+            float strength = mod->GetStrength();
+            DebugLog( "{4.2f} - {}", strength, mod->GetKey()->GetUoid().GetObjectName() );
             if( strength > 0.f )
             {
                 // fLastBigRegion will point to a region iff it's the only region w/ strength > 0
                 if( totalStrength == 0.f )
-                    thisBigRegion = modArray[ i ];
+                    thisBigRegion = mod;
                 else
-                    thisBigRegion = nil;
+                    thisBigRegion = nullptr;
 
                 if( firstOne )
                 {
                     // First one, just init to it
-                    memcpy( &finalProps, modArray[ i ]->GetListenerProps(), sizeof( finalProps ) );
+                    memcpy( &finalProps, mod->GetListenerProps(), sizeof( finalProps ) );
                     totalStrength = strength;
                     firstOne = false;
                 }
                 else
                 {
                     float scale = strength / ( totalStrength + strength );
-                    EAX3ListenerInterpolate( &finalProps, modArray[ i ]->GetListenerProps(), scale, &finalProps, false );
+                    EAX3ListenerInterpolate( &finalProps, mod->GetListenerProps(), scale, &finalProps, false );
                     totalStrength += strength;
                     bMorphing = true;
                 }
@@ -391,7 +382,7 @@ void    plEAXListener::ProcessMods( hsTArray<plEAXListenerMod *> &modArray )
 //          finalProps.lRoomLF = EAXLISTENER_MINROOMLF;
 //          finalProps.lRoomHF = EAXLISTENER_MINROOMHF;
             fLastWasEmpty = true;
-            fLastBigRegion = nil;
+            fLastBigRegion = nullptr;
             fLastSingleStrength = -1.f;
         }
         else 
@@ -403,7 +394,7 @@ void    plEAXListener::ProcessMods( hsTArray<plEAXListenerMod *> &modArray )
                 return;
 
             fLastBigRegion = thisBigRegion;
-            fLastSingleStrength = ( thisBigRegion != nil ) ? totalStrength : -1.f;
+            fLastSingleStrength = (thisBigRegion != nullptr) ? totalStrength : -1.f;
 
             if( totalStrength < 1.f )
             {
@@ -618,18 +609,18 @@ void    plEAXSourceSoftSettings::Reset()
 
 void    plEAXSourceSoftSettings::Read( hsStream *s )
 {
-    s->ReadLE( &fOcclusion );
-    s->ReadLE( &fOcclusionLFRatio );
-    s->ReadLE( &fOcclusionRoomRatio );
-    s->ReadLE( &fOcclusionDirectRatio );
+    s->ReadLE16(&fOcclusion);
+    s->ReadLEFloat(&fOcclusionLFRatio);
+    s->ReadLEFloat(&fOcclusionRoomRatio);
+    s->ReadLEFloat(&fOcclusionDirectRatio);
 }
 
 void    plEAXSourceSoftSettings::Write( hsStream *s )
 {
-    s->WriteLE( fOcclusion );
-    s->WriteLE( fOcclusionLFRatio );
-    s->WriteLE( fOcclusionRoomRatio );
-    s->WriteLE( fOcclusionDirectRatio );
+    s->WriteLE16(fOcclusion);
+    s->WriteLEFloat(fOcclusionLFRatio);
+    s->WriteLEFloat(fOcclusionRoomRatio);
+    s->WriteLEFloat(fOcclusionDirectRatio);
 }
 
 void    plEAXSourceSoftSettings::SetOcclusion( int16_t occ, float lfRatio, float roomRatio, float directRatio )
@@ -677,6 +668,7 @@ bool    plEAXSource::IsValid() const
 
 void    plEAXSource::SetFrom( plEAXSourceSettings *settings, unsigned source, bool force )
 {
+#if EAX_SDK_AVAILABLE
     uint32_t dirtyParams;
     if(source == 0 || !fInit) 
         return;
@@ -687,7 +679,6 @@ void    plEAXSource::SetFrom( plEAXSourceSettings *settings, unsigned source, bo
         dirtyParams = settings->fDirtyParams;
     
     // Do the params
-#ifdef EAX_SDK_AVAILABLE
     if( dirtyParams & plEAXSourceSettings::kRoom )
     {
         SetSourceEAXProperty(source, DSPROPSETID_EAX_BufferProperties, DSPROPERTY_EAXBUFFER_ROOM, &settings->fRoom, sizeof(settings->fRoom));

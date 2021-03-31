@@ -44,7 +44,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *   $/Plasma20/Sources/Plasma/PubUtilLib/plNetClientComm/plNetClientComm.h
 *
 *   This module is the translation layer between simple network types
-*   such as uint8_t arrays, and higher-level Plasma-specific types such
+*   such as byte arrays, and higher-level Plasma-specific types such
 *   as the plFactory-managed types.
 *   
 ***/
@@ -54,11 +54,16 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 
 #include "HeadSpin.h"
-#include "pnUtils/pnUtils.h"
-#include "pnNetBase/pnNetBase.h"
-#include "plNetCommon/plNetServerSessionInfo.h"
-#include "plNetCommon/plNetCommonHelpers.h"
+
+#include "pnEncryption/plChecksum.h"
+#include "pnNetBase/pnNbError.h"
+#include "pnUUID/pnUUID.h"
+
 #include "plMessage/plNetCommMsgs.h"
+#include "plNetCommon/plNetCommonHelpers.h"
+
+#include <string_theory/string>
+#include <vector>
 
 
 class plNetMessage;
@@ -76,7 +81,7 @@ struct NetCommPlayer {
     ST::string  avatarDatasetName;
     unsigned    explorer;
 
-    NetCommPlayer() { }
+    NetCommPlayer() : playerInt(), explorer() { }
     NetCommPlayer(unsigned id, const ST::string& name, const ST::string& shape, unsigned ex)
         : playerInt(id), playerName(name), avatarDatasetName(shape), explorer(ex)
     { }
@@ -299,17 +304,6 @@ void NetCommSendFriendInvite (
 #ifndef plNetClientComm_h_inc
 #define plNetClientComm_h_inc
 
-
-////////////////////////////////////////////////////////////////////
-
-class plCreatable;
-class plStatusLog;
-class plAgeLinkStruct;
-class plNetClientCommTask;
-class plNetMessage;
-class   plNetMsgTerminated;
-class plPlayerMigrationPkg;
-
 ////////////////////////////////////////////////////////////////////
 // plNetClientComm
 //  - Sends/Recvs messages with a server.
@@ -358,8 +352,8 @@ public:
     class StubbedCallback : public Callback
     {
     public:
-        void OperationStarted( uint32_t context ) {}
-        void OperationComplete( uint32_t context, int resultCode ) {}
+        void OperationStarted(uint32_t context) override { }
+        void OperationComplete(uint32_t context, int resultCode) override { }
     };
 
     // Message handler for unsolicited msgs or registered for specific msg types.

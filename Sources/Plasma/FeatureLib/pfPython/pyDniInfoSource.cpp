@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include <Python.h>
-#pragma hdrstop
 
 #include "pyDniInfoSource.h"
 #include "pnUUID/pnUUID.h"
@@ -81,7 +80,7 @@ ST::string pyDniInfoSource::GetAgeName() const
 {
     hsRef<RelVaultNode> node = VaultGetAgeInfoNode();
     if (!node)
-        return ST::null;
+        return ST::string();
 
     VaultAgeInfoNode ageInfo(node);
     return ageInfo.GetAgeInstanceName();

@@ -39,17 +39,19 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "plCreatableIndex.h"
+
 #include "plNetClientMsgScreener.h"
+#include "plCreatableIndex.h"
 #include "plNetLinkingMgr.h"
 
-#include "pfMessage/pfKIMsg.h"
-#include "pnNetCommon/plNetApp.h"
 #include "pnMessage/plMessage.h"
+#include "pnNetCommon/plNetApp.h"
 
-#include "plStatusLog/plStatusLog.h"
 #include "plAvatar/plAvatarMgr.h"
 #include "plAvatar/plArmatureMod.h"
+#include "plStatusLog/plStatusLog.h"
+
+#include "pfMessage/pfKIMsg.h"
 
 ///////////////////////////////////////////////////////////////
 // CLIENT Version
@@ -89,8 +91,8 @@ bool plNetClientMsgScreener::IIsLocalAvatarKey(plKey key, const plNetGameMember*
 bool plNetClientMsgScreener::IIsLocalArmatureModKey(plKey key, const plNetGameMember* gm) const 
 {
     plKey playerKey = plNetClientApp::GetInstance()->GetLocalPlayerKey();
-    plArmatureMod* aMod = playerKey ? plAvatarMgr::GetInstance()->FindAvatar(playerKey) : nil; 
-    return (!key || key==(aMod ? aMod->GetKey() : nil));
+    plArmatureMod* aMod = playerKey ? plAvatarMgr::GetInstance()->FindAvatar(playerKey) : nullptr;
+    return (!key || key == (aMod ? aMod->GetKey() : nullptr));
 }
 
 //

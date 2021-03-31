@@ -44,14 +44,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 This module contains the routines to read and write the Volume.ini file
 """
 
-import string
 import xIniHelper
 from PlasmaConstants import *
 from Plasma import *
 
 gIniFile = None
-gFilename = U"audio.ini"
-gFilenameAndPath = U""
+gFilename = "audio.ini"
+gFilenameAndPath = ""
 
 # the different volume commands
 kVolCmd = "Audio.SetChannelVolume"
@@ -74,17 +73,17 @@ kBeFalse = "false"
 
 def ConstructFilenameAndPath():
     global gFilenameAndPath
-    if gFilenameAndPath == U"":
+    if gFilenameAndPath == "":
         if PtIsInternalRelease():
             # check for local file
-            localNameAndPath = U"init/" + gFilename
+            localNameAndPath = "init/" + gFilename
             if PtFileExists(localNameAndPath):
                 gFilenameAndPath = localNameAndPath
-                PtDebugPrint(U"xIniAudio::ConstructFilenameAndPath(): Using internal \"" + gFilenameAndPath + U"\" file")
+                PtDebugPrint("xIniAudio::ConstructFilenameAndPath(): Using internal \"" + gFilenameAndPath + "\" file")
                 return
         # otherwise, use the standard init path
-        gFilenameAndPath = PtGetInitPath() + U"/" + gFilename
-        PtDebugPrint(U"xIniAudio::ConstructFilenameAndPath(): Using user-level \"" + gFilenameAndPath + U"\" file")
+        gFilenameAndPath = PtGetInitPath() + "/" + gFilename
+        PtDebugPrint("xIniAudio::ConstructFilenameAndPath(): Using user-level \"" + gFilenameAndPath + "\" file")
 
 def WriteIni():
     global gIniFile
@@ -116,7 +115,7 @@ def GetSoundFXVolume(volume):
         if entry:
             value = entry.getValue(1)
             if value:
-                return string.atof(value)
+                return float(value)
         return 0.0
 
 def SetMusicVolume(volume):
@@ -134,7 +133,7 @@ def GetMusicVolume(volume):
         if entry:
             value = entry.getValue(1)
             if value:
-                return string.atof(value)
+                return float(value)
         return 0.0
 
 def SetVoiceVolume(volume):
@@ -152,7 +151,7 @@ def GetVoiceVolume(volume):
         if entry:
             value = entry.getValue(1)
             if value:
-                return string.atof(value)
+                return float(value)
         return 0.0
 
 def SetAmbienceVolume(volume):
@@ -170,7 +169,7 @@ def GetAmbienceVolume(volume):
         if entry:
             value = entry.getValue(1)
             if value:
-                return string.atof(value)
+                return float(value)
         return 0.0
 
 def SetGUIVolume(volume):
@@ -188,7 +187,7 @@ def GetGUIVolume(volume):
         if entry:
             value = entry.getValue(1)
             if value:
-                return string.atof(value)
+                return float(value)
         return 0.0
 
 def SetNPCVoiceVolume(volume):
@@ -206,7 +205,7 @@ def GetNPCVoiceVolume(volume):
         if entry:
             value = entry.getValue(1)
             if value:
-                return string.atof(value)
+                return float(value)
         return 0.0
 
 def SetMicLevel(level):
@@ -224,7 +223,7 @@ def GetMicLevel(level):
         if entry:
             value = entry.getValue(0)
             if value:
-                return string.atof(value)
+                return float(value)
         return 0.0
 
 def SetVoiceRecording(level):
@@ -242,7 +241,7 @@ def GetVoiceRecording(level):
         if entry:
             value = entry.getValue(0)
             if value:
-                return string.atof(value)
+                return float(value)
         return 0.0
 
 def SetSoundPriority(priority):
@@ -260,7 +259,7 @@ def GetSoundPriority():
         if entry:
             value = entry.getValue(0)
             if value:
-                return string.atoi(value)
+                return int(value)
         return 0
 
 def SetMute(mute):
@@ -278,7 +277,7 @@ def GetMute():
         if entry:
             value = entry.getValue(0)
             if value:
-                return string.atoi(value)
+                return int(value)
         return 0
 
 def GetAudioMode():
@@ -324,9 +323,9 @@ def SetAudioMode(init, device, eax):
 
         PtDebugPrint(device)
         if entryDev:
-            entryDev.setValue(0, "\"" + device + "\"")
+            entryDev.setValue(0, f'"{device}"')
         else:
-            gIniFile.addEntry("Audio.SetDeviceName \"" + device + "\"")
+            gIniFile.addEntry(f'Audio.SetDeviceName "{device}"')
 
         if eax:
             val = kBeTrue

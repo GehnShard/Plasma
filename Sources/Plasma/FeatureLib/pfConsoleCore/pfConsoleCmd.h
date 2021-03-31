@@ -50,6 +50,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 #include "hsBiExpander.h"
+#include "plFileSystem.h"
 
 #include <string_theory/format>
 
@@ -99,11 +100,11 @@ class pfConsoleCmdGroup
         static pfConsoleCmdGroup    *GetBaseGroup();
 
         pfConsoleCmd        *FindCommand( const char *name );
-        pfConsoleCmd        *FindCommandNoCase( const char *name, uint8_t flags = 0, pfConsoleCmd *start = nil );
+        pfConsoleCmd        *FindCommandNoCase(const char *name, uint8_t flags = 0, pfConsoleCmd *start = nullptr);
         pfConsoleCmd        *FindNestedPartialCommand( char *name, uint32_t *counter );
 
         pfConsoleCmdGroup   *FindSubGroup( const char *name );
-        pfConsoleCmdGroup   *FindSubGroupNoCase( const char *name, uint8_t flags = 0, pfConsoleCmdGroup *start = nil );
+        pfConsoleCmdGroup   *FindSubGroupNoCase(const char *name, uint8_t flags = 0, pfConsoleCmdGroup *start = nullptr);
 
         pfConsoleCmd        *GetFirstCommand() { return fCommands; }
         pfConsoleCmdGroup   *GetFirstSubGroup() { return fSubGroups; }
@@ -157,6 +158,7 @@ class pfConsoleCmdParam
         operator bool() const { return IToBool(); }
         operator CharPtr() const { return IToString(); }
         operator char() const { return IToChar(); }
+        operator plFileName() const { return IToString(); }
 
         uint8_t   GetType() { return fType; }
 
@@ -215,7 +217,7 @@ class pfConsoleCmd
 
         void    Register(const char *group, const char *name );
         void    Unregister();
-        void    Execute( int32_t numParams, pfConsoleCmdParam *params, void (*PrintFn)( const char * ) = nil );
+        void    Execute(int32_t numParams, pfConsoleCmdParam *params, void (*PrintFn)(const char *) = nullptr);
 
         void    Link( pfConsoleCmd **prevPtr );
         void    Unlink();
@@ -257,7 +259,7 @@ public:
 
 #define PF_CONSOLE_BASE_CMD( name, p, help ) \
     void    pfConsoleCmd_##name##_proc( int32_t numParams, pfConsoleCmdParam *params, void (*PrintString)( const char * ) ); \
-    pfConsoleCmd    conCmd_##name( nil, #name, p, help, pfConsoleCmd_##name##_proc ); \
+    pfConsoleCmd    conCmd_##name(nullptr, #name, p, help, pfConsoleCmd_##name##_proc); \
     void    pfConsoleCmd_##name##_proc( int32_t numParams, pfConsoleCmdParam *params, void (*PrintString)( const char * ) )
 
 #define PF_CONSOLE_CMD( grp, name, p, help ) \
@@ -273,7 +275,7 @@ public:
 //// pfConsoleCmdGroup Creation Macro ////////////////////////////////////////
 
 #define PF_CONSOLE_GROUP( name ) \
-    pfConsoleCmdGroup   conGroup_##name( #name, nil );
+    pfConsoleCmdGroup   conGroup_##name(#name, nullptr);
 
 #define PF_CONSOLE_SUBGROUP( parent, name ) \
     pfConsoleCmdGroup   conGroup_##parent##_##name( #name, #parent );

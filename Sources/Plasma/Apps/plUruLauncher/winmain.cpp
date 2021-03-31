@@ -117,10 +117,12 @@ static inline void IShowMarquee(bool marquee=true)
     PostMessageW(GetDlgItem(s_dialog, IDC_MARQUEE), PBM_SETMARQUEE, static_cast<WPARAM>(marquee), 0);
 }
 
-BOOL CALLBACK PatcherDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK PatcherDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     // NT6 Taskbar Majick
     if (uMsg == s_taskbarCreated) {
+        hsRequireCOM();
+
         if (s_taskbar)
             s_taskbar->Release();
         HRESULT result = CoCreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_ALL, IID_ITaskbarList3, (void**)&s_taskbar);
@@ -144,7 +146,7 @@ BOOL CALLBACK PatcherDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
         s_dialog = nullptr;
         break;
     case WM_NCHITTEST:
-        SetWindowLongW(hwndDlg, DWL_MSGRESULT, (LONG_PTR)HTCAPTION);
+        SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)HTCAPTION);
         return TRUE;
     case WM_QUIT:
         s_launcher.ShutdownNetCore();
@@ -170,7 +172,7 @@ static void PumpMessages()
     MSG msg;
     do {
         // Pump all Win32 messages
-        while (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE)) {
+        while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
             if (!IsDialogMessageW(s_dialog, &msg)) {
                 TranslateMessage(&msg);
                 DispatchMessageW(&msg);

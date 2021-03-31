@@ -49,55 +49,51 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //////////////////////////////////////////////////////////////////////////////
 
 #include "pfJournalBook.h"
-#include <wchar.h>
 
+#include <memory>
+#include <cwchar>
+
+#include "HeadSpin.h"
+#include "hsGDeviceRef.h"
+#include "plgDispatch.h"
 #include "hsResMgr.h"
 #include "pcSmallRect.h"
-#include "plgDispatch.h"
-#include "pfGameGUIMgr/pfGUIDialogMod.h"
-#include "pfGameGUIMgr/pfGUIControlMod.h"
-#include "pfGameGUIMgr/pfGUICheckBoxCtrl.h"
-#include "pfGameGUIMgr/pfGUIDialogHandlers.h"
-#include "pfGameGUIMgr/pfGUIDynDisplayCtrl.h"
-#include "pfGameGUIMgr/pfGUIClickMapCtrl.h"
-#include "pfGameGUIMgr/pfGUIButtonMod.h"
-#include "pfGameGUIMgr/pfGUIProgressCtrl.h"
-#include "pfGameGUIMgr/pfGUIMultiLineEditCtrl.h"
+#include "hsTimer.h"
+#include "plTimerCallbackManager.h"
 
-#include "pfMessage/pfGUINotifyMsg.h"
-#include "plGImage/plMipmap.h"
-#include "plGImage/plDynamicTextMap.h"
-#include "hsGDeviceRef.h"
-#include "plMessage/plAnimCmdMsg.h"
 #include "pnKeyedObject/plFixedKey.h"
+#include "pnMessage/plNotifyMsg.h"
 #include "pnMessage/plRefMsg.h"
 #include "pnMessage/plTimeMsg.h"
+#include "pnNetCommon/plNetApp.h"
+
+#include "plAgeLoader/plAgeLoader.h"
+#include "plGImage/plDynamicTextMap.h"
+#include "plGImage/plFont.h"
+#include "plGImage/plJPEG.h"
+#include "plGImage/plMipmap.h"
+#include "plGImage/plPNG.h"
+#include "plInputCore/plInputInterface.h"
+#include "plMessage/plAnimCmdMsg.h"
 #include "plMessage/plLayRefMsg.h"
 #include "plMessage/plMatRefMsg.h"
-#include "plSurface/plLayerInterface.h"
-#include "plSurface/plLayer.h"
-#include "plSurface/hsGMaterial.h"
-#include "plAgeLoader/plAgeLoader.h"
-#include "pfSurface/plLayerAVI.h"
-
-// So we can do image searches in our local age
-#include "plNetClient/plNetClientMgr.h"
-#include "plResMgr/plKeyFinder.h"
-
-// For notify sends
-#include "pnMessage/plNotifyMsg.h"
-#include "plTimerCallbackManager.h"
 #include "plMessage/plTimerCallbackMsg.h"
+#include "plResMgr/plKeyFinder.h"
+#include "plSurface/hsGMaterial.h"
+#include "plSurface/plLayer.h"
+#include "plSurface/plLayerInterface.h"
 
-// For custom cursors
-#include "plInputCore/plInputInterface.h"
-
-// For measuring text
-#include "plGImage/plFont.h"
-
-// For SFX
-#include "hsTimer.h"
-
+#include "pfGameGUIMgr/pfGUIButtonMod.h"
+#include "pfGameGUIMgr/pfGUICheckBoxCtrl.h"
+#include "pfGameGUIMgr/pfGUIClickMapCtrl.h"
+#include "pfGameGUIMgr/pfGUIControlMod.h"
+#include "pfGameGUIMgr/pfGUIDialogHandlers.h"
+#include "pfGameGUIMgr/pfGUIDialogMod.h"
+#include "pfGameGUIMgr/pfGUIDynDisplayCtrl.h"
+#include "pfGameGUIMgr/pfGUIMultiLineEditCtrl.h"
+#include "pfGameGUIMgr/pfGUIProgressCtrl.h"
+#include "pfMessage/pfGUINotifyMsg.h"
+#include "pfSurface/plLayerAVI.h"
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -178,99 +174,62 @@ class pfEsHTMLChunk
 
         // Paragraph constructor
         pfEsHTMLChunk( const wchar_t *text )
+            : fType(kParagraph), fFlags(kLeft), fText(text ? text : L""),
+              fFontSize(), fImageKey(), fEventID(), fSFXTime(),
+              fAbsoluteX(), fAbsoluteY(), fNoResizeImg(), fLineSpacing(),
+              fCurrOpacity(1.f), fMinOpacity(), fMaxOpacity(1.f),
+              fTintDecal(), fLoopMovie(true), fOnCover(), fMovieIndex(-1)
+
         {
-            fType = kParagraph;
-            if (text)
-                fText = text;
-            else
-                fText = L"";
-            fFlags = kLeft;
-            fFontSize = 0;
-            fImageKey = nil;
-            fEventID = 0;
-            fColor.Set( 0.f, 0.f, 0.f, 1.f );
-            fAbsoluteX = fAbsoluteY = 0;
-            fCurrOpacity = 1.f;
-            fMinOpacity = 0.f;
-            fMaxOpacity = 1.f;
-            fNoResizeImg = false;
-            fLineSpacing = 0;
-            fTintDecal = false;
-            fLoopMovie = true;
-            fOnCover = false;
-            fMovieIndex = -1;
+            fColor.Set(0.f, 0.f, 0.f, 1.f);
+            fCurrColor.Set(0.f, 0.f, 0.f, 1.f);
+            fOffColor.Set(0.f, 0.f, 0.f, 1.f);
+            fOnColor.Set(0.f, 0.f, 0.f, 1.f);
         }
 
         // Image constructor (used for decals and movies too)
         pfEsHTMLChunk( plKey imageKey, uint32_t alignFlags )
+            : fType(kImage), fFlags(alignFlags), fText(L""),
+              fFontSize(), fImageKey(imageKey), fEventID(), fSFXTime(),
+              fAbsoluteX(), fAbsoluteY(), fNoResizeImg(), fLineSpacing(),
+              fCurrOpacity(1.f), fMinOpacity(), fMaxOpacity(1.f),
+              fTintDecal(), fLoopMovie(true), fOnCover(), fMovieIndex(-1)
         {
-            fType = kImage;
-            fText = L"";
-            fFlags = alignFlags;
-            fFontSize = 0;
-            fImageKey = imageKey;
-            fEventID = 0;
-            fColor.Set( 0.f, 0.f, 0.f, 1.f );
-            fAbsoluteX = fAbsoluteY = 0;
-            fCurrOpacity = 1.f;
-            fMinOpacity = 0.f;
-            fMaxOpacity = 1.f;
-            fNoResizeImg = false;
-            fLineSpacing = 0;
-            fTintDecal = false;
-            fLoopMovie = true;
-            fOnCover = false;
-            fMovieIndex = -1;
+            fColor.Set(0.f, 0.f, 0.f, 1.f);
+            fCurrColor.Set(0.f, 0.f, 0.f, 1.f);
+            fOffColor.Set(0.f, 0.f, 0.f, 1.f);
+            fOnColor.Set(0.f, 0.f, 0.f, 1.f);
         }
 
         // Page break constructor
         pfEsHTMLChunk()
+            : fType(kPageBreak), fFlags(), fText(L""),
+              fFontSize(), fImageKey(), fEventID(), fSFXTime(),
+              fAbsoluteX(), fAbsoluteY(), fNoResizeImg(), fLineSpacing(),
+              fCurrOpacity(1.f), fMinOpacity(), fMaxOpacity(1.f),
+              fTintDecal(), fLoopMovie(true), fOnCover(), fMovieIndex(-1)
         {
-            fType = kPageBreak;
-            fText = L"";
-            fImageKey = nil;
-            fFontSize = 0;
-            fFlags = 0;
-            fEventID = 0;
-            fColor.Set( 0.f, 0.f, 0.f, 1.f );
-            fAbsoluteX = fAbsoluteY = 0;
-            fCurrOpacity = 1.f;
-            fMinOpacity = 0.f;
-            fMaxOpacity = 1.f;
-            fNoResizeImg = false;
-            fLineSpacing = 0;
-            fTintDecal = false;
-            fLoopMovie = true;
-            fOnCover = false;
-            fMovieIndex = -1;
+            fColor.Set(0.f, 0.f, 0.f, 1.f);
+            fCurrColor.Set(0.f, 0.f, 0.f, 1.f);
+            fOffColor.Set(0.f, 0.f, 0.f, 1.f);
+            fOnColor.Set(0.f, 0.f, 0.f, 1.f);
         }
 
         // Font change constructor
         pfEsHTMLChunk( const wchar_t *face, uint8_t size, uint32_t fontFlags )
+            : fType(kFontChange), fFlags(fontFlags), fText(face ? face : L""),
+              fFontSize(size), fImageKey(), fEventID(), fSFXTime(),
+              fAbsoluteX(), fAbsoluteY(), fNoResizeImg(), fLineSpacing(),
+              fCurrOpacity(1.f), fMinOpacity(), fMaxOpacity(1.f),
+              fTintDecal(), fLoopMovie(true), fOnCover(), fMovieIndex(-1)
         {
-            fType = kFontChange;
-            if (face)
-                fText = face;
-            else
-                fText = L"";
-            fFontSize = size;
-            fFlags = fontFlags;
-            fImageKey = nil;
-            fEventID = 0;
-            fColor.Set( 0.f, 0.f, 0.f, 1.f );
-            fAbsoluteX = fAbsoluteY = 0;
-            fCurrOpacity = 1.f;
-            fMinOpacity = 0.f;
-            fMaxOpacity = 1.f;
-            fNoResizeImg = false;
-            fLineSpacing = 0;
-            fTintDecal = false;
-            fLoopMovie = true;
-            fOnCover = false;
-            fMovieIndex = -1;
+            fColor.Set(0.f, 0.f, 0.f, 1.f);
+            fCurrColor.Set(0.f, 0.f, 0.f, 1.f);
+            fOffColor.Set(0.f, 0.f, 0.f, 1.f);
+            fOnColor.Set(0.f, 0.f, 0.f, 1.f);
         }
 
-        ~pfEsHTMLChunk() {}
+        ~pfEsHTMLChunk() { }
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -315,7 +274,7 @@ class pfJournalDlgProc : public pfGUIDialogProc
         {
         }
 
-        virtual void    DoSomething( pfGUIControlMod *ctrl )
+        void    DoSomething(pfGUIControlMod *ctrl) override
         {
             if ( fBook && fBook->fCurrBook )
             {
@@ -346,32 +305,32 @@ class pfJournalDlgProc : public pfGUIDialogProc
         }
 
         // Called on dialog init (i.e. first showing, before OnShow() is called), only ever called once
-        virtual void    OnInit()
+        void    OnInit() override
         {
         }
 
         // Called before the dialog is shown, always after OnInit()
-        virtual void    OnShow()
+        void    OnShow() override
         {
         }
 
         // Called before the dialog is hidden
-        virtual void    OnHide()
+        void    OnHide() override
         {
         }
 
         // Called on the dialog's destructor, before it's unregistered with the game GUI manager
-        virtual void    OnDestroy()
+        void    OnDestroy() override
         {
         }
 
         // Called when the dialog's focused control changes
-        virtual void    OnCtrlFocusChange( pfGUIControlMod *oldCtrl, pfGUIControlMod *newCtrl )
+        void    OnCtrlFocusChange(pfGUIControlMod *oldCtrl, pfGUIControlMod *newCtrl) override
         {
         }
 
         // Called when the key bound to a GUI event is pressed. Only called on the top modal dialog
-        virtual void    OnControlEvent( ControlEvt event )
+        void    OnControlEvent(ControlEvt event) override
         {
             if( event == kExitMode )
             {
@@ -382,7 +341,7 @@ class pfJournalDlgProc : public pfGUIDialogProc
             }
         }
 
-        virtual void    HandleExtendedEvent( pfGUIControlMod *ctrl, uint32_t event )
+        void    HandleExtendedEvent(pfGUIControlMod *ctrl, uint32_t event) override
         {
             if (fBook)
             {
@@ -393,8 +352,7 @@ class pfJournalDlgProc : public pfGUIDialogProc
                         if (fBook->fCurrBook)
                         {
                             // Update our custom cursor on the map
-                            int32_t idx = fBook->fCurrBook->IFindCurrVisibleLink( false, true );
-                            if( idx != -1 )
+                            if (fBook->fCurrBook->IFindCurrVisibleLink(false, true) != -1)
                                 fBook->fLeftPageMap->SetCustomCursor( plInputInterface::kCursorPoised/*Hand*/ );
                             else if(( fBook->fCurrBook->fCurrentPage > 1 )&&( fBook->fCurrBook->fAllowTurning ))
                                 fBook->fLeftPageMap->SetCustomCursor( plInputInterface::kCursorLeft );
@@ -412,8 +370,7 @@ class pfJournalDlgProc : public pfGUIDialogProc
                         if (fBook->fCurrBook)
                         {
                             // Update our custom cursor on the map
-                            int32_t idx = fBook->fCurrBook->IFindCurrVisibleLink( true, true );
-                            if( idx != -1 )
+                            if (fBook->fCurrBook->IFindCurrVisibleLink(true, true) != -1)
                                 fBook->fRightPageMap->SetCustomCursor( plInputInterface::kCursorPoised/*Hand*/ );
                             else if((fBook->fCurrBook->fAreWeShowing) && ( fBook->fCurrBook->fCurrentPage + 2 <= fBook->fCurrBook->fLastPage )&&( fBook->fCurrBook->fAllowTurning ))
                                 fBook->fRightPageMap->SetCustomCursor( plInputInterface::kCursorRight );
@@ -438,53 +395,18 @@ public:
     pfBookMultiLineEditProc(pfBookData *owner) { bookData = owner; }
     virtual ~pfBookMultiLineEditProc() {}
 
-    virtual void OnEndOfControlList(int32_t cursorPos) { bookData->HitEndOfControlList(cursorPos); }
-    virtual void OnBeginningOfControlList(int32_t cursorPos) { bookData->HitBeginningOfControlList(cursorPos); }
+    void OnEndOfControlList(int32_t cursorPos) override { bookData->HitEndOfControlList(cursorPos); }
+    void OnBeginningOfControlList(int32_t cursorPos) override { bookData->HitBeginningOfControlList(cursorPos); }
 };
 
 //// Book data class /////////////////////////////////////////////////////////
-
-pfBookData::pfBookData(const ST::string &guiName /* = nil */)
-{
-    fCurrBook = nil;
-    fDialog = nil;
-    fCoverButton = fTurnPageButton = nil;
-    fLeftPageMap = fRightPageMap = nil;
-    fCoverLayer = nil;
-    fCoverMaterial = nil;
-    uint16_t i;
-    for (i=0; i<4; i++)
-        fPageMaterials[i] = nil;
-    fLeftCorner = fRightCorner = nil;
-    fWidthCtrl = fHeightCtrl = nil;
-    fCurrSFXPages = kNoSides;
-    fBaseSFXTime = 0.f;
-    fResetSFXFlag = false;
-    fSFXUpdateFlip = false;
-    fCurrentlyTurning = false;
-
-    fRightEditCtrl = fLeftEditCtrl = nil;
-    fTurnFrontEditCtrl = fTurnBackEditCtrl = nil;
-    fEditable = false;
-    fAdjustCursorTo = -1;
-    
-    if (!guiName.empty())
-        fGUIName = guiName;
-    else
-        fGUIName = ST_LITERAL("BkBook");
-}
-
-pfBookData::~pfBookData()
-{
-    RegisterForSFX( kNoSides );
-}
 
 void pfBookData::LoadGUI()
 {
     // has the dialog been loaded yet?
     if (!pfGameGUIMgr::GetInstance()->IsDialogLoaded(fGUIName.c_str()))
         // no then load and set handler
-        pfGameGUIMgr::GetInstance()->LoadDialog(fGUIName.c_str(), GetKey(), "GUI");
+        pfGameGUIMgr::GetInstance()->LoadDialog(fGUIName, GetKey(), "GUI");
     else
         // yes then just set the handler
         pfGameGUIMgr::GetInstance()->SetDialogToNotify(fGUIName.c_str(), GetKey());
@@ -493,20 +415,20 @@ void pfBookData::LoadGUI()
 bool pfBookData::MsgReceive(plMessage *pMsg)
 {
     plGenRefMsg *ref = plGenRefMsg::ConvertNoRef(pMsg);
-    if(ref != nil)
+    if (ref != nullptr)
     {
         if(ref->fType == kRefDialog)
         {
             if(ref->GetContext() & (plRefMsg::kOnCreate | plRefMsg::kOnRequest | plRefMsg::kOnReplace))
             {
                 pfGUIDialogMod *temp = pfGUIDialogMod::ConvertNoRef(ref->GetRef());
-                if (temp != nil) // sanity check
+                if (temp != nullptr) // sanity check
                     fDialog = temp;
             }
             /*else
             {
-                fDialog = nil;
-                fCoverButton = nil;
+                fDialog = nullptr;
+                fCoverButton = nullptr;
             }*/
             return true;
         }
@@ -515,13 +437,13 @@ bool pfBookData::MsgReceive(plMessage *pMsg)
             if(ref->GetContext() & (plRefMsg::kOnCreate | plRefMsg::kOnRequest | plRefMsg::kOnReplace))
                 fDefaultCover = plMipmap::ConvertNoRef(ref->GetRef());
             else
-                fDefaultCover = nil;
+                fDefaultCover = nullptr;
             return true;
         }
     }
 
     plEventCallbackMsg *callback = plEventCallbackMsg::ConvertNoRef( pMsg );
-    if( callback != nil )
+    if (callback != nullptr)
     {
         // Our callback message to tell us the page is done flipping
         if( callback->fUser & 0x08 )
@@ -550,7 +472,7 @@ bool pfBookData::MsgReceive(plMessage *pMsg)
     }
 
     pfGUINotifyMsg *notify = pfGUINotifyMsg::ConvertNoRef(pMsg);
-    if(notify != nil)
+    if (notify != nullptr)
     {
         // The only time we should get this is when the dialog loads; after that, we hijack
         // the dialog proc with our own
@@ -559,7 +481,7 @@ bool pfBookData::MsgReceive(plMessage *pMsg)
     }
 
     plTimeMsg *time = plTimeMsg::ConvertNoRef( pMsg );
-    if( time != nil && fCurrSFXPages != kNoSides && !fCurrentlyTurning && fCurrentlyOpen )
+    if (time != nullptr && fCurrSFXPages != kNoSides && !fCurrentlyTurning && fCurrentlyOpen)
     {
         IHandleSFX( (float)time->DSeconds() );
         return true;        
@@ -585,7 +507,7 @@ bool pfBookData::MsgReceive(plMessage *pMsg)
 
 void pfBookData::IInitTemplate(pfGUIDialogMod *templateDlg)
 {
-    hsAssert(templateDlg != nil, "Nil template in pfBookData::IInitTemplate()!");
+    hsAssert(templateDlg != nullptr, "Nil template in pfBookData::IInitTemplate()!");
 
     // Init and ref our fDialog pointer
     hsgResMgr::ResMgr()->SendRef(templateDlg->GetKey(), new plGenRefMsg(GetKey(), plRefMsg::kOnCreate, -1, kRefDialog), plRefFlags::kPassiveRef);  
@@ -618,7 +540,7 @@ void pfBookData::IInitTemplate(pfGUIDialogMod *templateDlg)
 
     // Grab and ref the default cover mipmap
     plLayer *lay = plLayer::ConvertNoRef(fCoverLayer);
-    if((lay != nil)&&(lay->GetTexture() != nil))
+    if ((lay != nullptr) && (lay->GetTexture() != nullptr))
         hsgResMgr::ResMgr()->AddViaNotify(lay->GetTexture()->GetKey(), new plGenRefMsg(GetKey(), plRefMsg::kOnCreate, -1, kRefDefaultCover), plRefFlags::kPassiveRef);  
 
     fLeftPageMap->SetFlag(pfGUIClickMapCtrl::kReportHovering);
@@ -684,7 +606,7 @@ pfGUIMultiLineEditCtrl *pfBookData::GetEditCtrl(uint32_t which)
     case pfJournalDlgProc::kTagTurnBackEditCtrl:
         return fTurnBackEditCtrl;
     default:
-        return nil;
+        return nullptr;
     }
 }
 
@@ -714,7 +636,7 @@ void pfBookData::RegisterForSFX(WhichSide whichPages)
 
 void pfBookData::IHandleSFX(float currTime, WhichSide whichSide /*= kNoSides*/)
 {
-    if(fCurrBook == nil)
+    if (fCurrBook == nullptr)
         return;
     if(whichSide == kNoSides)
     {
@@ -738,7 +660,7 @@ void pfBookData::IHandleSFX(float currTime, WhichSide whichSide /*= kNoSides*/)
     float deltaT = currTime - fBaseSFXTime;
 
     uint32_t idx, inc = (whichSide == kLeftSide) ? 0 : 1;
-    if(fCurrBook->fPageStarts.GetCount() <= fCurrBook->fCurrentPage + inc + 1)
+    if (fCurrBook->fPageStarts.size() <= fCurrBook->fCurrentPage + inc + 1)
         return;
 
     bool stillWant = false;
@@ -865,7 +787,7 @@ void pfBookData::ITriggerPageFlip(bool flipBackwards, bool immediate)
     // Hack here: since we don't have an official interface to select these directly
     // in MAX, we just use a GUI check box to grab them for us, even though we never
     // actually use the functionality of the checkbox itself
-    const hsTArray<plKey> &keys = fTurnPageButton->GetAnimationKeys();
+    const std::vector<plKey> &keys = fTurnPageButton->GetAnimationKeys();
     ST::string animName = fTurnPageButton->GetAnimationName();
 
     plAnimCmdMsg *msg = new plAnimCmdMsg();
@@ -992,7 +914,7 @@ void pfBookData::IFinishTriggeredFlip(bool wasBackwards)
         if ( turnFront->IsValid() && right->IsValid() )
         {
             memcpy(right->GetImage(), turnFront->GetImage(), right->GetLevelSize(0));
-            if(right->GetDeviceRef() != nil)
+            if (right->GetDeviceRef() != nullptr)
                 right->GetDeviceRef()->SetDirty(true);
         }
         // we are going to attempt to re-render the left-hand page
@@ -1014,7 +936,7 @@ void pfBookData::IFinishTriggeredFlip(bool wasBackwards)
         if ( turnBack->IsValid() && left->IsValid() )
         {
             memcpy(left->GetImage(), turnBack->GetImage(), left->GetLevelSize(0));
-            if(left->GetDeviceRef() != nil)
+            if (left->GetDeviceRef() != nullptr)
                 left->GetDeviceRef()->SetDirty(true);
         }
         // we are going to attempt to re-render the right-hand page
@@ -1134,7 +1056,7 @@ void pfBookData::EnableEditGUI(bool enable/* =true */)
 
 //// Our Singleton Stuff /////////////////////////////////////////////////////
 
-//pfJournalBook *pfJournalBook::fInstance = nil;
+//pfJournalBook *pfJournalBook::fInstance = nullptr;
 std::map<ST::string,pfBookData*> pfJournalBook::fBookGUIs;
 
 void    pfJournalBook::SingletonInit()
@@ -1151,7 +1073,7 @@ void    pfJournalBook::SingletonShutdown()
     {
         pfBookData *bookData = i->second;
         bookData->GetKey()->UnRefObject();
-        i->second = nil;
+        i->second = nullptr;
         i++;
     }
     fBookGUIs.clear();
@@ -1171,28 +1093,22 @@ void    pfJournalBook::UnloadGUI( const ST::string &guiName )
 {
     if (guiName.compare("BkBook")==0)
         return; // do not allow people to unload the default book gui
-    std::map<ST::string,pfBookData*>::iterator loc = fBookGUIs.find(guiName);
+    auto loc = fBookGUIs.find(guiName);
     if (loc != fBookGUIs.end()) // make sure it's loaded
     {
         fBookGUIs[guiName]->GetKey()->UnRefObject();
-        fBookGUIs[guiName] = nil;
+        fBookGUIs[guiName] = nullptr;
         fBookGUIs.erase(loc);
     }
 }
 
 void    pfJournalBook::UnloadAllGUIs()
 {
-    std::map<ST::string,pfBookData*>::iterator i = fBookGUIs.begin();
     std::vector<ST::string> names;
-    while (i != fBookGUIs.end())
-    {
-        ST::string name = i->first;
-        names.push_back(name); // store a list of keys
-        i++;
-    }
-    int idx;
-    for (idx = 0; idx < names.size(); idx++)
-        UnloadGUI(names[idx]); // UnloadGUI won't unload BkBook
+    for (const auto& [name, data] : fBookGUIs)
+        names.emplace_back(name); // store a list of keys
+    for (const ST::string& name : names)
+        UnloadGUI(name); // UnloadGUI won't unload BkBook
 }
 
 //// Constructor /////////////////////////////////////////////////////////////
@@ -1200,8 +1116,8 @@ void    pfJournalBook::UnloadAllGUIs()
 // the name of the mipmap to use as the cover of the book. The callback
 // key is the keyed object to send event messages to (see <img> tag).
 
-pfJournalBook::pfJournalBook( const char *esHTMLSource, plKey coverImageKey, plKey callbackKey /*= nil*/, 
-                                const plLocation &hintLoc /* = plLocation::kGlobalFixedLoc */, const ST::string &guiName /* = nil */ )
+pfJournalBook::pfJournalBook(const char *esHTMLSource, plKey coverImageKey, plKey callbackKey /*= {}*/,
+                             const plLocation &hintLoc /* = plLocation::kGlobalFixedLoc */, const ST::string &guiName /* = {} */)
 {
     if (!guiName.empty())
         fCurBookGUI = guiName;
@@ -1236,8 +1152,8 @@ pfJournalBook::pfJournalBook( const char *esHTMLSource, plKey coverImageKey, plK
     delete [] wESHTMLSource;
 }
 
-pfJournalBook::pfJournalBook( const wchar_t *esHTMLSource, plKey coverImageKey, plKey callbackKey /*= nil*/, 
-                                const plLocation &hintLoc /* = plLocation::kGlobalFixedLoc */, const ST::string &guiName /* = nil */ )
+pfJournalBook::pfJournalBook(const wchar_t *esHTMLSource, plKey coverImageKey, plKey callbackKey /*= {}*/,
+                             const plLocation &hintLoc /* = plLocation::kGlobalFixedLoc */, const ST::string &guiName /* = {} */)
 {
     if (!guiName.empty())
         fCurBookGUI = guiName;
@@ -1307,46 +1223,44 @@ void    pfJournalBook::Show( bool startOpened /*= false */)
     ILoadAllImages( false );
 
     hsGMaterial *cover = fBookGUIs[fCurBookGUI]->CoverMaterial();
-    if( cover != nil )
+    if (cover != nullptr)
     {
-        hsTArray<plLayerInterface*> layers;
-        plMipmap *mip = fCoverMipKey ? plMipmap::ConvertNoRef( fCoverMipKey->ObjectIsLoaded() ) : nil;
-        if( mip != nil )
+        std::vector<plLayerInterface*> layers;
+        plMipmap *mip = fCoverMipKey ? plMipmap::ConvertNoRef(fCoverMipKey->ObjectIsLoaded()) : nullptr;
+        if (mip != nullptr)
         {
-            layers.Append(IMakeBaseLayer(mip));
+            layers.emplace_back(IMakeBaseLayer(mip));
 
-            int i;
-            for (i=0; i<fCoverDecals.GetCount(); i++)
+            for (pfEsHTMLChunk* decalChunk : fCoverDecals)
             {
-                if (fCoverDecals[i]->fType == pfEsHTMLChunk::kDecal)
+                if (decalChunk->fType == pfEsHTMLChunk::kDecal)
                 {
-                    plMipmap *decal = plMipmap::ConvertNoRef( fCoverDecals[i]->fImageKey != nil ? fCoverDecals[i]->fImageKey->ObjectIsLoaded() : nil );
-                    if (decal != nil)
-                        layers.Append(IMakeDecalLayer(fCoverDecals[i],decal,mip));
+                    plMipmap *decal = plMipmap::ConvertNoRef(decalChunk->fImageKey != nullptr ? decalChunk->fImageKey->ObjectIsLoaded() : nullptr);
+                    if (decal != nullptr)
+                        layers.emplace_back(IMakeDecalLayer(decalChunk, decal, mip));
                 }
                 else
                 {
                     // it's a cover movie, not a decal, so we make a layer, thinking it's at 0,0 and a left map (which gives us the results we want)
-                    plLayerAVI *movieLayer = IMakeMovieLayer(fCoverDecals[i],0,0,mip,pfJournalDlgProc::kTagLeftDTMap,false);
+                    plLayerAVI *movieLayer = IMakeMovieLayer(decalChunk, 0, 0, mip, pfJournalDlgProc::kTagLeftDTMap, false);
                     loadedMovie *movie = new loadedMovie;
                     movie->movieLayer = movieLayer;
-                    movie->movieChunk = fCoverDecals[i];
-                    fLoadedMovies.Append(movie);
-                    layers.Append(plLayerInterface::ConvertNoRef(movieLayer));
-                    fVisibleLinks.Reset(); // remove any links that the make movie layer might have added, since a cover movie can't link
+                    movie->movieChunk = decalChunk;
+                    fLoadedMovies.emplace_back(movie);
+                    layers.emplace_back(plLayerInterface::ConvertNoRef(movieLayer));
+                    fVisibleLinks.clear(); // remove any links that the make movie layer might have added, since a cover movie can't link
                 }
             }
             ISetDecalLayers(cover,layers);
         }
         else
         {
-            layers.Append(IMakeBaseLayer(fBookGUIs[fCurBookGUI]->DefaultCover()));
+            layers.emplace_back(IMakeBaseLayer(fBookGUIs[fCurBookGUI]->DefaultCover()));
             ISetDecalLayers(cover,layers);
         }
         // release our ref on the cover layers since the material will take care of them now
-        int i;
-        for (i=0; i<layers.GetCount(); i++)
-            GetKey()->Release(layers[i]->GetKey());
+        for (plLayerInterface* layer : layers)
+            GetKey()->Release(layer->GetKey());
     }
 
 //  fInstance->IPlayBookCloseAnim( !startOpened, true );
@@ -1367,7 +1281,7 @@ void    pfJournalBook::IFinishShow( bool startOpened )
     {
         // Render initial pages
         fCurrentPage = 0;
-        fVisibleLinks.Reset();
+        fVisibleLinks.clear();
         IRenderPage( 0, pfJournalDlgProc::kTagLeftDTMap );
         IRenderPage( 1, pfJournalDlgProc::kTagRightDTMap );
 
@@ -1388,20 +1302,19 @@ void    pfJournalBook::Hide()
         {
             if (fBookGUIs[fCurBookGUI]->Dialog())
                 fBookGUIs[fCurBookGUI]->Dialog()->Hide();
-            fBookGUIs[fCurBookGUI]->CurBook(nil);
+            fBookGUIs[fCurBookGUI]->CurBook(nullptr);
             ISendNotify( kNotifyHide );
             ILoadAllImages( true );
             // purge the dynaTextMaps, we're done with them for now
             IPurgeDynaTextMaps();
             // nuke the movies so they don't stay in memory (they're big!)
-            int i;
-            for( i = 0; i < fLoadedMovies.GetCount(); i++ )
+            for (loadedMovie* lm : fLoadedMovies)
             {
-                plLayerAVI *movie = fLoadedMovies[ i ]->movieLayer;
+                plLayerAVI *movie = lm->movieLayer;
                 movie->GetKey()->UnRefObject();
-                delete fLoadedMovies[ i ];
+                delete lm;
             }
-            fLoadedMovies.Reset();
+            fLoadedMovies.clear();
         }
     }
 
@@ -1418,7 +1331,7 @@ void    pfJournalBook::Open( uint32_t startingPage /*= 0 */)
 
         // Render initial pages
         fCurrentPage = startingPage;
-        fVisibleLinks.Reset();
+        fVisibleLinks.clear();
         IRenderPage( startingPage, pfJournalDlgProc::kTagLeftDTMap );
         IRenderPage( startingPage + 1, pfJournalDlgProc::kTagRightDTMap );
 
@@ -1472,7 +1385,7 @@ void    pfJournalBook::ITriggerCloseWithNotify( bool closeNotOpen, bool immediat
     // Do the animation manually so we can get a callback
     fBookGUIs[fCurBookGUI]->CurrentlyOpen(!closeNotOpen);
 
-    const hsTArray<plKey> &keys = fBookGUIs[fCurBookGUI]->CoverButton()->GetAnimationKeys();
+    const std::vector<plKey> &keys = fBookGUIs[fCurBookGUI]->CoverButton()->GetAnimationKeys();
     ST::string animName = fBookGUIs[fCurBookGUI]->CoverButton()->GetAnimationName();
 
     plAnimCmdMsg *msg = new plAnimCmdMsg();
@@ -1535,7 +1448,7 @@ void    pfJournalBook::NextPage()
     else if( fCurrentPage + 2 <= fLastPage )
     {
         fCurrentPage += 2;
-        fVisibleLinks.Reset();
+        fVisibleLinks.clear();
 
         // Swap the right DT map into the turn page front DTMap, then render
         // the new current page into turn page back and currPage+1 into 
@@ -1545,7 +1458,7 @@ void    pfJournalBook::NextPage()
         if ( turnFront->IsValid() && right->IsValid() )
         {
             memcpy( turnFront->GetImage(), right->GetImage(), right->GetLevelSize( 0 ) );
-            if( turnFront->GetDeviceRef() != nil )
+            if (turnFront->GetDeviceRef() != nullptr)
                 turnFront->GetDeviceRef()->SetDirty( true );
         }
         // copy the videos over
@@ -1603,7 +1516,7 @@ void    pfJournalBook::PreviousPage()
     else if( fCurrentPage > 1 )
     {
         fCurrentPage -= 2;
-        fVisibleLinks.Reset();
+        fVisibleLinks.clear();
 
         // Swap the left DT map into the turn page back DTMap, then render
         // the new current page into the left and currPage+1 into 
@@ -1613,7 +1526,7 @@ void    pfJournalBook::PreviousPage()
         if ( turnBack->IsValid() && left->IsValid() )
         {
             memcpy( turnBack->GetImage(), left->GetImage(), left->GetLevelSize( 0 ) );
-            if( turnBack->GetDeviceRef() != nil )
+            if (turnBack->GetDeviceRef() != nullptr)
                 turnBack->GetDeviceRef()->SetDirty( true );
         }
         // copy the videos over
@@ -1637,7 +1550,7 @@ void    pfJournalBook::PreviousPage()
 //// IFindCurrVisibleLink ////////////////////////////////////////////////////
 // Find the current moused link, if any
 
-int32_t   pfJournalBook::IFindCurrVisibleLink( bool rightNotLeft, bool hoverNotUp )
+hsSsize_t pfJournalBook::IFindCurrVisibleLink(bool rightNotLeft, bool hoverNotUp)
 {
     pfGUIClickMapCtrl *ctrl = ( rightNotLeft ) ? fBookGUIs[fCurBookGUI]->RightPageMap() : fBookGUIs[fCurBookGUI]->LeftPageMap();
 
@@ -1655,13 +1568,12 @@ int32_t   pfJournalBook::IFindCurrVisibleLink( bool rightNotLeft, bool hoverNotU
     }
 
     // Search through the list of visible hotspots
-    uint32_t i;
-    for( i = 0; i < fVisibleLinks.GetCount(); i++ )
+    for (size_t i = 0; i < fVisibleLinks.size(); i++)
     {
         if( fVisibleLinks[ i ]->fLinkRect.Contains( (int16_t)pt.fX, (int16_t)pt.fY ) )
         {
             // Found a visible link
-            return (int32_t)i;
+            return hsSsize_t(i);
         }
     }
 
@@ -1675,8 +1587,7 @@ void    pfJournalBook::IHandleLeftSideClick()
     if( fBookGUIs[fCurBookGUI]->CurrentlyTurning() )
         return;
 
-    int32_t idx = IFindCurrVisibleLink( false, false );
-    if( idx != -1 )
+    if (hsSsize_t idx = IFindCurrVisibleLink(false, false); idx != -1)
     {
         if( fVisibleLinks[ idx ]->fFlags & pfEsHTMLChunk::kActAsCB )
             IHandleCheckClick( idx, pfBookData::kLeftSide );
@@ -1694,8 +1605,7 @@ void    pfJournalBook::IHandleRightSideClick()
     if( fBookGUIs[fCurBookGUI]->CurrentlyTurning() )
         return;
 
-    int32_t idx = IFindCurrVisibleLink( true, false );
-    if( idx != -1 )
+    if (hsSsize_t idx = IFindCurrVisibleLink(true, false); idx != -1)
     {
         if( fVisibleLinks[ idx ]->fFlags & pfEsHTMLChunk::kActAsCB )
             IHandleCheckClick( idx, pfBookData::kRightSide );
@@ -1744,7 +1654,7 @@ void    pfJournalBook::GoToPage( uint32_t pageNumber )
     // Put us here, but only on an even page (odd pages go on the right, y'know)
     // (no need for a range check, going past the end simply puts you on a blank page, able to go backward but not forward)
     fCurrentPage = pageNumber & ~0x00000001;
-    fVisibleLinks.Reset();
+    fVisibleLinks.clear();
     IRenderPage( fCurrentPage, pfJournalDlgProc::kTagLeftDTMap );
     IRenderPage( fCurrentPage + 1, pfJournalDlgProc::kTagRightDTMap );
     fBookGUIs[fCurBookGUI]->UpdatePageCorners( pfBookData::kBothSides );
@@ -1837,7 +1747,7 @@ bool    pfJournalBook::ICompileSource(const wchar_t *source, const plLocation &h
             } else if (lastParChunk) {
                 size_t count = ((uintptr_t)c - (uintptr_t)start) / sizeof(wchar_t); // wchar_t is 2 bytes
                 lastParChunk->fText.assign(start, 0, count);
-                fHTMLSource.Append(lastParChunk);
+                fHTMLSource.emplace_back(lastParChunk);
             }
 
             // What chunk are we making now?
@@ -1940,7 +1850,7 @@ bool    pfJournalBook::ICompileSource(const wchar_t *source, const plLocation &h
                         }
                     }
                     if (chunk->fImageKey)
-                        fHTMLSource.Append(chunk);
+                        fHTMLSource.emplace_back(chunk);
                     else
                         delete chunk;
                     // Start new paragraph chunk after this one
@@ -1977,7 +1887,7 @@ bool    pfJournalBook::ICompileSource(const wchar_t *source, const plLocation &h
                     chunk = new pfEsHTMLChunk();
                     while (IGetNextOption(c, name, option)) {
                     }
-                    fHTMLSource.Append(chunk);
+                    fHTMLSource.emplace_back(chunk);
                     // Start new paragraph chunk after this one
                     lastParChunk = new pfEsHTMLChunk(nullptr);
                     lastParChunk->fFlags = IFindLastAlignment();
@@ -2040,7 +1950,7 @@ bool    pfJournalBook::ICompileSource(const wchar_t *source, const plLocation &h
                             chunk->fFlags |= pfEsHTMLChunk::kFontSpacing;
                         }
                     }
-                    fHTMLSource.Append(chunk);
+                    fHTMLSource.emplace_back(chunk);
                     // Start new paragraph chunk after this one
                     lastParChunk = new pfEsHTMLChunk(nullptr);
                     lastParChunk->fFlags = IFindLastAlignment();
@@ -2120,7 +2030,7 @@ bool    pfJournalBook::ICompileSource(const wchar_t *source, const plLocation &h
                     }
                     // add it to our cover decals list (this is tag is essentially thrown away as far as the parser cares)
                     if (chunk->fImageKey)
-                        fCoverDecals.Append(chunk);
+                        fCoverDecals.emplace_back(chunk);
                     else
                         delete chunk;
                     // Start new paragraph chunk after this one
@@ -2167,12 +2077,12 @@ bool    pfJournalBook::ICompileSource(const wchar_t *source, const plLocation &h
                     movieIndex++;
                     if (chunk->fOnCover) {
                         if (chunk->fText != L"")
-                            fCoverDecals.Append(chunk);
+                            fCoverDecals.emplace_back(chunk);
                         else
                             delete chunk;
                     } else {
                         if (chunk->fText != L"")
-                            fHTMLSource.Append(chunk);
+                            fHTMLSource.emplace_back(chunk);
                         else
                             delete chunk;
                     }
@@ -2187,7 +2097,7 @@ bool    pfJournalBook::ICompileSource(const wchar_t *source, const plLocation &h
                     chunk = new pfEsHTMLChunk();
                     while (IGetNextOption(c, name, option)) {
                     }
-                    fHTMLSource.Append(chunk);
+                    fHTMLSource.emplace_back(chunk);
                     // Start new paragraph chunk after this one
                     lastParChunk = new pfEsHTMLChunk(nullptr);
                     lastParChunk->fFlags = IFindLastAlignment();
@@ -2210,12 +2120,11 @@ bool    pfJournalBook::ICompileSource(const wchar_t *source, const plLocation &h
         size_t count = (uintptr_t)c - (uintptr_t)start;
         lastParChunk->fText.assign(start, 0, count);
 
-        fHTMLSource.Append(lastParChunk);
+        fHTMLSource.emplace_back(lastParChunk);
     }
 
     // Reset a few
-    fPageStarts.Reset();
-    fPageStarts.Append(0);
+    fPageStarts = {0};
     if (fAreEditing)
         fLastPage = 0;
     else
@@ -2243,11 +2152,11 @@ uint8_t   pfJournalBook::IGetTagType( const wchar_t *string )
                 { L"decal", pfEsHTMLChunk::kDecal },
                 { L"movie", pfEsHTMLChunk::kMovie },
                 { L"editable", pfEsHTMLChunk::kEditable },
-                { nil, pfEsHTMLChunk::kEmpty } };
+                { nullptr, pfEsHTMLChunk::kEmpty } };
                 
 
     uint32_t i;
-    for( i = 0; tags[ i ].fTag != nil; i++ )
+    for (i = 0; tags[i].fTag != nullptr; i++)
     {
         if( wcsnicmp( string + 1, tags[ i ].fTag, wcslen( tags[ i ].fTag ) ) == 0 )
         {
@@ -2329,23 +2238,21 @@ bool    pfJournalBook::IGetNextOption( const wchar_t *&string, wchar_t *name, wc
 
 void    pfJournalBook::IFreeSource()
 {
-    uint32_t i;
-    
-    for( i = 0; i < fHTMLSource.GetCount(); i++ )
-        delete fHTMLSource[ i ];
-    fHTMLSource.Reset();
+    for (pfEsHTMLChunk* chunk : fHTMLSource)
+        delete chunk;
+    fHTMLSource.clear();
 
-    for( i = 0; i < fCoverDecals.GetCount(); i++ )
-        delete fCoverDecals[ i ];
-    fCoverDecals.Reset();
+    for (pfEsHTMLChunk* decalChunk : fCoverDecals)
+        delete decalChunk;
+    fCoverDecals.clear();
 
-    for( i = 0; i < fLoadedMovies.GetCount(); i++ )
+    for (loadedMovie* lm : fLoadedMovies)
     {
-        plLayerAVI *movie = fLoadedMovies[ i ]->movieLayer;
+        plLayerAVI *movie = lm->movieLayer;
         movie->GetKey()->UnRefObject();
-        delete fLoadedMovies[ i ];
+        delete lm;
     }
-    fLoadedMovies.Reset();
+    fLoadedMovies.clear();
 }
 
 //// IGetMipmapKey ///////////////////////////////////////////////////////////
@@ -2353,11 +2260,6 @@ void    pfJournalBook::IFreeSource()
 // location is treated as a hint; if the image isn't found in that location,
 // the code will attempt to look in the currently loaded age for a matching
 // image name.
-
-#ifndef PLASMA_EXTERNAL_RELEASE
-#include "plGImage/plJPEG.h"
-#include "plGImage/plPNG.h"
-#endif
 
 plKey   pfJournalBook::IGetMipmapKey( const wchar_t *name, const plLocation &loc )
 {
@@ -2381,7 +2283,7 @@ plKey   pfJournalBook::IGetMipmapKey( const wchar_t *name, const plLocation &loc
     // Try first to find in the given location
     plUoid myUoid( loc, plMipmap::Index(), cName );
     plKey key = hsgResMgr::ResMgr()->FindKey( myUoid );
-    if( key != nil )
+    if (key != nullptr)
     {
         return key;
     }
@@ -2391,26 +2293,26 @@ plKey   pfJournalBook::IGetMipmapKey( const wchar_t *name, const plLocation &loc
     const plLocation &globLoc = plKeyFinder::Instance().FindLocation( "GUI", "BkBookImages" );
     myUoid = plUoid( globLoc, plMipmap::Index(), cName );
     key = hsgResMgr::ResMgr()->FindKey( myUoid );
-    if( key != nil )
+    if (key != nullptr)
     {
         return key;
     }
 
     // Do a search through our current age with just the name given
-    if( plNetClientMgr::GetInstance() != nil )
+    if (plNetClientApp::GetInstance() != nullptr)
     {
         ST::string thisAge = plAgeLoader::GetInstance()->GetCurrAgeDesc().GetAgeName();
         if (!thisAge.empty())
         {
             key = plKeyFinder::Instance().StupidSearch( thisAge, "", plMipmap::Index(), cName, true );
-            if( key != nil )
+            if (key != nullptr)
             {
                 return key;
             }
         }
     }
 
-    return nil;
+    return nullptr;
 }
 
 //// IRenderPage /////////////////////////////////////////////////////////////
@@ -2425,9 +2327,9 @@ void    pfJournalBook::IRenderPage( uint32_t page, uint32_t whichDTMap, bool sup
     
     // Grab the DTMap via the GUI system
     plDynamicTextMap *dtMap = fBookGUIs[fCurBookGUI]->GetDTMap( whichDTMap );
-    hsAssert( dtMap != nil, "Invalid DT map in IRenderPage()" );
+    hsAssert(dtMap != nullptr, "Invalid DT map in IRenderPage()");
 
-    loadedMovie *movie = nil;
+    loadedMovie *movie = nullptr;
     bool movieAlreadyLoaded = false;
 
     // Make sure our page starts are up-to-snuff, at least to this point
@@ -2439,7 +2341,7 @@ void    pfJournalBook::IRenderPage( uint32_t page, uint32_t whichDTMap, bool sup
     if( !suppressRendering )
         dtMap->ClearToColor( color );
 
-    hsGMaterial *material = nil;
+    hsGMaterial *material = nullptr;
     if (whichDTMap == pfJournalDlgProc::kTagLeftDTMap)
         material = fBookGUIs[fCurBookGUI]->PageMaterial(pfBookData::kLeftPage);
     else if (whichDTMap == pfJournalDlgProc::kTagRightDTMap)
@@ -2452,8 +2354,7 @@ void    pfJournalBook::IRenderPage( uint32_t page, uint32_t whichDTMap, bool sup
     if (material)
     {
         // clear any exiting layers (movies) from the material
-        int i;
-        for( i = 0; i < material->GetNumLayers(); i++ ) // remove all plLayerMovie layers
+        for (size_t i = 0; i < material->GetNumLayers(); i++) // remove all plLayerMovie layers
         {
             plLayerInterface *matLayer = material->GetLayer(i);
             plLayerAVI *movie = plLayerAVI::ConvertNoRef(matLayer);
@@ -2465,9 +2366,9 @@ void    pfJournalBook::IRenderPage( uint32_t page, uint32_t whichDTMap, bool sup
         }
     }
 
-    hsAssert(page < fPageStarts.GetCount() || page > fLastPage, "UnInitialized page start!");
-    if( page <= fLastPage 
-        && page < fPageStarts.GetCount())   // Added this as a crash-prevention bandaid - MT
+    hsAssert(page < fPageStarts.size() || page > fLastPage, "UnInitialized page start!");
+    if (page <= fLastPage
+        && page < fPageStarts.size())   // Added this as a crash-prevention bandaid - MT
     {
         uint32_t idx;
         uint16_t width, height, y, x, ascent, lastX, lastY;
@@ -2484,10 +2385,10 @@ void    pfJournalBook::IRenderPage( uint32_t page, uint32_t whichDTMap, bool sup
         dtMap->SetTextColor( fontColor, true );
         dtMap->SetLineSpacing(fontSpacing);
 
-        for( idx = fPageStarts[ page ], x = (uint16_t)fPageLMargin, y = (uint16_t)fPageTMargin;
-            y < (uint16_t)(512 - fPageTMargin - fPageBMargin) && idx < fHTMLSource.GetCount(); idx++ )
+        for (idx = fPageStarts[page], x = (uint16_t)fPageLMargin, y = (uint16_t)fPageTMargin;
+            y < (uint16_t)(512 - fPageTMargin - fPageBMargin) && idx < fHTMLSource.size(); idx++)
         {
-            if( fPageStarts.GetCount() > page + 1 && idx == fPageStarts[ page + 1 ] )
+            if (fPageStarts.size() > page + 1 && idx == fPageStarts[page + 1])
                 break;  // Just go ahead and break at the start of the next page, since we already found it
 
             pfEsHTMLChunk *chunk = fHTMLSource[ idx ];
@@ -2536,24 +2437,23 @@ void    pfJournalBook::IRenderPage( uint32_t page, uint32_t whichDTMap, bool sup
                         // this changes the chunk array beyond this point, so we need to invalidate the
                         // cache, but that's ok 'cause if we're doing this, it's probably invalid (or empty)
                         // anyway
-                        int fTextLen = chunk->fText.length();
-                        wchar_t *s = new wchar_t[fTextLen+1];
-                        wcscpy(s,chunk->fText.c_str());
+                        size_t fTextLen = chunk->fText.length();
+                        auto s = std::make_unique<wchar_t[]>(fTextLen + 1);
+                        wcscpy(s.get(), chunk->fText.c_str());
                         s[fTextLen] = L'\0';
 
                         // Note: Makes a copy of the string
                         pfEsHTMLChunk *c2 = new pfEsHTMLChunk( &s[ lastChar ] );
                         c2->fFlags = chunk->fFlags;
-                        fHTMLSource.Insert( idx + 1, c2 );
+                        fHTMLSource.emplace(fHTMLSource.begin() + idx + 1, c2);
 
                         // Clip and reallocate so we don't have two copies laying around
                         s[ lastChar ] = L'\0';
-                        chunk->fText = s;
-                        delete [] s;
+                        chunk->fText = s.get();
 
                         // Invalidate our cache starting with the next page
-                        if( fPageStarts.GetCount() > page + 1 )
-                            fPageStarts.SetCount( page + 1 );
+                        if (fPageStarts.size() > page + 1)
+                            fPageStarts.resize(page + 1);
 
                         y += 512;
                         break;
@@ -2572,8 +2472,8 @@ void    pfJournalBook::IRenderPage( uint32_t page, uint32_t whichDTMap, bool sup
 
                 case pfEsHTMLChunk::kImage:
                     {
-                        plMipmap *mip = plMipmap::ConvertNoRef( chunk->fImageKey != nil ? chunk->fImageKey->ObjectIsLoaded() : nil );
-                        if( mip != nil )
+                        plMipmap *mip = plMipmap::ConvertNoRef(chunk->fImageKey != nullptr ? chunk->fImageKey->ObjectIsLoaded() : nullptr);
+                        if (mip != nullptr)
                         {
                             // First, determine if we need to be processing FX messages
                             if( chunk->fFlags & pfEsHTMLChunk::kGlowing )
@@ -2651,14 +2551,12 @@ void    pfJournalBook::IRenderPage( uint32_t page, uint32_t whichDTMap, bool sup
                     break;
 
                 case pfEsHTMLChunk::kMovie:
-                    movieAlreadyLoaded = (IMovieAlreadyLoaded(chunk) != nil); // have we already cached it?
+                    movieAlreadyLoaded = (IMovieAlreadyLoaded(chunk) != nullptr); // have we already cached it?
                     plLayerAVI *movieLayer = IMakeMovieLayer(chunk, x, y, (plMipmap*)dtMap, whichDTMap, suppressRendering);
                     if (movieLayer)
                     {
                         // adjust the starting height of the movie if we are keeping it inline with the text
-                        uint32_t movieHeight = 0, movieWidth = 0;
-                        movieHeight = movieLayer->GetHeight();
-                        movieWidth = movieLayer->GetWidth();
+                        uint32_t movieHeight = movieLayer->GetHeight();
                         if(!(chunk->fFlags & pfEsHTMLChunk::kFloating ))
                         {
                             if( y + movieHeight >= 512 - fPageBMargin )
@@ -2684,8 +2582,8 @@ void    pfJournalBook::IRenderPage( uint32_t page, uint32_t whichDTMap, bool sup
                             movie = new loadedMovie;
                             movie->movieLayer = movieLayer; // save the layer and chunk data
                             movie->movieChunk = chunk;
-                            fLoadedMovies.Append(movie);
-                            movie = nil;
+                            fLoadedMovies.emplace_back(movie);
+                            movie = nullptr;
                             movieAlreadyLoaded = false;
                         }
                         if (material && !suppressRendering)
@@ -2695,11 +2593,11 @@ void    pfJournalBook::IRenderPage( uint32_t page, uint32_t whichDTMap, bool sup
             }
         }
 
-        if( fPageStarts.GetCount() <= page + 1 )
-            fPageStarts.ExpandAndZero( page + 2 );
+        if (fPageStarts.size() <= page + 1)
+            fPageStarts.resize(page + 2);
         fPageStarts[ page + 1 ] = idx;
 
-        if( idx == fHTMLSource.GetCount() )
+        if (idx == fHTMLSource.size())
             fLastPage = page;
 
         pfBookData::WhichSide thisWhich = ( whichDTMap == pfJournalDlgProc::kTagRightDTMap ) ? pfBookData::kRightSide : ( whichDTMap == pfJournalDlgProc::kTagLeftDTMap )  ? pfBookData::kLeftSide : pfBookData::kNoSides;
@@ -2717,12 +2615,11 @@ void    pfJournalBook::IRenderPage( uint32_t page, uint32_t whichDTMap, bool sup
 
 void    pfJournalBook::IMoveMovies( hsGMaterial *source, hsGMaterial *dest )
 {
-    hsTArray<plLayerAVI*> moviesOnPage;
+    std::vector<plLayerAVI*> moviesOnPage;
     if (source && dest)
     {
         // clear any exiting layers (movies) from the material and save them to our local array
-        int i;
-        for( i = 0; i < source->GetNumLayers(); i++ ) // remove all plLayerMovie layers
+        for (size_t i = 0; i < source->GetNumLayers(); i++) // remove all plLayerMovie layers
         {
             plLayerInterface *matLayer = source->GetLayer(i);
             plLayerAVI *movie = plLayerAVI::ConvertNoRef(matLayer);
@@ -2730,11 +2627,11 @@ void    pfJournalBook::IMoveMovies( hsGMaterial *source, hsGMaterial *dest )
             {
                 plMatRefMsg* refMsg = new plMatRefMsg(source->GetKey(), plRefMsg::kOnRemove, i, plMatRefMsg::kLayer); // remove it
                 hsgResMgr::ResMgr()->SendRef(source->GetLayer(i)->GetKey(), refMsg, plRefFlags::kActiveRef);
-                moviesOnPage.Append(movie);
+                moviesOnPage.emplace_back(movie);
             }
         }
         // clear the destination's movies (if it has any)
-        for( i = 0; i < dest->GetNumLayers(); i++ ) // remove all plLayerMovie layers
+        for (size_t i = 0; i < dest->GetNumLayers(); i++) // remove all plLayerMovie layers
         {
             plLayerInterface *matLayer = dest->GetLayer(i);
             plLayerAVI *movie = plLayerAVI::ConvertNoRef(matLayer);
@@ -2745,10 +2642,8 @@ void    pfJournalBook::IMoveMovies( hsGMaterial *source, hsGMaterial *dest )
             }
         }
         // put the movies we ripped off the old page onto the new one
-        for( i = 0; i < moviesOnPage.GetCount(); i++ )
-        {
-            dest->AddLayerViaNotify(moviesOnPage[i]);
-        }
+        for (plLayerAVI* movie : moviesOnPage)
+            dest->AddLayerViaNotify(movie);
     }
 }
 
@@ -2764,7 +2659,7 @@ void    pfJournalBook::IDrawMipmap( pfEsHTMLChunk *chunk, uint16_t x, uint16_t y
         // calc new size based on how the book has been skewed
         float xScale = (fWidthScale == 0) ? 1 : 1/(1-fWidthScale);
         float yScale = (fHeightScale == 0) ? 1 : 1/(1-fHeightScale);
-        yScale *= 0.7; // adjust because the book isn't square
+        yScale *= 0.7f; // adjust because the book isn't square
         uint32_t width = (uint32_t)(mip->GetWidth()*xScale);
         uint32_t height = (uint32_t)(mip->GetHeight()*yScale);
         uint16_t xShift;
@@ -2843,20 +2738,19 @@ void    pfJournalBook::IDrawMipmap( pfEsHTMLChunk *chunk, uint16_t x, uint16_t y
             chunk->fLinkRect.Set(0,0,0,0);
         else
             chunk->fLinkRect.Set( x, y, (int16_t)(copy->GetWidth()), (int16_t)(copy->GetHeight()) );
-        fVisibleLinks.Append( chunk );
+        fVisibleLinks.emplace_back(chunk);
     }
     delete copy;
 }
 
 pfJournalBook::loadedMovie *pfJournalBook::IMovieAlreadyLoaded(pfEsHTMLChunk *chunk)
 {
-    int i;
-    for (i=0; i<fLoadedMovies.GetCount(); i++) // filename and id# must both match
+    for (loadedMovie* lm : fLoadedMovies) // filename and id# must both match
     {
-        if ((chunk->fText == fLoadedMovies[i]->movieChunk->fText)&&(chunk->fMovieIndex == fLoadedMovies[i]->movieChunk->fMovieIndex))
-            return fLoadedMovies[i];
+        if ((chunk->fText == lm->movieChunk->fText) && (chunk->fMovieIndex == lm->movieChunk->fMovieIndex))
+            return lm;
     }
-    return nil;
+    return nullptr;
 }
 
 plKey pfJournalBook::GetMovie(uint8_t index)
@@ -2864,26 +2758,25 @@ plKey pfJournalBook::GetMovie(uint8_t index)
     loadedMovie *movie = IGetMovieByIndex(index);
     if (movie)
         return movie->movieLayer->GetKey();
-    return plKey(nil);
+    return plKey();
 }
 
 pfJournalBook::loadedMovie *pfJournalBook::IGetMovieByIndex(uint8_t index)
 {
-    int i;
-    for (i=0; i<fLoadedMovies.GetCount(); i++)
+    for (loadedMovie* lm : fLoadedMovies)
     {
-        if (fLoadedMovies[i]->movieChunk->fMovieIndex == index)
-            return fLoadedMovies[i];
+        if (lm->movieChunk->fMovieIndex == index)
+            return lm;
     }
-    return nil;
+    return nullptr;
 }
 
 plLayerAVI *pfJournalBook::IMakeMovieLayer(pfEsHTMLChunk *chunk, uint16_t x, uint16_t y, plMipmap *baseMipmap, uint32_t whichDTMap, bool dontRender)
 {
     // see if it's already loaded
     loadedMovie *movie = IMovieAlreadyLoaded(chunk);
-    plLayer* layer = nil;
-    plLayerAVI* movieLayer = nil;
+    plLayer* layer = nullptr;
+    plLayerAVI* movieLayer = nullptr;
     uint16_t movieWidth=0,movieHeight=0;
     if (movie)
     {
@@ -2923,7 +2816,7 @@ plLayerAVI *pfJournalBook::IMakeMovieLayer(pfEsHTMLChunk *chunk, uint16_t x, uin
         if (movieHeight == 0 || movieWidth == 0) // problem loading the file
         {
             movieLayer->GetKey()->UnRefObject();
-            return nil;
+            return nullptr;
         }
     }
 
@@ -2980,10 +2873,11 @@ plLayerAVI *pfJournalBook::IMakeMovieLayer(pfEsHTMLChunk *chunk, uint16_t x, uin
             // calc new size based on how the book has been skewed
             xScale *= (fWidthScale == 0) ? 1 : (1-fWidthScale);
             yScale *= (fHeightScale == 0) ? 1 : (1-fHeightScale);
-            yScale *= 1/0.7; // adjust because the book isn't square
+            yScale *= 1.f/0.7f; // adjust because the book isn't square
         }
 
-        hsVector3 scaleVec(xScale,yScale,1), translateVec(-(xRel*xScale),-(yRel*yScale),0);
+        hsVector3 scaleVec(xScale, yScale, 1.f);
+        hsVector3 translateVec(-(xRel*xScale), -(yRel*yScale), 0.f);
         hsMatrix44 scaleMat, translateMat;
         scaleMat.MakeScaleMat(&scaleVec);
         translateMat.MakeTranslateMat(&translateVec);
@@ -2991,7 +2885,8 @@ plLayerAVI *pfJournalBook::IMakeMovieLayer(pfEsHTMLChunk *chunk, uint16_t x, uin
         hsMatrix44 flipMat;
         if (chunk->fOnCover) // cover movies need to be y flipped
         {
-            hsVector3 yTransVec(0,-1,0), invertYVec(1,-1,1);
+            hsVector3 yTransVec(0.f, -1.f, 0.f);
+            hsVector3 invertYVec(1.f, -1.f, 1.f);
             hsMatrix44 invertY, transY;
             invertY.MakeScaleMat(&invertYVec);
             transY.MakeTranslateMat(&yTransVec);
@@ -3001,7 +2896,8 @@ plLayerAVI *pfJournalBook::IMakeMovieLayer(pfEsHTMLChunk *chunk, uint16_t x, uin
         {
             if ((whichDTMap == pfJournalDlgProc::kTagLeftDTMap) || (whichDTMap == pfJournalDlgProc::kTagTurnBackDTMap))
             {
-                hsVector3 xTransVec(-1,0,0), invertXVec(-1,1,1);
+                hsVector3 xTransVec(-1.f, 0.f, 0.f);
+                hsVector3 invertXVec(-1.f, 1.f, 1.f);
                 hsMatrix44 invertX, transX;
                 invertX.MakeScaleMat(&invertXVec);
                 transX.MakeTranslateMat(&xTransVec);
@@ -3025,7 +2921,7 @@ plLayerAVI *pfJournalBook::IMakeMovieLayer(pfEsHTMLChunk *chunk, uint16_t x, uin
             chunk->fLinkRect.Set(0,0,0,0);
         else
             chunk->fLinkRect.Set( x, y, movieWidth, movieHeight );
-        fVisibleLinks.Append( chunk );
+        fVisibleLinks.emplace_back(chunk);
     }
 
     plAnimTimeConvert &timeConvert = movieLayer->GetTimeConvert();
@@ -3079,7 +2975,8 @@ plLayerInterface *pfJournalBook::IMakeBaseLayer(plMipmap *image)
     layer->SetUVWSrc(0);
 
     // Set up the transform.
-    hsVector3 yTransVec(0,-1,0), invertYVec(1,-1,1);
+    hsVector3 yTransVec(0.f, -1.f, 0.f);
+    hsVector3 invertYVec(1.f, -1.f, 1.f);
     hsMatrix44 xfm, invertY, transY, flipY;
     invertY.MakeScaleMat(&invertYVec);
     transY.MakeTranslateMat(&yTransVec);
@@ -3159,10 +3056,13 @@ plLayerInterface *pfJournalBook::IMakeDecalLayer(pfEsHTMLChunk *decalChunk, plMi
         // calc new size based on how the book has been skewed
         xScale *= (fWidthScale == 0) ? 1 : (1-fWidthScale);
         yScale *= (fHeightScale == 0) ? 1 : (1-fHeightScale);
-        yScale *= 1/0.7; // adjust because the book isn't square
+        yScale *= 1.f/0.7f; // adjust because the book isn't square
     }
 
-    hsVector3 scaleVec(xScale,yScale,1), translateVec(-(xRel*xScale),-(yRel*yScale),0), yTransVec(0,-1,0), invertYVec(1,-1,1);
+    hsVector3 scaleVec(xScale, yScale, 1.f);
+    hsVector3 translateVec(-(xRel*xScale), -(yRel*yScale), 0.f);
+    hsVector3 yTransVec(0.f, -1.f, 0.f);
+    hsVector3 invertYVec(1.f, -1.f, 1.f);
     hsMatrix44 scaleMat, translateMat, invertY, transY;
     scaleMat.MakeScaleMat(&scaleVec);
     translateMat.MakeTranslateMat(&translateVec);
@@ -3182,21 +3082,18 @@ plLayerInterface *pfJournalBook::IMakeDecalLayer(pfEsHTMLChunk *decalChunk, plMi
     return plLayerInterface::ConvertNoRef(layer);
 }
 
-void pfJournalBook::ISetDecalLayers(hsGMaterial *material,hsTArray<plLayerInterface*> layers)
+void pfJournalBook::ISetDecalLayers(hsGMaterial *material, const std::vector<plLayerInterface*> &layers)
 {
     // First, clear out the existing layers.
-    int i;
-    for( i = material->GetNumLayers()-1; i >= 0; i-- )
+    for (hsSsize_t i = material->GetNumLayers() - 1; i >= 0; i--)
     {
         plMatRefMsg* refMsg = new plMatRefMsg(material->GetKey(), plRefMsg::kOnRemove, i, plMatRefMsg::kLayer);
         hsgResMgr::ResMgr()->SendRef(material->GetLayer(i)->GetKey(), refMsg, plRefFlags::kActiveRef);
     }
 
     // Now append our new layers in order.
-    for( i = 0; i < layers.GetCount(); i++ )
-    {
-        material->AddLayerViaNotify(layers[i]);
-    }
+    for (plLayerInterface* layer : layers)
+        material->AddLayerViaNotify(layer);
 }
 
 //// IFindFontProps //////////////////////////////////////////////////////////
@@ -3224,7 +3121,7 @@ void    pfJournalBook::IFindFontProps( uint32_t chunkIdx, ST::string &face, uint
     do
     {
         chunkIdx--;
-        if (fHTMLSource.Count() <= chunkIdx)
+        if (fHTMLSource.size() <= chunkIdx)
             break; // apparently it's sometimes possible for fHTMLSource to be empty (parse errors?)
         pfEsHTMLChunk *chunk = fHTMLSource[ chunkIdx ];
 
@@ -3283,13 +3180,11 @@ void    pfJournalBook::IFindFontProps( uint32_t chunkIdx, ST::string &face, uint
 
 uint8_t   pfJournalBook::IFindLastAlignment() const
 {
-    int32_t idx;
-
-
-    for( idx = fHTMLSource.GetCount() - 1; idx >= 0; idx-- )
+    for (auto iter = fHTMLSource.crbegin(); iter != fHTMLSource.crend(); ++iter)
     {
-        if( fHTMLSource[ idx ]->fType == pfEsHTMLChunk::kParagraph && fHTMLSource[ idx ]->fFlags != 0 )
-            return (uint8_t)(fHTMLSource[ idx ]->fFlags);
+        const pfEsHTMLChunk* chunk = *iter;
+        if (chunk->fType == pfEsHTMLChunk::kParagraph && chunk->fFlags != 0)
+            return (uint8_t)(chunk->fFlags);
     }
 
     return pfEsHTMLChunk::kLeft;
@@ -3300,9 +3195,6 @@ uint8_t   pfJournalBook::IFindLastAlignment() const
 
 void    pfJournalBook::IRecalcPageStarts( uint32_t upToPage )
 {
-    uint32_t page;
-
-
     // Well, sadly, we can't really calc the page starts without at least a DTMap
     // we can change things on...so we just pick one and render. Note: this WILL
     // trash the font settings on the given DTMap!
@@ -3310,18 +3202,15 @@ void    pfJournalBook::IRecalcPageStarts( uint32_t upToPage )
     // We assume that the stored page starts we already have are accurate, so
     // just start from there and calc onward
 
-    for( page = fPageStarts.GetCount()-1; page < upToPage && page <= fLastPage; page++ )
+    for (uint32_t page = fPageStarts.size() - 1; page < upToPage && page <= fLastPage; page++)
     {
         // normally we would surpress rendering the pages, but that seems to have a bug in it
         // that causes lost text that the rendering doesn't have. Since it isn't very costly to
         // actually draw them all (even in large journals), we're just going to do it
         IRenderPage( page, pfJournalDlgProc::kTagTurnBackDTMap, false );
         // Reset any "visible" links since they aren't really visible
-        uint16_t i;
-        for (i=0; i<fVisibleLinks.Count(); i++)
-        {
-            fVisibleLinks[i]->fLinkRect.Set(0,0,0,0);
-        }
+        for (pfEsHTMLChunk* linkChunk : fVisibleLinks)
+            linkChunk->fLinkRect.Set(0, 0, 0, 0);
     }
 }
 
@@ -3330,7 +3219,7 @@ void    pfJournalBook::IRecalcPageStarts( uint32_t upToPage )
 
 void    pfJournalBook::ISendNotify( uint32_t type, uint32_t linkID )
 {
-    if( fCallbackKey != nil )
+    if (fCallbackKey != nullptr)
     {
         plNotifyMsg *pMsg = new plNotifyMsg;
         pMsg->AddBookEvent( type, linkID );
@@ -3358,10 +3247,8 @@ void    pfJournalBook::SetBookSize( float width, float height )
 
 void    pfJournalBook::ILoadAllImages( bool unload )
 {
-    uint32_t  i;
-
     // load the cover
-    if( fCoverFromHTML && fCoverMipKey != nil )
+    if (fCoverFromHTML && fCoverMipKey != nullptr)
     {
         if( unload )
             fBookGUIs[fCurBookGUI]->GetKey()->Release( fCoverMipKey );
@@ -3372,16 +3259,16 @@ void    pfJournalBook::ILoadAllImages( bool unload )
         }
     }
 
-    for( i = 0; i < fHTMLSource.GetCount(); i++ )
+    for (pfEsHTMLChunk* chunk : fHTMLSource)
     {
-        if( fHTMLSource[ i ]->fType == pfEsHTMLChunk::kImage && fHTMLSource[ i ]->fImageKey != nil )
+        if (chunk->fType == pfEsHTMLChunk::kImage && chunk->fImageKey != nullptr)
         {
             if( unload )
-                fBookGUIs[fCurBookGUI]->GetKey()->Release( fHTMLSource[ i ]->fImageKey );
+                fBookGUIs[fCurBookGUI]->GetKey()->Release(chunk->fImageKey);
             else
             {
                 plGenRefMsg *ref = new plGenRefMsg( fBookGUIs[fCurBookGUI]->GetKey(), plRefMsg::kOnCreate, -1, kRefImage );  
-                hsgResMgr::ResMgr()->AddViaNotify( fHTMLSource[ i ]->fImageKey, ref, plRefFlags::kActiveRef );
+                hsgResMgr::ResMgr()->AddViaNotify(chunk->fImageKey, ref, plRefFlags::kActiveRef);
             }
         }
     }

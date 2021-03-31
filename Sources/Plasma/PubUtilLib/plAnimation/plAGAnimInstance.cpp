@@ -59,6 +59,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsTimer.h"        // just when debugging for GetSysSeconds
 
 // other
+#include "plInterp/plAnimTimeConvert.h"
 #include "pnNetCommon/plSDLTypes.h"
 #include "plMessage/plAnimCmdMsg.h"
 #include "plMessage/plOneShotCallbacks.h"
@@ -95,14 +96,13 @@ ST::string gGlobalChannelName;
 plAGAnimInstance::plAGAnimInstance(plAGAnim * anim, plAGMasterMod * master,
                                    float blend, uint16_t blendPriority, bool cache,
                                    bool useAmplitude)
-: fAnimation(anim),
-  fMaster(master),
-  fBlend(blend),
-  fAmplitude(useAmplitude ? 1.0f : -1.0f)
+    : fAnimation(anim), fMaster(master), fAmplitude(useAmplitude ? 1.0f : -1.0f),
+      FadeType(), fFadeDetach(), fFadeAmpGoal(), fFadeAmpRate(),
+      fBlend(blend), fFadeBlendGoal(), fFadeBlendRate(),
+      fTimeConvert()
 {
     int i;
-    fTimeConvert = nil;
-    plScalarChannel *timeChan = nil;
+    plScalarChannel *timeChan = nullptr;
 #ifdef TRACK_AG_ALLOCS
     gGlobalAnimName = anim->GetName();      // for debug tracking...
 #endif // TRACK_AG_ALLOCS
@@ -175,7 +175,7 @@ plAGAnimInstance::plAGAnimInstance(plAGAnim * anim, plAGMasterMod * master,
     fFadeBlend = fFadeAmp = false;
 
 #ifdef TRACK_AG_ALLOCS
-    gGlobalAnimName = ST::null;
+    gGlobalAnimName = ST::string();
 #endif // TRACK_AG_ALLOCS
 }
 
@@ -212,7 +212,7 @@ void plAGAnimInstance::IInitAnimTimeConvert(plAnimTimeConvert* atc, plATCAnim* a
 
     for (size_t i = 0; i < anim->NumStopPoints(); i++)
     {
-        atc->GetStopPoints().Append(anim->GetStopPoint(i));
+        atc->GetStopPoints().emplace_back(anim->GetStopPoint(i));
     }
 
     atc->SetBegin(anim->GetStart());
@@ -258,7 +258,7 @@ void plAGAnimInstance::IInitAnimTimeConvert(plAnimTimeConvert* atc, plATCAnim* a
 void plAGAnimInstance::SearchForGlobals()
 {
     const plAgeGlobalAnim *ageAnim = plAgeGlobalAnim::ConvertNoRef(fAnimation);
-    if (ageAnim != nil && fSDLChannels.size() > 0)
+    if (ageAnim != nullptr && fSDLChannels.size() > 0)
     {
         extern const plSDLModifier *ExternFindAgeSDL();
         const plSDLModifier *sdlMod = ExternFindAgeSDL();
@@ -349,6 +349,12 @@ void plAGAnimInstance::DetachChannels()
 #endif
 }
 
+void plAGAnimInstance::SetSpeed(float speed)
+{
+    if (fTimeConvert)
+        fTimeConvert->SetSpeed(speed);
+}
+
 // SetBlend ---------------------------------------
 // ---------
 float plAGAnimInstance::SetBlend(float blend)
@@ -398,7 +404,7 @@ ST::string plAGAnimInstance::GetName()
     if(fAnimation)
         return fAnimation->GetName();
     else
-        return ST::null;
+        return ST::string();
 }
 
 // SetLoop ----------------------------------
@@ -458,6 +464,11 @@ void plAGAnimInstance::Stop()
 {
     if (fTimeConvert)
         fTimeConvert->Stop();
+}
+
+double plAGAnimInstance::WorldToAnimTime(double foo)
+{
+    return (fTimeConvert ? fTimeConvert->WorldToAnimTimeNoUpdate(foo) : 0.0);
 }
 
 // AttachCallbacks --------------------------------------------------

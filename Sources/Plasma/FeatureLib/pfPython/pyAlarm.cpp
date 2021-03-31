@@ -43,7 +43,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <Python.h>
 #include "hsTimer.h"
 #include "pyGlueHelpers.h"
-#pragma hdrstop
 
 #include "pyAlarm.h"
 
@@ -80,7 +79,7 @@ struct pyAlarm
     {
         if ( fCb )
         {
-            PyObject* func = nil;
+            PyObject* func = nullptr;
 
             // Call the callback.
             func = PyObject_GetAttrString( fCb, "onAlarm" );

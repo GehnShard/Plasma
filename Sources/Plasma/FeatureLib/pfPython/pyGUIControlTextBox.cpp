@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "pfGameGUIMgr/pfGUITextBoxMod.h"
 #include "pfGameGUIMgr/pfGUIListElement.h"
@@ -52,12 +51,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 pyGUIControlTextBox::pyGUIControlTextBox(pyKey& gckey) : pyGUIControl(gckey)
 {
-    fOriginalColorScheme = nil;
+    fOriginalColorScheme = nullptr;
 }
 
 pyGUIControlTextBox::pyGUIControlTextBox(plKey objkey) : pyGUIControl(objkey)
 {
-    fOriginalColorScheme = nil;
+    fOriginalColorScheme = nullptr;
 }
 
 

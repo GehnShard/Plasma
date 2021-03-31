@@ -1,10 +1,7 @@
-include_directories("../../CoreLib")
-include_directories("../../NucleusLib/inc")
-include_directories("../../NucleusLib")
-include_directories("../../PubUtilLib")
-
 set(plMessage_SOURCES
     plAccountUpdateMsg.cpp
+    plActivatorMsg.cpp
+    plAgeLoadedMsg.cpp
     plAIMsg.cpp
     plAnimCmdMsg.cpp
     plAvatarMsg.cpp
@@ -13,11 +10,15 @@ set(plMessage_SOURCES
     plCaptureRenderMsg.cpp
     plCCRMsg.cpp
     plClimbMsg.cpp
+    plCondRefMsg.cpp
+    plConsoleMsg.cpp
     plDynaDecalEnableMsg.cpp
     plDynamicEnvMapMsg.cpp
     plDynamicTextMsg.cpp
+    plExcludeRegionMsg.cpp
     plInputEventMsg.cpp
     plInputIfaceMgrMsg.cpp
+    plInterestingPing.cpp
     plLayRefMsg.cpp
     plLinkToAgeMsg.cpp
     plListenerMsg.cpp
@@ -27,16 +28,22 @@ set(plMessage_SOURCES
     plLOSHitMsg.cpp
     plLOSRequestMsg.cpp
     plMatrixUpdateMsg.cpp
+    plMeshRefMsg.cpp
     plMultistageMsg.cpp
+    plNetCommMsgs.cpp
     plNetVoiceListMsg.cpp
     plOneShotCallbacks.cpp
     plOneShotMsg.cpp
+    plParticleUpdateMsg.cpp
+    plPickedMsg.cpp
     plRenderRequestMsg.cpp
     plRideAnimatedPhysMsg.cpp
     plRippleShapeMsg.cpp
+    plRoomLoadNotifyMsg.cpp
     plSimStateMsg.cpp
     plSwimMsg.cpp
     plSynchEnableMsg.cpp
+    plTimerCallbackMsg.cpp
     plTransitionMsg.cpp
     plVaultNotifyMsg.cpp
 )
@@ -118,8 +125,34 @@ set(plMessage_HEADERS
     plVaultNotifyMsg.h
 )
 
-use_precompiled_header(Pch.h Pch.cpp plMessage_HEADERS plMessage_SOURCES)
-add_library(plMessage STATIC ${plMessage_SOURCES} ${plMessage_HEADERS})
+plasma_library(plMessage
+    SOURCES ${plMessage_SOURCES} ${plMessage_HEADERS}
+    UNITY_BUILD
+    PRECOMPILED_HEADERS Pch.h
+)
+target_link_libraries(plMessage
+    PUBLIC
+        CoreLib
+        pnInputCore
+        pnKeyedObject
+        pnMessage
+        pnNetBase
+        pnUUID
+        plAvatar
+        plNetCommon # plLinkToAgeMsg, plVaultNotifyMsg
+        plNetMessage # plNetOwnershipMsg
+        plPhysical # plLOSRequestMsg
+        plResMgr # plResMgrHelperMsg
+    PRIVATE
+        pnNetCommon
+        pnNetProtocol
+        pnSceneObject
+        plGImage
+        plInputCore # plInputIfaceMgrMsg
+        plNetGameLib
+    INTERFACE
+        pnFactory
+)
 
 source_group("Source Files" FILES ${plMessage_SOURCES})
 source_group("Header Files" FILES ${plMessage_HEADERS})

@@ -86,7 +86,7 @@ public:
     void UpdateText(IParamBlock2 *pb, HWND hWnd)
     {
         const char *str = pb->GetStr(fPBEditID);
-        SetDlgItemText(hWnd, fCtrlID, (str != nil ? str : ""));
+        SetDlgItemText(hWnd, fCtrlID, (str != nullptr ? str : ""));
     }
 
     BOOL ProcessMsg(IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -151,20 +151,19 @@ public:
         IParamBlock2 *pb = pmap->GetParamBlock();
 
         plClothingMtl *mtl = (plClothingMtl *)pb->GetOwner();
-        HWND cbox = NULL;
+        HWND cbox = nullptr;
         plPlasmaMAXLayer *layer;
         PBBitmap *pbbm;
         ICustButton *bmSelectBtn;
         char buff[256];
 
         // Setup the tiles
-        int i, j;
         int layerSet = pb->GetInt(ParamID(plClothingMtl::kLayer));
         int layerIdx = plClothingMtl::LayerToPBIdx[layerSet];
-        for (j = 0; j < plClothingMtl::kMaxTiles; j++)
+        for (int j = 0; j < plClothingMtl::kMaxTiles; j++)
         {
             layer = (plPlasmaMAXLayer *)pb->GetTexmap(ParamID(layerIdx), 0, j);
-            pbbm = (layer == nil ? nil : layer->GetPBBitmap());
+            pbbm = (layer == nullptr ? nullptr : layer->GetPBBitmap());
 
             bmSelectBtn = GetICustButton(GetDlgItem(hWnd, plClothingMtl::ButtonConstants[j]));
             bmSelectBtn->SetText(pbbm ? (TCHAR*)pbbm->bi.Filename() : "(none)");
@@ -173,7 +172,7 @@ public:
 
         // And the thumbnail...
         layer = (plPlasmaMAXLayer *)pb->GetTexmap(ParamID(plClothingMtl::kThumbnail));
-        if (layer == nil)
+        if (layer == nullptr)
         {
             layer = new plLayerTex;
             pb->SetValue(ParamID(plClothingMtl::kThumbnail), 0, layer);
@@ -190,21 +189,21 @@ public:
         ComboBox_SetCurSel(GetDlgItem(hWnd, IDC_CLOTHING_TILESET), setIdx);
         ComboBox_SetCurSel(GetDlgItem(hWnd, IDC_CLOTHING_LAYER), pb->GetInt(ParamID(plClothingMtl::kLayer)));
         mtl->InitTilesets();
-        plClothingTileset *tileset = mtl->fTilesets.Get(setIdx);
-        for (i = 0; i < tileset->fElements.GetCount(); i++)
+        plClothingTileset *tileset = mtl->fTilesets[setIdx];
+        for (size_t i = 0; i < tileset->fElements.size(); i++)
         {
-            plClothingElement *element = tileset->fElements.Get(i);
+            plClothingElement *element = tileset->fElements[i];
             SendMessage(GetDlgItem(hWnd, plClothingMtl::TextConstants[2 * i]), 
-                        WM_SETTEXT, NULL, (LPARAM)element->fName.c_str());
-            snprintf(buff, arrsize(buff), "(%d, %d)", element->fWidth, element->fHeight);
+                        WM_SETTEXT, 0, (LPARAM)element->fName.c_str());
+            snprintf(buff, std::size(buff), "(%d, %d)", element->fWidth, element->fHeight);
             SendMessage(GetDlgItem(hWnd, plClothingMtl::TextConstants[2 * i + 1]), 
-                        WM_SETTEXT, NULL, (LPARAM)buff);
+                        WM_SETTEXT, 0, (LPARAM)buff);
             
             ShowWindow(GetDlgItem(hWnd, plClothingMtl::TextConstants[2 * i]), SW_SHOW); 
             ShowWindow(GetDlgItem(hWnd, plClothingMtl::TextConstants[2 * i + 1]), SW_SHOW); 
             ShowWindow(GetDlgItem(hWnd, plClothingMtl::ButtonConstants[i]), SW_SHOW);   
         }
-        for (i = tileset->fElements.GetCount(); i < plClothingMtl::kMaxTiles; i++)
+        for (size_t i = tileset->fElements.size(); i < plClothingMtl::kMaxTiles; i++)
         {
             ShowWindow(GetDlgItem(hWnd, plClothingMtl::TextConstants[2 * i]), SW_HIDE); 
             ShowWindow(GetDlgItem(hWnd, plClothingMtl::TextConstants[2 * i + 1]), SW_HIDE); 
@@ -215,9 +214,9 @@ public:
         fCustomText.UpdateText(pb, hWnd);
     }
 
-    virtual void Update(TimeValue t, Interval& valid, IParamMap2* pmap) { UpdateDisplay(pmap); }
+    void Update(TimeValue t, Interval& valid, IParamMap2* pmap) override { UpdateDisplay(pmap); }
 
-    virtual BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         // Check if it is for our edit box
         if (fCustomText.ProcessMsg(map, hWnd, msg, wParam, lParam))
@@ -228,7 +227,7 @@ public:
 
         IParamBlock2 *pb = map->GetParamBlock();
         plClothingMtl *mtl = (plClothingMtl *)pb->GetOwner();
-        HWND cbox = NULL;
+        HWND cbox = nullptr;
         plPlasmaMAXLayer *layer;
         PBBitmap *pbbm;
         ICustButton *bmSelectBtn;
@@ -237,16 +236,15 @@ public:
         switch (msg)
         {
         case WM_INITDIALOG:
-            int j;
             mtl->InitTilesets();
             cbox = GetDlgItem(hWnd, IDC_CLOTHING_TILESET);
-            for (j = 0; j < mtl->fTilesets.GetCount(); j++)
-                SendMessage(cbox, CB_ADDSTRING, 0, (LPARAM)mtl->fTilesets.Get(j)->fName);
+            for (plClothingTileset* set : mtl->fTilesets)
+                SendMessage(cbox, CB_ADDSTRING, 0, (LPARAM)set->fName);
 
             mtl->ReleaseTilesets();
 
             cbox = GetDlgItem(hWnd, IDC_CLOTHING_LAYER);
-            for (j = 0; j < plClothingElement::kLayerMax; j++)
+            for (int j = 0; j < plClothingElement::kLayerMax; j++)
                 ComboBox_AddString(cbox, plClothingMtl::LayerStrings[j]);
 
             return TRUE;
@@ -254,7 +252,7 @@ public:
         case WM_COMMAND:
             if (id == IDC_CLOTHING_TILESET)
             {
-                int setIdx = SendMessage(GetDlgItem(hWnd, id), CB_GETCURSEL, 0, 0);
+                int setIdx = (int)SendMessage(GetDlgItem(hWnd, id), CB_GETCURSEL, 0, 0);
                 pb->SetValue(plClothingMtl::kTileset, t, setIdx);
                 return TRUE;
             }
@@ -269,18 +267,18 @@ public:
             if (id == IDC_CLOTHING_THUMBNAIL)
             {
                 layer = (plPlasmaMAXLayer *)pb->GetTexmap(ParamID(plClothingMtl::kThumbnail));
-                if (layer == nil)
+                if (layer == nullptr)
                     return FALSE;
 
                 BitmapInfo bi;
-                bi.SetName(layer->GetPBBitmap() == nil ? "" : layer->GetPBBitmap()->bi.Name());
+                bi.SetName(layer->GetPBBitmap() == nullptr ? "" : layer->GetPBBitmap()->bi.Name());
 
                 BOOL selectedNewBitmap = layer->HandleBitmapSelection();
                 if (selectedNewBitmap)
                 {
                     pbbm = layer->GetPBBitmap();
                     bmSelectBtn = GetICustButton(GetDlgItem(hWnd, IDC_CLOTHING_THUMBNAIL));
-                    bmSelectBtn->SetText(pbbm != nil ? (TCHAR*)pbbm->bi.Filename() : "(none)");
+                    bmSelectBtn->SetText(pbbm != nullptr ? (TCHAR*)pbbm->bi.Filename() : "(none)");
                     ReleaseICustButton(bmSelectBtn);
                 }
                 return TRUE;
@@ -295,7 +293,7 @@ public:
             if (buttonIdx != -1)
             {
                 layer = (plPlasmaMAXLayer *)pb->GetTexmap(ParamID(layerIdx), 0, buttonIdx);
-                if (layer == nil)
+                if (layer == nullptr)
                 { // First time we've set a layer on this spot
                     layer = new plLayerTex;
                     pb->SetValue(ParamID(layerIdx), 0, layer, buttonIdx);
@@ -307,7 +305,7 @@ public:
 #endif
 
                 BitmapInfo bi;
-                bi.SetName(layer->GetPBBitmap() == nil ? "" : layer->GetPBBitmap()->bi.Name());
+                bi.SetName(layer->GetPBBitmap() == nullptr ? "" : layer->GetPBBitmap()->bi.Name());
 
                 BOOL selectedNewBitmap = layer->HandleBitmapSelection();
                 if (selectedNewBitmap)
@@ -316,12 +314,12 @@ public:
                     bool choiceOk = true;
 
                     pbbm = layer->GetPBBitmap();
-                    if (pbbm != nil)
+                    if (pbbm != nullptr)
                     {
                         mtl->InitTilesets();
 
-                        plClothingTileset *tileset = mtl->fTilesets.Get(pb->GetInt(plClothingMtl::kTileset));
-                        plClothingElement *element = tileset->fElements.Get(buttonIdx);
+                        plClothingTileset *tileset = mtl->fTilesets[pb->GetInt(plClothingMtl::kTileset)];
+                        plClothingElement *element = tileset->fElements[buttonIdx];
                         float targRatio = (float)element->fWidth / (float)element->fHeight;
                         float ratio = (float)pbbm->bi.Width() / (float)pbbm->bi.Height();
 
@@ -350,7 +348,7 @@ public:
                     else
                     {
                         bmSelectBtn = GetICustButton(GetDlgItem(hWnd, plClothingMtl::ButtonConstants[buttonIdx]));
-                        bmSelectBtn->SetText(pbbm != nil ? (TCHAR*)pbbm->bi.Filename() : "(none)");
+                        bmSelectBtn->SetText(pbbm != nullptr ? (TCHAR*)pbbm->bi.Filename() : "(none)");
                         ReleaseICustButton(bmSelectBtn);
                     }
                 }
@@ -361,7 +359,7 @@ public:
         return FALSE;
     }
 
-    virtual void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static ClothingBasicDlgProc gClothingBasicDlgProc;
 

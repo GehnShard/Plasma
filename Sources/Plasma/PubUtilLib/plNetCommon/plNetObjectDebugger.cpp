@@ -39,17 +39,18 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "plNetObjectDebugger.h"
-#include "hsResMgr.h"
-#include "hsTemplates.h"
 
-#include "pnUtils/pnUtils.h"
+#include "plNetObjectDebugger.h"
+
+#include <string>
+
+#include "hsResMgr.h"
+
 #include "pnKeyedObject/hsKeyedObject.h"
 
-#include "plStatusLog/plStatusLog.h"
+#include "plNetClientComm/plNetClientComm.h"
 #include "plResMgr/plKeyFinder.h"
-#include "plNetClient/plNetClientMgr.h"
-#include "plAgeLoader/plAgeLoader.h"
+#include "plStatusLog/plStatusLog.h"
 
 plNetObjectDebugger::DebugObject::DebugObject(const char* objName, plLocation& loc, uint32_t flags) :
 fLoc(loc),
@@ -91,7 +92,7 @@ bool plNetObjectDebugger::DebugObject::StringMatches(const char* str) const
     {
         std::string tmp = str;
         hsStrLower((char*)tmp.c_str());
-        return (strstr(tmp.c_str(), fObjName.c_str()) != nil);
+        return (strstr(tmp.c_str(), fObjName.c_str()) != nullptr);
     }
 
     hsAssert(false, "missing flags");
@@ -139,7 +140,7 @@ bool plNetObjectDebugger::DebugObject::ObjectMatches(const hsKeyedObject* obj)
 /////////////////////////////////////////////////////////////////
 // plNetObjectDebugger
 /////////////////////////////////////////////////////////////////
-plNetObjectDebugger::plNetObjectDebugger() : fStatusLog(nil), fDebugging(false)
+plNetObjectDebugger::plNetObjectDebugger() : fStatusLog(), fDebugging()
 {
 }
 
@@ -179,9 +180,7 @@ bool plNetObjectDebugger::AddDebugObject(const char* objName, const char* pageNa
     if (!objName)
         return false;
 
-    int size=strlen(objName)+1;
-    hsTempArray<char> tmpObjName(size);
-    memset(tmpObjName, 0, size);
+    std::string tmpObjName(strlen(objName), char(0));
 
     //
     // set string matching flags
@@ -193,25 +192,25 @@ bool plNetObjectDebugger::AddDebugObject(const char* objName, const char* pageNa
         if (objName[len-1]=='*')
         {
             flags = kSubStringMatch;    // *foo*
-            strncpy(tmpObjName, objName+1, strlen(objName)-2);
+            strncpy(tmpObjName.data(), objName+1, strlen(objName)-2);
         }
         else
         {
             flags = kEndStringMatch;    // *foo
-            strncpy(tmpObjName, objName+1, strlen(objName)-1);
+            strncpy(tmpObjName.data(), objName+1, strlen(objName)-1);
         }
     }
 
     if (!flags && objName[len-1]=='*')
     {
         flags = kStartStringMatch;      // foo*
-        strncpy(tmpObjName, objName, strlen(objName)-1);
+        strncpy(tmpObjName.data(), objName, strlen(objName)-1);
     }
 
     if (!flags)
     {
         flags = kExactStringMatch;
-        strcpy(tmpObjName, objName);
+        strcpy(tmpObjName.data(), objName);
     }
 
     //
@@ -224,7 +223,7 @@ bool plNetObjectDebugger::AddDebugObject(const char* objName, const char* pageNa
         flags |= kPageMatch;
     }
 
-    fDebugObjects.push_back(new DebugObject(tmpObjName, loc, flags));
+    fDebugObjects.push_back(new DebugObject(tmpObjName.c_str(), loc, flags));
 
     ICreateStatusLog();
 

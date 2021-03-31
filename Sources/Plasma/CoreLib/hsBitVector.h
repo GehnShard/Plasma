@@ -45,7 +45,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 
-template <class T> class hsTArray;
+#include <vector>
+
 class hsStream;
 
 class hsBitVector {
@@ -59,13 +60,10 @@ protected:
     friend      class hsBitIterator;
 public:
     hsBitVector(const hsBitVector& other);
-    hsBitVector(uint32_t which) : fBitVectors(nil), fNumBitVectors(0) { SetBit(which); }
-    hsBitVector(int b, ...); // list of one or more integer bits to set. -1 (or any negative) terminates the list (e.g. hsBitVector(0,1,4,-1);
-    hsBitVector(const hsTArray<int16_t>& list); // sets bit for each int in list
-    hsBitVector() : fBitVectors(nil), fNumBitVectors(0) {}
+    hsBitVector() : fBitVectors(), fNumBitVectors() { }
     virtual ~hsBitVector() { Reset(); }
 
-    hsBitVector& Reset() { delete [] fBitVectors; fBitVectors = nil; fNumBitVectors = 0; return *this; }
+    hsBitVector& Reset() { delete [] fBitVectors; fBitVectors = nullptr; fNumBitVectors = 0; return *this; }
     hsBitVector& Clear(); // everyone clear, but no dealloc
     hsBitVector& Set(int upToBit=-1); // WARNING - see comments at function
 
@@ -105,10 +103,8 @@ public:
     void SetNumBitVectors(uint32_t n) { Reset(); fNumBitVectors=n; fBitVectors = new uint32_t[n]; }
     void SetBitVector(int i, uint32_t val) { fBitVectors[i]=val; }
 
-    // Do dst.SetCount(0), then add each set bit's index into dst, returning dst.
-    hsTArray<int16_t>& Enumerate(hsTArray<int16_t>& dst) const;
-    // this->Clear(), then set all bits listed in src, returning *this.
-    hsBitVector& FromList(const hsTArray<int16_t>& src);
+    // Do dst.clear(), then add each set bit's index into dst, returning dst.
+    std::vector<int16_t>& Enumerate(std::vector<int16_t>& dst) const;
 
     void Read(hsStream* s);
     void Write(hsStream* s) const;
@@ -365,7 +361,7 @@ protected:
 
 public:
     // Must call begin after instanciating.
-    hsBitIterator(const hsBitVector& bits) : fBits(bits) {}
+    hsBitIterator(const hsBitVector& bits) : fBits(bits), fCurrent(), fCurrVec(), fCurrBit() { }
 
     int                 Begin();
     int                 Current() const { return fCurrent; }

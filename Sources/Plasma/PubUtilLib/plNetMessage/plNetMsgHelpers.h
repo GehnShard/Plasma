@@ -49,17 +49,18 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 
-#include "hsStream.h"
-#include "pnNetCommon/pnNetCommon.h"
+#include <string_theory/string>
+#include <vector>
+
 #include "pnFactory/plCreatable.h"
-#include "pnKeyedObject/plUoid.h"
 #include "pnKeyedObject/plKey.h"
-#include "plUnifiedTime/plUnifiedTime.h"
+#include "pnKeyedObject/plUoid.h"
+
 #include "plNetCommon/plClientGuid.h"
-#include <algorithm>
 
 class plKey;
 class hsStream;
+class hsStreamable;
 
 
 ////////////////////////////////////////////////////////////////////
@@ -70,7 +71,7 @@ class plNetMsgStreamableHelper : public plCreatable
 {
     hsStreamable *  fObject;
 public:
-    plNetMsgStreamableHelper():fObject(nil){}
+    plNetMsgStreamableHelper() : fObject() { }
     plNetMsgStreamableHelper(hsStreamable * object):fObject(object){}
     plNetMsgStreamableHelper & operator =(hsStreamable * value);
     operator hsStreamable *() const { return fObject;}
@@ -96,7 +97,7 @@ class plNetMsgCreatableHelper : public plCreatable
     plCreatable *   fCreatable;
     bool            fWeCreatedIt;
 public:
-    plNetMsgCreatableHelper(plCreatable * object = nil);
+    plNetMsgCreatableHelper(plCreatable * object = nullptr);
     ~plNetMsgCreatableHelper();
     plNetMsgCreatableHelper & operator =(plCreatable * value);
     operator plCreatable*();
@@ -146,11 +147,11 @@ public:
     virtual int Peek(hsStream* stream, uint32_t peekOptions=0);   
 
     // creatable ops
-    virtual void Read(hsStream* s, hsResMgr* mgr) { Peek(s); }
-    virtual void Write(hsStream* s, hsResMgr* mgr) { Poke(s); }
+    void Read(hsStream* s, hsResMgr* mgr) override { Peek(s); }
+    void Write(hsStream* s, hsResMgr* mgr) override { Poke(s); }
     
-    void ReadVersion(hsStream* s, hsResMgr* mgr);
-    void WriteVersion(hsStream* s, hsResMgr* mgr);
+    void ReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void WriteVersion(hsStream* s, hsResMgr* mgr) override;
     
     void Clear();
 
@@ -216,8 +217,8 @@ public:
     uint32_t      GetPageID() const { return fUoid.GetLocation().GetSequenceNumber(); }
     const plUoid& GetUoid() const { return fUoid; }
     
-    void ReadVersion(hsStream* s, hsResMgr* mgr);
-    void WriteVersion(hsStream* s, hsResMgr* mgr);
+    void ReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void WriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 //
@@ -234,12 +235,12 @@ public:
     CLASSNAME_REGISTER( plNetMsgObjectListHelper );
     GETINTERFACE_ANY(plNetMsgObjectListHelper, plCreatable);
 
-    virtual int Poke(hsStream* stream, uint32_t peekOptions=0);   
+    virtual int Poke(hsStream* stream, uint32_t peekOptions=0);
     virtual int Peek(hsStream* stream, uint32_t peekOptions=0);
 
     void Reset();
-    int GetNumObjects() const { return fObjects.size(); }
-    plNetMsgObjectHelper* GetObject(int i) { return fObjects[i]; }
+    size_t GetNumObjects() const { return fObjects.size(); }
+    plNetMsgObjectHelper* GetObject(size_t i) { return fObjects[i]; }
     void AddObject(plKey key) { fObjects.push_back(new plNetMsgObjectHelper(key)); }
 };
 
@@ -302,10 +303,10 @@ public:
     virtual int Poke(hsStream* stream, uint32_t peekOptions=0);
     virtual int Peek(hsStream* stream, uint32_t peekOptions=0);
 
-    int GetNumMembers() const { return fMembers.size(); }
-    const plNetMsgMemberInfoHelper* GetMember(int i) const { return fMembers[i]; }
+    size_t GetNumMembers() const { return fMembers.size(); }
+    const plNetMsgMemberInfoHelper* GetMember(size_t i) const { return fMembers[i]; }
     void AddMember(plNetMsgMemberInfoHelper* a) { fMembers.push_back(a); }
-    const MemberInfoHelperVec * GetMembers() const { return &fMembers;}
+    const MemberInfoHelperVec* GetMembers() const { return &fMembers;}
 };
 
 
@@ -331,8 +332,8 @@ public:
     virtual int Peek(hsStream* stream, uint32_t peekOptions=0);
 
     void Clear() { fPlayerIDList.clear();   }
-    int GetNumReceivers() const { return fPlayerIDList.size(); }
-    uint32_t GetReceiverPlayerID(int i) const { return fPlayerIDList[i]; }
+    size_t GetNumReceivers() const { return fPlayerIDList.size(); }
+    uint32_t GetReceiverPlayerID(size_t i) const { return fPlayerIDList[i]; }
     void AddReceiverPlayerID(uint32_t a) { fPlayerIDList.push_back(a); }
     bool RemoveReceiverPlayerID(uint32_t n);  // returns true if found and removed
 };

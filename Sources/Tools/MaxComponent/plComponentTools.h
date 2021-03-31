@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef PL_COMPONENT_TOOLS_H
 #define PL_COMPONENT_TOOLS_H
 
-#include "hsTemplates.h"
 #include "pnKeyedObject/plKey.h"
 
 class plComponentBase;
@@ -59,7 +58,7 @@ typedef plKey       (*PGetNewKeyFunc) (const ST::string&, plModifier*, plLocatio
 typedef void        (*PSetActivatorKeyFunc) (plMaxNodeBase*, plMaxNodeBase*, plMaxNodeBase*, plResponderModifier*);
 typedef plKey       (*PGetAnimModKeyFunc) (plComponentBase*, plMaxNodeBase*);
 typedef ST::string  (*PGetAnimNameFunc) (plComponentBase*);
-typedef int         (*PGetMaterialAnimModKeyFunc) (Mtl* mtl, plMaxNodeBase* node, const ST::string &segName, hsTArray<plKey>& keys);
+typedef int         (*PGetMaterialAnimModKeyFunc) (Mtl* mtl, plMaxNodeBase* node, const ST::string &segName, std::vector<plKey>& keys);
 typedef int         (*PGetSoundNameAndIndex) (plComponentBase*, plMaxNodeBase* node, const char*& name);
 
 //
@@ -108,7 +107,7 @@ public:
     plKey GetAnimCompModKey(plComponentBase *comp, plMaxNodeBase *node);
 //  plKey GetAnimCompLightModKey(plComponentBase *comp, plMaxNodeBase *node);
 
-    int GetMaterialAnimModKey(Mtl* mtl, plMaxNodeBase* node, const ST::string &segName, hsTArray<plKey>& keys);
+    int GetMaterialAnimModKey(Mtl* mtl, plMaxNodeBase* node, const ST::string &segName, std::vector<plKey>& keys);
 
     int GetSoundNameAndIndex(plComponentBase* comp, plMaxNodeBase* node, const char*& name);
 };

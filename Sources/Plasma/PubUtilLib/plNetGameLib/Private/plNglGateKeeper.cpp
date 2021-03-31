@@ -46,7 +46,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 ***/
 
 #include "../Pch.h"
-#pragma hdrstop
 
 namespace Ngl { namespace GateKeeper {
 
@@ -107,7 +106,7 @@ struct PingRequestTrans : NetGateKeeperTrans {
     void *                                  m_param;
     unsigned                                m_pingAtMs;
     unsigned                                m_replyAtMs;
-    TArray<uint8_t>                         m_payload;
+    std::vector<uint8_t>                    m_payload;
     
     PingRequestTrans (
         FNetCliGateKeeperPingRequestCallback    callback,
@@ -117,12 +116,12 @@ struct PingRequestTrans : NetGateKeeperTrans {
         const void *                            payload
     );
 
-    bool Send ();
-    void Post ();
-    bool Recv (
+    bool Send() override;
+    void Post() override;
+    bool Recv(
         const uint8_t  msg[],
         unsigned    bytes
-    );
+    ) override;
 };
 
 //============================================================================
@@ -140,12 +139,12 @@ struct FileSrvIpAddressRequestTrans : NetGateKeeperTrans {
         bool                                                isPatcher
     );
 
-    bool Send ();
-    void Post ();
-    bool Recv (
+    bool Send() override;
+    void Post() override;
+    bool Recv(
         const uint8_t  msg[],
         unsigned    bytes
-    );
+    ) override;
 };
 
 //============================================================================
@@ -161,12 +160,12 @@ struct AuthSrvIpAddressRequestTrans : NetGateKeeperTrans {
         void *                                              param
     );
 
-    bool Send ();
-    void Post ();
-    bool Recv (
+    bool Send() override;
+    void Post() override;
+    bool Recv(
         const uint8_t  msg[],
         unsigned    bytes
-    );
+    ) override;
 };
 
 
@@ -211,7 +210,7 @@ static CliGkConn * GetConnIncRef_CS (const char tag[]) {
         conn->Ref(tag);
         return conn;
     }
-    return nil;
+    return nullptr;
 }
 
 //============================================================================
@@ -228,8 +227,8 @@ static void UnlinkAndAbandonConn_CS (CliGkConn * conn) {
     conn->StopAutoReconnect();
 
     if (conn->cancelId) {
-        AsyncSocketConnectCancel(nil, conn->cancelId);
-        conn->cancelId  = 0;
+        AsyncSocketConnectCancel(conn->cancelId);
+        conn->cancelId  = nullptr;
     }
     else if (conn->sock) {
         AsyncSocketDisconnect(conn->sock, true);
@@ -270,7 +269,7 @@ static void NotifyConnSocketConnect (CliGkConn * conn) {
         false,
         ConnEncrypt,
         0,
-        nil,
+        nullptr,
         conn
     );
 }
@@ -299,8 +298,8 @@ static void CheckedReconnect (CliGkConn * conn, ENetError error) {
         // clean up the socket and start reconnect
         if (conn->cli)
             NetCliDelete(conn->cli, true);
-        conn->cli = nil;
-        conn->sock = nil;
+        conn->cli = nullptr;
+        conn->sock = nullptr;
         
         conn->StartAutoReconnect();
     }
@@ -311,11 +310,11 @@ static void NotifyConnSocketConnectFailed (CliGkConn * conn) {
 
     {
         hsLockGuard(s_critsect);
-        conn->cancelId = 0;
+        conn->cancelId = nullptr;
         s_conns.Unlink(conn);
 
         if (conn == s_active)
-            s_active = nil;
+            s_active = nullptr;
     }
     
     CheckedReconnect(conn, kNetErrConnectFailed);
@@ -330,11 +329,11 @@ static void NotifyConnSocketDisconnect (CliGkConn * conn) {
 
     {
         hsLockGuard(s_critsect);
-        conn->cancelId = 0;
+        conn->cancelId = nullptr;
         s_conns.Unlink(conn);
             
         if (conn == s_active)
-            s_active = nil;
+            s_active = nullptr;
     }
 
     // Cancel all transactions in process on this connection.
@@ -370,7 +369,7 @@ static bool SocketNotifyCallback (
             {
                 hsLockGuard(s_critsect);
                 conn->sock      = sock;
-                conn->cancelId  = 0;
+                conn->cancelId  = nullptr;
                 abandoned       = conn->abandoned;
             }
             if (abandoned)
@@ -392,6 +391,10 @@ static bool SocketNotifyCallback (
         case kNotifySocketRead:
             conn = (CliGkConn *) *userState;
             result = NotifyConnSocketRead(conn, (AsyncNotifySocketRead *) notify);
+        break;
+
+        case kNotifySocketWrite:
+            // No action
         break;
     }
     
@@ -433,9 +436,7 @@ static void Connect (
         SocketNotifyCallback,
         conn,
         &connect,
-        sizeof(connect),
-        0,
-        0
+        sizeof(connect)
     );
 }
 
@@ -457,20 +458,16 @@ static void Connect (
 }
 
 //============================================================================
-static void AsyncLookupCallback (
-    void *              param,
-    const char          name[],
-    unsigned            addrCount,
-    const plNetAddress  addrs[]
-) {
-    if (!addrCount) {
+static void AsyncLookupCallback(void* param, const ST::string& name,
+                                const std::vector<plNetAddress>& addrs)
+{
+    if (addrs.empty()) {
         ReportNetError(kNetProtocolCli2GateKeeper, kNetErrNameLookupFailed);
         return;
     }
 
-    for (unsigned i = 0; i < addrCount; ++i) {
-        Connect(name, addrs[i]);
-    }
+    for (const plNetAddress& addr : addrs)
+        Connect(name, addr);
 }
 
 
@@ -503,10 +500,10 @@ static unsigned CliGkConnPingTimerProc (void * param) {
 
 //============================================================================
 CliGkConn::CliGkConn ()
-    : hsRefCnt(0), reconnectTimer(nil), reconnectStartMs(0)
-    , pingTimer(nil), pingSendTimeMs(0), lastHeardTimeMs(0)
-    , sock(nil), cli(nil), seq(0), serverChallenge(0)
-    , cancelId(nil), abandoned(false)
+    : hsRefCnt(0), reconnectTimer(), reconnectStartMs()
+    , pingTimer(), pingSendTimeMs(), lastHeardTimeMs()
+    , sock(), cli(), seq(), serverChallenge()
+    , cancelId(), abandoned()
 {
     ++s_perf[kPerfConnCount];
 }
@@ -568,8 +565,7 @@ void CliGkConn::AutoReconnect () {
     ASSERT(!reconnectTimer);
     Ref("ReconnectTimer");
     hsLockGuard(critsect);
-    AsyncTimerCreate(
-        &reconnectTimer,
+    reconnectTimer = AsyncTimerCreate(
         CliGkConnReconnectTimerProc,
         0,  // immediate callback
         this
@@ -580,7 +576,7 @@ void CliGkConn::AutoReconnect () {
 void CliGkConn::StopAutoReconnect () {
     hsLockGuard(critsect);
     if (AsyncTimer * timer = reconnectTimer) {
-        reconnectTimer = nil;
+        reconnectTimer = nullptr;
         AsyncTimerDeleteCallback(timer, CliGkConnTimerDestroyed);
     }
 }
@@ -588,7 +584,7 @@ void CliGkConn::StopAutoReconnect () {
 //============================================================================
 bool CliGkConn::AutoReconnectEnabled () {
     
-    return (reconnectTimer != nil) && !s_perf[kAutoReconnectDisabled];
+    return (reconnectTimer != nullptr) && !s_perf[kAutoReconnectDisabled];
 }
 
 //============================================================================
@@ -596,8 +592,7 @@ void CliGkConn::AutoPing () {
     ASSERT(!pingTimer);
     Ref("PingTimer");
     hsLockGuard(critsect);
-    AsyncTimerCreate(
-        &pingTimer,
+    pingTimer = AsyncTimerCreate(
         CliGkConnPingTimerProc,
         sock ? 0 : kAsyncTimeInfinite,
         this
@@ -609,7 +604,7 @@ void CliGkConn::StopAutoPing () {
     hsLockGuard(critsect);
     if (pingTimer) {
         AsyncTimerDeleteCallback(pingTimer, CliGkConnTimerDestroyed);
-        pingTimer = nil;
+        pingTimer = nullptr;
     }
 }
 
@@ -626,7 +621,7 @@ void CliGkConn::TimerPing () {
         reinterpret_cast<uintptr_t>(nullptr)
     };
 
-    Send(msg, arrsize(msg));
+    Send(msg, std::size(msg));
 }
 
 //============================================================================
@@ -644,48 +639,8 @@ void CliGkConn::Send (const uintptr_t fields[], unsigned count) {
 ***/
 
 //============================================================================
-static bool Recv_PingReply (
-    const uint8_t      msg[],
-    unsigned        bytes,
-    void *
-) {
-    const GateKeeper2Cli_PingReply & reply = *(const GateKeeper2Cli_PingReply *)msg;
-
-    if (reply.transId)
-        NetTransRecv(reply.transId, msg, bytes);
-
-    return true;
-}
-
-
+// (none)
 //============================================================================
-static bool Recv_FileSrvIpAddressReply (
-    const uint8_t      msg[],
-    unsigned        bytes,
-    void *
-) {
-    const GateKeeper2Cli_FileSrvIpAddressReply & reply = *(const GateKeeper2Cli_FileSrvIpAddressReply *)msg;
-
-    if (reply.transId)
-        NetTransRecv(reply.transId, msg, bytes);
-
-    return true;
-}
-
-//============================================================================
-static bool Recv_AuthSrvIpAddressReply (
-    const uint8_t      msg[],
-    unsigned        bytes,
-    void *
-) {
-    const GateKeeper2Cli_AuthSrvIpAddressReply & reply = *(const GateKeeper2Cli_AuthSrvIpAddressReply *)msg;
-
-    if (reply.transId)
-        NetTransRecv(reply.transId, msg, bytes);
-
-    return true;
-}
-
 
 /*****************************************************************************
 *
@@ -701,7 +656,7 @@ static NetMsgInitSend s_send[] = {
 };
 #undef MSG
 
-#define MSG(s)  &kNetMsg_GateKeeper2Cli_##s, Recv_##s
+#define MSG(s)  &kNetMsg_GateKeeper2Cli_##s, NetTransRecvFromMsgGeneric<GateKeeper2Cli_##s>
 static NetMsgInitRecv s_recv[] = {
     { MSG(PingReply)                },
     { MSG(FileSrvIpAddressReply)    },
@@ -727,8 +682,8 @@ PingRequestTrans::PingRequestTrans (
 ,   m_callback(callback)
 ,   m_param(param)
 ,   m_pingAtMs(pingAtMs)
+,   m_payload((const uint8_t *)payload, (const uint8_t *)payload + payloadBytes)
 {
-    m_payload.Set((const uint8_t *)payload, payloadBytes);
 }
 
 //============================================================================
@@ -741,11 +696,11 @@ bool PingRequestTrans::Send () {
         kCli2GateKeeper_PingRequest,
                         m_pingAtMs,
                         m_transId,
-                        m_payload.Count(),
-        (uintptr_t)  m_payload.Ptr(),
+                        m_payload.size(),
+        (uintptr_t)  m_payload.data(),
     };
     
-    m_conn->Send(msg, arrsize(msg));
+    m_conn->Send(msg, std::size(msg));
     
     return true;
 }
@@ -758,8 +713,8 @@ void PingRequestTrans::Post () {
         m_param,
         m_pingAtMs,
         m_replyAtMs,
-        m_payload.Count(),
-        m_payload.Ptr()
+        m_payload.size(),
+        m_payload.data()
     );
 }
 
@@ -770,7 +725,7 @@ bool PingRequestTrans::Recv (
 ) {
     const GateKeeper2Cli_PingReply & reply = *(const GateKeeper2Cli_PingReply *)msg;
 
-    m_payload.Set(reply.payload, reply.payloadBytes);
+    m_payload.assign(reply.payload, reply.payload + reply.payloadBytes);
     m_replyAtMs     = hsTimer::GetMilliSeconds<uint32_t>();
     m_result        = kNetSuccess;
     m_state         = kTransStateComplete;
@@ -810,7 +765,7 @@ bool FileSrvIpAddressRequestTrans::Send () {
                         (uintptr_t)(m_isPatcher == true ? 1 : 0)
     };
     
-    m_conn->Send(msg, arrsize(msg));
+    m_conn->Send(msg, std::size(msg));
     
     return true;
 }
@@ -868,7 +823,7 @@ bool AuthSrvIpAddressRequestTrans::Send () {
                         m_transId,
     };
     
-    m_conn->Send(msg, arrsize(msg));
+    m_conn->Send(msg, std::size(msg));
     
     return true;
 }
@@ -910,7 +865,7 @@ bool AuthSrvIpAddressRequestTrans::Recv (
 //============================================================================
 NetGateKeeperTrans::NetGateKeeperTrans (ETransType transType)
 :   NetTrans(kNetProtocolCli2GateKeeper, transType)
-,   m_conn(nil)
+,   m_conn()
 {
 }
 
@@ -923,14 +878,14 @@ NetGateKeeperTrans::~NetGateKeeperTrans () {
 bool NetGateKeeperTrans::AcquireConn () {
     if (!m_conn)
         m_conn = GetConnIncRef("AcquireConn");
-    return m_conn != nil;
+    return m_conn != nullptr;
 }
 
 //============================================================================
 void NetGateKeeperTrans::ReleaseConn () {
     if (m_conn) {
         m_conn->UnRef("AcquireConn");
-        m_conn = nil;
+        m_conn = nullptr;
     }
 }
 
@@ -947,8 +902,8 @@ void GateKeeperInitialize () {
     NetMsgProtocolRegister(
         kNetProtocolCli2GateKeeper,
         false,
-        s_send, arrsize(s_send),
-        s_recv, arrsize(s_recv),
+        s_send, std::size(s_send),
+        s_recv, std::size(s_recv),
         kGateKeeperDhGValue,
         plBigNum(sizeof(kGateKeeperDhXData), kGateKeeperDhXData),
         plBigNum(sizeof(kGateKeeperDhNData), kGateKeeperDhNData)
@@ -972,7 +927,7 @@ void GateKeeperDestroy (bool wait) {
         hsLockGuard(s_critsect);
         while (CliGkConn * conn = s_conns.Head())
             UnlinkAndAbandonConn_CS(conn);
-        s_active = nil;
+        s_active = nullptr;
     }
 
     if (!wait)
@@ -980,7 +935,7 @@ void GateKeeperDestroy (bool wait) {
 
     while (s_perf[kPerfConnCount]) {
         NetTransUpdate();
-        AsyncSleep(10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
@@ -1019,13 +974,11 @@ void NetCliGateKeeperStartConnect (
         while (unsigned ch = *name) {
             ++name;
             if (!(isdigit(ch) || ch == L'.' || ch == L':')) {
-                AsyncCancelId cancelId;
                 AsyncAddressLookupName(
-                    &cancelId,
                     AsyncLookupCallback,
-                    gateKeeperAddrList[i].c_str(),
+                    gateKeeperAddrList[i],
                     GetClientPort(),
-                    nil
+                    nullptr
                 );
                 break;
             }
@@ -1042,7 +995,7 @@ void NetCliGateKeeperDisconnect () {
     hsLockGuard(s_critsect);
     while (CliGkConn * conn = s_conns.Head())
         UnlinkAndAbandonConn_CS(conn);
-    s_active = nil;
+    s_active = nullptr;
 }
 
 //============================================================================

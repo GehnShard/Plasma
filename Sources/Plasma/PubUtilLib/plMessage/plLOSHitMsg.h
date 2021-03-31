@@ -59,9 +59,8 @@ public:
 
     plLOSHitMsg() : fHitFlags(0) { SetBCastFlag(plMessage::kPropagateToModifiers); }
 
-    plLOSHitMsg(const plKey& s, const plKey& r, const double* t) :
-        fHitFlags(0),
-        plMessage(s, r, t)
+    plLOSHitMsg(const plKey& s, const plKey& r, uint32_t id)
+        : fNoHit(), fRequestID(id), fHitFlags(), fDistance(), plMessage(s, r, nullptr)
     {
         SetBCastFlag(plMessage::kPropagateToModifiers);
     }
@@ -70,8 +69,8 @@ public:
     GETINTERFACE_ANY( plLOSHitMsg, plMessage );
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr);
-    void Write(hsStream* stream, hsResMgr* mgr);
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 };
 
 

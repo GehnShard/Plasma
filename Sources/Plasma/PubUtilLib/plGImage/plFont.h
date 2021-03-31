@@ -64,12 +64,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 #include "hsColorRGBA.h"
-#include "hsTemplates.h"
 #include "pcSmallRect.h"
 
-#include "pnKeyedObject/hsKeyedObject.h"
+#include <vector>
 
-#include <wchar.h>
+#include "pnKeyedObject/hsKeyedObject.h"
 
 class plBDFConvertCallback
 {
@@ -167,27 +166,16 @@ class plFont : public hsKeyedObject
                                         // (left kerning currently unsupported, just 
                                         // in here in case we need to eventually)
 
-                plCharacter& operator=(const int zero) 
-                { 
-                    fBitmapOff=0;
-                    fHeight = 0;
-                    fBaseline = 0;
-                    fLeftKern = 0;
-                    fRightKern = 0;
-
-                    return *this;
-                }
-
                 plCharacter();
-                void    Read( hsStream *s );
-                void    Write( hsStream *s );
+                void    Read(hsStream *s);
+                void    Write(hsStream *s) const;
         };
 
         // First character we encode--everything below this we don't render
         uint16_t  fFirstChar;
 
-        // Our characters, stored in an hsTArray for easy construction
-        hsTArray<plCharacter>   fCharacters;
+        // Our characters, stored in a vector for easy construction
+        std::vector<plCharacter> fCharacters;
 
         // Max character bitmap height and max ascent for any character
         uint32_t  fMaxCharHeight;
@@ -251,13 +239,13 @@ class plFont : public hsKeyedObject
         CLASSNAME_REGISTER( plFont );
         GETINTERFACE_ANY( plFont, hsKeyedObject );
 
-        virtual void    Read( hsStream *s, hsResMgr *mgr );
-        virtual void    Write( hsStream *s, hsResMgr *mgr );
+        void    Read(hsStream *s, hsResMgr *mgr) override;
+        void    Write(hsStream *s, hsResMgr *mgr) override;
 
         ST::string  GetFace() const { return fFace; }
         uint8_t     GetSize() const { return fSize; }
         uint16_t    GetFirstChar() const { return fFirstChar; }
-        uint16_t    GetNumChars() const { return fCharacters.GetCount(); }
+        size_t      GetNumChars() const { return fCharacters.size(); }
         uint32_t    GetFlags() const { return fFlags; }
         float       GetDescent() const { return (float)fFontDescent; }
         float       GetAscent() const { return (float)fFontAscent; }
@@ -285,8 +273,8 @@ class plFont : public hsKeyedObject
         void    SetRenderClipping( int16_t x, int16_t y, int16_t width, int16_t height );
         void    SetRenderWrapping( int16_t x, int16_t y, int16_t width, int16_t height );
 
-        void    RenderString( plMipmap *mip, uint16_t x, uint16_t y, const ST::string &string, uint16_t *lastX = nil, uint16_t *lastY = nil );
-        void    RenderString( plMipmap *mip, uint16_t x, uint16_t y, const wchar_t *string, uint16_t *lastX = nil, uint16_t *lastY = nil );
+        void    RenderString(plMipmap *mip, uint16_t x, uint16_t y, const ST::string &string, uint16_t *lastX = nullptr, uint16_t *lastY = nullptr);
+        void    RenderString(plMipmap *mip, uint16_t x, uint16_t y, const wchar_t *string, uint16_t *lastX = nullptr, uint16_t *lastY = nullptr);
 
         uint16_t  CalcStringWidth( const ST::string &string );
         uint16_t  CalcStringWidth( const wchar_t *string );

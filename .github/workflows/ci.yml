@@ -1,0 +1,173 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    name: ${{ matrix.platform.str }}-${{ matrix.cfg.str }}
+    strategy:
+      matrix:
+        platform:
+          - { generator: Visual Studio 16 2019, arch: Win32, qt-arch: win32_msvc2019, qt-version: 5.15.2,  str: windows-x86 }
+          - { generator: Visual Studio 16 2019, arch: x64, qt-arch: win64_msvc2019_64, qt-version: 5.15.2,  str: windows-x64 }
+        cfg:
+          - { external: OFF, type: RelWithDebInfo, str: internal-release }
+          - { external: OFF, type: Debug, str: internal-debug }
+          - { external: ON, type: RelWithDebInfo, str: external-release }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install Qt
+        continue-on-error: true
+        uses: jurplel/install-qt-action@v2
+        with:
+          version: ${{ matrix.platform.qt-version }}
+          arch: ${{ matrix.platform.qt-arch }}
+          dir: ${{ github.workspace }}/qt
+
+      - name: Configure
+        run: |
+          cmake `
+            -G "${{ matrix.platform.generator }}" -A "${{ matrix.platform.arch }}" `
+            -DPLASMA_BUILD_TESTS=ON `
+            -DPLASMA_BUILD_TOOLS=ON `
+            -DPLASMA_EXTERNAL_RELEASE=${{ matrix.cfg.external }} `
+            -DPLASMA_VCPKG_NUGET_SOURCE="https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" `
+            -DPLASMA_VCPKG_NUGET_OWNER="${{ github.repository_owner }}" `
+            -DPLASMA_VCPKG_NUGET_TOKEN="${{ secrets.GITHUB_TOKEN }}" `
+            -DPLASMA_VCPKG_NUGET_RW=TRUE `
+            -S . -B build
+
+      - name: Build
+        run: |
+          cmake --build build --config "${{ matrix.cfg.type }}" -j 2
+
+      - name: Install
+        run: |
+          cmake --build build --target INSTALL --config "${{ matrix.cfg.type }}" -j 2
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: plasma-${{ matrix.platform.str }}-${{ matrix.cfg.str }}
+          path: build/install
+
+      - name: Test
+        run: |
+          cmake --build build --target check --config "${{ matrix.cfg.type }}" -j 2
+
+
+  linux:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.platform.str }}-${{ matrix.cfg.str }}
+    strategy:
+      matrix:
+        platform:
+          - { str: linux-x64 }
+        cfg:
+          - { external: OFF, type: RelWithDebInfo, str: internal-release }
+          - { external: OFF, type: Debug, str: internal-debug }
+          - { external: ON, type: RelWithDebInfo, str: external-release }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+              autoconf \
+              cmake \
+              libcairo2 \
+              libsecret-1-dev \
+              libtool \
+              nasm \
+              ninja-build \
+              qtbase5-dev
+
+      - name: Configure
+        run: |
+          cmake \
+            -G Ninja \
+            -DUSE_VCPKG=ON \
+            -DCMAKE_BUILD_TYPE=${{ matrix.cfg.type }} \
+            -DPLASMA_BUILD_TESTS=ON \
+            -DPLASMA_BUILD_TOOLS=ON \
+            -DPLASMA_EXTERNAL_RELEASE=${{ matrix.cfg.external }} \
+            -DPLASMA_VCPKG_NUGET_SOURCE="https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            -DPLASMA_VCPKG_NUGET_OWNER="${{ github.repository_owner }}" \
+            -DPLASMA_VCPKG_NUGET_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -DPLASMA_VCPKG_NUGET_RW=TRUE \
+            -S . -B build
+
+      - name: Build
+        run: |
+          cmake --build build -j 2
+
+      - name: Test
+        run: |
+          cmake --build build --target check -j 2
+
+      - name: Install
+        run: |
+          cmake --build build --target install -j 2
+
+
+  macos:
+    runs-on: macos-latest
+    name: ${{ matrix.platform.str }}-${{ matrix.cfg.str }}
+    strategy:
+      matrix:
+        platform:
+          - { str: macos-x64 }
+        cfg:
+          - { external: OFF, type: RelWithDebInfo, str: internal-release }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: |
+          brew install \
+              autoconf \
+              automake \
+              cairo \
+              libtool \
+              nasm \
+              qt5
+
+      - name: Configure
+        run: |
+          cmake \
+            -DUSE_VCPKG=ON \
+            -DCMAKE_BUILD_TYPE=${{ matrix.cfg.type }} \
+            -DPLASMA_BUILD_TESTS=ON \
+            -DPLASMA_BUILD_TOOLS=ON \
+            -DPLASMA_EXTERNAL_RELEASE=${{ matrix.cfg.external }} \
+            -DPLASMA_VCPKG_NUGET_SOURCE="https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            -DPLASMA_VCPKG_NUGET_OWNER="${{ github.repository_owner }}" \
+            -DPLASMA_VCPKG_NUGET_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -DPLASMA_VCPKG_NUGET_RW=TRUE \
+            -DQt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5 \
+            -S . -B build
+
+      - name: Build
+        run: |
+          cmake --build build -j 2
+
+      - name: Test
+        run: |
+          cmake --build build --target check -j 2
+
+      - name: Install
+        run: |
+          cmake --build build --target install -j 2

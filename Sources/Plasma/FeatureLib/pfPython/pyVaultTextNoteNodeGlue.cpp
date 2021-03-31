@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include <Python.h>
-#pragma hdrstop
 
 #include "pyVaultTextNoteNode.h"
 #include "plVault/plVault.h"
@@ -71,7 +70,7 @@ PYTHON_METHOD_DEFINITION(ptVaultTextNoteNode, noteSetTitle, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultTextNoteNode, noteGetTitle)
 {
-    return PyString_FromSTString(self->fThis->Note_GetTitle());
+    return PyUnicode_FromSTString(self->fThis->Note_GetTitle());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultTextNoteNode, noteSetText, args)
@@ -88,7 +87,7 @@ PYTHON_METHOD_DEFINITION(ptVaultTextNoteNode, noteSetText, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultTextNoteNode, noteGetText)
 {
-    return PyString_FromSTString(self->fThis->Note_GetText());
+    return PyUnicode_FromSTString(self->fThis->Note_GetText());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultTextNoteNode, noteSetType, args)
@@ -147,19 +146,9 @@ PYTHON_METHOD_DEFINITION(ptVaultTextNoteNode, setTitleW, args)
     }
     if (PyUnicode_Check(textObj))
     {
-        int strLen = PyUnicode_GetSize(textObj);
-        wchar_t* title = new wchar_t[strLen + 1];
-        PyUnicode_AsWideChar((PyUnicodeObject*)textObj, title, strLen);
-        title[strLen] = L'\0';
+        wchar_t* title = PyUnicode_AsWideCharString(textObj, nullptr);
         self->fThis->Note_SetTitleW(title);
-        delete [] title;
-        PYTHON_RETURN_NONE;
-    }
-    else if (PyString_Check(textObj))
-    {
-        // we'll allow this, just in case something goes weird
-        char* title = PyString_AsString(textObj);
-        self->fThis->Note_SetTitle(title);
+        PyMem_Free(title);
         PYTHON_RETURN_NONE;
     }
     PyErr_SetString(PyExc_TypeError, "setTitleW expects a unicode string");
@@ -168,7 +157,7 @@ PYTHON_METHOD_DEFINITION(ptVaultTextNoteNode, setTitleW, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultTextNoteNode, getTitle)
 {
-    return PyString_FromSTString(self->fThis->Note_GetTitle());
+    return PyUnicode_FromSTString(self->fThis->Note_GetTitle());
 }
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultTextNoteNode, getTitleW)
@@ -198,19 +187,9 @@ PYTHON_METHOD_DEFINITION(ptVaultTextNoteNode, setTextW, args)
     }
     if (PyUnicode_Check(textObj))
     {
-        int strLen = PyUnicode_GetSize(textObj);
-        wchar_t* text = new wchar_t[strLen + 1];
-        PyUnicode_AsWideChar((PyUnicodeObject*)textObj, text, strLen);
-        text[strLen] = L'\0';
+        wchar_t* text = PyUnicode_AsWideCharString(textObj, nullptr);
         self->fThis->Note_SetTextW(text);
-        delete [] text;
-        PYTHON_RETURN_NONE;
-    }
-    else if (PyString_Check(textObj))
-    {
-        // we'll allow this, just in case something goes weird
-        char* text = PyString_AsString(textObj);
-        self->fThis->Note_SetText(text);
+        PyMem_Free(text);
         PYTHON_RETURN_NONE;
     }
     PyErr_SetString(PyExc_TypeError, "setTextW expects a unicode string");
@@ -219,7 +198,7 @@ PYTHON_METHOD_DEFINITION(ptVaultTextNoteNode, setTextW, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultTextNoteNode, getText)
 {
-    return PyString_FromSTString(self->fThis->Note_GetText());
+    return PyUnicode_FromSTString(self->fThis->Note_GetText());
 }
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultTextNoteNode, getTextW)
@@ -264,7 +243,7 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptVaultTextNoteNode, getSubType)
 PYTHON_METHOD_DEFINITION(ptVaultTextNoteNode, setDeviceInbox, args)
 {
     char* inboxName; 
-    PyObject* cb = NULL;
+    PyObject* cb = nullptr;
     unsigned long context = 0;
     if (!PyArg_ParseTuple(args, "s|Ol", &inboxName, &cb, &context))
     {

@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 #ifndef PLAVTASKSEEK_INC
 #define PLAVTASKSEEK_INC
-#pragma once
 
 #include "plAvatarTasks.h"
 #include "hsQuat.h"
@@ -73,30 +72,30 @@ public:
     };
 
     plAvTaskSeek();
-    plAvTaskSeek(plKey target);
+    plAvTaskSeek(const plKey& target);
     plAvTaskSeek(plAvSeekMsg *msg);
-    plAvTaskSeek(plKey target, plAvAlignment align, const ST::string& animName, bool moving);
+    plAvTaskSeek(const plKey& target, plAvAlignment align, ST::string animName, bool moving);
 
-    void SetTarget(plKey target);
+    void SetTarget(const plKey& target);
     void SetTarget(hsPoint3 &pos, hsPoint3 &lookAt);
 
     /** Initiate the task; make sure we're running on the right type of brain, save off
         user input state, and turn off any other running behaviors.*/
-    virtual bool Start(plArmatureMod *avatar, plArmatureBrain *brain, double time, float elapsed);
+    bool Start(plArmatureMod *avatar, plArmatureBrain *brain, double time, float elapsed) override;
 
     /** Progress towards the goal using a combination of walking and cheating-via-sliding.
         Returns true if we're still working on it; false if we're done. */
     
-    virtual bool Process(plArmatureMod *avatar, plArmatureBrain *brain, double time, float elapsed);
+    bool Process(plArmatureMod *avatar, plArmatureBrain *brain, double time, float elapsed) override;
 
     /** Restore user input state, etc. */
-    virtual void Finish(plArmatureMod *avatar, plArmatureBrain *brain, double time, float elapsed);
+    void Finish(plArmatureMod *avatar, plArmatureBrain *brain, double time, float elapsed) override;
     
     /** clear our target, and when we try to eval, we'll just finish */
-    virtual void LeaveAge(plArmatureMod *avatar);
+    void LeaveAge(plArmatureMod *avatar) override;
 
     /** Spew "useful" information to the game screen. Used when Avatar.Debug is active. */
-    virtual void DumpDebug(const char *name, int &x, int&y, int lineHeight, plDebugText &debugTxt);
+    void DumpDebug(const char *name, int &x, int&y, int lineHeight, plDebugText &debugTxt) override;
 
     void DumpToAvatarLog(plArmatureMod *avatar);
         

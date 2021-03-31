@@ -45,38 +45,43 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //                                                                          //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "HeadSpin.h"
 #include "pfGUICtrlGenerator.h"
+
+#include "HeadSpin.h"
+#include "plgDispatch.h"
+#include "hsGeometry3.h"
+#include "hsMatrix44.h"
+#include "hsResMgr.h"
+
+#include <string_theory/format>
+
 #include "pfGameGUIMgr.h"
+#include "pfGUIButtonMod.h"
+#include "pfGUIControlHandlers.h"
 #include "pfGUIControlMod.h"
 #include "pfGUIDialogMod.h"
-#include "pfGUIButtonMod.h"
 #include "pfGUIDragBarCtrl.h"
-#include "pfGUIControlHandlers.h"
 #include "pfGUIMenuItem.h"
 
-#include "plSurface/hsGMaterial.h"
-#include "plSurface/plLayer.h"
-#include "plGImage/plMipmap.h"
 #include "pnKeyedObject/plFixedKey.h"
+#include "pnMessage/plAttachMsg.h"
+#include "pnMessage/plClientMsg.h"
+#include "pnMessage/plIntRefMsg.h"
+#include "plMessage/plLayRefMsg.h"
+#include "pnMessage/plNodeRefMsg.h"
+#include "pnMessage/plObjRefMsg.h"
+#include "pnSceneObject/plCoordinateInterface.h"
+#include "pnSceneObject/plDrawInterface.h"
+#include "pnSceneObject/plSceneObject.h"
+
 #include "plDrawable/plDrawableSpans.h"
 #include "plDrawable/plDrawableGenerator.h"
-#include "pnSceneObject/plSceneObject.h"
-#include "pnSceneObject/plDrawInterface.h"
-#include "pnSceneObject/plCoordinateInterface.h"
-#include "pnMessage/plIntRefMsg.h"
-#include "pnMessage/plObjRefMsg.h"
-#include "pnMessage/plNodeRefMsg.h"
+#include "plGImage/plMipmap.h"
 #include "plPipeline/plTextGenerator.h"
 #include "plScene/plPostEffectMod.h"
 #include "plScene/plSceneNode.h"
-#include "pnMessage/plClientMsg.h"
-#include "plMessage/plLayRefMsg.h"
-#include "pnMessage/plAttachMsg.h"
-
-#include "plgDispatch.h"
-#include "hsResMgr.h"
-
+#include "plSurface/hsGMaterial.h"
+#include "plSurface/plLayer.h"
 
 //// Constructor/Destructor //////////////////////////////////////////////////
 
@@ -93,22 +98,18 @@ pfGUICtrlGenerator::~pfGUICtrlGenerator()
 
 void    pfGUICtrlGenerator::Shutdown()
 {
-    int i;
-    
-
     // Destroy our scene nodes and dialogs
-    for( i = 0; i < fDynDlgNodes.GetCount(); i++ )
+    for (size_t i = 0; i < fDynDlgNodes.size(); i++)
     {
         pfGameGUIMgr::GetInstance()->UnloadDialog( fDynDialogs[ i ] );
         fDynDlgNodes[ i ]->GetKey()->UnRefObject();
     }
-    fDynDlgNodes.Reset();
-    fDynDialogs.Reset();
-    
-    for( i = 0; i < fTextGens.GetCount(); i++ )
-        delete fTextGens[ i ];
-    fTextGens.Reset();
+    fDynDlgNodes.clear();
+    fDynDialogs.clear();
 
+    for (plTextGenerator* textGen : fTextGens)
+        delete textGen;
+    fTextGens.clear();
 }
 
 //// Instance ////////////////////////////////////////////////////////////////
@@ -196,7 +197,7 @@ hsGMaterial *pfGUICtrlGenerator::ICreateTextMaterial( const char *text, hsColorR
     strWidth = textGen->CalcStringWidth( text, &strHeight );
     textGen->DrawString( ( pixWidth - strWidth ) >> 1, ( pixHeight - strHeight ) >> 1, text );
     textGen->FlushToHost();
-    fTextGens.Append( textGen );
+    fTextGens.emplace_back(textGen);
 
     // Create a material with a simple blank layer, fully ambient
     hsGMaterial *material = new hsGMaterial;
@@ -229,9 +230,9 @@ void    pfGUICtrlGenerator::GenerateDialog( const char *name )
 plSceneObject   *pfGUICtrlGenerator::IGenSceneObject( pfGUIDialogMod *dlg, plDrawable *myDraw, plSceneObject *parent,
                                                         hsMatrix44 *l2w, hsMatrix44 *w2l )
 {
-    plKey snKey = ( dlg != nil ) ? ( dlg->GetTarget() != nil ? dlg->GetTarget()->GetSceneNode() : nil ) : nil;
-    if( snKey == nil )
-        snKey = fDynDlgNodes.Peek()->GetKey();
+    plKey snKey = (dlg != nullptr) ? (dlg->GetTarget() != nullptr ? dlg->GetTarget()->GetSceneNode() : nullptr) : nullptr;
+    if (snKey == nullptr)
+        snKey = fDynDlgNodes.back()->GetKey();
 
     hsgResMgr::ResMgr()->SendRef( myDraw->GetKey(), new plNodeRefMsg( snKey, plRefMsg::kOnCreate, 0, plNodeRefMsg::kDrawable ), plRefFlags::kActiveRef );       
 
@@ -248,20 +249,20 @@ plSceneObject   *pfGUICtrlGenerator::IGenSceneObject( pfGUIDialogMod *dlg, plDra
     hsgResMgr::ResMgr()->SendRef( newDI->GetKey(), new plObjRefMsg( newObj->GetKey(), plRefMsg::kOnCreate, 0, plObjRefMsg::kInterface ), plRefFlags::kActiveRef );
     hsgResMgr::ResMgr()->SendRef( myDraw->GetKey(), new plIntRefMsg( newDI->GetKey(), plRefMsg::kOnCreate, 0, plIntRefMsg::kDrawable ), plRefFlags::kActiveRef );
 
-    if( parent == nil )
+    if (parent == nullptr)
     {
-        parent = ( fDynDragBars.GetCount() > 0 ) ? fDynDragBars.Peek() : nil;
-        if( parent == nil )
+        parent = !fDynDragBars.empty() ? fDynDragBars.back() : nullptr;
+        if (parent == nullptr)
             parent = dlg->GetTarget();
     }
 
-    if( parent != nil )
+    if (parent != nullptr)
 //      hsgResMgr::ResMgr()->SendRef( newCI->GetKey(), new plIntRefMsg( parent->GetKey(), plRefMsg::kOnCreate, 0, plIntRefMsg::kChild ), plRefFlags::kActiveRef );
-        hsgResMgr::ResMgr()->SendRef( newCI->GetKey(), new plAttachMsg( parent->GetKey(), nil, plRefMsg::kOnRequest ), plRefFlags::kActiveRef );
+        hsgResMgr::ResMgr()->SendRef(newCI->GetKey(), new plAttachMsg(parent->GetKey(), nullptr, plRefMsg::kOnRequest), plRefFlags::kActiveRef);
     
     newObj->SetSceneNode( snKey );
 
-    if( l2w != nil )
+    if (l2w != nullptr)
     {
         newObj->SetTransform( *l2w, *w2l );
 //      newCI->SetLocalToParent( *l2w, *w2l );
@@ -277,8 +278,6 @@ pfGUIButtonMod  *pfGUICtrlGenerator::GenerateRectButton( const char *title, floa
                                     const char *consoleCmd, hsColorRGBA &color, hsColorRGBA &textColor )
 {
     hsGMaterial     *material;
-    hsMatrix44      l2w, w2l;
-    hsVector3       vec;
     pfGUIDialogMod  *dlgToAddTo = IGetDialog();
 
 
@@ -286,7 +285,7 @@ pfGUIButtonMod  *pfGUICtrlGenerator::GenerateRectButton( const char *title, floa
     material = ICreateTextMaterial( title, color, textColor, width * 20.f, height * 20.f );
 
     pfGUIButtonMod *but = CreateRectButton( dlgToAddTo, title, x, y, width, height, material );
-    if( but != nil )
+    if (but != nullptr)
         but->SetHandler( new pfGUIConsoleCmdProc( consoleCmd ) );
 
     return but;
@@ -308,7 +307,6 @@ pfGUIButtonMod  *pfGUICtrlGenerator::CreateRectButton( pfGUIDialogMod *parent, c
 {
     plDrawableSpans *myDraw;
     hsMatrix44      l2w, w2l;
-    hsVector3       vec;
 
 
     // Translate x and y from (0:1) to (-10:10)
@@ -320,8 +318,10 @@ pfGUIButtonMod  *pfGUICtrlGenerator::CreateRectButton( pfGUIDialogMod *parent, c
 
     // Create drawable that is rectangular
     l2w.Reset();
-    hsPoint3 corner( x, -y, -100 );
-    hsVector3 xVec( width, 0, 0 ), yVec( 0, height, 0 ), zVec( 0, 0, 0.1f );
+    hsPoint3 corner(x, -y, -100.f);
+    hsVector3 xVec(width, 0.f, 0.f);
+    hsVector3 yVec(0.f, height, 0.f);
+    hsVector3 zVec(0.f, 0.f, 0.1f);
 
     myDraw = plDrawableGenerator::GeneratePlanarDrawable( corner, xVec, yVec, material, l2w );
 
@@ -362,14 +362,14 @@ pfGUIButtonMod  *pfGUICtrlGenerator::GenerateSphereButton( float x, float y, flo
     l2w.Reset();
     // We bump up the quality since we're actually far closer to these things then the normal
     // world camera would put us
-    myDraw = plDrawableGenerator::GenerateSphericalDrawable( pt, radius, material, l2w,
-                                                            false, nil, nil, nil, 100.f );
+    myDraw = plDrawableGenerator::GenerateSphericalDrawable(pt, radius, material, l2w,
+                                                            false, nullptr, nullptr, nullptr, 100.f);
 
     vec.Set( x, -y, 0 );
     l2w.MakeTranslateMat( &vec );
     l2w.GetInverse( &w2l );
 
-    plSceneObject *newObj = IGenSceneObject( dlgToAddTo, myDraw );//, nil, &l2w, &w2l );
+    plSceneObject *newObj = IGenSceneObject(dlgToAddTo, myDraw);//, nullptr, &l2w, &w2l);
 
     pfGUIButtonMod *newBtn = new pfGUIButtonMod;
     IAddKey( newBtn, "GUIButton" );
@@ -387,7 +387,6 @@ pfGUIDragBarCtrl *pfGUICtrlGenerator::GenerateDragBar( float x, float y, float w
     hsGMaterial     *material;
     plDrawableSpans *myDraw;
     hsMatrix44      l2w, w2l;
-    hsVector3       vec;
     pfGUIDialogMod  *dlgToAddTo = IGetDialog();
 
 
@@ -404,19 +403,21 @@ pfGUIDragBarCtrl *pfGUICtrlGenerator::GenerateDragBar( float x, float y, float w
     // Create drawable that is rectangular
     l2w.Reset();
 
-    hsPoint3 corner( x, -y, -100 );//x - width / 2.f, -y - height / 2.f, -100 );
-    hsVector3 xVec( width, 0, 0 ), yVec( 0, height, 0 ), zVec( 0, 0, 0.1f );
+    hsPoint3 corner(x, -y, -100.f);//x - width / 2.f, -y - height / 2.f, -100 );
+    hsVector3 xVec(width, 0.f, 0.f);
+    hsVector3 yVec(0.f, height, 0.f);
+    hsVector3 zVec(0.f, 0.f, 0.1f);
 
     myDraw = plDrawableGenerator::GenerateBoxDrawable( corner, xVec, yVec, zVec,/*width, height, 0.01f, */material, l2w );
 
     // Drag bars are special--everything else gets attached to them and they get attached to the dialog
-    vec.Set( x, -y, -100 );
+    hsVector3 vec(x, -y, -100.f);
     l2w.MakeTranslateMat( &vec );
     l2w.GetInverse( &w2l );
 
     plSceneObject *newObj = IGenSceneObject( dlgToAddTo, myDraw, dlgToAddTo->GetTarget(), &l2w, &w2l );
 
-    fDynDragBars[ fDynDragBars.GetCount() - 1 ] = newObj;
+    fDynDragBars.back() = newObj;
 
     pfGUIDragBarCtrl *newBtn = new pfGUIDragBarCtrl;
     IAddKey( newBtn, "GUIDragBar" );
@@ -437,11 +438,11 @@ pfGUIDragBarCtrl *pfGUICtrlGenerator::GenerateDragBar( float x, float y, float w
 
 pfGUIDialogMod  *pfGUICtrlGenerator::IGetDialog()
 {
-    if( fDynDialogs.GetCount() == 0 )
+    if (fDynDialogs.empty())
         IGenerateDialog( "GUIBaseDynamicDlg", 20.f );
 
-    hsAssert( fDynDialogs.GetCount() > 0, "Unable to get a dynamic dialog to add buttons to" );
-    return fDynDialogs.Peek();
+    hsAssert(!fDynDialogs.empty(), "Unable to get a dynamic dialog to add buttons to");
+    return fDynDialogs.back();
 }
 
 //// IGenerateDialog /////////////////////////////////////////////////////////
@@ -464,15 +465,15 @@ pfGUIDialogMod  *pfGUICtrlGenerator::IGenerateDialog( const char *name, float sc
     fovX = atan( scrnWidth / ( 2.f * 100.f ) ) * 2.f;
     fovY = fovX;// * 3.f / 4.f;
 
-    renderMod->SetFovX( fovX * 180.f / M_PI );
-    renderMod->SetFovY( fovY * 180.f / M_PI );
+    renderMod->SetFovX(hsRadiansToDegrees(fovX));
+    renderMod->SetFovY(hsRadiansToDegrees(fovY));
 
     // Create the sceneNode to go with it
     node = new plSceneNode;
     IAddKey( node, "GUISceneNode" );
     node->GetKey()->RefObject();
-    fDynDlgNodes.Append( node );
-    fDynDragBars.Append( nil );
+    fDynDlgNodes.emplace_back(node);
+    fDynDragBars.emplace_back(nullptr);
 
     hsgResMgr::ResMgr()->AddViaNotify( node->GetKey(), new plGenRefMsg( renderMod->GetKey(), plRefMsg::kOnCreate, 0, plPostEffectMod::kNodeRef ), plRefFlags::kPassiveRef );        
 
@@ -517,6 +518,6 @@ pfGUIDialogMod  *pfGUICtrlGenerator::IGenerateDialog( const char *name, float sc
     if( show )
         pfGameGUIMgr::GetInstance()->ShowDialog( dialog );
 
-    fDynDialogs.Append( dialog );
+    fDynDialogs.emplace_back(dialog);
     return dialog;
 }

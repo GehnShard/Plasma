@@ -42,10 +42,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef PLAVATARCLOTHING_INC
 #define PLAVATARCLOTHING_INC
 
-#include "pnUtils/pnUtils.h"
-#include "pnNetCommon/plSynchedObject.h"
-#include "hsColorRGBA.h"
 #include "hsBitVector.h"
+#include "hsColorRGBA.h"
+
+#include <string_theory/string>
+#include <vector>
+
+#include "pnNetCommon/plSynchedObject.h"
+
 #include "plClothingLayout.h"
 
 class hsGMaterial;
@@ -61,15 +65,17 @@ class plSharedMesh;
 class plStateDataRecord;
 class plDXPipeline;
 
-class plClothingItemOptions
+struct plClothingItemOptions
 {
-public:
     hsColorRGBA fTint1;
     hsColorRGBA fTint2;
 
     plClothingItemOptions() { fTint1.Set(1.f, 1.f, 1.f, 1.f); fTint2.Set(1.f, 1.f, 1.f, 1.f); }
 
-    bool IsMatch(plClothingItemOptions *other) { return fTint1 == other->fTint1 && fTint2 == other->fTint2; }
+    bool IsMatch(const plClothingItemOptions *other) const
+    {
+        return fTint1 == other->fTint1 && fTint2 == other->fTint2;
+    }
 };
 
 class plClothingItem : public hsKeyedObject
@@ -87,9 +93,9 @@ public:
     // to change plClothingMgr::IsLRMatch() as well
     ST::string fName;
     plSharedMesh *fMeshes[kMaxNumLODLevels];
-    hsTArray<plMipmap **> fTextures;
-    hsTArray<ST::string> fElementNames;
-    hsTArray<plClothingElement *> fElements;
+    std::vector<plMipmap **> fTextures;
+    std::vector<ST::string> fElementNames;
+    std::vector<plClothingElement *> fElements;
     uint8_t fGroup;   // Each avatar can wear one of the available groups
     uint8_t fType;    // Each group has multiple types of clothes (shirt/pants/etc)
     uint8_t fTileset;
@@ -116,23 +122,22 @@ public:
     bool CanWearWith(plClothingItem *item);
     bool WearBefore(plClothingItem *item); // Should we come before the arg item? (texture gen order)
     bool HasBaseAlpha();
-    bool HasSameMeshes(plClothingItem *other);
+    bool HasSameMeshes(const plClothingItem *other) const;
 
-    virtual void Read(hsStream* s, hsResMgr* mgr);
-    virtual void Write(hsStream* s, hsResMgr* mgr); 
+    void Read(hsStream* s, hsResMgr* mgr) override;
+    void Write(hsStream* s, hsResMgr* mgr) override;
 
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
 };
 
-class plClosetItem
+struct plClosetItem
 {
-public:
-    plClosetItem() : fItem(nil) {}
+    plClosetItem() : fItem() { }
 
     plClothingItem *fItem;
     plClothingItemOptions fOptions;
 
-    bool IsMatch(plClosetItem *other);
+    bool IsMatch(const plClosetItem *other) const;
 };
 
 class plClothingBase : public hsKeyedObject
@@ -149,10 +154,10 @@ public:
     
     void SetLayoutName(const ST::string &name) { fLayoutName = name; }
 
-    virtual void Read(hsStream* s, hsResMgr* mgr);
-    virtual void Write(hsStream* s, hsResMgr* mgr);
+    void Read(hsStream* s, hsResMgr* mgr) override;
+    void Write(hsStream* s, hsResMgr* mgr) override;
 
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
 };
 
 class plClothingOutfit : public plSynchedObject
@@ -163,8 +168,9 @@ public:
     plArmatureMod *fAvatar;
     plLayer *fTargetLayer;
     hsGMaterial *fMaterial; // Needed to tell swapped geometry what material to use.
-    hsTArray<plClothingItem*> fItems;
-    hsTArray<plClothingItemOptions*> fOptions;
+    // TODO: Consider a tuple?
+    std::vector<plClothingItem*> fItems;
+    std::vector<plClothingItemOptions*> fOptions;
     plClothingBase *fBase;
     uint8_t fGroup;
     bool fSynchClients;     // set true if the next synch should be bcast
@@ -190,12 +196,12 @@ public:
     float GetSkinBlend(uint8_t layer);     
     hsColorRGBA GetItemTint(plClothingItem *item, uint8_t layer = 2) const;
     float GetAge() const { return fSkinBlends[0]; }
-    hsTArray<plClothingItem*> &GetItemList() { return fItems; }
-    hsTArray<plClothingItemOptions*> &GetOptionList() { return fOptions; }
+    const std::vector<plClothingItem*> &GetItemList() const { return fItems; }
+    const std::vector<plClothingItemOptions*> &GetOptionList() const { return fOptions; }
 
-    virtual void Read(hsStream* s, hsResMgr* mgr);
-    virtual void Write(hsStream* s, hsResMgr* mgr);
-    bool DirtySynchState(const ST::string& SDLStateName, uint32_t synchFlags);
+    void Read(hsStream* s, hsResMgr* mgr) override;
+    void Write(hsStream* s, hsResMgr* mgr) override;
+    bool DirtySynchState(const ST::string& SDLStateName, uint32_t synchFlags) override;
 
     void StripAccessories();
     void WearDefaultClothing();
@@ -209,7 +215,7 @@ public:
     
     void ForceUpdate(bool retry);       // send updateTexture msg
 
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
 
     void IInstanceSharedMeshes(plClothingItem *item);
     void IRemoveSharedMeshes(plClothingItem *item);
@@ -220,7 +226,7 @@ public:
     bool ReadClothing();
 
     void WriteToVault();
-    void WriteToVault(const TArray<plStateDataRecord*> & SDRs);
+    void WriteToVault(const std::vector<plStateDataRecord*> & SDRs);
 
     /** Write the avatar clothing to a file */
     bool WriteToFile(const plFileName &filename);
@@ -264,18 +270,18 @@ protected:
 
 class plClothingMgr : public hsKeyedObject
 {
-protected:
+private:
     static plClothingMgr *fInstance;
 
-    hsTArray<plClothingElement*> fElements;
-    hsTArray<plClothingItem*> fItems;
-    hsTArray<plClothingLayout*> fLayouts;
+    std::vector<plClothingElement*> fElements;
+    std::vector<plClothingItem*> fItems;
+    std::vector<plClothingLayout*> fLayouts;
     
     void IInit();
     void IAddItem(plClothingItem *item);
 
 public:
-    plClothingMgr();
+    plClothingMgr() = default;
     ~plClothingMgr();
 
     CLASSNAME_REGISTER( plClothingMgr );
@@ -286,34 +292,34 @@ public:
 
 
     // Functions that just relate to the clothing you have permission to wear (closet)
-    void AddItemsToCloset(hsTArray<plClosetItem> &items);
-    void GetClosetItems(hsTArray<plClosetItem> &out);
+    void AddItemsToCloset(const std::vector<plClosetItem> &items);
+    void GetClosetItems(std::vector<plClosetItem> &out);
 
     // Functions that relate to all existing clothing
     plClothingItem *FindItemByName(const ST::string &name) const;
-    hsTArray<plClothingItem*>& GetItemList() { return fItems; }
-    void GetItemsByGroup(uint8_t group, hsTArray<plClothingItem*> &out);
-    void GetItemsByGroupAndType(uint8_t group, uint8_t type, hsTArray<plClothingItem*> &out);
-    void GetAllWithSameMesh(plClothingItem *item, hsTArray<plClothingItem*> &out);
+    const std::vector<plClothingItem*>& GetItemList() const { return fItems; }
+    void GetItemsByGroup(uint8_t group, std::vector<plClothingItem*> &out);
+    void GetItemsByGroupAndType(uint8_t group, uint8_t type, std::vector<plClothingItem*> &out);
+    void GetAllWithSameMesh(plClothingItem *item, std::vector<plClothingItem*> &out);
     
     // Give an array of items (from one of the above functions, for example)
     // and this will yank out items so that only item is in the array for each mesh.
-    void FilterUniqueMeshes(hsTArray<plClothingItem*> &items);
+    void FilterUniqueMeshes(std::vector<plClothingItem*> &items);
 
     // For a pair of items that go together (ie gloves) give us one, we'll give you the other
     plClothingItem *GetLRMatch(plClothingItem *item);
     bool IsLRMatch(plClothingItem *item1, plClothingItem *item2);
 
-    static void ChangeAvatar(const ST::string& name, const plFileName &clothingFile = ST::null);
+    static void ChangeAvatar(const ST::string& name, const plFileName &clothingFile = {});
     
     static plClothingMgr *GetClothingMgr() { return fInstance; }    
     static void Init();
     static void DeInit();
 
-    //virtual void Read(hsStream* s, hsResMgr* mgr);
-    //virtual void Write(hsStream* s, hsResMgr* mgr);
+    //void Read(hsStream* s, hsResMgr* mgr) override;
+    //void Write(hsStream* s, hsResMgr* mgr) override;
 
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
     
 
     // NOTE:

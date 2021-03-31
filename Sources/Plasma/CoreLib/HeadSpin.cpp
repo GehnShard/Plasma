@@ -47,24 +47,22 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #   include <crtdbg.h>
 #endif
 
-#pragma hdrstop
-
 #if defined(HS_BUILD_FOR_UNIX)
 #   include <cstring>
 #   include <sys/stat.h>
+#   include <sys/utsname.h>
 #   include <fcntl.h>
 #   include <unistd.h>
 #   include <signal.h>
 #endif
 
-#include "hsTemplates.h"
 #include <string_theory/format>
 
 
 ///////////////////////////////////////////////////////////////////////////
 /////////////////// For Status Messages ///////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
-hsDebugMessageProc gHSStatusProc = nil;
+hsDebugMessageProc gHSStatusProc = nullptr;
 
 hsDebugMessageProc hsSetStatusMessageProc(hsDebugMessageProc newProc)
 {
@@ -77,7 +75,7 @@ hsDebugMessageProc hsSetStatusMessageProc(hsDebugMessageProc newProc)
 
 //////////////////////////////////////////////////////////////////////////
 
-hsDebugMessageProc gHSDebugProc = nil;
+hsDebugMessageProc gHSDebugProc = nullptr;
 
 hsDebugMessageProc hsSetDebugMessageProc(hsDebugMessageProc newProc)
 {
@@ -126,12 +124,12 @@ NORETURN void ErrorAssert(int line, const char* file, const char* fmt, ...)
     char msg[1024];
     va_list args;
     va_start(args, fmt);
-    vsnprintf(msg, arrsize(msg), fmt, args);
+    vsnprintf(msg, std::size(msg), fmt, args);
 #if defined(HS_DEBUGGING)
 #if defined(_MSC_VER)
     if (s_GuiAsserts)
     {
-        if (_CrtDbgReport(_CRT_ASSERT, file, line, NULL, msg))
+        if (_CrtDbgReport(_CRT_ASSERT, file, line, nullptr, msg))
             DebugBreakAlways();
     } else
 #endif // _MSC_VER
@@ -215,7 +213,7 @@ void DebugMsg(const char* fmt, ...)
     char msg[1024];
     va_list args;
     va_start(args, fmt);
-    vsnprintf(msg, arrsize(msg), fmt, args);
+    vsnprintf(msg, std::size(msg), fmt, args);
     fprintf(stderr, "%s\n", msg);
 
 #ifdef _MSC_VER
@@ -239,12 +237,12 @@ void hsStatusMessage(const char* message)
   } else {
 #if HS_BUILD_FOR_UNIX
     printf("%s",message);
-    int len = strlen(message);
+    size_t len = strlen(message);
     if (len>0 && message[len-1]!='\n')
         printf("\n");
 #elif HS_BUILD_FOR_WIN32
     OutputDebugString(message);
-    int len = strlen(message);
+    size_t len = strlen(message);
     if (len>0 && message[len-1]!='\n')
         OutputDebugString("\n");
 #endif
@@ -254,7 +252,7 @@ void hsStatusMessage(const char* message)
 void hsStatusMessageV(const char * fmt, va_list args)
 {
     char  buffer[2000];
-    vsnprintf(buffer, arrsize(buffer), fmt, args);
+    vsnprintf(buffer, std::size(buffer), fmt, args);
     hsStatusMessage(buffer);
 }
 
@@ -270,7 +268,6 @@ void hsStatusMessageF(const char * fmt, ...)
 
 class hsMinimizeClientGuard
 {
-#ifdef CLIENT
     hsWindowHndl fWnd;
 
 public:
@@ -290,7 +287,6 @@ public:
         ShowWindow(fWnd, SW_RESTORE);
 #endif // HS_BUILD_FOR_WIN32
     }
-#endif // CLIENT
 };
 
 bool hsMessageBox_SuppressPrompts = false;
@@ -403,12 +399,12 @@ int hsMessageBoxWithOwner(hsWindowHndl owner, const wchar_t* message, const wcha
 
 int hsMessageBox(const char* message, const char* caption, int kind, int icon)
 {
-    return hsMessageBoxWithOwner((hsWindowHndl)nil,message,caption,kind,icon);
+    return hsMessageBoxWithOwner(nullptr, message, caption, kind, icon);
 }
 
 int hsMessageBox(const wchar_t* message, const wchar_t* caption, int kind, int icon)
 {
-    return hsMessageBoxWithOwner((hsWindowHndl)nil,message,caption,kind,icon);
+    return hsMessageBoxWithOwner(nullptr, message, caption, kind, icon);
 }
 
 /**************************************/
@@ -416,7 +412,7 @@ char* hsStrcpy(char* dst, const char* src)
 {
     if (src)
     {
-        if (dst == nil)
+        if (dst == nullptr)
         {
             size_t count = strlen(src);
             dst = new char[count + 1];
@@ -438,8 +434,8 @@ void hsStrLower(char *s)
 {
     if (s)
     {
-        int i;
-        for (i = 0; i < strlen(s); i++)
+        size_t len = strlen(s);
+        for (size_t i = 0; i < len; i++)
             s[i] = tolower(s[i]);
     }
 }
@@ -450,9 +446,9 @@ void hsStrLower(char *s)
 wchar_t *hsStringToWString( const char *str )
 {
     // convert the char string to a wchar_t string
-    int len = strlen(str);
+    size_t len = strlen(str);
     wchar_t *wideString = new wchar_t[len+1];
-    for (int i=0; i<len; i++)
+    for (size_t i = 0; i < len; i++)
         wideString[i] = btowc(str[i]);
     wideString[len] = L'\0';
     return wideString;
@@ -464,11 +460,10 @@ wchar_t *hsStringToWString( const char *str )
 char    *hsWStringToString( const wchar_t *str )
 {
     // convert the wchar_t string to a char string
-    int len = wcslen(str);
+    size_t len = wcslen(str);
     char *sStr = new char[len+1];
 
-    int i;
-    for (i = 0; i < len; i++)
+    for (size_t i = 0; i < len; i++)
     {
         char temp = wctob(str[i]);
         if (temp == EOF)
@@ -564,33 +559,10 @@ std::vector<ST::string> DisplaySystemVersion()
         }
         break;
     }
+#elif HS_BUILD_FOR_UNIX
+    struct utsname sysinfo;
+    uname(&sysinfo);
+    versionStrs.push_back(ST::format("{} {} ({})\n", sysinfo.sysname, sysinfo.release, sysinfo.machine));
 #endif
     return versionStrs;
 }
-
-#ifdef HS_BUILD_FOR_WIN32
-static RTL_OSVERSIONINFOEXW s_WinVer;
-
-const RTL_OSVERSIONINFOEXW& hsGetWindowsVersion()
-{
-    static bool done = false;
-    if (!done) {
-        memset(&s_WinVer, 0, sizeof(RTL_OSVERSIONINFOEXW));
-        HMODULE ntdll = LoadLibraryW(L"ntdll.dll");
-        hsAssert(ntdll, "Failed to LoadLibrary on ntdll???");
-
-        if (ntdll) {
-            s_WinVer.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
-            typedef LONG(WINAPI* RtlGetVersionPtr)(RTL_OSVERSIONINFOEXW*);
-            RtlGetVersionPtr getVersion = (RtlGetVersionPtr)GetProcAddress(ntdll, "RtlGetVersion");
-            hsAssert(getVersion, "Could not find RtlGetVersion in ntdll");
-            if (getVersion) {
-                getVersion(&s_WinVer);
-                done = true;
-            }
-        }
-        FreeLibrary(ntdll);
-    }
-    return s_WinVer;
-}
-#endif

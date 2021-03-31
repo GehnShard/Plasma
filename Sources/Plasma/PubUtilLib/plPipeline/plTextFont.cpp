@@ -50,10 +50,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include "plTextFont.h"
 
 #include "HeadSpin.h"
 #include "hsWindows.h"
-#include "plTextFont.h"
+
 #include "plDebugText.h"
 
 #define DisplayableChar(c) (c >= 0 && c <= 128)
@@ -108,8 +109,8 @@ uint16_t  *plTextFont::IInitFontTexture()
     bmi.bmiHeader.biCompression = BI_RGB;
     bmi.bmiHeader.biBitCount = 32;
     
-    hDC = CreateCompatibleDC( nil );
-    hBitmap = CreateDIBSection( hDC, &bmi, DIB_RGB_COLORS, (void **)&bitmapBits, nil, 0 );
+    hDC = CreateCompatibleDC(nullptr);
+    hBitmap = CreateDIBSection(hDC, &bmi, DIB_RGB_COLORS, (void **)&bitmapBits, nullptr, 0);
     SetMapMode( hDC, MM_TEXT );
 
     nHeight = -MulDiv( fSize, GetDeviceCaps( hDC, LOGPIXELSY ), 72 );
@@ -117,7 +118,7 @@ uint16_t  *plTextFont::IInitFontTexture()
 
     hFont = CreateFont( nHeight, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
                         CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY, VARIABLE_PITCH, fFace );
-    hsAssert( hFont != nil, "Cannot create Windows font" );
+    hsAssert(hFont != nullptr, "Cannot create Windows font");
 
     SelectObject( hDC, hBitmap );
     SelectObject( hDC, hFont );
@@ -146,7 +147,7 @@ uint16_t  *plTextFont::IInitFontTexture()
             y += size.cy + 1;
         }
 
-        ExtTextOut( hDC, x, y, ETO_OPAQUE, nil, myChar, 1, nil );
+        ExtTextOut(hDC, x, y, ETO_OPAQUE, nullptr, myChar, 1, nullptr);
 
         fCharInfo[ c ].fW = (uint16_t)size.cx;
         fCharInfo[ c ].fH = (uint16_t)size.cy;
@@ -214,7 +215,7 @@ void    plTextFont::IInitObjects()
 
     // Create texture
     data = IInitFontTexture();
-    hsAssert( data != nil, "Cannot create font texture" );
+    hsAssert(data != nullptr, "Cannot create font texture");
 
     ICreateTexture( data );
     delete [] data;
@@ -230,7 +231,7 @@ void    plTextFont::IInitObjects()
 void    plTextFont::DrawString( const char *string, int sX, int sY, uint32_t hexColor, 
                                 uint8_t style, uint32_t rightEdge )
 {
-    static hsTArray<plFontVertex>   verts;
+    static std::vector<plFontVertex> verts;
     
     int     i, j, width, height, count, thisCount, italOffset;
     float   x = (float)sX;
@@ -250,7 +251,7 @@ void    plTextFont::DrawString( const char *string, int sX, int sY, uint32_t hex
         count -= thisCount;
 
         // Create an array for our vertices
-        verts.SetCountAndZero( thisCount * ( ( style & plDebugText::kStyleBold ) ? 12 : 6 ) );
+        verts.resize(thisCount * ((style & plDebugText::kStyleBold) ? 12 : 6));
     
         // Fill them all up now
         for( i = 0; i < thisCount * ( ( style & plDebugText::kStyleBold ) ? 12 : 6 ); i++ )
@@ -265,8 +266,8 @@ void    plTextFont::DrawString( const char *string, int sX, int sY, uint32_t hex
             // make sure its a character we will display
             if ( DisplayableChar(c) )
             {
-                width = fCharInfo[ c ].fW + 1;
-                height = fCharInfo[ c ].fH + 1;
+                width = fCharInfo[uint8_t(c)].fW + 1;
+                height = fCharInfo[uint8_t(c)].fH + 1;
 
                 if( rightEdge > 0 && x + width + italOffset >= rightEdge )
                 {
@@ -277,31 +278,31 @@ void    plTextFont::DrawString( const char *string, int sX, int sY, uint32_t hex
 
                 verts[ j ].fPoint.fX = x + italOffset;
                 verts[ j ].fPoint.fY = (float)sY;
-                verts[ j ].fUV = fCharInfo[ c ].fUVs[ 0 ];
+                verts[ j ].fUV = fCharInfo[uint8_t(c)].fUVs[ 0 ];
 
                 verts[ j + 1 ].fPoint.fX = x + width + italOffset;
                 verts[ j + 1 ].fPoint.fY = (float)sY;
-                verts[ j + 1 ].fUV = fCharInfo[ c ].fUVs[ 0 ];
-                verts[ j + 1 ].fUV.fX = fCharInfo[ c ].fUVs[ 1 ].fX;
+                verts[ j + 1 ].fUV = fCharInfo[uint8_t(c)].fUVs[ 0 ];
+                verts[ j + 1 ].fUV.fX = fCharInfo[uint8_t(c)].fUVs[ 1 ].fX;
 
                 verts[ j + 2 ].fPoint.fX = x;
                 verts[ j + 2 ].fPoint.fY = (float)sY + height;
-                verts[ j + 2 ].fUV = fCharInfo[ c ].fUVs[ 0 ];
-                verts[ j + 2 ].fUV.fY = fCharInfo[ c ].fUVs[ 1 ].fY;
+                verts[ j + 2 ].fUV = fCharInfo[uint8_t(c)].fUVs[ 0 ];
+                verts[ j + 2 ].fUV.fY = fCharInfo[uint8_t(c)].fUVs[ 1 ].fY;
 
                 verts[ j + 3 ].fPoint.fX = x;
                 verts[ j + 3 ].fPoint.fY = (float)sY + height;
-                verts[ j + 3 ].fUV = fCharInfo[ c ].fUVs[ 0 ];
-                verts[ j + 3 ].fUV.fY = fCharInfo[ c ].fUVs[ 1 ].fY;
+                verts[ j + 3 ].fUV = fCharInfo[uint8_t(c)].fUVs[ 0 ];
+                verts[ j + 3 ].fUV.fY = fCharInfo[uint8_t(c)].fUVs[ 1 ].fY;
 
                 verts[ j + 4 ].fPoint.fX = x + width + italOffset;
                 verts[ j + 4 ].fPoint.fY = (float)sY;
-                verts[ j + 4 ].fUV = fCharInfo[ c ].fUVs[ 0 ];
-                verts[ j + 4 ].fUV.fX = fCharInfo[ c ].fUVs[ 1 ].fX;
+                verts[ j + 4 ].fUV = fCharInfo[uint8_t(c)].fUVs[ 0 ];
+                verts[ j + 4 ].fUV.fX = fCharInfo[uint8_t(c)].fUVs[ 1 ].fX;
 
                 verts[ j + 5 ].fPoint.fX = x + width;
                 verts[ j + 5 ].fPoint.fY = (float)sY + height;
-                verts[ j + 5 ].fUV = fCharInfo[ c ].fUVs[ 1 ];
+                verts[ j + 5 ].fUV = fCharInfo[uint8_t(c)].fUVs[ 1 ];
 
                 x += width + 1;
             }
@@ -350,7 +351,7 @@ void    plTextFont::DrawString( const char *string, int sX, int sY, uint32_t hex
 
         
         /// Draw a set of tris now
-        IDrawPrimitive( thisCount * ( ( style & plDebugText::kStyleBold ) ? 4 : 2 ), verts.AcquireArray() );
+        IDrawPrimitive(thisCount * ((style & plDebugText::kStyleBold) ? 4 : 2), verts.data());
 
         strPtr += thisCount;
     }
@@ -372,7 +373,7 @@ uint32_t  plTextFont::CalcStringWidth( const char *string )
     {
         // make sure its a character we will display
         if ( DisplayableChar(string[i]) )
-            width += fCharInfo[ string[ i ] ].fW + 2;
+            width += fCharInfo[uint8_t(string[i])].fW + 2;
     }
 
     return width;
@@ -385,7 +386,7 @@ uint32_t  plTextFont::CalcStringWidth( const char *string )
 
 void    plTextFont::DrawRect( int left, int top, int right, int bottom, uint32_t hexColor )
 {
-    static hsTArray<plFontVertex>   verts;
+    static std::vector<plFontVertex>   verts;
     int                             i;
 
 
@@ -393,7 +394,7 @@ void    plTextFont::DrawRect( int left, int top, int right, int bottom, uint32_t
         IInitObjects();
 
     /// Draw!
-    verts.SetCountAndZero( 6 );
+    verts.resize(6);
     for( i = 0; i < 6; i++ )
     {
         verts[ i ].fColor = hexColor;
@@ -407,7 +408,7 @@ void    plTextFont::DrawRect( int left, int top, int right, int bottom, uint32_t
     verts[ 2 ].fPoint.fY = verts[ 3 ].fPoint.fY = verts[ 5 ].fPoint.fY = (float)bottom;
 
     // omg I had this at 6...just slap the dunce cap on me...-mcn
-    IDrawPrimitive( 2, verts.AcquireArray() );
+    IDrawPrimitive(2, verts.data());
 
     /// All done!
 }
@@ -419,7 +420,7 @@ void    plTextFont::DrawRect( int left, int top, int right, int bottom, uint32_t
 
 void    plTextFont::Draw3DBorder( int left, int top, int right, int bottom, uint32_t hexColor1, uint32_t hexColor2 )
 {
-    static hsTArray<plFontVertex>   verts;
+    static std::vector<plFontVertex>   verts;
     int                             i;
 
 
@@ -427,7 +428,7 @@ void    plTextFont::Draw3DBorder( int left, int top, int right, int bottom, uint
         IInitObjects();
 
     /// Draw!
-    verts.SetCountAndZero( 8 );
+    verts.resize(8);
     for( i = 0; i < 8; i++ )
     {
         verts[ i ].fColor = hexColor1;
@@ -444,7 +445,7 @@ void    plTextFont::Draw3DBorder( int left, int top, int right, int bottom, uint
     for( i = 4; i < 8; i++ )
         verts[ i ].fColor = hexColor2;
 
-    IDrawLines( 4, verts.AcquireArray() );
+    IDrawLines(4, verts.data());
 
     /// All done!
 }

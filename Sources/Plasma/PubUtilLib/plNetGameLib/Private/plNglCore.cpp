@@ -46,7 +46,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 ***/
 
 #include "../Pch.h"
-#pragma hdrstop
 
 
 namespace Ngl {
@@ -66,7 +65,7 @@ struct ReportNetErrorTrans : NetNotifyTrans {
         ENetError       errError
     );
 
-    void Post ();
+    void Post() override;
 };
 
 
@@ -161,7 +160,7 @@ void NetClientCancelAllTrans () {
 void NetClientDestroy (bool wait) {
 
     if (1 == s_initCount.fetch_sub(1)) {
-        s_errorProc = nil;
+        s_errorProc = nullptr;
 
         GateKeeperDestroy(false);
         FileDestroy(false);

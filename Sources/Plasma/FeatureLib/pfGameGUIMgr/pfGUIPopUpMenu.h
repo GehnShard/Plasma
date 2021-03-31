@@ -52,18 +52,21 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _pfGUIPopUpMenu_h
 #define _pfGUIPopUpMenu_h
 
-
-#include "pfGUIDialogMod.h"
 #include "hsBounds.h"
 
-class plMessage;
-class pfGUIButtonMod;
-class pfPopUpKeyGenerator;
-class pfGUICtrlProcObject;
+#include <string>
+
+#include "pfGUIDialogMod.h"
+
 class hsGMaterial;
-class plSceneNode;
+class pfGUIButtonMod;
+class pfGUICtrlProcObject;
 class pfGUIMenuItemProc;
 class pfGUISkin;
+class plMessage;
+class plMipmap;
+class pfPopUpKeyGenerator;
+class plSceneNode;
 
 class pfGUIPopUpMenu : public pfGUIDialogMod
 {
@@ -100,10 +103,10 @@ class pfGUIPopUpMenu : public pfGUIDialogMod
 
         // Array of info to rebuild our menu from. Note that this is ONLY used when rebuilding
         bool                    fNeedsRebuilding, fWaitingForSkin;
-        float                fOriginX, fOriginY;
-        uint16_t                  fMargin;
-        hsTArray<pfMenuItem>    fMenuItems;
-        int32_t                   fSubMenuOpen;
+        float                   fOriginX, fOriginY;
+        uint16_t                fMargin;
+        std::vector<pfMenuItem> fMenuItems;
+        int32_t                 fSubMenuOpen;
 
         pfGUISkin               *fSkin;
 
@@ -147,21 +150,21 @@ class pfGUIPopUpMenu : public pfGUIDialogMod
             kRefParentNode
         };
 
-        virtual bool    MsgReceive( plMessage* pMsg );
+        bool    MsgReceive(plMessage* pMsg) override;
         
-        virtual void Read( hsStream* s, hsResMgr* mgr );
-        virtual void Write( hsStream* s, hsResMgr* mgr );
+        void Read(hsStream* s, hsResMgr* mgr) override;
+        void Write(hsStream* s, hsResMgr* mgr) override;
 
-        virtual void    SetEnabled( bool e );
-        virtual bool    HandleMouseEvent( pfGameGUIMgr::EventType event, float mouseX, float mouseY, uint8_t modifiers );
+        void    SetEnabled(bool e) override;
+        bool    HandleMouseEvent(pfGameGUIMgr::EventType event, float mouseX, float mouseY, uint8_t modifiers) override;
 
         void            Show( float x, float y );
 
         void    SetOriginAnchor( plSceneObject *anchor, pfGUIDialogMod *context );
         void    SetAlignment( Alignment a ) { fAlignment = a; }
         void    ClearItems();
-        void    AddItem( const char *name, pfGUICtrlProcObject *handler, pfGUIPopUpMenu *subMenu = nil );
-        void    AddItem( const wchar_t *name, pfGUICtrlProcObject *handler, pfGUIPopUpMenu *subMenu = nil );
+        void    AddItem(const char *name, pfGUICtrlProcObject *handler, pfGUIPopUpMenu *subMenu = nullptr);
+        void    AddItem(const wchar_t *name, pfGUICtrlProcObject *handler, pfGUIPopUpMenu *subMenu = nullptr);
         void    SetSkin( pfGUISkin *skin );
 
         static pfGUIPopUpMenu   *Build( const char *name, pfGUIDialogMod *parent, float x, float y, const plLocation &destLoc = plLocation::kGlobalFixedLoc );
@@ -169,7 +172,6 @@ class pfGUIPopUpMenu : public pfGUIDialogMod
 };
 
 // Skin definition. Here for now 'cause only the menus use it, but might move it later
-class plMipmap;
 class pfGUISkin : public hsKeyedObject
 {
     public:
@@ -222,9 +224,9 @@ class pfGUISkin : public hsKeyedObject
             kRefMipmap
         };
 
-        virtual void    Read( hsStream *s, hsResMgr *mgr );
-        virtual void    Write( hsStream *s, hsResMgr *mgr );
-        virtual bool    MsgReceive( plMessage *msg );
+        void    Read(hsStream *s, hsResMgr *mgr) override;
+        void    Write(hsStream *s, hsResMgr *mgr) override;
+        bool    MsgReceive(plMessage *msg) override;
 
         plMipmap        *GetTexture() const { return fTexture; }
         void            SetTexture( plMipmap *tex );

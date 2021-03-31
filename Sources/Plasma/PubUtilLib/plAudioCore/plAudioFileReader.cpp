@@ -52,9 +52,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "HeadSpin.h"
 #include "plAudioFileReader.h"
 #include "plAudioCore.h"
-//#include "hsTimer.h"
 
-#include "plUnifiedTime/plUnifiedTime.h"
 #include "plBufferedFileReader.h"
 #include "plCachedFileReader.h"
 #include "plFastWavReader.h"
@@ -95,7 +93,7 @@ plAudioFileReader* plAudioFileReader::CreateReader(const plFileName& path, plAud
     else if (type == kStreamNative)
         return new plOGGCodec(path, whichChan);
 
-    return nil;
+    return nullptr;
 }
 
 plAudioFileReader* plAudioFileReader::CreateWriter(const plFileName& path, plWAVHeader& header)

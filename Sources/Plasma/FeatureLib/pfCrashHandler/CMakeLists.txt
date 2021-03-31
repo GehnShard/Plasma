@@ -1,7 +1,3 @@
-include_directories(../../CoreLib)
-include_directories(../../NucleusLib)
-include_directories(../../PubUtilLib)
-
 set(pfCrashHandler_HEADERS
     plCrashCli.h
     plCrashBase.h
@@ -15,7 +11,14 @@ set(pfCrashHandler_SOURCES
     plCrashSrv.cpp
 )
 
-add_library(pfCrashHandler STATIC ${pfCrashHandler_SOURCES} ${pfCrashHandler_HEADERS})
+plasma_library(pfCrashHandler SOURCES ${pfCrashHandler_SOURCES} ${pfCrashHandler_HEADERS})
+target_link_libraries(
+    pfCrashHandler
+    PUBLIC
+        CoreLib
+    PRIVATE
+        $<$<PLATFORM_ID:Windows>:Dbghelp>
+)
 
 source_group("Source Files" FILES ${pfCrashHandler_SOURCES})
 source_group("Header Files" FILES ${pfCrashHandler_HEADERS})

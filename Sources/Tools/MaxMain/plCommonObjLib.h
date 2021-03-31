@@ -65,6 +65,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _plCommonObjLib_h
 #define _plCommonObjLib_h
 
+#include <vector>
+
 class plCommonObjLibList;
 class plKey;
 class hsKeyedObject;
@@ -76,7 +78,7 @@ class plCommonObjLib
 {
     protected:
 
-        hsTArray<hsKeyedObject *>   fObjects;
+        std::vector<hsKeyedObject *> fObjects;
 
     public:
 
@@ -95,8 +97,8 @@ class plCommonObjLib
 
 
         /// Static functions for use only by the export resManager
-        static uint32_t           GetNumLibs();
-        static plCommonObjLib   *GetLib( uint32_t idx );
+        static size_t           GetNumLibs();
+        static plCommonObjLib*  GetLib(size_t idx);
 
 
     private:

@@ -1,3 +1,8 @@
+include_directories("${PLASMA_SOURCE_ROOT}/Apps")
+include_directories("${PLASMA_SOURCE_ROOT}/FeatureLib")
+include_directories("${PLASMA_SOURCE_ROOT}/NucleusLib")
+include_directories("${PLASMA_SOURCE_ROOT}/PubUtilLib")
+
 if(WIN32)
     add_subdirectory(plClient)
     add_subdirectory(plCrashHandler)
@@ -13,12 +18,4 @@ if(PLASMA_BUILD_TOOLS)
     add_subdirectory(plFileEncrypt)
     add_subdirectory(plPageInfo)
     add_subdirectory(plPageOptimizer)
-
-    add_dependencies(tools
-        plPythonPack
-        plFileSecure
-        plFileEncrypt
-        plPageInfo
-        plPageOptimizer
-    )
 endif()

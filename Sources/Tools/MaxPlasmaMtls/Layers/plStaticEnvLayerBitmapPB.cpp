@@ -50,7 +50,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 class SELBMTexPBAccessor : public PBAccessor
 {
 public:
-    void Set(PB2Value& val, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)
+    void Set(PB2Value& val, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override
     {
         if (!owner)
             return;
@@ -76,7 +76,7 @@ public:
             case plStaticEnvLayer::kBmpBaseFilename:
                 if( pb->GetMap() )
                 {
-                    pb->GetMap()->Enable( plStaticEnvLayer::kBmpGenerateFaces, ( val.s == NULL || val.s[ 0 ] == 0 ) ? FALSE : TRUE );
+                    pb->GetMap()->Enable(plStaticEnvLayer::kBmpGenerateFaces, (val.s == nullptr || val.s[0] == 0) ? FALSE : TRUE);
 
                     ICustButton     *bmSelectBtn = GetICustButton( GetDlgItem( pb->GetMap()->GetHWnd(), IDC_GENERATE_FACES ) );
                     bmSelectBtn->SetText( _T( "Generate From Node" ) );
@@ -85,7 +85,7 @@ public:
                 break;
         }
     }
-    void Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t, Interval &valid)
+    void Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t, Interval &valid) override
     {
     }
 };
@@ -102,7 +102,7 @@ class PickControlNode : public PickObjectProc
         plStaticEnvLayer    *fLayer;
         HWND                fHWnd;
 
-        PickControlNode() { fLayer = NULL; }
+        PickControlNode() : fLayer() { }
 
         BOOL    Pick( INode *node )
         {
@@ -149,7 +149,7 @@ public:
     IMtlParams  *fMtlParams;
 
     /// Called to update the controls of the dialog
-    virtual void    Update( TimeValue t, Interval &valid, IParamMap2 *map )
+    void    Update(TimeValue t, Interval &valid, IParamMap2 *map) override
     {
         ICustButton     *bmSelectBtn;
         IParamBlock2    *pblock;
@@ -175,7 +175,7 @@ public:
         plStaticEnvLayer *layer = (plStaticEnvLayer *)map->GetParamBlock()->GetOwner();
         bi.SetName( layer->GetBaseFilename( t ) );
         SetDlgItemText( map->GetHWnd(), IDC_BASE_FILENAME, bi.Filename() );
-        map->Enable( plStaticEnvLayer::kBmpGenerateFaces, ( bi.Name() == NULL || bi.Name()[ 0 ] == 0 ) ? FALSE : TRUE );
+        map->Enable(plStaticEnvLayer::kBmpGenerateFaces, (bi.Name() == nullptr || bi.Name()[0] == 0) ? FALSE : TRUE);
 
         bmSelectBtn = GetICustButton( GetDlgItem( map->GetHWnd(), IDC_GENERATE_FACES ) );
         bmSelectBtn->SetText( _T( "Generate From Node" ) );
@@ -211,7 +211,7 @@ public:
     }
 
     /// Main message proc
-    virtual BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
       static ICustButton* bmSelectBtn;
       long  buttons[ 6 ] = { IDC_FRONT_NAME, IDC_BACK_NAME, IDC_LEFT_NAME, IDC_RIGHT_NAME, IDC_TOP_NAME, IDC_BOTTOM_NAME };
@@ -280,9 +280,9 @@ public:
 
         return FALSE;
     }
-    virtual void DeleteThis() {};
+    void DeleteThis() override { }
 
-    BOOL    IDoSelectBaseFilename( IParamMap2 *map, TimeValue t, HWND hWnd )
+    INT_PTR IDoSelectBaseFilename(IParamMap2 *map, TimeValue t, HWND hWnd)
     {
         BitmapInfo      bi;
 
@@ -310,7 +310,7 @@ public:
         
         /// Select one file
         PBBitmap *pbbm = map->GetParamBlock()->GetBitmap( plStaticEnvLayer::kBmpFrontBitmap, t );
-        if( pbbm != NULL )
+        if (pbbm != nullptr)
             bi.SetName( pbbm->bi.Name() );
         if( !TheManager->SelectFileInput( &bi, GetCOREInterface()->GetMAXHWnd(), _T( "Select one of the generated face bitmaps" ) ) )
             return FALSE;
@@ -318,15 +318,15 @@ public:
         /// Copy the name over and get our mod point
         strcpy( filename, bi.Filename() );
         modPoint = strstr( filename, "_UP" );
-        if( modPoint == NULL )
+        if (modPoint == nullptr)
             modPoint = strstr( filename, "_DN" );
-        if( modPoint == NULL )
+        if (modPoint == nullptr)
             modPoint = strstr( filename, "_LF" );
-        if( modPoint == NULL )
+        if (modPoint == nullptr)
             modPoint = strstr( filename, "_RT" );
-        if( modPoint == NULL )
+        if (modPoint == nullptr)
             modPoint = strstr( filename, "_FR" );
-        if( modPoint == NULL )
+        if (modPoint == nullptr)
             modPoint = strstr( filename, "_BK" );
 
         /// Load each face
@@ -363,10 +363,10 @@ public:
         return TRUE;
     }
 
-    BOOL    IDoLayerClicked( int whichBtn, int whichFace, IParamMap2 *map, TimeValue t, HWND hWnd )
+    INT_PTR IDoLayerClicked(int whichBtn, int whichFace, IParamMap2 *map, TimeValue t, HWND hWnd)
     {
         plPlasmaMAXLayer *layer = (plPlasmaMAXLayer *)map->GetParamBlock()->GetOwner();
-        if (layer == nil)
+        if (layer == nullptr)
             return FALSE;
 
         BOOL selectedNewBitmap = layer->HandleBitmapSelection( whichFace - plStaticEnvLayer::kFrontFace );
@@ -376,7 +376,7 @@ public:
 
             PBBitmap *pbbm = layer->GetPBBitmap( whichFace - plStaticEnvLayer::kFrontFace );
             bmSelectBtn = GetICustButton( GetDlgItem( hWnd, whichBtn ) );
-            bmSelectBtn->SetText(pbbm != nil ? (TCHAR*)pbbm->bi.Filename() : nil);
+            bmSelectBtn->SetText(pbbm != nullptr ? (TCHAR*)pbbm->bi.Filename() : nullptr);
             ReleaseICustButton(bmSelectBtn);
 
             return TRUE;
@@ -395,7 +395,7 @@ static SELBitmapDlgProc gSELBitmapDlgProc;
 
 static ParamBlockDesc2 gBitmapParamBlk
 (
-    plStaticEnvLayer::kBlkBitmap, _T("bitmap"),  0, GetStaticEnvLayerDesc(),//NULL,
+    plStaticEnvLayer::kBlkBitmap, _T("bitmap"),  0, GetStaticEnvLayerDesc(),//nullptr,
     P_AUTO_CONSTRUCT + P_AUTO_UI, plStaticEnvLayer::kRefBitmap,
 
     IDD_STATIC_ENVMAP_LAYER, IDS_STATIC_ENVMAP_LAYER_TEX, 0, 0, &gSELBitmapDlgProc,

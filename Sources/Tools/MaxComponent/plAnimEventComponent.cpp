@@ -48,7 +48,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "resource.h"
 
 #include "MaxMain/plMaxNode.h"
-#pragma hdrstop
 
 #include "plAnimComponent.h"
 #include "plNotetrackAnim.h"
@@ -68,9 +67,9 @@ CLASS_DESC(plAnimEventComponent, gAnimEventDesc, "Anim Event", "AnimEvent", COMP
 class plAnimEventProc : public plAnimCompProc
 {
 protected:
-    virtual void IPickComponent(IParamBlock2* pb);
-    virtual void ILoadUser(HWND hWnd, IParamBlock2* pb);
-    virtual bool IUserCommand(HWND hWnd, IParamBlock2* pb, int cmd, int resID);
+    void IPickComponent(IParamBlock2* pb) override;
+    void ILoadUser(HWND hWnd, IParamBlock2* pb) override;
+    bool IUserCommand(HWND hWnd, IParamBlock2* pb, int cmd, int resID) override;
 
 public:
     plAnimEventProc();
@@ -207,7 +206,7 @@ bool plAnimEventComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     }
     if (fCompPB->Count(kAnimMarkers) > 0)
     {
-        plNotetrackAnim anim(animComp, nil);
+        plNotetrackAnim anim(animComp, nullptr);
         plAnimInfo info = anim.GetAnimInfo(animName);
 
         int numMarkers = fCompPB->Count(kAnimMarkers);
@@ -223,8 +222,8 @@ bool plAnimEventComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     }
 
     mod->SetCallback(animMsg);
-    
-    hsTArray<plKey> receivers;
+
+    std::vector<plKey> receivers;
     IGetReceivers(node, receivers);
     mod->SetReceivers(receivers);
 
@@ -326,7 +325,7 @@ void plAnimEventProc::ILoadUser(HWND hWnd, IParamBlock2* pb)
     if (comp)
     {
         // Get the shared animations for all the nodes this component is applied to
-        plNotetrackAnim anim(comp, nil);
+        plNotetrackAnim anim(comp, nullptr);
         plAnimInfo info = anim.GetAnimInfo(comp->GetAnimName());
 
         RemoveDeadMarkers(pb, kAnimMarkers, info);
@@ -350,7 +349,7 @@ bool plAnimEventProc::IUserCommand(HWND hWnd, IParamBlock2* pb, int cmd, int res
         HWND hList = GetDlgItem(hWnd, IDC_EVENT_LIST);
         int idx = ListBox_GetCurSel(hList);
         BOOL selected = ListBox_GetSel(hList, idx);
-        int eventType = ListBox_GetItemData(hList, idx);
+        int eventType = (int)ListBox_GetItemData(hList, idx);
 
         if (eventType == kAnimEventBegin)
             pb->SetValue(kAnimBegin, 0, selected);
@@ -392,8 +391,8 @@ public:
     plMtlEventProc();
 
 protected:
-    virtual void ILoadUser(HWND hWnd, IParamBlock2* pb);
-    virtual bool IUserCommand(HWND hWnd, IParamBlock2* pb, int cmd, int resID);
+    void ILoadUser(HWND hWnd, IParamBlock2* pb) override;
+    bool IUserCommand(HWND hWnd, IParamBlock2* pb, int cmd, int resID) override;
 };
 static plMtlEventProc gMtlEventProc;
 
@@ -491,7 +490,7 @@ bool plMtlEventComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     //
     // Create and setup the callback message
     //
-    hsTArray<plKey> animKeys;
+    std::vector<plKey> animKeys;
     GetMatAnimModKey(mtl, mtlNode, mtlAnim, animKeys);
 
     plAnimCmdMsg *animMsg = new plAnimCmdMsg;
@@ -512,7 +511,7 @@ bool plMtlEventComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     }
     if (fCompPB->Count(kMtlMarkers) > 0)
     {
-        plNotetrackAnim anim(mtl, nil);
+        plNotetrackAnim anim(mtl, nullptr);
         plAnimInfo info = anim.GetAnimInfo(mtlAnim);
 
         int numMarkers = fCompPB->Count(kMtlMarkers);
@@ -529,7 +528,7 @@ bool plMtlEventComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
 
     mod->SetCallback(animMsg);
 
-    hsTArray<plKey> receivers;
+    std::vector<plKey> receivers;
     IGetReceivers(node, receivers);
     mod->SetReceivers(receivers);
 
@@ -585,7 +584,7 @@ void plMtlEventProc::ILoadUser(HWND hWnd, IParamBlock2* pb)
         ST::string mtlAnim = ST::string::from_utf8(pb->GetStr(kMtlAnim));
 
         // Get the shared animations for all the nodes this component is applied to
-        plNotetrackAnim anim(mtl, nil);
+        plNotetrackAnim anim(mtl, nullptr);
         plAnimInfo info = anim.GetAnimInfo(mtlAnim);
 
         RemoveDeadMarkers(pb, kMtlMarkers, info);
@@ -609,7 +608,7 @@ bool plMtlEventProc::IUserCommand(HWND hWnd, IParamBlock2* pb, int cmd, int resI
         HWND hList = GetDlgItem(hWnd, IDC_EVENT_LIST);
         int idx = ListBox_GetCurSel(hList);
         BOOL selected = ListBox_GetSel(hList, idx);
-        int eventType = ListBox_GetItemData(hList, idx);
+        int eventType = (int)ListBox_GetItemData(hList, idx);
 
         if (eventType == kAnimEventBegin)
             pb->SetValue(kMtlBegin, 0, selected);

@@ -48,13 +48,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <algorithm>
 
 #include "pnNetCommon/plNetApp.h"
+#include "pnNetCommon/pnNetCommon.h"
 #include "pnKeyedObject/plKey.h"
 
 #include "plMessage/plAgeLoadedMsg.h"
 #include "plNetMessage/plNetMessage.h"
-#include "plProgressMgr/plProgressMgr.h"
 #include "plSDL/plSDL.h"
-#include "pnDispatch/plDispatch.h"
 #include "plResMgr/plResManager.h"
 
 #include "plNetClient/plNetClientMgr.h"
@@ -268,16 +267,16 @@ class plExcludePage
         { }
 };
 
-static hsTArray<plExcludePage>  sExcludeList;
+static std::vector<plExcludePage>  sExcludeList;
 
 void    plAgeLoader::ClearPageExcludeList()
 {
-    sExcludeList.Reset();
+    sExcludeList.clear();
 }
 
 void    plAgeLoader::AddExcludedPage( const ST::string& pageName, const ST::string& ageName )
 {
-    sExcludeList.Append( plExcludePage( pageName, ageName ) );
+    sExcludeList.emplace_back(pageName, ageName);
 }
 
 bool    plAgeLoader::IsPageExcluded( const plAgePage *page, const ST::string& ageName )
@@ -288,13 +287,12 @@ bool    plAgeLoader::IsPageExcluded( const plAgePage *page, const ST::string& ag
 
     // check exclude list
     ST::string pageName = page->GetName();
-    int     i;
-    for( i = 0; i < sExcludeList.GetCount(); i++ )
+    for (const plExcludePage& exclude : sExcludeList)
     {
-        if( pageName.compare_i( sExcludeList[ i ].fPageName ) == 0 )
+        if (pageName.compare_i(exclude.fPageName) == 0)
         {
-            if( ageName.empty() || sExcludeList[ i ].fAgeName.empty() ||
-                ageName.compare_i(sExcludeList[ i ].fAgeName) == 0 )
+            if (ageName.empty() || exclude.fAgeName.empty() ||
+                ageName.compare_i(exclude.fAgeName) == 0)
             {
                 return true;
             }

@@ -48,6 +48,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _plGUIComponents_h
 #define _plGUIComponents_h
 
+#include <vector>
+
 #include "plGUICompClassIDs.h"
 
 
@@ -76,12 +78,12 @@ class plGUIDialogComponent : public plComponent
     public:
         // I believe booleans should always default to false, hence why this is dontInit instead of init. uint8_t me.
         plGUIDialogComponent( bool dontInit = false );
-        void DeleteThis() { delete this; }
+        void DeleteThis() override { delete this; }
 
-        bool SetupProperties( plMaxNode *pNode, plErrorMsg *pErrMsg );
-        bool PreConvert( plMaxNode *pNode, plErrorMsg *pErrMsg );
-        bool Convert( plMaxNode *node, plErrorMsg *pErrMsg );
-        bool DeInit(plMaxNode *node, plErrorMsg *pErrMsg)     { fProcReceiver = nil; return true;}
+        bool SetupProperties( plMaxNode *pNode, plErrorMsg *pErrMsg ) override;
+        bool PreConvert( plMaxNode *pNode, plErrorMsg *pErrMsg ) override;
+        bool Convert( plMaxNode *node, plErrorMsg *pErrMsg ) override;
+        bool DeInit(plMaxNode *node, plErrorMsg *pErrMsg) override { fProcReceiver = nullptr; return true; }
 
         pfGUIDialogMod  *GetModifier() { return fDialogMod; }
 
@@ -137,21 +139,21 @@ class plGUIControlBase : public plComponent
         // we need to keep track of which nodes we get PreConverted() on and the controls that
         // get created for each. Then, on Convert(), we look up the node in our list and grab
         // the right control. A pain, but what are you going to do?
-        hsTArray<plMaxNode *>       fTargetNodes;
-        hsTArray<pfGUIControlMod *> fTargetControls;
+        std::vector<plMaxNode *>       fTargetNodes;
+        std::vector<pfGUIControlMod *> fTargetControls;
 
     public:
         plGUIControlBase() {}
-        void DeleteThis() { delete this; }
+        void DeleteThis() override { delete this; }
 
-        bool SetupProperties( plMaxNode *pNode, plErrorMsg *pErrMsg );
-        bool PreConvert(plMaxNode *node,  plErrorMsg *pErrMsg);
-        bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+        bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+        bool PreConvert(plMaxNode *node,  plErrorMsg *pErrMsg) override;
+        bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
-        virtual void    CollectNonDrawables( INodeTab &nonDrawables );
+        void    CollectNonDrawables(INodeTab &nonDrawables) override;
 
         virtual uint32_t  GetNumMtls() const { return 0; }
-        virtual Texmap  *GetMtl( uint32_t idx ) { return nil; }
+        virtual Texmap  *GetMtl(uint32_t idx) { return nullptr; }
 
         // Given a maxNode that is really a component, will return a pointer to the GUI control modifier
         // created for it at export time. Only valid after PreConvert. If you think the control component 
@@ -159,7 +161,7 @@ class plGUIControlBase : public plComponent
         // asking for as well to make sure you get the right control. If not, just leave the second
         // parameter nil, but that can be VERY dangerous if the component results in more than one
         // GUI control.
-        static pfGUIControlMod *GrabControlMod( INode *node, INode *sceneObjectNode = nil );
+        static pfGUIControlMod *GrabControlMod(INode *node, INode *sceneObjectNode = nullptr);
 
         // Like GrabControlMod, but for when you already have a pointer to some kind of component
         static pfGUIControlMod  *ConvertCompToControl( plComponentBase *comp, INode *sceneObjectNode );
@@ -195,19 +197,19 @@ class plGUIMenuComponent : public plGUIDialogComponent
 {
     protected:
 
-        virtual pfGUIDialogMod  *IMakeDialog();
+        pfGUIDialogMod  *IMakeDialog() override;
 
         pfGUIPopUpMenu      *fConvertedMenu;
         plKey               fConvertedNode;
 
     public:
         plGUIMenuComponent();
-        void DeleteThis() { delete this; }
+        void DeleteThis() override { delete this; }
 
-        virtual bool SetupProperties( plMaxNode *pNode, plErrorMsg *pErrMsg );
-        virtual bool PreConvert( plMaxNode *pNode, plErrorMsg *pErrMsg );
-        virtual bool Convert( plMaxNode *node, plErrorMsg *pErrMsg );
-        virtual bool DeInit(plMaxNode *node, plErrorMsg *pErrMsg);
+        bool SetupProperties(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+        bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+        bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+        bool DeInit(plMaxNode *node, plErrorMsg *pErrMsg) override;
 
         plKey   GetConvertedMenuKey() const;
 

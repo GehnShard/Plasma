@@ -48,7 +48,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plComponentReg.h"
 #include "MaxMain/plMaxNode.h"
 #include "resource.h"
-#pragma hdrstop
 
 #include "plOneShotComponent.h"
 #include "plAvatar/plOneShotMod.h"
@@ -90,9 +89,9 @@ public:
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg);
-    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode* node,plErrorMsg *pErrMsg);
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode* node,plErrorMsg *pErrMsg) override;
 
     plKey GetOneShotKey(plMaxNode *node);
 
@@ -109,7 +108,7 @@ plKey OneShotComp::GetOneShotKey(plComponentBase *oneShotComp, plMaxNodeBase *ta
         return comp->GetOneShotKey((plMaxNode*)target);
     }
 
-    return nil;
+    return nullptr;
 }
     
 
@@ -128,7 +127,7 @@ ParamBlockDesc2 gOneShotBlock
     plComponent::kBlkComp, _T("(ex)One Shot Comp"), 0, &gOneShotDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
     //Rollout data
-    IDD_COMP_ONESHOT, IDS_COMP_ONESHOTS, 0, 0, NULL,
+    IDD_COMP_ONESHOT, IDS_COMP_ONESHOTS, 0, 0, nullptr,
 
     //params
     kOneShotAnimName,  _T("AnimationName"),    TYPE_STRING,    0, 0,
@@ -175,7 +174,7 @@ plKey plOneShotComponent::GetOneShotKey(plMaxNode *node)
     if (fMods.find(node) != fMods.end())
         return fMods[node]->GetKey();
 
-    return nil;
+    return nullptr;
 }
 
 bool plOneShotComponent::IsValid()

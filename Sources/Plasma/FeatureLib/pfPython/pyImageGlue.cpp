@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <Python.h>
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "pyImage.h"
 
@@ -54,7 +53,7 @@ PYTHON_DEFAULT_DEALLOC_DEFINITION(ptImage)
 
 PYTHON_INIT_DEFINITION(ptImage, args, keywords)
 {
-    PyObject* keyObj = NULL;
+    PyObject* keyObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &keyObj))
     {
         PyErr_SetString(PyExc_TypeError, "__init__ expects a ptKey");
@@ -117,7 +116,7 @@ PYTHON_METHOD_DEFINITION(ptImage, getPixelColor, args)
 
 PYTHON_METHOD_DEFINITION(ptImage, getColorLoc, args)
 {
-    PyObject* colorObj = NULL;
+    PyObject* colorObj = nullptr;
     if (!PyArg_ParseTuple(args, "O", &colorObj))
     {
         PyErr_SetString(PyExc_TypeError, "getColorLoc expects a ptColor");
@@ -144,56 +143,42 @@ PYTHON_METHOD_DEFINITION_NOARGS(ptImage, getHeight)
 
 PYTHON_METHOD_DEFINITION(ptImage, saveAsJPEG, args)
 {
-    PyObject* filenameObj;
+    plFileName filename;
     unsigned char quality = 75;
-    if (!PyArg_ParseTuple(args, "O|b", &filenameObj, &quality))
+    if (!PyArg_ParseTuple(args, "O&|b", PyUnicode_PlFileNameDecoder, &filename, &quality))
     {
         PyErr_SetString(PyExc_TypeError, "saveAsJPEG expects a string and a unsigned 8-bit int");
         PYTHON_RETURN_ERROR;
     }
 
-    if (PyString_CheckEx(filenameObj)) {
-        self->fThis->SaveAsJPEG(PyString_AsStringEx(filenameObj), quality);
-        Py_RETURN_NONE;
-    }
-    else
-    {
-        PyErr_SetString(PyExc_TypeError, "saveAsJPEG expects a string and a unsigned 8-bit int");
-        PYTHON_RETURN_ERROR;
-    }
+    self->fThis->SaveAsJPEG(filename, quality);
+    Py_RETURN_NONE;
 }
 
 PYTHON_METHOD_DEFINITION(ptImage, saveAsPNG, args)
 {
-    PyObject* filenameObj, *optionalText = nullptr;
-    if (!PyArg_ParseTuple(args, "O|O", &filenameObj, &optionalText))
+    plFileName filename;
+    PyObject* optionalText = nullptr;
+    if (!PyArg_ParseTuple(args, "O&|O", PyUnicode_PlFileNameDecoder, &filename, &optionalText))
     {
         PyErr_SetString(PyExc_TypeError, "saveAsPNG expects a string, and an optional dict of key-value string pairs");
         PYTHON_RETURN_ERROR;
     }
 
-    if (PyString_CheckEx(filenameObj))
-    {
-        if (optionalText && PyDict_Check(optionalText)) {
-            std::multimap<ST::string, ST::string> textFields;
-            PyObject *key, *value;
-            Py_ssize_t pos = 0;
-            while (PyDict_Next(optionalText, &pos, &key, &value)) {
-                if (PyString_CheckEx(key) && PyString_CheckEx(value)) {
-                    textFields.emplace(PyString_AsStringEx(key), PyString_AsStringEx(value));
-                }
+    if (optionalText && PyDict_Check(optionalText)) {
+        std::multimap<ST::string, ST::string> textFields;
+        PyObject *key, *value;
+        Py_ssize_t pos = 0;
+        while (PyDict_Next(optionalText, &pos, &key, &value)) {
+            if (PyUnicode_Check(key) && PyUnicode_Check(value)) {
+                textFields.emplace(PyUnicode_AsSTString(key), PyUnicode_AsSTString(value));
             }
-            self->fThis->SaveAsPNG(PyString_AsStringEx(filenameObj), textFields);
         }
-        else
-            self->fThis->SaveAsPNG(PyString_AsStringEx(filenameObj));
-        PYTHON_RETURN_NONE;
+        self->fThis->SaveAsPNG(filename, textFields);
     }
     else
-    {
-        PyErr_SetString(PyExc_TypeError, "saveAsPNG expects a string, and an optional dict of key-value string pairs");
-        PYTHON_RETURN_ERROR;
-    }
+        self->fThis->SaveAsPNG(filename);
+    PYTHON_RETURN_NONE;
 }
 #endif // BUILDING_PYPLASMA
 
@@ -209,11 +194,12 @@ PYTHON_START_METHODS_TABLE(ptImage)
 PYTHON_END_METHODS_TABLE;
 
 // Type structure definition
-#define ptImage_COMPARE         PYTHON_NO_COMPARE
 #define ptImage_AS_NUMBER       PYTHON_NO_AS_NUMBER
 #define ptImage_AS_SEQUENCE     PYTHON_NO_AS_SEQUENCE
 #define ptImage_AS_MAPPING      PYTHON_NO_AS_MAPPING
 #define ptImage_STR             PYTHON_NO_STR
+#define ptImage_GETATTRO        PYTHON_NO_GETATTRO
+#define ptImage_SETATTRO        PYTHON_NO_SETATTRO
 #define ptImage_RICH_COMPARE    PYTHON_DEFAULT_RICH_COMPARE(ptImage)
 #define ptImage_GETSET          PYTHON_NO_GETSET
 #define ptImage_BASE            PYTHON_NO_BASE
@@ -223,7 +209,7 @@ PLASMA_CUSTOM_TYPE(ptImage, "Params: imgKey\nPlasma image class");
 #ifndef BUILDING_PYPLASMA
 PyObject *pyImage::New(plMipmap* mipmap)
 {
-    ptImage *newObj = (ptImage*)ptImage_type.tp_new(&ptImage_type, NULL, NULL);
+    ptImage *newObj = (ptImage*)ptImage_type.tp_new(&ptImage_type, nullptr, nullptr);
     newObj->fThis->fMipmap = mipmap;
     newObj->fThis->fMipMapKey = mipmap->GetKey();
     if (mipmap->GetKey())
@@ -234,14 +220,14 @@ PyObject *pyImage::New(plMipmap* mipmap)
 
 PyObject *pyImage::New(plKey mipmapKey)
 {
-    ptImage *newObj = (ptImage*)ptImage_type.tp_new(&ptImage_type, NULL, NULL);
+    ptImage *newObj = (ptImage*)ptImage_type.tp_new(&ptImage_type, nullptr, nullptr);
     newObj->fThis->fMipMapKey = mipmapKey;
     return (PyObject*)newObj;
 }
 
 PyObject *pyImage::New(pyKey& mipmapKey)
 {
-    ptImage *newObj = (ptImage*)ptImage_type.tp_new(&ptImage_type, NULL, NULL);
+    ptImage *newObj = (ptImage*)ptImage_type.tp_new(&ptImage_type, nullptr, nullptr);
     newObj->fThis->fMipMapKey = mipmapKey.getKey();
     return (PyObject*)newObj;
 }
@@ -263,54 +249,37 @@ void pyImage::AddPlasmaClasses(PyObject *m)
 #ifndef BUILDING_PYPLASMA
 PYTHON_GLOBAL_METHOD_DEFINITION(PtLoadJPEGFromDisk, args, "Params: filename,width,height\nThe image will be resized to fit the width and height arguments. Set to 0 if resizing is not desired.\nReturns a pyImage of the specified file.")
 {
-    PyObject* filenameObj;
+    plFileName filename;
     unsigned short width, height;
-    if (!PyArg_ParseTuple(args, "Ohh", &filenameObj, &width, &height))
+    if (!PyArg_ParseTuple(args, "O&hh", PyUnicode_PlFileNameDecoder, &filename, &width, &height))
     {
         PyErr_SetString(PyExc_TypeError, "PtLoadJPEGFromDisk expects a string and two unsigned shorts");
         PYTHON_RETURN_ERROR;
     }
 
-    if (PyString_CheckEx(filenameObj))
-    {
-        plFileName filename = PyString_AsStringEx(filenameObj);
-        PyObject* ret = pyImage::LoadJPEGFromDisk(filename, width, height);
-        return ret;
-    }
-    else
-    {
-        PyErr_SetString(PyExc_TypeError, "PtLoadJPEGFromDisk expects a string and two unsigned shorts");
-        PYTHON_RETURN_ERROR;
-    }
+    return pyImage::LoadJPEGFromDisk(filename, width, height);
 }
 
 PYTHON_GLOBAL_METHOD_DEFINITION(PtLoadPNGFromDisk, args, "Params: filename,width,height\nThe image will be resized to fit the width and height arguments. Set to 0 if resizing is not desired.\nReturns a pyImage of the specified file.")
 {
-    PyObject* filenameObj;
+    plFileName filename;
     unsigned short width, height;
-    if (!PyArg_ParseTuple(args, "Ohh", &filenameObj, &width, &height))
+    if (!PyArg_ParseTuple(args, "O&hh", PyUnicode_PlFileNameDecoder, &filename, &width, &height))
     {
         PyErr_SetString(PyExc_TypeError, "PtLoadPNGFromDisk expects a string and two unsigned shorts");
         PYTHON_RETURN_ERROR;
     }
-    if (PyString_CheckEx(filenameObj))
-    {
-        plFileName filename = PyString_AsStringEx(filenameObj);
-        PyObject* ret = pyImage::LoadPNGFromDisk(filename, width, height);
-        return ret;
-    }
-    else
-    {
-        PyErr_SetString(PyExc_TypeError, "PtLoadPNGFromDisk expects a string and two unsigned shorts");
-        PYTHON_RETURN_ERROR;
-    }
+
+    return pyImage::LoadPNGFromDisk(filename, width, height);
 }
 #endif
 
-void pyImage::AddPlasmaMethods(std::vector<PyMethodDef> &methods)
+void pyImage::AddPlasmaMethods(PyObject* m)
 {
 #ifndef BUILDING_PYPLASMA
-    PYTHON_GLOBAL_METHOD(methods, PtLoadJPEGFromDisk);
-    PYTHON_GLOBAL_METHOD(methods, PtLoadPNGFromDisk);
+    PYTHON_START_GLOBAL_METHOD_TABLE(ptImage)
+        PYTHON_GLOBAL_METHOD(PtLoadJPEGFromDisk)
+        PYTHON_GLOBAL_METHOD(PtLoadPNGFromDisk)
+    PYTHON_END_GLOBAL_METHOD_TABLE(m, ptImage)
 #endif
 }

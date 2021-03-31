@@ -45,8 +45,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define _USERPROPMGR_H_
 
 #include "HeadSpin.h"
+#include <unordered_set>
 
-template <class T> class hsHashTable;
 class Interface;
 class NameMaker;
 class INode;
@@ -110,7 +110,7 @@ public:
 
     bool IsAlike(INode *node, bool MatchAll=true);
     int CountAlike(bool MatchAll=true);
-    void DeSelectUnAlike(INode *node=NULL);
+    void DeSelectUnAlike(INode *node = nullptr);
 
     Interface *GetInterface() { return ip; }
 
@@ -120,8 +120,8 @@ public:
 private:
     INode* GetAncestorIfNeeded(INode* node, const int32_t hFlag);
     void DeSelectWithOut(const char *name, const char *value);
-    void RecursiveSelectAll(INode *node = NULL);
-    int RecursiveCountAlike(INode *node = NULL, bool MatchAll=true);
+    void RecursiveSelectAll(INode *node = nullptr);
+    int RecursiveCountAlike(INode *node = nullptr, bool MatchAll=true);
     bool IsMatch(const char *val1, const char *val2);
     bool vProps;
     TSTR vbuf;
@@ -136,7 +136,7 @@ private:
         const char* fKey;
         const char* fVal;
     public:
-        QuickPair() : fKey(nil), fVal(nil) { }
+        QuickPair() : fKey(), fVal() { }
         ~QuickPair() { }
 
         void SetKey(const char* k) { fKey = k; }
@@ -144,11 +144,14 @@ private:
 
         uint32_t GetHash() const;
 
-        bool GetVal(TSTR& value);
+        bool GetVal(TSTR& value) const;
 
         bool operator==(const QuickPair& other) const;
     };
-    hsHashTable<QuickPair>* fQuickTable;
+
+    friend struct std::hash<QuickPair>;
+
+    std::unordered_set<QuickPair>* fQuickTable;
     static const uint32_t kQuickSize;
     INode* fQuickNode;
     void IBuildQuickTable(INode* node);
@@ -157,5 +160,17 @@ private:
     Interface *ip;
 
 };
+
+namespace std
+{
+    template <>
+    struct hash<UserPropMgr::QuickPair>
+    {
+        size_t operator()(const UserPropMgr::QuickPair& pair) const
+        {
+            return pair.GetHash();
+        }
+    };
+}
 
 #endif

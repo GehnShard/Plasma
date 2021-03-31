@@ -43,11 +43,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _plPipelineViewSettings_inc_
 #define _plPipelineViewSettings_inc_
 
+#include <vector>
+
 #include "HeadSpin.h"
 #include "hsMatrix44.h"
 #include "plFogEnvironment.h"
 #include "hsGeometry3.h"
-#include "hsTemplates.h"
 #include "hsColorRGBA.h"
 #include "hsBitVector.h"
 #include "hsPoint2.h"
@@ -84,8 +85,8 @@ protected:
     hsMatrix44                  fWorldToLocal;
 
     // Occluder & Culling stuff
-    hsTArray<const plCullPoly*> fCullPolys;
-    hsTArray<const plCullPoly*> fCullHoles;
+    std::vector<const plCullPoly*> fCullPolys;
+    std::vector<const plCullPoly*> fCullHoles;
     plCullTree                  fCullTree;
     plDrawableSpans*            fCullProxy;
 
@@ -203,7 +204,7 @@ public:
      * For finer objects, like the spans themselves, the culling is done via
      * GetVisibleSpans, which also takes the plVisMgr into account.
      */
-    bool    HarvestVisible(plSpaceTree* space, hsTArray<int16_t>& visList);
+    bool    HarvestVisible(plSpaceTree* space, std::vector<int16_t>& visList);
 
 
     /**
@@ -214,14 +215,14 @@ public:
      * \sa plSpaceTree
      * \sa plVisMgr
      */
-    void    GetVisibleSpans(plDrawableSpans* drawable, hsTArray<int16_t>& visList, plVisMgr* visMgr);
+    void    GetVisibleSpans(plDrawableSpans* drawable, std::vector<int16_t>& visList, plVisMgr* visMgr);
 
 
     /**
      * Add the input polys into the list of polys from which to generate the
      * cull tree.
      */
-    bool    SubmitOccluders(const hsTArray<const plCullPoly*>& polyList);
+    bool    SubmitOccluders(const std::vector<const plCullPoly*>& polyList);
 
 
     /**

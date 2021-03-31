@@ -49,7 +49,6 @@ Operates the Shadow Path puzzle.
 
 from Plasma import *
 from PlasmaTypes import *
-import string
 
 # define the attributes that will be entered in 3dsMAX
 actSwitch01 = ptAttribActivator(1, "Actvr: Switch 01") # Switches are numbered left to right in a counterclockwise fashion
@@ -158,11 +157,8 @@ class kdshShadowPath(ptResponder):
             PtDebugPrint("\t ShadowPathLight0%s = %s " % (light, lightstate))
             
             if lightstate == 1:
-                
-                code = "respSwitch0" + str(light) + ".run(self.key,fastforward=1)"
-                exec(code)
-               
-                PtDebugPrint("\t\tTurning on light #", light)
+                globals()["respSwitch0{}".format(light)].run(self.key, fastforward=True)
+                PtDebugPrint("\t\tTurning on light #", light, level=kWarningLevel)
         
         solved = ageSDL["ShadowPathSolved"][0]
         if solved:
@@ -215,8 +211,7 @@ class kdshShadowPath(ptResponder):
                 return
 
             PtDebugPrint("Light ", id, " clicked.")
-            code = 'respBtnPush0' + str(id) + '.run(self.key,events=events)'
-            exec(code)
+            globals()["respBtnPush0{}".format(id)].run(self.key, events=events)
 
         elif id in [26,27,28,29,30]: 
             if lightClickedByAvatar != localAvatar:  #Make sure we don't have any rogue avatars reporting...
@@ -261,14 +256,11 @@ class kdshShadowPath(ptResponder):
             
             #turn off the lights
             for light in [1,2,3,4,5]:
-                lightstate = ageSDL["ShadowPathLight0" + str(light)][0]  
-                if lightstate == 1:
-                    code = 'ageSDL["ShadowPathLight0' + str(light) + '"] = (0,)'
-                    PtDebugPrint("resetcode = ", code)
-                    exec(code)
-                        
-                    PtDebugPrint("\tTurning off light #", light)
-                    
+                var = "ShadowPathLight0{}".format(light)
+                if ageSDL[var][0]:
+                    ageSDL[var] = (0,)
+                    PtDebugPrint("\tTurning off light #", light, level=kWarningLevel)
+
             #...and close the floor
             ageSDL["ShadowPathSolved"] = (0,)
             
@@ -285,26 +277,21 @@ class kdshShadowPath(ptResponder):
                 ConcealStairs.run(self.key)
                 
         elif VARname[:15] == "ShadowPathLight":
-            light = string.atoi(VARname[-2:]) #get the last two digits, which is the light number
+            light = int(VARname[-2:]) #get the last two digits, which is the light number
                 
             #~ PtDebugPrint("OnSDLNotify: Light ", light," SDL updated.")
                 
             newstate = ageSDL["ShadowPathLight0" + str(light)][0] 
 
+            resp = globals()["respSwitch0{}".format(light)]
             if newstate == 0: # true if that switch is now off
-                PtDebugPrint("kdshShadowPath.OnSDLNotify: Light", light," was on. Turning it off.")
-                code = "respSwitch0" + str(light) + ".run(self.key, state='off')"
-                #~ PtDebugPrint("off code = ", code)
-                exec(code)
-                
+                PtDebugPrint("kdshShadowPath.OnSDLNotify: Light", light," was on. Turning it off.", level=kWarningLevel)
+                resp.run(self.key, state="off")
             elif newstate == 1: # true if that switch is now on
-                PtDebugPrint("kdshShadowPath.OnSDLNotify: Light", light," was off. Turning it on.")
-                code = "respSwitch0" + str(light) + ".run(self.key, state='on')"
-                #~ PtDebugPrint("On code = ", code)
-                exec(code)
-
+                PtDebugPrint("kdshShadowPath.OnSDLNotify: Light", light," was off. Turning it on.", level=kWarningLevel)
+                resp.run(self.key, state="on")
             else: 
-                PtDebugPrint("Error. Not sure what the light thought it was.")
+                PtDebugPrint("kdshShadowPath.OnSDLNotify: Error. Not sure what the light thought it was.")
 
 '''
     def BatonPassCheck(self,id,events,ageSDL):

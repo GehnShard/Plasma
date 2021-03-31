@@ -51,121 +51,81 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include "plDXPipeline.h"
+
 #include "HeadSpin.h"
 #include "hsWindows.h"
-
 #include <d3d9.h>
-#include <d3dx9mesh.h>
-#include "hsGDirect3D.h"
-
-#if defined(DX_OLD_SDK) || defined(__MINGW32__)
-    #include <dxerr9.h>
-    #ifndef DXGetErrorString9
-        #define DXGetErrorString9 DXGetErrorString
-    #endif
-    #ifdef __MINGW32__ // UGH!
-        #define DXGetErrorString DXGetErrorString9
-    #endif
-#else
-    #include <dxerr.h>
-#endif
-
-#include "plPipeline/hsWinRef.h"
-
-#include "HeadSpin.h"
-#include "plDXPipeline.h"
-#include "plPipeline/plPipelineCreate.h"
-#include "plPipeline/plDebugText.h"
-#include "plDXEnumerate.h"
-#include "plPipeline/hsG3DDeviceSelector.h"
-#include "hsResMgr.h"
-#include "plPipeline/plStatusLogDrawer.h"
-#include "plQuality.h"
-
-#include "plPipeDebugFlags.h"
-
-#include "hsTemplates.h"
-//#include "hsGEnviron.h"
-#include "plProfile.h"
-#include "plMessage/plDeviceRecreateMsg.h"
-#include "pnMessage/plSelfDestructMsg.h"
-#include "pnMessage/plClientMsg.h"
-#include "plSurface/hsGMaterial.h"
-#include "plSurface/plLayerInterface.h"
-#include "plSurface/plLayerShadowBase.h"
-#include "plGImage/plMipmap.h"
-#include "plGImage/plCubicEnvironmap.h"
-#include "plDrawable/plDrawableSpans.h"
-#include "plDrawable/plGeometrySpan.h"
-#include "plDrawable/plSpaceTree.h"
-#include "plDrawable/plDrawableGenerator.h"
-#include "plDrawable/plSpanTypes.h"
-#include "plDrawable/plAccessSpan.h"
-#include "plDrawable/plAuxSpan.h"
-#include "pnSceneObject/plSceneObject.h"
-#include "pnSceneObject/plDrawInterface.h"
-#include "hsFastMath.h"
-#include "plGLight/plLightInfo.h"
-#include "plParticleSystem/plParticleEmitter.h"
-#include "plParticleSystem/plParticle.h"
-#include "plAvatar/plAvatarClothing.h"
-#include "plPipeline/plDebugText.h"
-#include "plPipeline/plFogEnvironment.h"
-#include "plDXTextFont.h"
-#include "plDrawable/plGBufferGroup.h"
-#include "hsTimer.h"
-#include "plgDispatch.h"
-#include "plScene/plRenderRequest.h"
-#include "plScene/plVisMgr.h"
-#include "plPipeline/plRenderTarget.h"
-#include "plPipeline/plCubicRenderTarget.h"
-#include "plPipeline/plDynamicEnvMap.h"
-#include "pfCamera/plVirtualCamNeu.h"
+#include <DirectXMath.h>
 
 #include "plDXBufferRefs.h"
-#include "plDXTextureRef.h"
+#include "plDXEnumerate.h"
 #include "plDXLightRef.h"
+#include "plDXPixelShader.h"
 #include "plDXRenderTargetRef.h"
+#include "plDXTextFont.h"
+#include "plDXTextureRef.h"
 #include "plDXVertexShader.h"
-#include "plDXPixelShader.h"
+#include "hsGDirect3D.h"
 
-#include "plGLight/plShadowSlave.h"
-#include "plGLight/plShadowCaster.h"
-
+#include "hsFastMath.h"
 #include "hsGMatState.inl"
-
-#include "plSurface/plShader.h"
-#include "plDXVertexShader.h"
-#include "plDXPixelShader.h"
-
-#include "pnMessage/plPipeResMakeMsg.h"
+#include "plPipeDebugFlags.h"
 #include "plPipeResReq.h"
-#include "pnNetCommon/plNetApp.h"   // for dbg logging
-#include "pfCamera/plVirtualCamNeu.h"
-#include "pfCamera/plCameraModifier.h"
-#include "plResMgr/plLocalization.h"
-
-
-// mf horse - test hack, nuke this later
-#include "plSurface/plLayerDepth.h"
-
-#include "plGImage/hsCodecManager.h"
-//#include "plGImage/hsDXTDirectXCodec.h"
-
-#ifdef HS_DEBUGGING
-// This is so VC++ will let us view the contents of plIcicle::fOwnerKey
-#include "pnKeyedObject/plKey.h"
-#endif
-
-#include "plPipeline/plCullTree.h"
-
+#include "plProfile.h"
+#include "plQuality.h"
+#include "hsResMgr.h"
+#include "hsSIMD.h"
+#include "hsTimer.h"
 #include "plTweak.h"
 
-#include <algorithm>
+// Project local
+#include "plPipeline/plCubicRenderTarget.h"
+#include "plPipeline/plCullTree.h"
+#include "plPipeline/plDebugText.h"
+#include "plPipeline/plDynamicEnvMap.h"
+#include "plPipeline/hsG3DDeviceSelector.h"
+#include "plPipeline/plFogEnvironment.h"
+#include "plPipeline/plPipelineCreate.h"
+#include "plPipeline/plRenderTarget.h"
+#include "plPipeline/plStatusLogDrawer.h"
+#include "plPipeline/hsWinRef.h"
 
-#ifdef HS_SIMD_INCLUDE
-#  include HS_SIMD_INCLUDE
-#endif
+#include "pnMessage/plClientMsg.h"
+#include "pnMessage/plPipeResMakeMsg.h"
+#include "pnNetCommon/plNetApp.h"   // for dbg logging
+#include "pnSceneObject/plDrawInterface.h"
+#include "pnSceneObject/plSceneObject.h"
+
+#include "plAvatar/plAvatarClothing.h"
+#include "plDrawable/plAccessSpan.h"
+#include "plDrawable/plAuxSpan.h"
+#include "plDrawable/plDrawableGenerator.h"
+#include "plDrawable/plDrawableSpans.h"
+#include "plDrawable/plGBufferGroup.h"
+#include "plDrawable/plGeometrySpan.h"
+#include "plDrawable/plSpaceTree.h"
+#include "plDrawable/plSpanTypes.h"
+#include "plGImage/hsCodecManager.h"
+#include "plGImage/plCubicEnvironmap.h"
+#include "plGImage/plMipmap.h"
+#include "plGLight/plLightInfo.h"
+#include "plGLight/plShadowCaster.h"
+#include "plGLight/plShadowSlave.h"
+#include "plMessage/plDeviceRecreateMsg.h"
+#include "plResMgr/plLocalization.h"
+#include "plScene/plRenderRequest.h"
+#include "plScene/plVisMgr.h"
+#include "plSurface/hsGMaterial.h"
+#include "plSurface/plLayerDepth.h" // mf horse - test hack, nuke this later
+#include "plSurface/plLayerInterface.h"
+#include "plSurface/plLayerShadowBase.h"
+#include "plSurface/plShader.h"
+
+#include "pfCamera/plCameraModifier.h"
+#include "pfCamera/plVirtualCamNeu.h"
+
+#include <algorithm>
 
 //#define MF_TOSSER
 
@@ -173,8 +133,8 @@ int mfCurrentTest = 100;
 //#define MF_ENABLE_HACKOFF
 #ifdef MF_ENABLE_HACKOFF
 //WHITE
-static hsTArray<plRenderTarget*> hackOffscreens;
-uint32_t doHackPlate = uint32_t(-1);
+static std::vector<plRenderTarget*> hackOffscreens;
+size_t doHackPlate = size_t(-1);
 #endif // MF_ENABLE_HACKOFF
 
 uint32_t  fDbgSetupInitFlags;     // HACK temp only
@@ -272,10 +232,10 @@ inline DWORD F2DW( FLOAT f )
 #define WEAK_ERROR_CHECK( cond )    cond
 #endif
 
-static D3DXMATRIX d3dIdentityMatrix( 1.0f, 0.0f, 0.0f, 0.0f,
-                                     0.0f, 1.0f, 0.0f, 0.0f,
-                                     0.0f, 0.0f, 1.0f, 0.0f,
-                                     0.0f, 0.0f, 0.0f, 1.0f );
+static D3DMATRIX d3dIdentityMatrix{ 1.0f, 0.0f, 0.0f, 0.0f,
+                                    0.0f, 1.0f, 0.0f, 0.0f,
+                                    0.0f, 0.0f, 1.0f, 0.0f,
+                                    0.0f, 0.0f, 0.0f, 1.0f };
 
 static const enum _D3DTRANSFORMSTATETYPE    sTextureStages[ 8 ] =
 {
@@ -519,7 +479,7 @@ class plRenderNilFunc : public plRenderPrimFunc
 public:
     plRenderNilFunc() {}
 
-    virtual bool RenderPrims() const { return false; }
+    bool RenderPrims() const override { return false; }
 };
 static plRenderNilFunc sRenderNil;
 
@@ -537,7 +497,7 @@ public:
                         int vStart, int vLength, int iStart, int iNumTris)
         : fD3DDevice(d3dDevice), fBaseVertexIndex(baseVertexIndex), fVStart(vStart), fVLength(vLength), fIStart(iStart), fNumTris(iNumTris) {}
 
-    virtual bool RenderPrims() const;
+    bool RenderPrims() const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -638,8 +598,8 @@ plDXPipeline::plDXPipeline( hsWinRef hWnd, const hsG3DDeviceModeRecord *devModeR
 // Cleanup - Most happens in IReleaseDeviceObject().
 plDXPipeline::~plDXPipeline()
 {
-    fCurrLay = nil;
-    hsAssert( fCurrMaterial == nil, "Current material not unrefed properly" );
+    fCurrLay = nullptr;
+    hsAssert(fCurrMaterial == nullptr, "Current material not unrefed properly");
 
     // CullProxy is a debugging representation of our CullTree. See plCullTree.cpp, 
     // plScene/plOccluder.cpp and plScene/plOccluderProxy.cpp for more info
@@ -666,18 +626,18 @@ plDXPipeline::~plDXPipeline()
 void    plDXPipeline::IClearMembers()
 {
     /// Clear some stuff
-    fTextureRefList = nil;
-    fTextFontRefList = nil;
-    fRenderTargetRefList = nil;
-    fVShaderRefList = nil;
-    fPShaderRefList = nil;
+    fTextureRefList = nullptr;
+    fTextFontRefList = nullptr;
+    fRenderTargetRefList = nullptr;
+    fVShaderRefList = nullptr;
+    fPShaderRefList = nullptr;
 #if MCN_BOUNDS_SPANS
-    fBoundsMat = nil;
-    fBoundsSpans = nil;
+    fBoundsMat = nullptr;
+    fBoundsSpans = nullptr;
 #endif
-    fPlateMgr = nil;
-    fLogDrawer = nil;
-    fDebugTextMgr = nil;
+    fPlateMgr = nullptr;
+    fLogDrawer = nullptr;
+    fDebugTextMgr = nullptr;
 
     fTexturing = false;
     fLastEndingStage = -1;
@@ -690,25 +650,25 @@ void    plDXPipeline::IClearMembers()
     fDevWasLost = false;
 
     fSettings.fCurrFVFFormat = 0;
-    fDynVtxBuff = nil;
+    fDynVtxBuff = nullptr;
     fNextDynVtx = 0;
 
     int i;
 
     IResetRenderTargetPools();
-    fULutTextureRef = nil;
+    fULutTextureRef = nullptr;
     for( i = 0; i < kMaxRenderTargetNext; i++ )
-        fBlurVBuffers[i] = nil;
+        fBlurVBuffers[i] = nullptr;
     fBlurVSHandle = 0;
 
-    fSharedDepthSurface[0] = nil;
+    fSharedDepthSurface[0] = nullptr;
     fSharedDepthFormat[0] = D3DFMT_UNKNOWN;
-    fSharedDepthSurface[1] = nil;
+    fSharedDepthSurface[1] = nullptr;
     fSharedDepthFormat[1] = D3DFMT_UNKNOWN;
 
-    fCurrentMode = nil;
-    fCurrentDriver = nil;
-    fCurrentDevice = nil;
+    fCurrentMode = nullptr;
+    fCurrentDriver = nullptr;
+    fCurrentDevice = nullptr;
 
     for( i = 0; i < 8; i++ )
     {
@@ -732,8 +692,8 @@ void    plDXPipeline::IClearMembers()
 
 void    plDXGeneralSettings::Reset()
 {
-    fCurrVertexBuffRef = nil;
-    fCurrIndexBuffRef = nil;
+    fCurrVertexBuffRef = nullptr;
+    fCurrIndexBuffRef = nullptr;
     fFullscreen = false;
     fD3DCaps = 0;
     fBoardKluge = 0;
@@ -754,8 +714,8 @@ void    plDXGeneralSettings::Reset()
     memset( fErrorStr, 0, sizeof( fErrorStr ) );
 
     fCurrFVFFormat = 0;
-    fCurrVertexShader = nil;
-    fCurrPixelShader = nil;
+    fCurrVertexShader = nullptr;
+    fCurrPixelShader = nullptr;
 
     fVeryAnnoyingTextureInvalidFlag = false;
 }
@@ -773,7 +733,7 @@ void    plDXPipeline::IInitDeviceState()
 
     /// Set D3D states
     fCurrFog.Reset();
-    ISetFogParameters( nil, nil );
+    ISetFogParameters(nullptr, nullptr);
 
     fD3DDevice->SetRenderState( D3DRS_ZFUNC,        D3DCMP_LESSEQUAL );
     fD3DDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
@@ -813,11 +773,11 @@ void    plDXPipeline::IInitDeviceState()
     {
         fLayerLODBias[ i ] = fTweaks.fDefaultLODBias;
         fLayerTransform[ i ] = false;
-        fLayerRef[ i ] = nil;
+        fLayerRef[i] = nullptr;
         fLayerUVWSrcs[ i ] = i;
         fLayerState[ i ].Reset();
 
-        fD3DDevice->SetTexture( i, nil );
+        fD3DDevice->SetTexture(i, nullptr);
         fD3DDevice->SetTextureStageState( i, D3DTSS_TEXCOORDINDEX, i );
         fD3DDevice->SetSamplerState( i, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP  );
         fD3DDevice->SetSamplerState( i, D3DSAMP_ADDRESSV, D3DTADDRESS_WRAP  );
@@ -1106,7 +1066,7 @@ bool plDXPipeline::ICreateDynDeviceObjects()
 
     // Create device-specific stuff
     fDebugTextMgr = new plDebugTextManager();
-    if( fDebugTextMgr == nil )
+    if (fDebugTextMgr == nullptr)
         return true;
 
     // Vertex buffers, index buffers, textures, etc.
@@ -1133,23 +1093,23 @@ bool  plDXPipeline::ICreateDeviceObjects()
     // but also gets used for some things like the cursor and 
     // linking fade to/from black.
     fPlateMgr = new plDXPlateManager( this, fD3DDevice );
-    if( fPlateMgr == nil || !fPlateMgr->IsValid() )
+    if (fPlateMgr == nullptr || !fPlateMgr->IsValid())
         return true;
 
     // We've got everything created now, initialize to a known state.
     IInitDeviceState();
-    if( FAILED( fD3DDevice->Clear( 0, nil, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, fSettings.fClearColor, 1.0f, 0L ) ) )
+    if (FAILED(fD3DDevice->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, fSettings.fClearColor, 1.0f, 0L)))
         return true;
 
     // You may be wondering what this is. It's a workaround for a GeForce2 driver bug, where
     // clears to the Zbuffer (but not color) are getting partially ignored. Don't even ask.
     // So this is just to try and get the board used to the kind of foolishness it can expect
     // from here out.
-    if( FAILED( fD3DDevice->Clear( 0, nil, D3DCLEAR_ZBUFFER, fSettings.fClearColor, 1.0f, 0L ) ) )
+    if (FAILED(fD3DDevice->Clear(0, nullptr, D3DCLEAR_ZBUFFER, fSettings.fClearColor, 1.0f, 0L)))
         return true;
-    if( FAILED( fD3DDevice->Clear( 0, nil, D3DCLEAR_ZBUFFER, fSettings.fClearColor, 1.0f, 0L ) ) )
+    if (FAILED(fD3DDevice->Clear(0, nullptr, D3DCLEAR_ZBUFFER, fSettings.fClearColor, 1.0f, 0L)))
         return true;
-    if( FAILED( fD3DDevice->Clear( 0, nil, D3DCLEAR_ZBUFFER, fSettings.fClearColor, 1.0f, 0L ) ) )
+    if (FAILED(fD3DDevice->Clear(0, nullptr, D3DCLEAR_ZBUFFER, fSettings.fClearColor, 1.0f, 0L)))
         return true;
 
     /// Log renderer
@@ -1181,7 +1141,7 @@ bool  plDXPipeline::ICreateDeviceObjects()
 // Copy over the driver info.
 void    plDXPipeline::ISetCurrentDriver( D3DEnum_DriverInfo *driv )
 {
-    if( fCurrentDriver != nil )
+    if (fCurrentDriver != nullptr)
         delete fCurrentDriver;
 
     fCurrentDriver = new D3DEnum_DriverInfo;
@@ -1193,8 +1153,8 @@ void    plDXPipeline::ISetCurrentDriver( D3DEnum_DriverInfo *driv )
     fCurrentDriver->fDesktopMode = driv->fDesktopMode;
     fCurrentDriver->fAdapterInfo = driv->fAdapterInfo;
 
-    fCurrentDriver->fCurrentMode = nil;
-    fCurrentDriver->fCurrentDevice = nil;
+    fCurrentDriver->fCurrentMode = nullptr;
+    fCurrentDriver->fCurrentDevice = nullptr;
 
     /// Go looking for an adapter to match this one
     IDirect3D9* d3d = hsGDirect3D::GetDirect3D();
@@ -1217,7 +1177,7 @@ void    plDXPipeline::ISetCurrentDriver( D3DEnum_DriverInfo *driv )
 // Copy over the device info.
 void    plDXPipeline::ISetCurrentDevice( D3DEnum_DeviceInfo *dev )
 {
-    if( fCurrentDevice != nil )
+    if (fCurrentDevice != nullptr)
         delete fCurrentDevice;
     fCurrentDevice = new D3DEnum_DeviceInfo;
 
@@ -1233,22 +1193,22 @@ void    plDXPipeline::ISetCurrentDevice( D3DEnum_DeviceInfo *dev )
     // copy over supported device modes
     D3DEnum_ModeInfo currMode;
 
-    for(int i = 0; i < dev->fModes.Count(); i++)
+    for (const D3DEnum_ModeInfo& mode : dev->fModes)
     {
         // filter unusable modes
-        if(dev->fModes[i].fDDmode.Width < MIN_WIDTH || dev->fModes[i].fDDmode.Height < MIN_HEIGHT)
+        if (mode.fDDmode.Width < MIN_WIDTH || mode.fDDmode.Height < MIN_HEIGHT)
             continue;
 
-        currMode.fBitDepth = dev->fModes[i].fBitDepth;
-        currMode.fCanRenderToCubic = dev->fModes[i].fCanRenderToCubic;
-        currMode.fDDBehavior = dev->fModes[i].fDDBehavior;
-        currMode.fDepthFormats = dev->fModes[i].fDepthFormats;
-        currMode.fFSAATypes = dev->fModes[i].fFSAATypes;
-        memcpy(&currMode.fDDmode, &dev->fModes[i].fDDmode, sizeof(D3DDISPLAYMODE));
-        strcpy(currMode.fStrDesc, dev->fModes[i].fStrDesc);
-        currMode.fWindowed = dev->fModes[i].fWindowed;
+        currMode.fBitDepth = mode.fBitDepth;
+        currMode.fCanRenderToCubic = mode.fCanRenderToCubic;
+        currMode.fDDBehavior = mode.fDDBehavior;
+        currMode.fDepthFormats = mode.fDepthFormats;
+        currMode.fFSAATypes = mode.fFSAATypes;
+        memcpy(&currMode.fDDmode, &mode.fDDmode, sizeof(D3DDISPLAYMODE));
+        strcpy(currMode.fStrDesc, mode.fStrDesc);
+        currMode.fWindowed = mode.fWindowed;
 
-        fCurrentDevice->fModes.Push(currMode);
+        fCurrentDevice->fModes.emplace_back(currMode);
     }
 }
 
@@ -1256,7 +1216,7 @@ void    plDXPipeline::ISetCurrentDevice( D3DEnum_DeviceInfo *dev )
 // Copy over the mode info.
 void    plDXPipeline::ISetCurrentMode( D3DEnum_ModeInfo *mode )
 {
-    if( fCurrentMode != nil )
+    if (fCurrentMode != nullptr)
         delete fCurrentMode;
     fCurrentMode = new D3DEnum_ModeInfo;
 
@@ -1341,7 +1301,6 @@ bool plDXPipeline::ICreateDevice(bool windowed)
     /// First, create the D3D Device object
     D3DPRESENT_PARAMETERS       params;
     D3DDISPLAYMODE              dispMode;
-    int                         i;
 #ifdef DBG_WRITE_FORMATS
     char                        msg[ 256 ];
 #endif // DBG_WRITE_FORMATS
@@ -1386,18 +1345,20 @@ bool plDXPipeline::ICreateDevice(bool windowed)
     params.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
 
 #ifdef DBG_WRITE_FORMATS
-    for( i = 0; i < fCurrentMode->fDepthFormats.GetCount(); i++ )
+    for (D3DFORMAT fmt : fCurrentMode->fDepthFormats)
     {
-        sprintf( msg, "-- Valid depth buffer format: %s", IGetDXFormatName( fCurrentMode->fDepthFormats[ i ] ) );
+        sprintf(msg, "-- Valid depth buffer format: %s", IGetDXFormatName(fmt));
         hsDebugMessage( msg, 0 );
     }
 #endif
 
     // Attempt to find the closest AA setting we can
     params.MultiSampleType = D3DMULTISAMPLE_NONE;
-    for( i = fSettings.fNumAASamples; i >= 2; i-- )
+    for (uint8_t i = fSettings.fNumAASamples; i >= 2; i--)
     {
-        if( fCurrentMode->fFSAATypes.Find( (D3DMULTISAMPLE_TYPE)i ) != fCurrentMode->fFSAATypes.kMissingIndex )
+        auto iter = std::find(fCurrentMode->fFSAATypes.cbegin(), fCurrentMode->fFSAATypes.cend(),
+                              (D3DMULTISAMPLE_TYPE)i);
+        if (iter != fCurrentMode->fFSAATypes.cend())
         {
             params.MultiSampleType = (D3DMULTISAMPLE_TYPE)i;
             break;
@@ -1482,8 +1443,8 @@ bool plDXPipeline::IFindDepthFormat(D3DPRESENT_PARAMETERS& params)
     // Okay, we're not using the stencil buffer right now, and it's bringing out
     // some painful driver bugs on the GeForce2. So rather than go out of our way
     // looking for trouble, we're going to look for a depth buffer with NO STENCIL.
-    int i;
-    for( i = fCurrentMode->fDepthFormats.GetCount() - 1; i >= 0; i-- )
+    hsSsize_t i;
+    for (i = fCurrentMode->fDepthFormats.size() - 1; i >= 0; i--)
     {
         D3DFORMAT fmt = fCurrentMode->fDepthFormats[ i ];
         if( (fmt == D3DFMT_D32)
@@ -1494,7 +1455,7 @@ bool plDXPipeline::IFindDepthFormat(D3DPRESENT_PARAMETERS& params)
                                                          fCurrentDevice->fDDType,
                                                          fmt,
                                                          fCurrentMode->fWindowed ? TRUE : FALSE,
-                                                         params.MultiSampleType, NULL);
+                                                         params.MultiSampleType, nullptr);
             if( !FAILED(hr) )
             {
                 params.AutoDepthStencilFormat = fmt;
@@ -1505,7 +1466,7 @@ bool plDXPipeline::IFindDepthFormat(D3DPRESENT_PARAMETERS& params)
     }
     if( i < 0 )
     {
-        for( i = fCurrentMode->fDepthFormats.GetCount() - 1; i >= 0; i-- )
+        for (i = fCurrentMode->fDepthFormats.size() - 1; i >= 0; i--)
         {
             D3DFORMAT fmt = fCurrentMode->fDepthFormats[ i ];
             if( fmt == D3DFMT_D15S1 || fmt == D3DFMT_D24X4S4 || fmt == D3DFMT_D24S8 )
@@ -1514,7 +1475,7 @@ bool plDXPipeline::IFindDepthFormat(D3DPRESENT_PARAMETERS& params)
                                                              fCurrentDevice->fDDType,
                                                              fmt,
                                                              fCurrentMode->fWindowed ? TRUE : FALSE,
-                                                             params.MultiSampleType, NULL);
+                                                             params.MultiSampleType, nullptr);
                 if( !FAILED(hr) )
                 {
                     params.AutoDepthStencilFormat = fmt;
@@ -1565,52 +1526,50 @@ bool plDXPipeline::ICreateNormalSurfaces()
 // sizes. Primary user of these pools is the shadow generation.
 void plDXPipeline::IReleaseRenderTargetPools()
 {
-    int i;
-
-    for( i = 0; i < fRenderTargetPool512.GetCount(); i++ )
+    for (size_t i = 0; i < fRenderTargetPool512.size(); i++)
     {
         delete fRenderTargetPool512[i];
-        fRenderTargetPool512[i] = nil;
+        fRenderTargetPool512[i] = nullptr;
     }
-    fRenderTargetPool512.SetCount(0);
+    fRenderTargetPool512.clear();
 
-    for( i = 0; i < fRenderTargetPool256.GetCount(); i++ )
+    for (size_t i = 0; i < fRenderTargetPool256.size(); i++)
     {
         delete fRenderTargetPool256[i];
-        fRenderTargetPool256[i] = nil;
+        fRenderTargetPool256[i] = nullptr;
     }
-    fRenderTargetPool256.SetCount(0);
+    fRenderTargetPool256.clear();
 
-    for( i = 0; i < fRenderTargetPool128.GetCount(); i++ )
+    for (size_t i = 0; i < fRenderTargetPool128.size(); i++)
     {
         delete fRenderTargetPool128[i];
-        fRenderTargetPool128[i] = nil;
+        fRenderTargetPool128[i] = nullptr;
     }
-    fRenderTargetPool128.SetCount(0);
+    fRenderTargetPool128.clear();
 
-    for( i = 0; i < fRenderTargetPool64.GetCount(); i++ )
+    for (size_t i = 0; i < fRenderTargetPool64.size(); i++)
     {
         delete fRenderTargetPool64[i];
-        fRenderTargetPool64[i] = nil;
+        fRenderTargetPool64[i] = nullptr;
     }
-    fRenderTargetPool64.SetCount(0);
+    fRenderTargetPool64.clear();
 
-    for( i = 0; i < fRenderTargetPool32.GetCount(); i++ )
+    for (size_t i = 0; i < fRenderTargetPool32.size(); i++)
     {
         delete fRenderTargetPool32[i];
-        fRenderTargetPool32[i] = nil;
+        fRenderTargetPool32[i] = nullptr;
     }
-    fRenderTargetPool32.SetCount(0);
+    fRenderTargetPool32.clear();
 
-    for( i = 0; i < kMaxRenderTargetNext; i++ )
+    for (size_t i = 0; i < kMaxRenderTargetNext; i++)
     {
         fRenderTargetNext[i] = 0;
-        fBlurScratchRTs[i] = nil;
-        fBlurDestRTs[i] = nil;
+        fBlurScratchRTs[i] = nullptr;
+        fBlurDestRTs[i] = nullptr;
     }
 
 #ifdef MF_ENABLE_HACKOFF
-    hackOffscreens.Reset();
+    hackOffscreens.clear();
 #endif // MF_ENABLE_HACKOFF
 }
 
@@ -1623,19 +1582,19 @@ void plDXPipeline::IReleaseDynDeviceObjects()
     // We should do this earlier, but the textFont objects don't remove
     // themselves from their parent objects yet
     delete fDebugTextMgr;
-    fDebugTextMgr = nil;
+    fDebugTextMgr = nullptr;
 
     if( fD3DDevice )
     {
-        fD3DDevice->SetStreamSource(0, nil, 0, 0);
-        fD3DDevice->SetIndices(nil);
+        fD3DDevice->SetStreamSource(0, nullptr, 0, 0);
+        fD3DDevice->SetIndices(nullptr);
     }
 
     /// Delete actual d3d objects
     hsRefCnt_SafeUnRef( fSettings.fCurrVertexBuffRef );
-    fSettings.fCurrVertexBuffRef = nil;
+    fSettings.fCurrVertexBuffRef = nullptr;
     hsRefCnt_SafeUnRef( fSettings.fCurrIndexBuffRef );
-    fSettings.fCurrIndexBuffRef = nil;
+    fSettings.fCurrIndexBuffRef = nullptr;
 
     while( fTextFontRefList )
         delete fTextFontRefList;
@@ -1706,15 +1665,15 @@ void    plDXPipeline::IReleaseDeviceObjects()
 #if MCN_BOUNDS_SPANS
     if( fBoundsSpans )
         fBoundsSpans->GetKey()->UnRefObject();
-    fBoundsSpans = nil;
+    fBoundsSpans = nullptr;
     if( fBoundsMat )
         fBoundsMat->GetKey()->UnRefObject();
-    fBoundsMat = nil;
+    fBoundsMat = nullptr;
 #endif
 
-    plStatusLogMgr::GetInstance().SetDrawer( nil );
+    plStatusLogMgr::GetInstance().SetDrawer(nullptr);
     delete fLogDrawer;
-    fLogDrawer = nil;
+    fLogDrawer = nullptr;
 
     IGetPixelScratch( 0 );  
 
@@ -1724,19 +1683,19 @@ void    plDXPipeline::IReleaseDeviceObjects()
         if( fLayerRef[i] )
         {
             hsRefCnt_SafeUnRef(fLayerRef[i]);
-            fLayerRef[i] = nil;
+            fLayerRef[i] = nullptr;
         }
     }
 
 #ifdef MF_ENABLE_HACKOFF
     //WHITE
-    hackOffscreens.SetCount(0);
+    hackOffscreens.clear();
 #endif // MF_ENABLE_HACKOFF
 
     if( fULutTextureRef )
         delete [] fULutTextureRef->fData;
     hsRefCnt_SafeUnRef(fULutTextureRef);
-    fULutTextureRef = nil;
+    fULutTextureRef = nullptr;
 
     while( fVtxBuffRefList )
     {
@@ -1764,16 +1723,16 @@ void    plDXPipeline::IReleaseDeviceObjects()
     IReleaseDynDeviceObjects();
 
     delete fPlateMgr;
-    fPlateMgr = nil;
+    fPlateMgr = nullptr;
 
-    if( fD3DDevice != nil )
+    if (fD3DDevice != nullptr)
     {
         LONG ret;
         while( ret = fD3DDevice->Release() )
         {
             hsStatusMessageF("%d - Error releasing device", ret);
         }
-        fD3DDevice = nil;
+        fD3DDevice = nullptr;
     }
 
     fManagedAlloced = false;
@@ -1801,7 +1760,7 @@ void plDXPipeline::IReleaseDynamicBuffers()
         if( vbRef->Volatile() && vbRef->fD3DBuffer )
         {
             vbRef->fD3DBuffer->Release();
-            vbRef->fD3DBuffer = nil;
+            vbRef->fD3DBuffer = nullptr;
 
             // Actually, if it's volatile, it's sharing the global dynamic vertex buff, so we're already
             // accounting for the memory when we clear the global buffer.
@@ -1823,7 +1782,7 @@ void plDXPipeline::IReleaseDynamicBuffers()
         if (iRef->fD3DBuffer)
         {
             iRef->fD3DBuffer->Release();
-            iRef->fD3DBuffer = nil;
+            iRef->fD3DBuffer = nullptr;
             PROFILE_POOL_MEM(iRef->fPoolType, iRef->fCount * sizeof(uint16_t), false, "IndexBuff");
         }
         iRef = iRef->GetNext();
@@ -1832,7 +1791,7 @@ void plDXPipeline::IReleaseDynamicBuffers()
     {
         ReleaseObject(fDynVtxBuff);
         PROFILE_POOL_MEM(D3DPOOL_DEFAULT, fDynVtxSize, false, "DynVtxBuff");
-        fDynVtxBuff = nil;
+        fDynVtxBuff = nullptr;
     }
 
     fNextDynVtx = 0;
@@ -1879,7 +1838,7 @@ void plDXPipeline::ICreateDynamicBuffers()
                                                     usage, 
                                                     0,
                                                     poolType, 
-                                                    &fDynVtxBuff, NULL) ) )
+                                                    &fDynVtxBuff, nullptr)))
         {
             hsAssert(false, "Don't know what to do here.");
         }
@@ -1914,16 +1873,13 @@ void plDXPipeline::IResetToDefaults(D3DPRESENT_PARAMETERS *params)
     params->BackBufferFormat = D3DFMT_X8R8G8B8;
     fColorDepth = fDefaultPipeParams.ColorDepth;
 
-    int i;
-    hsTArray<D3DEnum_ModeInfo> *modes = &fCurrentDevice->fModes;
-    for( i = 0; i < modes->Count(); i++ )
+    for (D3DEnum_ModeInfo& mode : fCurrentDevice->fModes)
     {
-        D3DEnum_ModeInfo *mode = &(*modes)[i];
-        if(mode->fDDmode.Width == params->BackBufferWidth &&
-            mode->fDDmode.Height == params->BackBufferHeight &&
-            mode->fBitDepth == 32 )
+        if (mode.fDDmode.Width == params->BackBufferWidth &&
+            mode.fDDmode.Height == params->BackBufferHeight &&
+            mode.fBitDepth == 32)
         {
-            ISetCurrentMode(&(*modes)[i]);
+            ISetCurrentMode(&mode);
             break;
         }
     }
@@ -1936,7 +1892,9 @@ void plDXPipeline::IResetToDefaults(D3DPRESENT_PARAMETERS *params)
     fSettings.fNumAASamples = 0;
     for( int i = fDefaultPipeParams.AntiAliasingAmount; i >= 2; i-- )
     {
-        if( fCurrentMode->fFSAATypes.Find( (D3DMULTISAMPLE_TYPE)i ) != fCurrentMode->fFSAATypes.kMissingIndex )
+        auto iter = std::find(fCurrentMode->fFSAATypes.cbegin(), fCurrentMode->fFSAATypes.cend(),
+                              (D3DMULTISAMPLE_TYPE)i);
+        if (iter != fCurrentMode->fFSAATypes.cend())
         {
             fSettings.fNumAASamples = i;
             params->MultiSampleType = (D3DMULTISAMPLE_TYPE)i;
@@ -2023,7 +1981,7 @@ bool plDXPipeline::IResetDevice()
             /// Broadcast a message letting everyone know that we were recreated and that
             /// all device-specific stuff needs to be recreated
             plDeviceRecreateMsg* clean = new plDeviceRecreateMsg(this);
-            plgDispatch::MsgSend(clean);
+            clean->Send();
         }
         fDevWasLost = true;
         fDeviceLost = false;
@@ -2051,24 +2009,24 @@ void plDXPipeline::ResetDisplayDevice(int Width, int Height, int ColorDepth, boo
     }
 
     fVSync = VSync;
-    int i = 0;
-    hsTArray<D3DEnum_ModeInfo> *modes = &fCurrentDevice->fModes;
+    size_t iMode = 0;
+    std::vector<D3DEnum_ModeInfo>& modes = fCurrentDevice->fModes;
     // check for supported resolution if we're not going to windowed mode
     if(!Windowed)
     {
-        for( i = 0; i < modes->Count(); i++ )
+        for (iMode = 0; iMode < modes.size(); iMode++)
         {
-            D3DEnum_ModeInfo *mode = &(*modes)[i];
-            if(mode->fDDmode.Width == Width &&
-                mode->fDDmode.Height == Height &&
-                mode->fBitDepth == ColorDepth )
+            D3DEnum_ModeInfo& mode = modes[iMode];
+            if (mode.fDDmode.Width == Width &&
+                mode.fDDmode.Height == Height &&
+                mode.fBitDepth == ColorDepth)
             {
-                ISetCurrentMode(&(*modes)[i]);
+                ISetCurrentMode(&mode);
                 break;
             }
         }
     }
-    if(i != modes->Count())
+    if (iMode != modes.size())
     {
         // Set Resolution
         fOrigWidth = Width;
@@ -2089,9 +2047,11 @@ void plDXPipeline::ResetDisplayDevice(int Width, int Height, int ColorDepth, boo
     fSettings.fNumAASamples = 0;
     // Attempt to find the closest AA setting we can
     fSettings.fPresentParams.MultiSampleType = D3DMULTISAMPLE_NONE;
-    for( i = NumAASamples; i >= 2; i-- )
+    for (int i = NumAASamples; i >= 2; i--)
     {
-        if( fCurrentMode->fFSAATypes.Find( (D3DMULTISAMPLE_TYPE)i ) != fCurrentMode->fFSAATypes.kMissingIndex )
+        auto iter = std::find(fCurrentMode->fFSAATypes.cbegin(), fCurrentMode->fFSAATypes.cend(),
+                              (D3DMULTISAMPLE_TYPE)i);
+        if (iter != fCurrentMode->fFSAATypes.cend())
         {
             fSettings.fNumAASamples = i;
             fSettings.fPresentParams.MultiSampleType = (D3DMULTISAMPLE_TYPE)i;
@@ -2126,47 +2086,45 @@ void plDXPipeline::ResetDisplayDevice(int Width, int Height, int ColorDepth, boo
     return;
 }
 
-void plDXPipeline::GetSupportedColorDepths(hsTArray<int> &ColorDepths)
+void plDXPipeline::GetSupportedColorDepths(std::vector<int> &ColorDepths)
 {
-    int i, j;
     // iterate through display modes
-    for( i = 0; i < fCurrentDevice->fModes.Count(); i++ )
+    for (const D3DEnum_ModeInfo& modeInfo : fCurrentDevice->fModes)
     {
         // Check to see if color depth has been added already
-        for( j = 0; j < ColorDepths.Count(); j++ )
-        {
-            if( fCurrentDevice->fModes[i].fBitDepth == ColorDepths[i] )
-                break;
-        }
-        if(j == ColorDepths.Count())
+        auto iter = std::find_if(ColorDepths.cbegin(), ColorDepths.cend(),
+                                 [&modeInfo](int depth) {
+                                     return modeInfo.fBitDepth == depth;
+                                 });
+        if (iter == ColorDepths.cend())
         {
             //add it
-            ColorDepths.Push( fCurrentDevice->fModes[i].fBitDepth );
+            ColorDepths.emplace_back(modeInfo.fBitDepth);
         }
     }
 }
 
 void plDXPipeline::GetSupportedDisplayModes(std::vector<plDisplayMode> *res, int ColorDepth  )
 {
-    int i, j;
     std::vector<plDisplayMode> supported;
     // loop through display modes
-    for( i = 0; i < fCurrentDevice->fModes.Count(); i++ )
+    for (const D3DEnum_ModeInfo& modeInfo : fCurrentDevice->fModes)
     {
-        if( fCurrentDevice->fModes[i].fBitDepth == ColorDepth )
+        if (modeInfo.fBitDepth == ColorDepth)
         {
             // check for duplicate mode
+            size_t j;
             for( j = 0; j < supported.size(); j++ )
             {
-                if(supported[j].Width == fCurrentDevice->fModes[i].fDDmode.Width && supported[j].Height == fCurrentDevice->fModes[i].fDDmode.Height)
+                if (supported[j].Width == modeInfo.fDDmode.Width && supported[j].Height == modeInfo.fDDmode.Height)
                     break;
             }
             if(j == supported.size())
             {
                 // new mode, add it
                 plDisplayMode mode;
-                mode.Width = fCurrentDevice->fModes[i].fDDmode.Width;
-                mode.Height = fCurrentDevice->fModes[i].fDDmode.Height;
+                mode.Width = modeInfo.fDDmode.Width;
+                mode.Height = modeInfo.fDDmode.Height;
                 mode.ColorDepth = ColorDepth;
                 supported.push_back(mode);
             }
@@ -2180,24 +2138,22 @@ void plDXPipeline::GetSupportedDisplayModes(std::vector<plDisplayMode> *res, int
 int plDXPipeline::GetMaxAntiAlias(int Width, int Height, int ColorDepth)
 {
     int max = 0;
-    D3DEnum_ModeInfo *pCurrMode = nil;
-    hsTArray<D3DEnum_ModeInfo> *modes = &fCurrentDevice->fModes;
-    for(int i = 0; i < modes->Count(); i++ )
+    D3DEnum_ModeInfo *pCurrMode = nullptr;
+    for (D3DEnum_ModeInfo& mode : fCurrentDevice->fModes)
     {
-        D3DEnum_ModeInfo *mode = &(*modes)[i];
-        if( mode->fDDmode.Width == Width &&
-            mode->fDDmode.Height == Height &&
-            mode->fBitDepth == ColorDepth )
+        if (mode.fDDmode.Width == Width &&
+            mode.fDDmode.Height == Height &&
+            mode.fBitDepth == ColorDepth)
         {
-            pCurrMode = mode;
+            pCurrMode = &mode;
         }
     }
     if(pCurrMode)
     {
-        for(int i = 0; i < pCurrMode->fFSAATypes.Count(); i++)
+        for (D3DMULTISAMPLE_TYPE fsaaType : pCurrMode->fFSAATypes)
         {
-            if(pCurrMode->fFSAATypes[i] > max)
-                max = pCurrMode->fFSAATypes[i];
+            if (fsaaType > max)
+                max = fsaaType;
         }
     }
     return max;
@@ -2292,7 +2248,7 @@ void    plDXPipeline::Resize( uint32_t width, uint32_t height )
     /// Broadcast a message letting everyone know that we were recreated and that
     /// all device-specific stuff needs to be recreated
     plDeviceRecreateMsg* clean = new plDeviceRecreateMsg(this);
-    plgDispatch::MsgSend(clean);
+    clean->Send();
 }
 
 
@@ -2308,8 +2264,8 @@ plTextFont  *plDXPipeline::MakeTextFont( char *face, uint16_t size )
 
 
     font = new plDXTextFont( this, fD3DDevice );
-    if( font == nil )
-        return nil;
+    if (font == nullptr)
+        return nullptr;
     font->Create( face, size );
     font->Link( &fTextFontRefList );
 
@@ -2329,7 +2285,7 @@ plTextFont  *plDXPipeline::MakeTextFont( char *face, uint16_t size )
 // span indices within this drawable.
 // This is called once per render, and generally well before rendering begins (as part of the 
 // cull phase).
-bool  plDXPipeline::PreRender( plDrawable* drawable, hsTArray<int16_t>& visList, plVisMgr* visMgr )
+bool  plDXPipeline::PreRender(plDrawable* drawable, std::vector<int16_t>& visList, plVisMgr* visMgr)
 {
     plDrawableSpans *ds = plDrawableSpans::ConvertNoRef(drawable);
     if( !ds )
@@ -2342,22 +2298,20 @@ bool  plDXPipeline::PreRender( plDrawable* drawable, hsTArray<int16_t>& visList,
 #if MCN_BOUNDS_SPANS
     if( ( drawable != fBoundsSpans ) && IsDebugFlagSet(plPipeDbg::kFlagShowAllBounds) )
     {
-        const hsTArray<plSpan *>    &spans = ds->GetSpanArray();
-        int i;
-        for( i = 0; i < visList.GetCount(); i++ )
+        const std::vector<plSpan *>& spans = ds->GetSpanArray();
+        for (int16_t idx : visList)
         {
             /// Add a span to our boundsIce to show this
-            IAddBoundsSpan( fBoundsSpans, &spans[ visList[i] ]->fWorldBounds );
+            IAddBoundsSpan(fBoundsSpans, &spans[idx]->fWorldBounds);
         }
     }
     else if( ( drawable != fBoundsSpans ) && IsDebugFlagSet(plPipeDbg::kFlagShowNormals) )
     {
-        const hsTArray<plSpan *>    &spans = ds->GetSpanArray();
-        int i;
-        for( i = 0; i < visList.GetCount(); i++ )
+        const std::vector<plSpan *>& spans = ds->GetSpanArray();
+        for (int16_t idx : visList)
         {
             /// Add a span to our boundsIce to show this
-            plIcicle    *span = (plIcicle *)spans[ visList[ i ] ];
+            plIcicle    *span = (plIcicle *)spans[idx];
             if( span->fTypeMask & plSpan::kIcicleSpan )
             {
                 IAddNormalsSpan( fBoundsSpans, span, (plDXVertexBufferRef *)ds->GetVertexRef( span->fGroupIdx, span->fVBufferIdx ), 0xff0000ff );
@@ -2368,18 +2322,18 @@ bool  plDXPipeline::PreRender( plDrawable* drawable, hsTArray<int16_t>& visList,
 #if MF_BOUNDS_LEVEL_ICE
     if( (fSettings.fBoundsDrawLevel >= 0) && ( drawable != fBoundsSpans ) )
     {
-        hsTArray<int16_t> bndList;
+        std::vector<int16_t> bndList;
         drawable->GetSpaceTree()->HarvestLevel(fSettings.fBoundsDrawLevel, bndList);
-        int i;
-        for( i = 0; i < bndList.GetCount(); i++ )
+        for (int16_t bnd : bndList)
         {
-            IAddBoundsSpan( fBoundsSpans, &hsBounds3Ext(drawable->GetSpaceTree()->GetNode(bndList[i]).GetWorldBounds()), 0xff000000 | (0xf << ((fSettings.fBoundsDrawLevel % 6) << 2)) );
+            const hsBounds3Ext& nodeBounds = drawable->GetSpaceTree()->GetNode(bnd).GetWorldBounds();
+            IAddBoundsSpan( fBoundsSpans, &nodeBounds, 0xff000000 | (0xf << ((fSettings.fBoundsDrawLevel % 6) << 2)) );
         }
     }
 #endif // MF_BOUNDS_LEVEL_ICE
 
 
-    return visList.GetCount() > 0;
+    return !visList.empty();
 }
 
 struct plSortFace
@@ -2388,7 +2342,7 @@ struct plSortFace
     float    fDist;
 };
 
-struct plCompSortFace : public std::binary_function<plSortFace, plSortFace, bool>
+struct plCompSortFace
 {
     bool operator()( const plSortFace& lhs, const plSortFace& rhs) const
     {
@@ -2410,15 +2364,14 @@ struct plCompSortFace : public std::binary_function<plSortFace, plSortFace, bool
 // want sorted are a tiny subset of the avatar's faces. Moreover, and most importantly, for the avatar, we
 // want to preserve the order that spans are drawn, so, for example, the opaque base head will always be
 // drawn before the translucent hair fringe, which will always be drawn before the pink clear plastic baseball cap.
-bool plDXPipeline::IAvatarSort(plDrawableSpans* d, const hsTArray<int16_t>& visList)
+bool plDXPipeline::IAvatarSort(plDrawableSpans* d, const std::vector<int16_t>& visList)
 {
     plProfile_BeginTiming(AvatarSort);
-    int i;
-    for( i = 0; i < visList.GetCount(); i++ )
+    for (int16_t visIdx : visList)
     {
-        hsAssert(d->GetSpan(visList[i])->fTypeMask & plSpan::kIcicleSpan, "Unknown type for sorting faces");
+        hsAssert(d->GetSpan(visIdx)->fTypeMask & plSpan::kIcicleSpan, "Unknown type for sorting faces");
 
-        plIcicle* span = (plIcicle*)d->GetSpan(visList[i]);
+        plIcicle* span = (plIcicle*)d->GetSpan(visIdx);
 
         if( span->fProps & plSpan::kPartialSort )
         {
@@ -2435,13 +2388,10 @@ bool plDXPipeline::IAvatarSort(plDrawableSpans* d, const hsTArray<int16_t>& visL
 
             const int numTris = span->fILength/3;
             
-            static hsTArray<plSortFace> sortScratch;
-            sortScratch.SetCount(numTris);
+            static std::vector<plSortFace> sortScratch;
+            sortScratch.resize(numTris);
 
             plProfile_IncCount(AvatarFaces, numTris);
-
-            plSortFace* begin = sortScratch.AcquireArray();
-            plSortFace* end = begin + numTris;
 
             // 
             // Have three very similar sorts here, differing only on where the "position" of
@@ -2516,16 +2466,14 @@ bool plDXPipeline::IAvatarSort(plDrawableSpans* d, const hsTArray<int16_t>& visL
 #endif // SORTTYPES
             }
 
-            std::sort(begin, end, plCompSortFace());
+            std::sort(sortScratch.begin(), sortScratch.end(), plCompSortFace());
 
             indices = group->GetIndexBufferData(span->fIBufferIdx) + span->fIStartIdx;
-            plSortFace* iter = sortScratch.AcquireArray();;
-            for( j = 0; j < numTris; j++ )
+            for (const plSortFace& iter : sortScratch)
             {
-                *indices++ = iter->fIdx[0];
-                *indices++ = iter->fIdx[1];
-                *indices++ = iter->fIdx[2];
-                iter++;
+                *indices++ = iter.fIdx[0];
+                *indices++ = iter.fIdx[1];
+                *indices++ = iter.fIdx[2];
             }
 
             group->DirtyIndexBuffer(span->fIBufferIdx);
@@ -2546,7 +2494,7 @@ bool plDXPipeline::IAvatarSort(plDrawableSpans* d, const hsTArray<int16_t>& visL
 // This is called once per render, and before any rendering actually starts. See plPageTreeMgr.cpp.
 // So any preperation needs to last until rendering actually begins. So cached information, like
 // which lights a span will use, needs to be stored on the span.
-bool plDXPipeline::PrepForRender(plDrawable* d, hsTArray<int16_t>& visList, plVisMgr* visMgr)
+bool plDXPipeline::PrepForRender(plDrawable* d, std::vector<int16_t>& visList, plVisMgr* visMgr)
 {
     plProfile_BeginTiming(PrepDrawable);
 
@@ -2623,7 +2571,7 @@ void plDXPipeline::ISetupTransforms(plDrawableSpans* drawable, const plSpan& spa
 
     if( span.fNumMatrices == 2 )
     {
-        D3DXMATRIX  mat;
+        D3DMATRIX  mat;
         IMatrix44ToD3DMatrix(mat, drawable->GetPaletteMatrix(span.fBaseMatrix+1));
         fD3DDevice->SetTransform(D3DTS_WORLDMATRIX(1), &mat);
         fD3DDevice->SetRenderState(D3DRS_VERTEXBLEND, D3DVBF_1WEIGHTS);
@@ -2672,7 +2620,7 @@ bool plDXPipeline::IRefreshDynVertices(plGBufferGroup* group, plDXVertexBufferRe
     // Lock the buffer
     // If index is zero, lock with discard, else with overwrite.
     DWORD lockFlag = fNextDynVtx ? D3DLOCK_NOOVERWRITE : D3DLOCK_DISCARD;
-    uint8_t*  destPtr = nil;
+    uint8_t* destPtr = nullptr;
     if( FAILED( fDynVtxBuff->Lock( fNextDynVtx, 
                                 size, 
                                 (void **)&destPtr, 
@@ -2795,18 +2743,17 @@ bool plDXPipeline::ICheckDynBuffers(plDrawableSpans* drawable, plGBufferGroup* g
 // Renders an array of spans obtained from a plDrawableSpans object
 // The incoming visList gives the indices of the spans which are visible and should
 // be drawn now, and gives them in sorted order.
-void    plDXPipeline::RenderSpans( plDrawableSpans *drawable, const hsTArray<int16_t>& visList )
+void    plDXPipeline::RenderSpans(plDrawableSpans *drawable, const std::vector<int16_t>& visList)
 {
     plProfile_BeginTiming(RenderSpan);
 
     hsMatrix44      lastL2W;
-    uint32_t          i, j;
     bool            drewPatch = false;
     hsGMaterial     *material;
 
-    const hsTArray<plSpan *>&       spans = drawable->GetSpanArray();
+    const std::vector<plSpan *>& spans = drawable->GetSpanArray();
 
-    plProfile_IncCount(EmptyList, !visList.GetCount());
+    plProfile_IncCount(EmptyList, visList.empty() ? 1 : 0);
 
     /// Set this (*before* we do our TestVisibleWorld stuff...)
     lastL2W.Reset();
@@ -2817,7 +2764,7 @@ void    plDXPipeline::RenderSpans( plDrawableSpans *drawable, const hsTArray<int
 
 
     /// Loop through our spans, combining them when possible
-    for( i = 0; i < visList.GetCount(); )
+    for (size_t i = 0; i < visList.size(); )
     {
         material = GetOverrideMaterial() ? GetOverrideMaterial() : drawable->GetMaterial( spans[ visList[ i ] ]->fMaterialIdx );
 
@@ -2825,7 +2772,8 @@ void    plDXPipeline::RenderSpans( plDrawableSpans *drawable, const hsTArray<int
         plIcicle tempIce(*( (plIcicle *)spans[ visList[ i ] ] ));
 
         // Start at i + 1, look for as many spans as we can add to tempIce
-        for( j = i + 1; j < visList.GetCount(); j++ )
+        size_t j;
+        for (j = i + 1; j < visList.size(); j++)
         {
             if( GetOverrideMaterial() )
                 tempIce.fMaterialIdx = spans[visList[j]]->fMaterialIdx;
@@ -2844,7 +2792,7 @@ void    plDXPipeline::RenderSpans( plDrawableSpans *drawable, const hsTArray<int
             plProfile_EndTiming(MergeSpan);
         }
 
-        if( material != nil )
+        if (material != nullptr)
         {
             // What do we change?
 
@@ -2890,19 +2838,17 @@ void    plDXPipeline::RenderSpans( plDrawableSpans *drawable, const hsTArray<int
 void    plDXPipeline::IAddBoundsSpan( plDrawableSpans *ice, const hsBounds3Ext *bounds, uint32_t bndColor )
 {
 #if MCN_BOUNDS_SPANS
-    static hsTArray<plGeometrySpan *>   spanArray;
+    static std::vector<plGeometrySpan *> spanArray;
     static hsMatrix44       identMatrix;
     static hsPoint3     c[ 8 ], n[ 8 ];
     static int          nPts[ 8 ][ 3 ] = { { -1, -1, -1 }, { 1, -1, -1 }, { -1, 1, -1 }, { 1, 1, -1 },
                                         { -1, -1, 1 }, { 1, -1, 1 }, { -1, 1, 1 }, { 1, 1, 1 } };
     int             i;
-    plGeometrySpan  *newSpan;
 
 
-    if( spanArray.GetCount() == 0 )
+    if (spanArray.empty())
     {
-        spanArray.Reset();
-        spanArray.Append( new plGeometrySpan() );
+        spanArray = { new plGeometrySpan };
         identMatrix.Reset();
 
         // Make normals
@@ -2916,7 +2862,7 @@ void    plDXPipeline::IAddBoundsSpan( plDrawableSpans *ice, const hsBounds3Ext *
     else
         spanArray[ 0 ] = new plGeometrySpan();
 
-    newSpan = spanArray[ 0 ];
+    plGeometrySpan* newSpan = spanArray[0];
 
     newSpan->BeginCreate( fBoundsMat, identMatrix, 0 );
 
@@ -2953,7 +2899,7 @@ void    plDXPipeline::IAddBoundsSpan( plDrawableSpans *ice, const hsBounds3Ext *
 
     newSpan->EndCreate();
 
-    fBSpansToDelete.Append( ice->AppendDISpans( spanArray ) );
+    fBSpansToDelete.emplace_back(ice->AppendDISpans(spanArray));
 
 #endif
 }
@@ -2966,25 +2912,23 @@ void    plDXPipeline::IAddBoundsSpan( plDrawableSpans *ice, const hsBounds3Ext *
 void    plDXPipeline::IAddNormalsSpan( plDrawableSpans *ice, plIcicle *span, plDXVertexBufferRef *vRef, uint32_t bndColor )
 {
 #if MCN_BOUNDS_SPANS
-    static hsTArray<plGeometrySpan *>   spanArray;
+    static std::vector<plGeometrySpan *> spanArray;
     static hsMatrix44       identMatrix;
     static hsPoint3     point, off, blank;
     hsVector3   b2;
     uint16_t      v1, v2, v3;
     int             i;
-    plGeometrySpan  *newSpan;
 
 
-    if( spanArray.GetCount() == 0 )
+    if (spanArray.empty())
     {
-        spanArray.Reset();
-        spanArray.Append( new plGeometrySpan() );
+        spanArray = { new plGeometrySpan };
         identMatrix.Reset();
     }
     else
         spanArray[ 0 ] = new plGeometrySpan();
 
-    newSpan = spanArray[ 0 ];
+    plGeometrySpan* newSpan = spanArray[0];
 
     newSpan->BeginCreate( fBoundsMat, span->fLocalToWorld, 0 );
 
@@ -3001,7 +2945,7 @@ void    plDXPipeline::IAddNormalsSpan( plDrawableSpans *ice, plIcicle *span, plD
 
     newSpan->EndCreate();
 
-    fBSpansToDelete.Append( ice->AppendDISpans( spanArray ) );
+    fBSpansToDelete.emplace_back(ice->AppendDISpans(spanArray));
 
 #endif
 }
@@ -3025,7 +2969,7 @@ bool plDXPipeline::BeginRender()
         /// Broadcast a message letting everyone know that we were recreated and that
         /// all device-specific stuff needs to be recreated
 //      plDeviceRecreateMsg* clean = new plDeviceRecreateMsg(this);
-//      plgDispatch::MsgSend(clean);
+//      clean->Send();
 
         fDevWasLost = false;
     }
@@ -3087,15 +3031,14 @@ void    plDXPipeline::RenderScreenElements()
 
 
 #if MCN_BOUNDS_SPANS
-    if( fBoundsSpans && fBSpansToDelete.GetCount() > 0 )
+    if (fBoundsSpans && !fBSpansToDelete.empty())
     {
         Draw( fBoundsSpans );
         
-        int     i;
-        for( i = 0; i < fBSpansToDelete.GetCount(); i++ )
-            fBoundsSpans->RemoveDISpans( fBSpansToDelete[ i ] );
+        for (uint32_t bspan : fBSpansToDelete)
+            fBoundsSpans->RemoveDISpans(bspan);
 
-        fBSpansToDelete.Reset();
+        fBSpansToDelete.clear();
     }
 #endif
     if( fView.HasCullProxy())
@@ -3103,8 +3046,8 @@ void    plDXPipeline::RenderScreenElements()
 
 #ifdef MF_ENABLE_HACKOFF
     //WHITE
-    static plPlate* hackPlate = nil;
-    if( doHackPlate < hackOffscreens.GetCount() )
+    static plPlate* hackPlate = nullptr;
+    if (doHackPlate < hackOffscreens.size())
     {
         if( !hackPlate )
         {
@@ -3114,7 +3057,7 @@ void    plDXPipeline::RenderScreenElements()
     }
     if( hackPlate )
     {
-        if( doHackPlate < hackOffscreens.GetCount() )
+        if (doHackPlate < hackOffscreens.size())
         {
             hsGMaterial* hackMat = hackPlate->GetMaterial();
             plLayer* lay = plLayer::ConvertNoRef(hackMat->GetLayer(0));
@@ -3160,12 +3103,12 @@ void    plDXPipeline::RenderScreenElements()
         // Reset these since the drawing might have trashed them
         hsRefCnt_SafeUnRef( fSettings.fCurrVertexBuffRef );
         hsRefCnt_SafeUnRef( fSettings.fCurrIndexBuffRef );
-        fSettings.fCurrVertexBuffRef = nil;
-        fSettings.fCurrIndexBuffRef = nil;
+        fSettings.fCurrVertexBuffRef = nullptr;
+        fSettings.fCurrIndexBuffRef = nullptr;
 
         fView.fXformResetFlags = fView.kResetAll;       // Text destroys view transforms
         hsRefCnt_SafeUnRef( fLayerRef[ 0 ] );
-        fLayerRef[ 0 ] = nil;       // Text destroys stage 0 texture
+        fLayerRef[0] = nullptr;       // Text destroys stage 0 texture
     }
     plProfile_EndTiming(Reset);
 }
@@ -3177,7 +3120,7 @@ void    plDXPipeline::RenderScreenElements()
 bool plDXPipeline::EndRender()
 {
 #ifdef MF_ENABLE_HACKOFF
-    hackOffscreens.SetCount(0);
+    hackOffscreens.clear();
 #endif // MF_ENABLE_HACKOFF
 
     IBottomLayer();
@@ -3196,7 +3139,7 @@ bool plDXPipeline::EndRender()
     // Just letting go of things we're done with for the frame.
     fForceMatHandle = true;
     hsRefCnt_SafeUnRef( fCurrMaterial );
-    fCurrMaterial = nil;
+    fCurrMaterial = nullptr;
 
     int i;
     for( i = 0; i < 8; i++ )
@@ -3204,7 +3147,7 @@ bool plDXPipeline::EndRender()
         if( fLayerRef[i] )
         {
             hsRefCnt_SafeUnRef(fLayerRef[i]);
-            fLayerRef[i] = nil;
+            fLayerRef[i] = nullptr;
         }
     }
 
@@ -3286,9 +3229,9 @@ bool  plDXPipeline::IFlipSurface()
 {
     /// Works now for both fullscreen and windowed modes
     HRESULT hr = D3D_OK;
-    if( fCurrRenderTarget == nil )
+    if (fCurrRenderTarget == nullptr)
     {
-        hr = fD3DDevice->Present( nil, nil, fDevice.fHWnd, nil );
+        hr = fD3DDevice->Present(nullptr, nullptr, fDevice.fHWnd, nullptr);
     }
 
     if( FAILED(hr) )
@@ -3306,26 +3249,26 @@ bool  plDXPipeline::IFlipSurface()
 plMipmap* plDXPipeline::ExtractMipMap(plRenderTarget* targ)
 {
     if( plCubicRenderTarget::ConvertNoRef(targ) )
-        return nil;
+        return nullptr;
 
     if( targ->GetPixelSize() != 32 )
     {
         hsAssert(false, "Only RGBA8888 currently implemented");
-        return nil;
+        return nullptr;
     }
 
     plDXRenderTargetRef* ref = (plDXRenderTargetRef*)targ->GetDeviceRef();
     if( !ref )
-        return nil;
+        return nullptr;
 
     IDirect3DSurface9* surf = ref->GetColorSurface();
     if( !surf )
-        return nil;
+        return nullptr;
 
     D3DLOCKED_RECT rect;
-    if( FAILED( surf->LockRect(&rect, nil, D3DLOCK_READONLY) ) )
+    if (FAILED(surf->LockRect(&rect, nullptr, D3DLOCK_READONLY)))
     {
-        return nil;
+        return nullptr;
     }
 
     const int width = targ->GetWidth();
@@ -3383,7 +3326,7 @@ bool  plDXPipeline::CaptureScreen( plMipmap *dest, bool flipVertical, uint16_t d
 
     if( fSettings.fFullscreen )
     {
-        if (FAILED(fD3DDevice->CreateOffscreenPlainSurface(width, height, D3DFMT_A8R8G8B8, D3DPOOL_SCRATCH, &surface, NULL)))
+        if (FAILED(fD3DDevice->CreateOffscreenPlainSurface(width, height, D3DFMT_A8R8G8B8, D3DPOOL_SCRATCH, &surface, nullptr)))
             return false;
 
         rToLock.left = GetViewTransform().GetViewPortLeft();
@@ -3396,11 +3339,11 @@ bool  plDXPipeline::CaptureScreen( plMipmap *dest, bool flipVertical, uint16_t d
         bigWidth = GetSystemMetrics( SM_CXSCREEN );
         bigHeight = GetSystemMetrics( SM_CYSCREEN );
 
-        if (FAILED(fD3DDevice->CreateOffscreenPlainSurface(bigWidth, bigHeight, D3DFMT_A8R8G8B8, D3DPOOL_SCRATCH, &surface, NULL)))
+        if (FAILED(fD3DDevice->CreateOffscreenPlainSurface(bigWidth, bigHeight, D3DFMT_A8R8G8B8, D3DPOOL_SCRATCH, &surface, nullptr)))
             return false;
 
         GetClientRect( fDevice.fHWnd, &rToLock );
-        MapWindowPoints( fDevice.fHWnd, nil, (POINT *)&rToLock, 2 );
+        MapWindowPoints(fDevice.fHWnd, nullptr, (POINT *)&rToLock, 2);
 
         if( rToLock.right > bigWidth )
         {
@@ -3514,10 +3457,10 @@ bool  plDXPipeline::CaptureScreen( plMipmap *dest, bool flipVertical, uint16_t d
 // others are 24/32 bit, since the ATI's want to match color depth with depth depth.
 hsGDeviceRef    *plDXPipeline::MakeRenderTargetRef( plRenderTarget *owner )
 {
-    plDXRenderTargetRef *ref = nil;
-    IDirect3DSurface9       *surface = nil, *depthSurface = nil;
-    IDirect3DTexture9       *texture = nil;
-    IDirect3DCubeTexture9   *cTexture = nil;
+    plDXRenderTargetRef *ref = nullptr;
+    IDirect3DSurface9       *surface = nullptr, *depthSurface = nullptr;
+    IDirect3DTexture9       *texture = nullptr;
+    IDirect3DCubeTexture9   *cTexture = nullptr;
     D3DFORMAT               surfFormat = D3DFMT_UNKNOWN, depthFormat = D3DFMT_UNKNOWN;
     D3DRESOURCETYPE         resType;
     plCubicRenderTarget     *cubicRT;
@@ -3550,7 +3493,7 @@ hsGDeviceRef    *plDXPipeline::MakeRenderTargetRef( plRenderTarget *owner )
     if( !IPrepRenderTargetInfo( owner, surfFormat, depthFormat, resType ) )
     {
         hsAssert( false, "Error getting renderTarget info" );
-        return nil;
+        return nullptr;
     }
 
     /// Create the render target now
@@ -3567,9 +3510,9 @@ hsGDeviceRef    *plDXPipeline::MakeRenderTargetRef( plRenderTarget *owner )
             if( FAILED( fD3DDevice->CreateDepthStencilSurface(
                                 owner->GetWidth(), owner->GetHeight(), depthFormat, 
                                 D3DMULTISAMPLE_NONE, 0, FALSE,
-                                &depthSurface, NULL ) ) )
+                                &depthSurface, nullptr)))
             {
-                return nil;
+                return nullptr;
             }
 
             // See plDXRenderTargetRef::Release()
@@ -3585,9 +3528,9 @@ hsGDeviceRef    *plDXPipeline::MakeRenderTargetRef( plRenderTarget *owner )
                 if( FAILED( fD3DDevice->CreateDepthStencilSurface(
                                     kSharedWidth, kSharedHeight, depthFormat, 
                                     D3DMULTISAMPLE_NONE, 0, FALSE,
-                                    &fSharedDepthSurface[iZ], NULL ) ) )
+                                    &fSharedDepthSurface[iZ], nullptr)))
                 {
-                    return nil;
+                    return nullptr;
                 }
                 // See plDXRenderTargetRef::Release()
                 //D3DSURF_MEMNEW(fSharedDepthSurface[iZ]);
@@ -3611,7 +3554,7 @@ hsGDeviceRef    *plDXPipeline::MakeRenderTargetRef( plRenderTarget *owner )
             ref = new plDXRenderTargetRef( surfFormat, 0, owner );
 
         if( !FAILED( fD3DDevice->CreateCubeTexture( owner->GetWidth(), 1, D3DUSAGE_RENDERTARGET, surfFormat,
-                                                        D3DPOOL_DEFAULT, (IDirect3DCubeTexture9 **)&cTexture, NULL ) ) )
+                                                    D3DPOOL_DEFAULT, (IDirect3DCubeTexture9 **)&cTexture, nullptr)))
         {
             /// Create a CUBIC texture
             for( int i = 0; i < 6; i++ )
@@ -3619,7 +3562,7 @@ hsGDeviceRef    *plDXPipeline::MakeRenderTargetRef( plRenderTarget *owner )
                 plRenderTarget          *face = cubicRT->GetFace( i );
                 plDXRenderTargetRef *fRef;
 
-                if( face->GetDeviceRef() != nil )
+                if (face->GetDeviceRef() != nullptr)
                 {
                     fRef = (plDXRenderTargetRef *)face->GetDeviceRef();
                     fRef->Set( surfFormat, 0, face );
@@ -3643,7 +3586,7 @@ hsGDeviceRef    *plDXPipeline::MakeRenderTargetRef( plRenderTarget *owner )
         {
             ReleaseObject(depthSurface);
             hsRefCnt_SafeUnRef(ref);
-            ref = nil;
+            ref = nullptr;
         }
     }
     // Not a cubic, is it a texture render target? These are currently used
@@ -3657,7 +3600,7 @@ hsGDeviceRef    *plDXPipeline::MakeRenderTargetRef( plRenderTarget *owner )
             ref = new plDXRenderTargetRef( surfFormat, 0, owner );
 
         if( !FAILED( fD3DDevice->CreateTexture( owner->GetWidth(), owner->GetHeight(), 1, D3DUSAGE_RENDERTARGET, surfFormat,
-                                                        D3DPOOL_DEFAULT, (IDirect3DTexture9 **)&texture, NULL ) ) )
+                                                D3DPOOL_DEFAULT, (IDirect3DTexture9 **)&texture, nullptr)))
         {
             D3DSURF_MEMNEW(texture);
 
@@ -3667,7 +3610,7 @@ hsGDeviceRef    *plDXPipeline::MakeRenderTargetRef( plRenderTarget *owner )
         {
             ReleaseObject(depthSurface);
             hsRefCnt_SafeUnRef(ref);
-            ref = nil;
+            ref = nullptr;
         }
     }
     // Not a texture either, must be a plain offscreen.
@@ -3692,7 +3635,7 @@ hsGDeviceRef    *plDXPipeline::MakeRenderTargetRef( plRenderTarget *owner )
         // lockable.
         if( !FAILED( fD3DDevice->CreateRenderTarget( owner->GetWidth(), owner->GetHeight(), surfFormat,
                             D3DMULTISAMPLE_NONE, 0,
-                            TRUE, &surface, NULL ) ) )
+                            TRUE, &surface, nullptr)))
         {
             D3DSURF_MEMNEW(surface);
 
@@ -3702,7 +3645,7 @@ hsGDeviceRef    *plDXPipeline::MakeRenderTargetRef( plRenderTarget *owner )
         {
             ReleaseObject(depthSurface);
             hsRefCnt_SafeUnRef(ref);
-            ref = nil;
+            ref = nullptr;
         }
 
     }
@@ -3713,17 +3656,17 @@ hsGDeviceRef    *plDXPipeline::MakeRenderTargetRef( plRenderTarget *owner )
         owner->SetDeviceRef( ref );
         // Unref now, since for now ONLY the RT owns the ref, not us (not until we use it, at least)
         hsRefCnt_SafeUnRef( ref );
-        if( ref != nil && !ref->IsLinked() )
+        if (ref != nullptr && !ref->IsLinked())
             ref->Link( &fRenderTargetRefList );
     }
     else
     {
-        if( ref != nil && !ref->IsLinked() )
+        if (ref != nullptr && !ref->IsLinked())
             ref->Link( &fRenderTargetRefList );
     }
 
     // Mark as dirty.
-    if( ref != nil )
+    if (ref != nullptr)
     {
         ref->SetDirty( false );
     }
@@ -3740,11 +3683,11 @@ hsGDeviceRef    *plDXPipeline::MakeRenderTargetRef( plRenderTarget *owner )
 // about that.
 hsGDeviceRef* plDXPipeline::SharedRenderTargetRef(plRenderTarget* share, plRenderTarget *owner)
 {
-    plDXRenderTargetRef*    ref = nil;
-    IDirect3DSurface9*      surface = nil;
-    IDirect3DSurface9*      depthSurface = nil;
-    IDirect3DTexture9*      texture = nil;
-    IDirect3DCubeTexture9*  cTexture = nil;
+    plDXRenderTargetRef*    ref = nullptr;
+    IDirect3DSurface9*      surface = nullptr;
+    IDirect3DSurface9*      depthSurface = nullptr;
+    IDirect3DTexture9*      texture = nullptr;
+    IDirect3DCubeTexture9*  cTexture = nullptr;
     D3DFORMAT               surfFormat = D3DFMT_UNKNOWN, depthFormat = D3DFMT_UNKNOWN;
     D3DRESOURCETYPE         resType;
     int                     i;
@@ -3767,21 +3710,21 @@ hsGDeviceRef* plDXPipeline::SharedRenderTargetRef(plRenderTarget* share, plRende
 #endif // HS_DEBUGGING
 
     /// Check--is this renderTarget really a child of a cubicRenderTarget?
-    if( owner->GetParent() != nil )
+    if (owner->GetParent() != nullptr)
     {
         /// This'll create the deviceRefs for all of its children as well
         SharedRenderTargetRef(share->GetParent(), owner->GetParent());
         return owner->GetDeviceRef();
     }
 
-    if( owner->GetDeviceRef() != nil )
+    if (owner->GetDeviceRef() != nullptr)
         ref = (plDXRenderTargetRef *)owner->GetDeviceRef();
 
     // Look for a good format of matching color and depth size. 
     if( !IFindRenderTargetInfo(owner, surfFormat, resType) )
     {
         hsAssert( false, "Error getting renderTarget info" );
-        return nil;
+        return nullptr;
     }
 
 
@@ -3797,17 +3740,17 @@ hsGDeviceRef* plDXPipeline::SharedRenderTargetRef(plRenderTarget* share, plRende
     // Check for Cubic. This is unlikely, since this function is currently only
     // used for the shadow map pools.
     cubicRT = plCubicRenderTarget::ConvertNoRef( owner );
-    if( cubicRT != nil )
+    if (cubicRT != nullptr)
     {
         /// And create the ref (it'll know how to set all the flags)
-        if( ref != nil )
+        if (ref != nullptr)
             ref->Set( surfFormat, 0, owner );
         else
             ref = new plDXRenderTargetRef( surfFormat, 0, owner );
 
         hsAssert(!fManagedAlloced, "Alloc default with managed alloc'd");
         if( !FAILED( fD3DDevice->CreateCubeTexture( owner->GetWidth(), 1, D3DUSAGE_RENDERTARGET, surfFormat,
-                                                        D3DPOOL_DEFAULT, (IDirect3DCubeTexture9 **)&cTexture, NULL ) ) )
+                                                    D3DPOOL_DEFAULT, (IDirect3DCubeTexture9 **)&cTexture, nullptr)))
         {
 
             /// Create a CUBIC texture
@@ -3816,7 +3759,7 @@ hsGDeviceRef* plDXPipeline::SharedRenderTargetRef(plRenderTarget* share, plRende
                 plRenderTarget          *face = cubicRT->GetFace( i );
                 plDXRenderTargetRef *fRef;
 
-                if( face->GetDeviceRef() != nil )
+                if (face->GetDeviceRef() != nullptr)
                 {
                     fRef = (plDXRenderTargetRef *)face->GetDeviceRef();
                     fRef->Set( surfFormat, 0, face );
@@ -3840,21 +3783,21 @@ hsGDeviceRef* plDXPipeline::SharedRenderTargetRef(plRenderTarget* share, plRende
         {
             ReleaseObject(depthSurface);
             hsRefCnt_SafeUnRef(ref);
-            ref = nil;
+            ref = nullptr;
         }
     }
     // Is it a texture render target? Probably, since shadow maps are all we use this for.
     else if( owner->GetFlags() & plRenderTarget::kIsTexture )
     {
         /// Create a normal texture
-        if( ref != nil )
+        if (ref != nullptr)
             ref->Set( surfFormat, 0, owner );
         else
             ref = new plDXRenderTargetRef( surfFormat, 0, owner );
 
         hsAssert(!fManagedAlloced, "Alloc default with managed alloc'd");
         if( !FAILED( fD3DDevice->CreateTexture( owner->GetWidth(), owner->GetHeight(), 1, D3DUSAGE_RENDERTARGET, surfFormat, 
-                                                        D3DPOOL_DEFAULT, (IDirect3DTexture9 **)&texture, NULL ) ) )
+                                                D3DPOOL_DEFAULT, (IDirect3DTexture9 **)&texture, nullptr)))
         {
             D3DSURF_MEMNEW(texture);
 
@@ -3864,14 +3807,14 @@ hsGDeviceRef* plDXPipeline::SharedRenderTargetRef(plRenderTarget* share, plRende
         {
             ReleaseObject(depthSurface);
             hsRefCnt_SafeUnRef(ref);
-            ref = nil;
+            ref = nullptr;
         }
     }
     // Pretty sure this code path has never been followed.
     else if( owner->GetFlags() & plRenderTarget::kIsOffscreen )
     {
         /// Create a blank surface
-        if( ref != nil )
+        if (ref != nullptr)
             ref->Set( surfFormat, 0, owner );
         else
             ref = new plDXRenderTargetRef( surfFormat, 0, owner );
@@ -3881,7 +3824,7 @@ hsGDeviceRef* plDXPipeline::SharedRenderTargetRef(plRenderTarget* share, plRende
 
         if( !FAILED( fD3DDevice->CreateRenderTarget( width, height, surfFormat, 
                             D3DMULTISAMPLE_NONE, 0,
-                            FALSE, &surface, NULL ) ) )
+                            FALSE, &surface, nullptr)))
         {
             D3DSURF_MEMNEW(surface);
 
@@ -3891,7 +3834,7 @@ hsGDeviceRef* plDXPipeline::SharedRenderTargetRef(plRenderTarget* share, plRende
         {
             ReleaseObject(depthSurface);
             hsRefCnt_SafeUnRef(ref);
-            ref = nil;
+            ref = nullptr;
         }
 
     }
@@ -3901,16 +3844,16 @@ hsGDeviceRef* plDXPipeline::SharedRenderTargetRef(plRenderTarget* share, plRende
         owner->SetDeviceRef( ref );
         // Unref now, since for now ONLY the RT owns the ref, not us (not until we use it, at least)
         hsRefCnt_SafeUnRef( ref );
-        if( ref != nil && !ref->IsLinked() )
+        if (ref != nullptr && !ref->IsLinked())
             ref->Link( &fRenderTargetRefList );
     }
     else
     {
-        if( ref != nil && !ref->IsLinked() )
+        if (ref != nullptr && !ref->IsLinked())
             ref->Link( &fRenderTargetRefList );
     }
 
-    if( ref != nil )
+    if (ref != nullptr)
     {
         ref->SetDirty( false );
     }
@@ -4144,7 +4087,7 @@ void plDXPipeline::PushRenderRequest(plRenderRequest* req)
     {
         defFog.Set(req->GetYon() * (1.f - req->GetFogStart()), req->GetYon(), 1.f, &req->GetClearColor());
         fView.SetDefaultFog(defFog);
-        fCurrFog.fEnvPtr = nil;
+        fCurrFog.fEnvPtr = nullptr;
     }
 
     if( req->GetOverrideMat() )
@@ -4167,7 +4110,7 @@ void plDXPipeline::PushRenderRequest(plRenderRequest* req)
 void plDXPipeline::PopRenderRequest(plRenderRequest* req)
 {
     if( req->GetOverrideMat() )
-        PopOverrideMaterial(nil);
+        PopOverrideMaterial(nullptr);
 
     hsRefCnt_SafeUnRef(fView.fRenderRequest);
     fView = fViewStack.top();
@@ -4175,7 +4118,7 @@ void plDXPipeline::PopRenderRequest(plRenderRequest* req)
 
     // Force the next thing drawn to update the fog settings.
     fD3DDevice->SetRenderState(D3DRS_FOGENABLE, FALSE);
-    fCurrFog.fEnvPtr = nil;
+    fCurrFog.fEnvPtr = nullptr;
 
     PopRenderTarget();
     fView.fXformResetFlags = fView.kResetProjection | fView.kResetCamera;
@@ -4245,8 +4188,8 @@ void plDXPipeline::ClearRenderTarget( plDrawable* d )
         }
         else
         {
-            WEAK_ERROR_CHECK( fD3DDevice->Clear( 0, nil, D3DCLEAR_ZBUFFER, 0, fView.GetClearDepth(), 0L ) );
-// debug, clears to red         WEAK_ERROR_CHECK( fD3DDevice->Clear( 0, nil, D3DCLEAR_ZBUFFER | D3DCLEAR_TARGET, 0xffff0000, fView.fClearDepth, 0L ) );
+            WEAK_ERROR_CHECK(fD3DDevice->Clear(0, nullptr, D3DCLEAR_ZBUFFER, 0, fView.GetClearDepth(), 0L));
+// debug, clears to red         WEAK_ERROR_CHECK(fD3DDevice->Clear(0, nullptr, D3DCLEAR_ZBUFFER | D3DCLEAR_TARGET, 0xffff0000, fView.fClearDepth, 0L));
         }
     }
 
@@ -4276,7 +4219,7 @@ bool plDXPipeline::IGetClearViewPort(D3DRECT& r)
     r.y2 = GetViewTransform().GetViewPortBottom();
 
     bool useRect = false;
-    if( fCurrRenderTarget != nil )
+    if (fCurrRenderTarget != nullptr)
     {
         useRect = ( (r.x1 != 0) || (r.y1 != 0) || (r.x2 != fCurrRenderTarget->GetWidth()) || (r.y2 != fCurrRenderTarget->GetHeight()) );
 
@@ -4312,7 +4255,7 @@ void    plDXPipeline::ClearRenderTarget( const hsColorRGBA *col, const float* de
         }
         else
         {
-            WEAK_ERROR_CHECK( fD3DDevice->Clear( 0, nil, dwFlags, clearColor, clearDepth, 0L ) );
+            WEAK_ERROR_CHECK(fD3DDevice->Clear(0, nullptr, dwFlags, clearColor, clearDepth, 0L));
         }
     }
 }
@@ -4372,25 +4315,25 @@ void plDXPipeline::ISetFogParameters(const plSpan* span, const plLayerInterface*
 #ifndef PLASMA_EXTERNAL_RELEASE
     if (IsDebugFlagSet(plPipeDbg::kFlagNoFog))
     {
-        fCurrFog.fEnvPtr = nil;
+        fCurrFog.fEnvPtr = nullptr;
         fD3DDevice->SetRenderState(D3DRS_FOGENABLE, FALSE);
         return;
     }
 #endif // PLASMA_EXTERNAL_RELEASE
 
-    const plFogEnvironment* fog = (span ? (span->fFogEnvironment ? span->fFogEnvironment : &fView.GetDefaultFog()) : nil);
+    const plFogEnvironment* fog = (span ? (span->fFogEnvironment ? span->fFogEnvironment : &fView.GetDefaultFog()) : nullptr);
 
     uint8_t isVertex = 0;
     uint8_t isShader = false;
     if (baseLay)
     {
         if ((baseLay->GetShadeFlags() & hsGMatState::kShadeReallyNoFog) && !(fMatOverOff.fShadeFlags & hsGMatState::kShadeReallyNoFog))
-            fog = nil;
+            fog = nullptr;
         if (baseLay->GetVertexShader())
             isShader = true;
     }
     if (fMatOverOn.fShadeFlags & hsGMatState::kShadeReallyNoFog)
-        fog = nil;
+        fog = nullptr;
 
     bool forceLoad = false;
     D3DRENDERSTATETYPE  d3dFogType = D3DRS_FOGTABLEMODE;        // Use VERTEXMODE for vertex fog
@@ -4405,13 +4348,13 @@ void plDXPipeline::ISetFogParameters(const plSpan* span, const plLayerInterface*
     if ((fCurrFog.fEnvPtr == fog) && (fCurrFog.fIsVertex == isVertex) && (fCurrFog.fIsShader == isShader))
         return;
 
-    uint8_t type = ( fog == nil ) ? plFogEnvironment::kNoFog : fog->GetType();
+    uint8_t type = (fog == nullptr) ? plFogEnvironment::kNoFog : fog->GetType();
 
     if (type == plFogEnvironment::kNoFog)
     {
         /// No fog, just disable
         fD3DDevice->SetRenderState( D3DRS_FOGENABLE, FALSE );
-        fCurrFog.fEnvPtr = nil;
+        fCurrFog.fEnvPtr = nullptr;
         return;
     }
     else if( fCurrFog.fEnvPtr != fog )
@@ -4672,16 +4615,13 @@ void    plDXPipeline::StencilSetOps( uint8_t passOp, uint8_t failOp, uint8_t pas
 
 bool  plDXPipeline::StencilGetCaps( plStencilCaps *caps )
 {
-    hsAssert( caps != nil, "Invalid pointer to StencilGetCaps()" );
+    hsAssert(caps != nullptr, "Invalid pointer to StencilGetCaps()");
 
-    int     i;
-
-    
     /// Find supported depths
     caps->fSupportedDepths = 0;
-    for( i = 0; i < fCurrentMode->fDepthFormats.GetCount(); i++ )
+    for (D3DFORMAT fmt : fCurrentMode->fDepthFormats)
     {
-        switch( fCurrentMode->fDepthFormats[ i ] )
+        switch (fmt)
         {
             case D3DFMT_D15S1:      caps->fSupportedDepths |= plStencilCaps::kDepth1Bit; break;
             case D3DFMT_D24X4S4:    caps->fSupportedDepths |= plStencilCaps::kDepth4Bits; break;
@@ -4795,24 +4735,24 @@ void    plDXPipeline::IEnableLights( plSpan *span )
 void    plDXPipeline::ISelectLights( plSpan *span, int numLights, bool proj )
 {
     int                 i, startScale;
-    static hsBitVector  newFlags;   
-    static hsTArray<plLightInfo*>   onLights;
+    static hsBitVector  newFlags;
+    static std::vector<plLightInfo*> onLights;
     plDXLightRef        *ref;
-    float               threshhold, overHold = 0.3, scale;
+    float               threshhold, overHold = 0.3f, scale;
 
     /// Build new flags
 
     /// Step 1: Find the n strongest lights
     newFlags.Clear();
-    onLights.SetCount(0);
+    onLights.clear();
 
     if  (!IsDebugFlagSet(plPipeDbg::kFlagNoRuntimeLights) &&
         !(IsDebugFlagSet(plPipeDbg::kFlagNoApplyProjLights) && proj) &&
         !(IsDebugFlagSet(plPipeDbg::kFlagOnlyApplyProjLights) && !proj))
     {
-        hsTArray<plLightInfo*>& spanLights = span->GetLightList(proj);
+        std::vector<plLightInfo*>& spanLights = span->GetLightList(proj);
 
-        for( i = 0; i < spanLights.GetCount() && i < numLights; i++ )
+        for (i = 0; i < (int)spanLights.size() && i < numLights; i++)
         {
             ref = (plDXLightRef *)spanLights[i]->GetDeviceRef();
 
@@ -4825,7 +4765,7 @@ void    plDXPipeline::ISelectLights( plSpan *span, int numLights, bool proj )
             }
 
             newFlags.SetBit( ref->fD3DIndex );
-            onLights.Append(spanLights[i]);
+            onLights.emplace_back(spanLights[i]);
         }
         startScale = i;
 
@@ -4833,7 +4773,7 @@ void    plDXPipeline::ISelectLights( plSpan *span, int numLights, bool proj )
         /// fade them out to nothing as they get closer to the bottom. This way, they fade
         /// out of existence instead of pop out.
 
-        if( i < spanLights.GetCount() - 1 && i > 0 )
+        if (i < (int)spanLights.size() - 1 && i > 0)
         {
             threshhold = span->GetLightStrength( i, proj );
             i--;
@@ -4896,16 +4836,16 @@ void    plDXPipeline::ISelectLights( plSpan *span, int numLights, bool proj )
     }
     else
     {
-        fLights.fProjAll.SetCount(0);
-        fLights.fProjEach.SetCount(0);
-        for( i = 0; i < onLights.GetCount(); i++ )
+        fLights.fProjAll.clear();
+        fLights.fProjEach.clear();
+        for (plLightInfo* light : onLights)
         {
-            if( onLights[i]->OverAll() )
-                fLights.fProjAll.Append(onLights[i]);
+            if (light->OverAll())
+                fLights.fProjAll.emplace_back(light);
             else
-                fLights.fProjEach.Append(onLights[i]);
+                fLights.fProjEach.emplace_back(light);
         }
-        onLights.SetCount(0);
+        onLights.clear();
     }
 }
 
@@ -5082,7 +5022,7 @@ void    plDXPipeline::ICalcLighting( const plLayerInterface *currLayer, const pl
         return;
     }
     
-    props = ( currSpan != nil ) ? ( currSpan->fProps & plSpan::kLiteMask ) : plSpan::kLiteMaterial;
+    props = (currSpan != nullptr) ? (currSpan->fProps & plSpan::kLiteMask) : plSpan::kLiteMaterial;
     
     if( fLayerState[0].fMiscFlags & hsGMatState::kMiscBumpChans )
     {
@@ -5235,12 +5175,6 @@ void    plDXPipeline::ICalcLighting( const plLayerInterface *currLayer, const pl
 //// plDXLightSettings Functions /////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-plDXLightSettings::plDXLightSettings()
-:   fActiveList(nil),
-    fRefList(nil),
-    fPipeline(nil)
-{
-}
 
 //// Reset ////////////////////////////////////////////////////////////////////
 //  Sets member variables to initial states. 
@@ -5249,17 +5183,16 @@ void    plDXLightSettings::Reset( plDXPipeline *pipe )
 {
     Release();
 
-    fNextShadowLight = 0;
-
     fUsedFlags.Clear();
     fEnabledFlags.Clear();
     fHoldFlags.Clear();
-    fProjEach.Reset();
-    fProjAll.Reset();
+    fProjEach.clear();
+    fProjAll.clear();
+    fShadowLights.clear();
     fNextIndex = 1;     /// Light 0 is reserved
     fLastIndex = 1;
     fTime = 0;
-    fRefList = nil;
+    fRefList = nullptr;
     fPipeline = pipe;
 }
 
@@ -5270,8 +5203,8 @@ void    plDXLightSettings::Release()
 {
     plDXLightRef    *ref;
 
-    fProjEach.Reset();
-    fProjAll.Reset();
+    fProjEach.clear();
+    fProjAll.clear();
 
     while( fRefList )
     {
@@ -5280,15 +5213,12 @@ void    plDXLightSettings::Release()
         ref->Unlink();
     }
 
-    fShadowLights.SetCount(fShadowLights.GetNumAlloc());
-    int i;
-    for( i = 0; i < fShadowLights.GetCount(); i++ )
+    for (plDXLightRef*& shadowLight : fShadowLights.pool())
     {
-        hsRefCnt_SafeUnRef(fShadowLights[i]);
-        fShadowLights[i] = nil;
+        hsRefCnt_SafeUnRef(shadowLight);
+        shadowLight = nullptr;
     }
-    fShadowLights.SetCount(0);
-
+    fShadowLights.release_and_clear();
 }
 
 //// ReserveD3DIndex //////////////////////////////////////////////////////////
@@ -5381,9 +5311,9 @@ void    plDXPipeline::IBottomLayer()
 plLayerInterface* plDXPipeline::IPushOverBaseLayer(plLayerInterface* li)
 {
     if( !li )
-        return nil;
+        return nullptr;
 
-    fOverLayerStack.Push(li);
+    fOverLayerStack.push_back(li);
 
     if( !fOverBaseLayer )
         return fOverBaseLayer = li;
@@ -5400,11 +5330,12 @@ plLayerInterface* plDXPipeline::IPushOverBaseLayer(plLayerInterface* li)
 plLayerInterface* plDXPipeline::IPopOverBaseLayer(plLayerInterface* li)
 {
     if( !li )
-        return nil;
+        return nullptr;
 
     fForceMatHandle = true;
 
-    plLayerInterface* pop = fOverLayerStack.Pop();
+    plLayerInterface* pop = fOverLayerStack.back();
+    fOverLayerStack.pop_back();
     fOverBaseLayer = fOverBaseLayer->Detach(pop);
 
     return pop;
@@ -5417,9 +5348,9 @@ plLayerInterface* plDXPipeline::IPopOverBaseLayer(plLayerInterface* li)
 plLayerInterface* plDXPipeline::IPushOverAllLayer(plLayerInterface* li)
 {
     if( !li )
-        return nil;
+        return nullptr;
 
-    fOverLayerStack.Push(li);
+    fOverLayerStack.push_back(li);
 
     if( !fOverAllLayer )
     {
@@ -5441,11 +5372,12 @@ plLayerInterface* plDXPipeline::IPushOverAllLayer(plLayerInterface* li)
 plLayerInterface* plDXPipeline::IPopOverAllLayer(plLayerInterface* li)
 {
     if( !li )
-        return nil;
+        return nullptr;
 
     fForceMatHandle = true;
 
-    plLayerInterface* pop = fOverLayerStack.Pop();
+    plLayerInterface* pop = fOverLayerStack.back();
+    fOverLayerStack.pop_back();
     fOverAllLayer = fOverAllLayer->Detach(pop);
 
     return pop;
@@ -5465,7 +5397,7 @@ plLayerInterface* plDXPipeline::IPopOverAllLayer(plLayerInterface* li)
 // Calculate the number of active piggy backs.
 int plDXPipeline::ISetNumActivePiggyBacks()
 {
-    return fActivePiggyBacks = std::min(static_cast<int>(fMaxPiggyBacks), fPiggyBackStack.GetCount());
+    return fActivePiggyBacks = std::min(static_cast<size_t>(fMaxPiggyBacks), fPiggyBackStack.size());
 }
 
 // IPushProjPiggyBack //////////////////////////////////////////////////
@@ -5475,8 +5407,8 @@ void plDXPipeline::IPushProjPiggyBack(plLayerInterface* li)
     if( fView.fRenderState & plPipeline::kRenderNoPiggyBacks )
         return;
 
-    fPiggyBackStack.Push(li);
-    fActivePiggyBacks = fPiggyBackStack.GetCount() - fMatPiggyBacks;
+    fPiggyBackStack.push_back(li);
+    fActivePiggyBacks = fPiggyBackStack.size() - fMatPiggyBacks;
     fForceMatHandle = true;
 }
 
@@ -5487,7 +5419,7 @@ void plDXPipeline::IPopProjPiggyBacks()
     if( fView.fRenderState & plPipeline::kRenderNoPiggyBacks )
         return;
 
-    fPiggyBackStack.SetCount(fMatPiggyBacks);
+    fPiggyBackStack.resize(fMatPiggyBacks);
     ISetNumActivePiggyBacks();
     fForceMatHandle = true;
 }
@@ -5503,8 +5435,7 @@ void plDXPipeline::IPushPiggyBacks(hsGMaterial* mat)
     if( fView.fRenderState & plPipeline::kRenderNoPiggyBacks )
         return;
 
-    int i;
-    for( i = 0; i < mat->GetNumPiggyBacks(); i++ )
+    for (size_t i = 0; i < mat->GetNumPiggyBacks(); i++)
     {
         if( !mat->GetPiggyBack(i) )
             continue;
@@ -5513,7 +5444,7 @@ void plDXPipeline::IPushPiggyBacks(hsGMaterial* mat)
             && IsDebugFlagSet(plPipeDbg::kFlagNoLightmaps))
             continue;
 
-        fPiggyBackStack.Push(mat->GetPiggyBack(i));
+        fPiggyBackStack.push_back(mat->GetPiggyBack(i));
         fMatPiggyBacks++;
     }
     ISetNumActivePiggyBacks();
@@ -5528,7 +5459,7 @@ void plDXPipeline::IPopPiggyBacks()
     if( fView.fRenderState & plPipeline::kRenderNoPiggyBacks )
         return;
 
-    fPiggyBackStack.SetCount(fPiggyBackStack.GetCount() - fMatPiggyBacks);
+    fPiggyBackStack.resize(fPiggyBackStack.size() - fMatPiggyBacks);
     fMatPiggyBacks = 0;
 
     ISetNumActivePiggyBacks();
@@ -5573,7 +5504,7 @@ int32_t   plDXPipeline::IHandleMaterial( hsGMaterial *newMat, uint32_t layer, co
     if( !fForceMatHandle && (newMat == fCurrMaterial && layer == fCurrLayerIdx) )
     {
         // Before returning, check if we have to redo our lighting
-        uint32_t      lightType = ( currSpan != nil ) ? ( currSpan->fProps & plSpan::kLiteMask ) : plSpan::kLiteMaterial;
+        uint32_t lightType = (currSpan != nullptr) ? (currSpan->fProps & plSpan::kLiteMask) : plSpan::kLiteMaterial;
         if( lightType != fCurrLightingMethod )
             ICalcLighting( fCurrLay, currSpan );    
         
@@ -5600,7 +5531,7 @@ int32_t   plDXPipeline::IHandleMaterial( hsGMaterial *newMat, uint32_t layer, co
 
     /// Workaround for a D3D limitation--you're not allowed to render with a texture that you're
     /// rendering INTO. Hence we can't have self-reflecting cubicRenderTargets (damn)
-    if( fCurrBaseRenderTarget != nil && 
+    if (fCurrBaseRenderTarget != nullptr &&
         newMat->GetLayer( layer )->GetTexture() == plBitmap::ConvertNoRef( fCurrBaseRenderTarget ) )
     {
         return -1;
@@ -5765,11 +5696,10 @@ int32_t   plDXPipeline::IHandleMaterial( hsGMaterial *newMat, uint32_t layer, co
             numActivePiggyBacks = fMaxLayersAtOnce - fCurrNumLayers;
         if( numActivePiggyBacks )
         {
-            int i;
-            for( i = 0; i < numActivePiggyBacks; i++ )
+            for (int i = 0; i < numActivePiggyBacks; i++)
             {
                 // Note that we take piggybacks off the end of fPiggyBackStack.
-                plLayerInterface* layPtr = IPushOverAllLayer( fPiggyBackStack[fPiggyBackStack.GetCount()-1-i] );
+                plLayerInterface* layPtr = IPushOverAllLayer(fPiggyBackStack[fPiggyBackStack.size() - 1 - i]);
                 if( !layPtr )
                     return -1;
                 ICompositeLayerState(fCurrNumLayers+i, layPtr);
@@ -5892,7 +5822,7 @@ void    plDXPipeline::IHandleMiscMode()
 // Issue D3D calls to enable rendering the given layer at the given texture stage.
 void    plDXPipeline::IHandleTextureStage( uint32_t stage, plLayerInterface *layer )
 {
-    hsGDeviceRef        *ref = nil;
+    hsGDeviceRef        *ref = nullptr;
     plBitmap            *texture;
 
     // Blend mode
@@ -5908,31 +5838,31 @@ void    plDXPipeline::IHandleTextureStage( uint32_t stage, plLayerInterface *lay
     IHandleStageTransform( stage, layer );
 
     // Create the D3D texture (if necessary) and set it to the device.
-    if( ( texture = layer->GetTexture() ) != nil )
+    if (texture = layer->GetTexture(); texture != nullptr)
     {
         ref = texture->GetDeviceRef();
-        if( ref == nil || ref->IsDirty() )
+        if (ref == nullptr || ref->IsDirty())
         {
             // Normal textures
             plMipmap            *mip;
             plCubicEnvironmap   *cubic;
 
-            if( ( mip = plMipmap::ConvertNoRef( texture ) ) != nil )
+            if (mip = plMipmap::ConvertNoRef(texture); mip != nullptr)
                 ref = MakeTextureRef( layer, mip );
 
             // Cubic environment maps
-            else if( ( cubic = plCubicEnvironmap::ConvertNoRef( texture ) ) != nil )
+            else if (cubic = plCubicEnvironmap::ConvertNoRef(texture); cubic != nullptr)
                 ref = IMakeCubicTextureRef( layer, cubic );
         }
     }
 
-    if( ref != nil )
+    if (ref != nullptr)
         IUseTextureRef(stage, ref, layer);
     else
     {
-        fD3DDevice->SetTexture( stage, NULL );
+        fD3DDevice->SetTexture(stage, nullptr);
         hsRefCnt_SafeUnRef( fLayerRef[ stage ] );
-        fLayerRef[ stage ] = nil;
+        fLayerRef[stage] = nullptr;
     }
 }
 
@@ -6661,10 +6591,9 @@ void plDXPipeline::ISetBumpMatrices(const plLayerInterface* layer, const plSpan*
 
     hsPoint3 spanPos = span->fWorldBounds.GetCenter();
     hsVector3 liDir(0,0,0);
-    int i;
-    const hsTArray<plLightInfo*>& spanLights = span->GetLightList(false);
+    const std::vector<plLightInfo*>& spanLights = span->GetLightList(false);
     float maxStrength = 0;
-    for( i = 0; i < spanLights.GetCount(); i++ )
+    for (size_t i = 0; i < spanLights.size(); i++)
     {
         float liWgt = span->GetLightStrength(i, false);
         // A light strength of 2.f means it's from a light group, and we haven't actually calculated
@@ -6684,7 +6613,8 @@ void plDXPipeline::ISetBumpMatrices(const plLayerInterface* layer, const plSpan*
     float uvwScale = kUVWScale;
     if( fLayerState[0].fBlendFlags & hsGMatState::kBlendAdd )
     {
-        hsVector3 cam2span(&GetViewPositionWorld(), &spanPos);
+        hsPoint3 viewPos = GetViewPositionWorld();
+        hsVector3 cam2span(&viewPos, &spanPos);
         hsFastMath::NormalizeAppr(cam2span);
         liDir += cam2span;
         hsFastMath::NormalizeAppr(liDir);
@@ -6820,7 +6750,7 @@ void    plDXPipeline::IHandleStageTransform( int stage, plLayerInterface *layer 
         || !(layer->GetTransform().fFlags & hsMatrix44::kIsIdent) 
         || (fLayerState[stage].fMiscFlags & (hsGMatState::kMiscUseReflectionXform|hsGMatState::kMiscUseRefractionXform|hsGMatState::kMiscProjection|hsGMatState::kMiscBumpChans)) )
     {
-        D3DXMATRIX tXfm;
+        D3DMATRIX tXfm;
 
         if( fLayerState[stage].fMiscFlags & (hsGMatState::kMiscUseReflectionXform | hsGMatState::kMiscUseRefractionXform) )
         {
@@ -7145,8 +7075,8 @@ void plDXPipeline::IInvalidateState()
     for( i = 0; i < 8; i++ )
     {
         hsRefCnt_SafeUnRef( fLayerRef[ i ] );
-        fLayerRef[ i ] = nil;
-        fD3DDevice->SetTexture( i, nil );   
+        fLayerRef[i] = nullptr;
+        fD3DDevice->SetTexture(i, nullptr);
     }
 
     fLayerState[ 0 ].fZFlags = 0;
@@ -7288,18 +7218,18 @@ void    plDXPipeline::IReloadTexture( plDXTextureRef *ref )
 {
     if( ref->GetFlags() & plDXTextureRef::kCubicMap )
     {
-        if( ref->fD3DTexture == nil )
+        if (ref->fD3DTexture == nullptr)
             ref->fD3DTexture = IMakeD3DCubeTexture( ref, ref->fFormatType );
 
-        if( ref->fD3DTexture != nil )
+        if (ref->fD3DTexture != nullptr)
             IFillD3DCubeTexture( (plDXCubeTextureRef *)ref );
     }
     else
     {
-        if( ref->fD3DTexture == nil )
+        if (ref->fD3DTexture == nullptr)
             ref->fD3DTexture = IMakeD3DTexture( ref, ref->fFormatType );
 
-        if( ref->fD3DTexture != nil )
+        if (ref->fD3DTexture != nullptr)
             IFillD3DTexture( ref );
     }
 }
@@ -7325,14 +7255,14 @@ IDirect3DTexture9   *plDXPipeline::IMakeD3DTexture( plDXTextureRef *ref, D3DFORM
                                           IGetD3DTextureUsage(ref),
                                           formatType,
                                           poolType,
-                                          &texPtr, NULL ) ) )
+                                          &texPtr, nullptr)))
     {
         IGetD3DError();
         plStatusLog::AddLineSF( "pipeline.log", 0xffff0000, "Unable to create texture ({}) Owner: {} "
                                             "Size: {} x {} NumLvls: {} Flags: {x}",
                                             fSettings.fErrorStr, ref->fOwner ? ref->fOwner->GetKey() ? ref->fOwner->GetKey()->GetUoid().GetObjectName() : ST_LITERAL("") : ST_LITERAL(""),
                                             ref->fMaxWidth, ref->fMaxHeight, ref->fMMLvs, ref->GetFlags() );
-        return nil;
+        return nullptr;
     }
     PROFILE_POOL_MEM(poolType, ref->fDataSize, true, (ref->fOwner ? ref->fOwner->GetKey() ? ref->fOwner->GetKey()->GetUoid().GetObjectName().c_str() : "(UnknownTexture)" : "(UnknownTexture)"));
     fTexManaged += ref->fDataSize;
@@ -7349,7 +7279,7 @@ void    plDXPipeline::IFillD3DTexture( plDXTextureRef *ref )
     uint8_t       *pTexDat = (uint8_t *)ref->fData;
 
 
-    if( pTexDat == nil )
+    if (pTexDat == nullptr)
     {
         plStatusLog::AddLineSF( "pipeline.log", 0xffff0000, "Unable to fill texture ref (data is nil) Owner: {}",
                                             ref->fOwner ? ref->fOwner->GetKey() ? ref->fOwner->GetKey()->GetUoid().GetObjectName() : ST_LITERAL("") : ST_LITERAL("") );
@@ -7362,7 +7292,8 @@ void    plDXPipeline::IFillD3DTexture( plDXTextureRef *ref )
     {
         D3DLOCKED_RECT      lockInfo;
 
-        if( FAILED( fSettings.fDXError = lpDst->LockRect( i, &lockInfo, nil, 0 ) ) )
+        fSettings.fDXError = lpDst->LockRect(i, &lockInfo, nullptr, 0);
+        if (FAILED(fSettings.fDXError))
         {
             IGetD3DError();
             plStatusLog::AddLineSF( "pipeline.log", 0xffff0000, "Unable to lock texture level {} for filling ({}) Owner: {} "
@@ -7384,9 +7315,9 @@ void    plDXPipeline::IFillD3DTexture( plDXTextureRef *ref )
 IDirect3DCubeTexture9   *plDXPipeline::IMakeD3DCubeTexture( plDXTextureRef *ref, D3DFORMAT formatType )
 {
     D3DPOOL                 poolType = D3DPOOL_MANAGED;
-    IDirect3DCubeTexture9   *texPtr = nil;
+    IDirect3DCubeTexture9   *texPtr = nullptr;
     fManagedAlloced = true;
-    WEAK_ERROR_CHECK(fD3DDevice->CreateCubeTexture( ref->fMaxWidth, ref->fMMLvs, 0, formatType, poolType, &texPtr, NULL));
+    WEAK_ERROR_CHECK(fD3DDevice->CreateCubeTexture( ref->fMaxWidth, ref->fMMLvs, 0, formatType, poolType, &texPtr, nullptr));
     PROFILE_POOL_MEM(poolType, ref->fDataSize, true, (ref->fOwner ? ref->fOwner->GetKey() ? ref->fOwner->GetKey()->GetUoid().GetObjectName().c_str() : "(UnknownTexture)" : "(UnknownTexture)"));
     fTexManaged += ref->fDataSize;
     return texPtr;
@@ -7413,7 +7344,7 @@ void    plDXPipeline::IFillD3DCubeTexture( plDXCubeTextureRef *ref )
         {
             D3DLOCKED_RECT      lockInfo;
 
-            lpDst->LockRect( faces[ f ], i, &lockInfo, nil, 0 );
+            lpDst->LockRect(faces[f], i, &lockInfo, nullptr, 0);
             memcpy( (char *)lockInfo.pBits, pTexDat, ref->fLevelSizes[ i ] );
             pTexDat += ref->fLevelSizes[ i ];
             lpDst->UnlockRect( faces[ f ], i );
@@ -7426,7 +7357,7 @@ void    plDXPipeline::IFillD3DCubeTexture( plDXCubeTextureRef *ref )
 // May have to decompress the texture if the hardware doesn't support compressed textures (unlikely).
 hsGDeviceRef    *plDXPipeline::MakeTextureRef( plLayerInterface* layer, plMipmap *b )
 {
-    plMipmap    *original = b, *colorized = nil;
+    plMipmap    *original = b, *colorized = nullptr;
 
     // If the hardware doesn't support Luminance maps, we'll just treat as ARGB.
     if( !( fSettings.fD3DCaps & kCapsLuminanceTextures ) )
@@ -7437,7 +7368,7 @@ hsGDeviceRef    *plDXPipeline::MakeTextureRef( plLayerInterface* layer, plMipmap
     if (IsDebugFlagSet(plPipeDbg::kFlagColorizeMipmaps))
     {
         b = original->Clone();
-        if( b != nil )
+        if (b != nullptr)
             b->Colorize();
         else
             b = original;
@@ -7451,7 +7382,7 @@ hsGDeviceRef    *plDXPipeline::MakeTextureRef( plLayerInterface* layer, plMipmap
     D3DFORMAT     formatType = D3DFMT_UNKNOWN;    // D3D Format
     uint32_t      formatSize = 0;
     uint32_t      totalSize = 0;
-    uint32_t*     levelSizes = nil;
+    uint32_t*     levelSizes = nullptr;
     uint32_t      numPix = 0;
     uint32_t      externData = false;
     void          *tData;
@@ -7502,7 +7433,7 @@ hsGDeviceRef    *plDXPipeline::MakeTextureRef( plLayerInterface* layer, plMipmap
     /// Copy the data into the ref
     IReloadTexture( ref );
 
-    ref->fData = nil;
+    ref->fData = nullptr;
     ref->SetDirty( false );
 
     // Set any implied flags.
@@ -7545,13 +7476,13 @@ hsGDeviceRef    *plDXPipeline::IMakeCubicTextureRef( plLayerInterface* layer, pl
     uint32_t            formatSize = 0;
     uint32_t            numLevels = 1;
     uint32_t            totalSize = 0;
-    uint32_t            *levelSizes = nil;
+    uint32_t            *levelSizes = nullptr;
     uint32_t            numPixels = 0;
     uint32_t            externData;
     void                *textureData[ 6 ];
 
-    if( cubic == nil || !( fSettings.fD3DCaps & kCapsCubicTextures ) )
-        return nil;
+    if (cubic == nullptr || !(fSettings.fD3DCaps & kCapsCubicTextures))
+        return nullptr;
 
 
     bool noMip = !(fSettings.fD3DCaps & kCapsMipmap) || !(fSettings.fD3DCaps & kCapsCubicMipmap);
@@ -7670,7 +7601,7 @@ bool  plDXPipeline::IProcessMipmapLevels( plMipmap *mipmap, uint32_t &numLevels,
         if( noMip )
         {
             numLevels = 1;
-            levelSizes = nil;
+            levelSizes = nullptr;
             totalSize = mipmap->GetLevelSize(0);
         }
         else
@@ -7684,10 +7615,9 @@ bool  plDXPipeline::IProcessMipmapLevels( plMipmap *mipmap, uint32_t &numLevels,
             if( mipmap->IsCompressed() || !( fSettings.fD3DCaps & kCapsDoesSmallTextures ) )
             {
                 mipmap->SetCurrLevel( maxLevel );
-                while( ( mipmap->GetCurrWidth() | mipmap->GetCurrHeight() ) & sizeMask )
+                while (maxLevel && (mipmap->GetCurrWidth() | mipmap->GetCurrHeight()) & sizeMask)
                 {
                     maxLevel--;
-                    hsAssert( maxLevel >= 0, "How was this ever compressed?" );
                     mipmap->SetCurrLevel( maxLevel );
                 }
             }
@@ -7733,7 +7663,7 @@ bool  plDXPipeline::IProcessMipmapLevels( plMipmap *mipmap, uint32_t &numLevels,
         {
             numPixels = mipmap->GetWidth() * mipmap->GetHeight();
             numLevels = 1;
-            levelSizes = nil;
+            levelSizes = nullptr;
         }
         totalSize = numPixels * formatSize;
 
@@ -7752,25 +7682,25 @@ bool  plDXPipeline::IProcessMipmapLevels( plMipmap *mipmap, uint32_t &numLevels,
 // Return scratch space at least of at least size bytes, to reformat a mipmap into.
 void    *plDXPipeline::IGetPixelScratch( uint32_t size )
 {
-    static char     *sPtr = nil;
+    static char     *sPtr = nullptr;
     static uint32_t   sSize = 0;
 
     if( size > sSize )
     {
-        if( sPtr != nil )
+        if (sPtr != nullptr)
             delete [] sPtr;
         
         if( size > 0 )
             sPtr = new char[ sSize = size ];
         else
-            sPtr = nil;
+            sPtr = nullptr;
     }
     else if( size == 0 )
     {
-        if( sPtr != nil )
+        if (sPtr != nullptr)
             delete [] sPtr;
 
-        sPtr = nil;
+        sPtr = nullptr;
         sSize = 0;
     }
 
@@ -8068,33 +7998,30 @@ bool  plDXPipeline::IIsViewLeftHanded()
 
 //// IMatrix44ToD3DMatrix /////////////////////////////////////////////////////
 // Make a D3DXMATRIX matching the input plasma matrix. Mostly a transpose.
-D3DXMATRIX&     plDXPipeline::IMatrix44ToD3DMatrix( D3DXMATRIX& dst, const hsMatrix44& src )
+D3DMATRIX&     plDXPipeline::IMatrix44ToD3DMatrix( D3DMATRIX& dst, const hsMatrix44& src )
 {
-    if( src.fFlags & hsMatrix44::kIsIdent )
-    {
+    if (src.fFlags & hsMatrix44::kIsIdent) {
         dst = d3dIdentityMatrix;
-    }
-    else
-    {
-        dst(0,0) = src.fMap[0][0];
-        dst(1,0) = src.fMap[0][1];
-        dst(2,0) = src.fMap[0][2];
-        dst(3,0) = src.fMap[0][3];
+    } else {
+        dst.m[0][0] = src.fMap[0][0];
+        dst.m[1][0] = src.fMap[0][1];
+        dst.m[2][0] = src.fMap[0][2];
+        dst.m[3][0] = src.fMap[0][3];
 
-        dst(0,1) = src.fMap[1][0];
-        dst(1,1) = src.fMap[1][1];
-        dst(2,1) = src.fMap[1][2];
-        dst(3,1) = src.fMap[1][3];
+        dst.m[0][1] = src.fMap[1][0];
+        dst.m[1][1] = src.fMap[1][1];
+        dst.m[2][1] = src.fMap[1][2];
+        dst.m[3][1] = src.fMap[1][3];
 
-        dst(0,2) = src.fMap[2][0];
-        dst(1,2) = src.fMap[2][1];
-        dst(2,2) = src.fMap[2][2];
-        dst(3,2) = src.fMap[2][3];
+        dst.m[0][2] = src.fMap[2][0];
+        dst.m[1][2] = src.fMap[2][1];
+        dst.m[2][2] = src.fMap[2][2];
+        dst.m[3][2] = src.fMap[2][3];
 
-        dst(0,3) = src.fMap[3][0];
-        dst(1,3) = src.fMap[3][1];
-        dst(2,3) = src.fMap[3][2];
-        dst(3,3) = src.fMap[3][3];
+        dst.m[0][3] = src.fMap[3][0];
+        dst.m[1][3] = src.fMap[3][1];
+        dst.m[2][3] = src.fMap[3][2];
+        dst.m[3][3] = src.fMap[3][3];
     }
 
     return dst;
@@ -8123,8 +8050,8 @@ void    plDXPipeline::ISetCullMode(bool flip)
 // Initialize input vertex buffer ref according to source.
 void plDXPipeline::ISetupVertexBufferRef(plGBufferGroup* owner, uint32_t idx, plDXVertexBufferRef* vRef)
 {
-    // Initialize to nil, in case something goes wrong.
-    vRef->fD3DBuffer = nil;
+    // Initialize to nullptr, in case something goes wrong.
+    vRef->fD3DBuffer = nullptr;
 
     uint8_t format = owner->GetVertexFormat();
 
@@ -8151,7 +8078,7 @@ void plDXPipeline::ISetupVertexBufferRef(plGBufferGroup* owner, uint32_t idx, pl
 
     vRef->SetDirty(true);
     vRef->SetRebuiltSinceUsed(true);
-    vRef->fData = nil;
+    vRef->fData = nullptr;
 
     vRef->SetVolatile(vRef->Volatile() || owner->AreVertsVolatile());
 
@@ -8185,10 +8112,10 @@ void plDXPipeline::ICheckStaticVertexBuffer(plDXVertexBufferRef* vRef, plGBuffer
                                                     usage, 
                                                     fvfFormat,
                                                     poolType, 
-                                                    &vRef->fD3DBuffer, NULL) ) )
+                                                    &vRef->fD3DBuffer, nullptr)))
         {
             hsAssert( false, "CreateVertexBuffer() call failed!" );
-            vRef->fD3DBuffer = nil;
+            vRef->fD3DBuffer = nullptr;
             return;
         }
         PROFILE_POOL_MEM(poolType, numVerts * vertSize, true, "VtxBuff");
@@ -8377,7 +8304,7 @@ bool plDXPipeline::OpenAccess(plAccessSpan& dst, plDrawableSpans* drawable, cons
         }
         else
         {
-            acc.WgtIndexStream(nil, 0, offset);
+            acc.WgtIndexStream(nullptr, 0, offset);
         }
     }
     else
@@ -8508,7 +8435,7 @@ void plDXPipeline::IFillIndexBufferRef(plDXIndexBufferRef* iRef, plGBufferGroup*
         return;
 
     DWORD lockFlags = iRef->Volatile() ? D3DLOCK_DISCARD : 0;
-    uint16_t* destPtr = nil;
+    uint16_t* destPtr = nullptr;
     if( FAILED( iRef->fD3DBuffer->Lock(startIdx * sizeof(uint16_t), size, (void **)&destPtr, lockFlags) ) )
     {
         hsAssert( false, "Cannot lock index buffer for writing" );
@@ -8536,10 +8463,10 @@ void plDXPipeline::ICheckIndexBuffer(plDXIndexBufferRef* iRef)
                                                     usage, 
                                                     D3DFMT_INDEX16, 
                                                     poolType, 
-                                                    &iRef->fD3DBuffer, NULL) ) )
+                                                    &iRef->fD3DBuffer, nullptr)))
         {
             hsAssert( false, "CreateIndexBuffer() call failed!" );
-            iRef->fD3DBuffer = nil;
+            iRef->fD3DBuffer = nullptr;
             return;
         }
         PROFILE_POOL_MEM(poolType, sizeof(uint16_t) * iRef->fCount, true, "IndexBuff");
@@ -8576,7 +8503,7 @@ void plDXPipeline::ISetupIndexBufferRef(plGBufferGroup* owner, uint32_t idx, plD
 // In hardware, we want the opposite, to break it into managable chunks, manageable meaning
 // few enough matrices to fit into hardware registers. So for hardware version, we set up
 // our palette, draw a span or few, setup our matrix palette with new matrices, draw, repeat.
-bool      plDXPipeline::ISoftwareVertexBlend( plDrawableSpans* drawable, const hsTArray<int16_t>& visList )
+bool      plDXPipeline::ISoftwareVertexBlend(plDrawableSpans* drawable, const std::vector<int16_t>& visList)
 {
     if (IsDebugFlagSet(plPipeDbg::kFlagNoSkinning))
         return true;
@@ -8598,24 +8525,23 @@ bool      plDXPipeline::ISoftwareVertexBlend( plDrawableSpans* drawable, const h
     // lock the data buffer
 
     // First, figure out which buffers we need to blend.
-    const int kMaxBufferGroups = 20;
-    const int kMaxVertexBuffers = 20;
+    constexpr size_t kMaxBufferGroups = 20;
+    constexpr size_t kMaxVertexBuffers = 20;
     static char blendBuffers[kMaxBufferGroups][kMaxVertexBuffers];
     memset(blendBuffers, 0, kMaxBufferGroups * kMaxVertexBuffers * sizeof(**blendBuffers));
 
     hsAssert(kMaxBufferGroups >= drawable->GetNumBufferGroups(), "Bigger than we counted on num groups skin.");
 
-    const hsTArray<plSpan *>& spans = drawable->GetSpanArray();
-    int i;
-    for( i = 0; i < visList.GetCount(); i++ )
+    const std::vector<plSpan *>& spans = drawable->GetSpanArray();
+    for (int16_t idx : visList)
     {
-        if( blendBits.IsBitSet( visList[ i ] ) )
+        if (blendBits.IsBitSet(idx))
         {
-            const plVertexSpan &vSpan = *(plVertexSpan *)spans[visList[i]];
+            const plVertexSpan &vSpan = *(plVertexSpan *)spans[idx];
             hsAssert(kMaxVertexBuffers > vSpan.fVBufferIdx, "Bigger than we counted on num buffers skin.");
 
             blendBuffers[vSpan.fGroupIdx][vSpan.fVBufferIdx] = 1;
-            drawable->SetBlendingSpanVectorBit( visList[ i ], false );
+            drawable->SetBlendingSpanVectorBit(idx, false);
         }
     }
 
@@ -8623,10 +8549,9 @@ bool      plDXPipeline::ISoftwareVertexBlend( plDrawableSpans* drawable, const h
     // and blend into it. We'll lock the buffer once, and then for each span that
     // uses it, set the matrix palette and and then do the blend for that span.
     // When we've done all the spans for a group/buffer, we unlock it and move on.
-    int j;
-    for( i = 0; i < kMaxBufferGroups; i++ )
+    for (size_t i = 0; i < kMaxBufferGroups; i++)
     {
-        for( j = 0; j < kMaxVertexBuffers; j++ )
+        for (size_t j = 0; j < kMaxVertexBuffers; j++)
         {
             if( blendBuffers[i][j] )
             {
@@ -8637,10 +8562,9 @@ bool      plDXPipeline::ISoftwareVertexBlend( plDrawableSpans* drawable, const h
 
                 uint8_t*  destPtr = vRef->fData;
 
-                int k;
-                for( k = 0; k < visList.GetCount(); k++ )
+                for (int16_t idx : visList)
                 {
-                    const plIcicle& span = *(plIcicle*)spans[visList[k]];
+                    const plIcicle& span = *(plIcicle*)spans[idx];
                     if( (span.fGroupIdx == i)&&(span.fVBufferIdx == j) )
                     {
                         plProfile_Inc(NumSkin);
@@ -8704,14 +8628,14 @@ void plDXPipeline::IEndAllocUnManaged()
 
 bool plDXPipeline::CheckResources()
 {
-    if ((fClothingOutfits.GetCount() <= 1 && fAvRTPool.GetCount() > 1) ||
-        (fAvRTPool.GetCount() >= 16 && (fAvRTPool.GetCount() / 2 >= fClothingOutfits.GetCount())))
+    if ((fClothingOutfits.size() <= 1 && fAvRTPool.size() > 1) ||
+        (fAvRTPool.size() >= 16 && (fAvRTPool.size() / 2 >= fClothingOutfits.size())))
     {
         return (hsTimer::GetSysSeconds() - fAvRTShrinkValidSince > kAvTexPoolShrinkThresh);
     }
 
     fAvRTShrinkValidSince = hsTimer::GetSysSeconds();
-    return (fAvRTPool.GetCount() < fClothingOutfits.GetCount());
+    return (fAvRTPool.size() < fClothingOutfits.size());
 }
 
 // LoadResources ///////////////////////////////////////////////////////////////////////
@@ -8855,7 +8779,7 @@ static inline void ISkinVertexFPU(const hsMatrix44& xfm, float wgt,
     }
 }
 
-#ifdef HS_SSE3
+#ifdef HAVE_SSE3
 static inline void ISkinDpSSE3(const float* src, float* dst, const __m128& mc0,
                                const __m128& mc1, const __m128& mc2, const __m128& mwt)
 {
@@ -8871,13 +8795,13 @@ static inline void ISkinDpSSE3(const float* src, float* dst, const __m128& mc0,
     _dst = _mm_add_ps(_dst, hbuf1);
     _mm_store_ps(dst, _dst);
 }
-#endif // HS_SSE3
+#endif // HAVE_SSE3
 
 static inline void ISkinVertexSSE3(const hsMatrix44& xfm, float wgt,
                                    const float* pt_src, float* pt_dst,
                                    const float* vec_src, float* vec_dst)
 {
-#ifdef HS_SSE3
+#ifdef HAVE_SSE3
     __m128 mc0 = _mm_load_ps(xfm.fMap[0]);
     __m128 mc1 = _mm_load_ps(xfm.fMap[1]);
     __m128 mc2 = _mm_load_ps(xfm.fMap[2]);
@@ -8885,10 +8809,10 @@ static inline void ISkinVertexSSE3(const hsMatrix44& xfm, float wgt,
 
     ISkinDpSSE3(pt_src, pt_dst, mc0, mc1, mc2, mwt);
     ISkinDpSSE3(vec_src, vec_dst, mc0, mc1, mc2, mwt);
-#endif // HS_SSE3
+#endif // HAVE_SSE3
 }
 
-#ifdef HS_SSE41
+#ifdef HAVE_SSE41
 static inline void ISkinDpSSE41(const float* src, float* dst, const __m128& mc0,
                                 const __m128& mc1, const __m128& mc2, const __m128& mwt)
 {
@@ -8903,13 +8827,13 @@ static inline void ISkinDpSSE41(const float* src, float* dst, const __m128& mc0,
     _dst = _mm_add_ps(_dst, _mm_mul_ps(_r, mwt));
     _mm_store_ps(dst, _dst);
 }
-#endif // HS_SSE41
+#endif // HAVE_SSE41
 
 static inline void ISkinVertexSSE41(const hsMatrix44& xfm, float wgt,
                                     const float* pt_src, float* pt_dst,
                                     const float* vec_src, float* vec_dst)
 {
-#ifdef HS_SSE41
+#ifdef HAVE_SSE41
     __m128 mc0 = _mm_load_ps(xfm.fMap[0]);
     __m128 mc1 = _mm_load_ps(xfm.fMap[1]);
     __m128 mc2 = _mm_load_ps(xfm.fMap[2]);
@@ -8917,7 +8841,7 @@ static inline void ISkinVertexSSE41(const hsMatrix44& xfm, float wgt,
 
     ISkinDpSSE41(pt_src, pt_dst, mc0, mc1, mc2, mwt);
     ISkinDpSSE41(vec_src, vec_dst, mc0, mc1, mc2, mwt);
-#endif // HS_SSE41
+#endif // HAVE_SSE41
 }
 
 typedef void(*skin_vert_ptr)(const hsMatrix44&, float, const float*, float*, const float*, float*);
@@ -9002,9 +8926,8 @@ hsCpuFunctionDispatcher<plDXPipeline::blend_vert_buffer_ptr> plDXPipeline::blend
 // Note that the lighting pipe constants are NOT implemented.
 void plDXPipeline::ISetPipeConsts(plShader* shader)
 {
-    int n = shader->GetNumPipeConsts(); 
-    int i;
-    for( i = 0; i < n; i++ )
+    size_t n = shader->GetNumPipeConsts();
+    for (size_t i = 0; i < n; i++)
     {
         const plPipeConst& pc = shader->GetPipeConst(i);
         switch( pc.fType )
@@ -9214,12 +9137,12 @@ void plDXPipeline::ISetPipeConsts(plShader* shader)
 
 // ISetShaders /////////////////////////////////////////////////////////////////////////////////////
 // Setup to render using the input vertex and pixel shader. Either or both may
-// be nil, in which case the fixed function pipeline is indicated.
+// be nullptr, in which case the fixed function pipeline is indicated.
 // Any Pipe Constants the non-FFP shader wants will be set here.
 // Lastly, all constants will be set (as a block) for any non-FFP vertex or pixel shader.
 HRESULT plDXPipeline::ISetShaders(plShader* vShader, plShader* pShader)
 {
-    IDirect3DVertexShader9 *vsHandle = NULL;
+    IDirect3DVertexShader9 *vsHandle = nullptr;
     if( vShader )
     {
         hsAssert(vShader->IsVertexShader(), "Wrong type shader as vertex shader");
@@ -9246,7 +9169,7 @@ HRESULT plDXPipeline::ISetShaders(plShader* vShader, plShader* pShader)
         }
     }
 
-    IDirect3DPixelShader9 *psHandle = NULL;
+    IDirect3DPixelShader9 *psHandle = nullptr;
     if( pShader )
     {
         hsAssert(pShader->IsPixelShader(), "Wrong type shader as pixel shader");
@@ -9374,8 +9297,7 @@ void plDXPipeline::IRenderAuxSpans(const plSpan& span)
 
     ISetLocalToWorld(hsMatrix44::IdentityMatrix(), hsMatrix44::IdentityMatrix());
 
-    int i;
-    for( i = 0; i < span.GetNumAuxSpans(); i++ )
+    for (size_t i = 0; i < span.GetNumAuxSpans(); i++)
         IRenderAuxSpan(span, span.GetAuxSpan(i));
 
     ISetLocalToWorld(span.fLocalToWorld, span.fWorldToLocal);
@@ -9408,7 +9330,7 @@ void    plDXPipeline::IRenderBufferSpan( const plIcicle& span,
 
     HRESULT     r;
 
-    if( vRef->fD3DBuffer == nil || iRef->fD3DBuffer == nil )
+    if (vRef->fD3DBuffer == nullptr || iRef->fD3DBuffer == nullptr)
     {
         plProfile_EndTiming(RenderBuff);
         hsAssert( false, "Trying to render a nil buffer pair!" );
@@ -9419,7 +9341,7 @@ void    plDXPipeline::IRenderBufferSpan( const plIcicle& span,
     if( fSettings.fCurrVertexBuffRef != vRef )
     {
         hsRefCnt_SafeAssign( fSettings.fCurrVertexBuffRef, vRef );
-        hsAssert( vRef->fD3DBuffer != nil, "Trying to render a buffer pair without a vertex buffer!" );
+        hsAssert(vRef->fD3DBuffer != nullptr, "Trying to render a buffer pair without a vertex buffer!");
         vRef->SetRebuiltSinceUsed(true);
     }
 
@@ -9440,7 +9362,7 @@ void    plDXPipeline::IRenderBufferSpan( const plIcicle& span,
     if( fSettings.fCurrIndexBuffRef != iRef )
     {
         hsRefCnt_SafeAssign( fSettings.fCurrIndexBuffRef, iRef );
-        hsAssert( iRef->fD3DBuffer != nil, "Trying to render with a nil index buffer" );
+        hsAssert(iRef->fD3DBuffer != nullptr, "Trying to render with a nil index buffer");
         iRef->SetRebuiltSinceUsed(true);
     }
 
@@ -9510,7 +9432,7 @@ bool plDXPipeline::ILoopOverLayers(const plRenderPrimFunc& inRender, hsGMaterial
         render.RenderPrims();
 
         // Take care of projections that get applied to each pass.
-        if( fLights.fProjEach.GetCount() && !(fView.fRenderState & kRenderNoProjection) ) 
+        if (!fLights.fProjEach.empty() && !(fView.fRenderState & kRenderNoProjection))
         {
             // Disable all the normal lights.
             IDisableSpanLights();
@@ -9537,11 +9459,11 @@ bool plDXPipeline::ILoopOverLayers(const plRenderPrimFunc& inRender, hsGMaterial
     if( j >= 0 )
     {
         // Projections that get applied to the frame buffer (after all passes).
-        if( fLights.fProjAll.GetCount() && !(fView.fRenderState & kRenderNoProjection) ) 
+        if (!fLights.fProjAll.empty() && !(fView.fRenderState & kRenderNoProjection))
             IRenderProjections(render);
 
         // Handle render of shadows onto geometry.
-        if( fShadows.GetCount() )
+        if (!fShadows.empty())
             IRenderShadowsOntoSpan(render, &span, material);
     }
 
@@ -9569,7 +9491,7 @@ void plDXPipeline::IRenderOverWire(const plRenderPrimFunc& render, hsGMaterial* 
 
     if( IHandleMaterial( material, 0, &span ) >= 0 )
     {
-        ISetShaders(nil, nil);
+        ISetShaders(nullptr, nullptr);
         render.RenderPrims();
     }
 
@@ -9593,11 +9515,9 @@ void plDXPipeline::IRenderProjectionEach(const plRenderPrimFunc& render, hsGMate
     int iNextPass = iPass + fCurrNumLayers;
 
     // For each projector:
-    int k;
-    for( k = 0; k < fLights.fProjEach.GetCount(); k++ )
+    for (plLightInfo* li : fLights.fProjEach)
     {
         // Push it's projected texture as a piggyback.
-        plLightInfo* li = fLights.fProjEach[k];
 
         // Lower end boards are iffy on when they'll project correctly.
         if( fSettings.fCantProj && !li->GetProperty(plLightInfo::kLPForceProj) )
@@ -9618,7 +9538,7 @@ void plDXPipeline::IRenderProjectionEach(const plRenderPrimFunc& render, hsGMate
         while( iRePass < iNextPass )
         {
             iRePass = IHandleMaterial( material, iRePass, &span );
-            ISetShaders(nil, nil);
+            ISetShaders(nullptr, nullptr);
 
             // Do the render with projection.
             render.RenderPrims();
@@ -9642,11 +9562,8 @@ void plDXPipeline::IRenderProjectionEach(const plRenderPrimFunc& render, hsGMate
 void plDXPipeline::IRenderProjections(const plRenderPrimFunc& render)
 {
     IDisableSpanLights();
-    int i;
-    for( i = 0; i < fLights.fProjAll.GetCount(); i++ )
+    for (plLightInfo* li : fLights.fProjAll)
     {
-        plLightInfo* li = fLights.fProjAll[i];
-
         if( fSettings.fCantProj && !li->GetProperty(plLightInfo::kLPForceProj) )
             continue;
         
@@ -9804,7 +9721,7 @@ void plDXPlateManager::ICreateGeometry(plDXPipeline* pipe)
     if( FAILED( fD3DDevice->CreateVertexBuffer( 4 * sizeof( plPlateVertex ),
                                                 D3DUSAGE_WRITEONLY, 
                                                 fvfFormat,
-                                                poolType, &fVertBuffer, NULL ) ) )
+                                                poolType, &fVertBuffer, nullptr)))
     {
         hsAssert( false, "CreateVertexBuffer() call failed!" );
         fCreatedSucessfully = false;
@@ -9852,7 +9769,7 @@ void plDXPlateManager::IReleaseGeometry()
     {
         ReleaseObject(fVertBuffer);
         PROFILE_POOL_MEM(D3DPOOL_DEFAULT, 4 * sizeof(plPlateVertex), false, "PlateMgrVtxBuff");
-        fVertBuffer = nil;
+        fVertBuffer = nullptr;
     }
 }
 
@@ -9861,7 +9778,7 @@ void plDXPlateManager::IReleaseGeometry()
 plDXPlateManager::plDXPlateManager( plDXPipeline *pipe, IDirect3DDevice9 *device ) : plPlateManager( pipe ),
             PLD3D_PLATEFVF( D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1 | D3DFVF_TEXCOORDSIZE3(0) ),
             fD3DDevice(device),
-            fVertBuffer(nil)
+            fVertBuffer()
 {   
 }
 
@@ -9876,9 +9793,8 @@ void    plDXPlateManager::IDrawToDevice( plPipeline *pipe )
 {
     plDXPipeline    *dxPipe = (plDXPipeline *)pipe;
     plPlate         *plate;
-    uint32_t          scrnWidthDiv2 = fOwner->Width() >> 1;
-    uint32_t          scrnHeightDiv2 = fOwner->Height() >> 1;
-    D3DXMATRIX      mat;
+    uint32_t        scrnWidthDiv2 = fOwner->Width() >> 1;
+    uint32_t        scrnHeightDiv2 = fOwner->Height() >> 1;
     D3DCULL         oldCullMode;
     
     if( !fVertBuffer )
@@ -9886,18 +9802,19 @@ void    plDXPlateManager::IDrawToDevice( plPipeline *pipe )
     
     // Make sure skinning is disabled.
     fD3DDevice->SetRenderState(D3DRS_VERTEXBLEND, D3DVBF_DISABLE);
-    fD3DDevice->SetVertexShader( dxPipe->fSettings.fCurrVertexShader = NULL);
+    fD3DDevice->SetVertexShader(dxPipe->fSettings.fCurrVertexShader = nullptr);
     fD3DDevice->SetFVF(dxPipe->fSettings.fCurrFVFFormat = PLD3D_PLATEFVF);
     fD3DDevice->SetStreamSource( 0, fVertBuffer, 0, sizeof( plPlateVertex ) );  
     plProfile_Inc(VertexChange);
+
     // To get plates properly pixel-aligned, we need to compensate for D3D9's weird half-pixel
     // offset (see http://drilian.com/2008/11/25/understanding-half-pixel-and-half-texel-offsets/
     // or http://msdn.microsoft.com/en-us/library/bb219690(VS.85).aspx).
-    D3DXMatrixTranslation(&mat, -0.5f/scrnWidthDiv2, -0.5f/scrnHeightDiv2, 0.0f);
-    fD3DDevice->SetTransform( D3DTS_VIEW, &mat );
+    auto viewMat = DirectX::XMMatrixTranslation(-0.5f/scrnWidthDiv2, -0.5f/scrnHeightDiv2, 0.0f);
+    fD3DDevice->SetTransform( D3DTS_VIEW, (D3DMATRIX*)&viewMat );
     oldCullMode = dxPipe->fDevice.fCurrCullMode;
 
-    for( plate = fPlates; plate != nil; plate = plate->GetNext() )
+    for (plate = fPlates; plate != nullptr; plate = plate->GetNext())
     {
         if( plate->IsVisible() )
         {
@@ -9963,18 +9880,18 @@ void    plDXPipeline::IDrawPlate( plPlate *plate )
 {
     int         i;
     hsGMaterial *material = plate->GetMaterial();
-    D3DXMATRIX  mat;
+    D3DMATRIX  mat;
 
 
     /// Set up the D3D transform directly
     IMatrix44ToD3DMatrix( mat, plate->GetTransform() );
     fD3DDevice->SetTransform( D3DTS_WORLD, &mat );
     mat = d3dIdentityMatrix;
-    mat(1,1) = -1.0f;
-    mat(2,2) = 2.0f;
-    mat(2,3) = 1.0f;
-    mat(3,2) = -2.0f;
-    mat(3,3) = 0.0f;
+    mat.m[1][1] = -1.0f;
+    mat.m[2][2] = 2.0f;
+    mat.m[2][3] = 1.0f;
+    mat.m[3][2] = -2.0f;
+    mat.m[3][3] = 0.0f;
 
     IPushPiggyBacks(material);
 
@@ -9987,8 +9904,8 @@ void    plDXPipeline::IDrawPlate( plPlate *plate )
         // show up in the stats. mf
 
 
-        i = IHandleMaterial( material, i, nil );
-        ISetShaders(nil, nil);
+        i = IHandleMaterial(material, i, nullptr);
+        ISetShaders(nullptr, nullptr);
 
         // To override the transform done by the z-bias
         fD3DDevice->SetTransform( D3DTS_PROJECTION, &mat );
@@ -10036,14 +9953,14 @@ void    plDXPipeline::ISetErrorMessage( char *errStr )
 // Convert the last D3D error code to a string (probably "Conflicting Render State").
 void    plDXPipeline::IGetD3DError()
 {
-    sprintf( fSettings.fErrorStr, "D3DError : %s", (char *)DXGetErrorString( fSettings.fDXError ) );
+    sprintf( fSettings.fErrorStr, "D3DError : %s", fSettings.fDXError.ToString().c_str() );
 }
 
 // IShowErrorMessage /////////////////////////////////////////////////////////////
 // Append the string to the running error string.
 void    plDXPipeline::IShowErrorMessage( char *errStr )
 {
-    if( errStr != nil )
+    if (errStr != nullptr)
         IAddErrorMessage( errStr );
 
 //  hsAssert( false, fSettings.fErrorStr );
@@ -10074,7 +9991,7 @@ bool  plDXPipeline::ICreateFail( char *errStr )
 const char  *plDXPipeline::GetErrorString()
 {
     if( fSettings.fErrorStr[ 0 ] == 0 )
-        return nil;
+        return nullptr;
 
     return fSettings.fErrorStr;
 }
@@ -10279,7 +10196,7 @@ void plDXPipeline::IBlurShadowMap(plShadowSlave* slave)
     IBlurSetRenderTarget(scratchRT);
 
     // Clear it appropriately
-    fD3DDevice->Clear(0, nil, D3DCLEAR_TARGET, 0xff000000L, 1.0f, 0L);
+    fD3DDevice->Clear(0, nullptr, D3DCLEAR_TARGET, 0xff000000L, 1.0f, 0L);
 
     // Setup our quad for rendering
     ISetBlurQuadToRender(smap);
@@ -10354,10 +10271,10 @@ int plDXPipeline::IGetScratchRenderTarget(plRenderTarget* smap)
         fBlurDestRTs[which] = IFindRenderTarget(width, height, smap->GetFlags() & plRenderTarget::kIsOrtho);
     }
 #ifdef MF_ENABLE_HACKOFF
-    if( hackOffscreens.kMissingIndex == hackOffscreens.Find(fBlurScratchRTs[which]) )
-        hackOffscreens.Append(fBlurScratchRTs[which]);
-    if( hackOffscreens.kMissingIndex == hackOffscreens.Find(fBlurDestRTs[which]) )
-        hackOffscreens.Append(fBlurDestRTs[which]);
+    if (std::find(hackOffscreens.cbegin(), hackOffscreens.cend(), fBlurScratchRTs[which]) == hackOffscreens.cend())
+        hackOffscreens.emplace_back(fBlurScratchRTs[which]);
+    if (std::find(hackOffscreens.cbegin(), hackOffscreens.cend(), fBlurDestRTs[which]) == hackOffscreens.cend())
+        hackOffscreens.emplace_back(fBlurDestRTs[which]);
 #endif // MF_ENABLE_HACKOFF
     return which;
 }
@@ -10556,9 +10473,9 @@ void plDXPipeline::IRenderBlurFromShadowMap(plRenderTarget* scratchRT, plRenderT
         int j;
         for( j = 0; j < nSamplesPerPass; j++ )
         {
-            D3DXMATRIX offXfm = d3dIdentityMatrix;
-            offXfm(2,0) = offsets[iSample].fU * offsetScale.fU;
-            offXfm(2,1) = offsets[iSample].fV * offsetScale.fV;
+            D3DMATRIX offXfm = d3dIdentityMatrix;
+            offXfm.m[2][0] = offsets[iSample].fU * offsetScale.fU;
+            offXfm.m[2][1] = offsets[iSample].fV * offsetScale.fV;
             fD3DDevice->SetTransform(sTextureStages[j], &offXfm);
             fLayerTransform[j] = true;
             
@@ -10585,7 +10502,7 @@ void plDXPipeline::IRenderBlurBackToShadowMap(plRenderTarget* smap, plRenderTarg
     IBlurSetRenderTarget(dst);
 
     // Clear it appropriately. This might not be necessary, since we're just going to overwrite.
-    fD3DDevice->Clear(0, nil, D3DCLEAR_TARGET, 0xff000000L, 1.0f, 0L);
+    fD3DDevice->Clear(0, nullptr, D3DCLEAR_TARGET, 0xff000000L, 1.0f, 0L);
 
     // Scratch has an all white alpha, and the blurred color from smap. But the color
     // is a signed biased color. We need to remap [128..255] from scratch into [0..255]
@@ -10597,7 +10514,7 @@ void plDXPipeline::IRenderBlurBackToShadowMap(plRenderTarget* smap, plRenderTarg
 
     // Set Stage0 texture transform
     // Clamp still on (from RBFSM)
-    D3DXMATRIX offXfm = d3dIdentityMatrix;
+    D3DMATRIX offXfm = d3dIdentityMatrix;
     fD3DDevice->SetTransform(sTextureStages[0], &offXfm);
     fD3DDevice->SetTransform(sTextureStages[1], &offXfm);
     fLayerTransform[0] = false;
@@ -10689,7 +10606,7 @@ void plDXPipeline::IReleaseBlurVBuffers()
         {
             ReleaseObject(fBlurVBuffers[i]);
             PROFILE_POOL_MEM(D3DPOOL_DEFAULT, 4 * kVSize, false, "BlurVtxBuff");
-            fBlurVBuffers[i] = nil;
+            fBlurVBuffers[i] = nullptr;
         }
     }
 }
@@ -10749,7 +10666,7 @@ bool plDXPipeline::ICreateBlurVBuffers()
 
 
         // Create the buffer.
-        IDirect3DVertexBuffer9* vBuffer = nil;
+        IDirect3DVertexBuffer9* vBuffer = nullptr;
 
         uint32_t fvfFormat = kVFormat;
         hsAssert(!ManagedAlloced(), "Alloc default with managed alloc'd");
@@ -10757,12 +10674,12 @@ bool plDXPipeline::ICreateBlurVBuffers()
                                                     D3DUSAGE_WRITEONLY, 
                                                     fvfFormat,
                                                     D3DPOOL_DEFAULT, 
-                                                    &vBuffer, NULL) ) )
+                                                    &vBuffer, nullptr)))
         {
             hsAssert( false, "CreateVertexBuffer() call failed!" );
             return false;
         }
-        plShadowVertStruct* ptr = nil;
+        plShadowVertStruct* ptr = nullptr;
 
         /// Lock the buffer and fill it in.
         if( FAILED( vBuffer->Lock( 0, 0, (void **)&ptr, 0 ) ) )
@@ -10847,12 +10764,12 @@ bool plDXPipeline::ISetBlurQuadToRender(plRenderTarget* smap)
         hsAssert(vBuffer, "AllocBlurVBuffers failed");
     }
 
-    HRESULT r = fD3DDevice->SetVertexShader(fSettings.fCurrVertexShader = NULL);
+    HRESULT r = fD3DDevice->SetVertexShader(fSettings.fCurrVertexShader = nullptr);
     fD3DDevice->SetFVF(fSettings.fCurrFVFFormat = kVFormat);
     hsAssert( r == D3D_OK, "Error trying to set the vertex shader!" );
 
     hsRefCnt_SafeUnRef(fSettings.fCurrVertexBuffRef);
-    fSettings.fCurrVertexBuffRef = nil;
+    fSettings.fCurrVertexBuffRef = nullptr;
 
     r = fD3DDevice->SetStreamSource(0, vBuffer, 0, kVSize);
     plProfile_Inc(VertexChange);
@@ -10879,7 +10796,7 @@ void plDXPipeline::IRenderShadowCasterSpan(plShadowSlave* slave, plDrawableSpans
 
     HRESULT     r;
 
-    if( vRef->fD3DBuffer == nil || iRef->fD3DBuffer == nil )
+    if (vRef->fD3DBuffer == nullptr || iRef->fD3DBuffer == nullptr)
     {
         hsAssert( false, "Trying to render a nil buffer pair!" );
         return;
@@ -10889,7 +10806,7 @@ void plDXPipeline::IRenderShadowCasterSpan(plShadowSlave* slave, plDrawableSpans
     if( fSettings.fCurrVertexBuffRef != vRef )
     {
         hsRefCnt_SafeAssign( fSettings.fCurrVertexBuffRef, vRef );
-        hsAssert( vRef->fD3DBuffer != nil, "Trying to render a buffer pair without a vertex buffer!" );
+        hsAssert(vRef->fD3DBuffer != nullptr, "Trying to render a buffer pair without a vertex buffer!");
         vRef->SetRebuiltSinceUsed(true);
     }
 
@@ -10900,7 +10817,7 @@ void plDXPipeline::IRenderShadowCasterSpan(plShadowSlave* slave, plDrawableSpans
         plProfile_Inc(VertexChange);
 
         fSettings.fCurrFVFFormat = IGetBufferD3DFormat(vRef->fFormat);
-        r = fD3DDevice->SetVertexShader(fSettings.fCurrVertexShader = NULL);
+        r = fD3DDevice->SetVertexShader(fSettings.fCurrVertexShader = nullptr);
         fD3DDevice->SetFVF(fSettings.fCurrFVFFormat);
         hsAssert( r == D3D_OK, "Error trying to set the vertex shader!" );
 
@@ -10911,7 +10828,7 @@ void plDXPipeline::IRenderShadowCasterSpan(plShadowSlave* slave, plDrawableSpans
     if( fSettings.fCurrIndexBuffRef != iRef )
     {
         hsRefCnt_SafeAssign( fSettings.fCurrIndexBuffRef, iRef );
-        hsAssert( iRef->fD3DBuffer != nil, "Trying to render with a nil index buffer" );
+        hsAssert(iRef->fD3DBuffer != nullptr, "Trying to render with a nil index buffer");
         iRef->SetRebuiltSinceUsed(true);
     }
 
@@ -10974,7 +10891,7 @@ plDXTextureRef* plDXPipeline::IGetULutTextureRef()
                                               width * height, // numpix
                                               width*height*sizeof(uint32_t), // totalsize
                                               width*height*sizeof(uint32_t),
-                                              nil, // levels data
+                                              nullptr, // levels data
                                               tData, 
                                               false // externData
                                               );
@@ -10992,8 +10909,8 @@ plDXTextureRef* plDXPipeline::IGetULutTextureRef()
 // to perspective (directional light vs. point light), but is no longer used.
 plRenderTarget* plDXPipeline::IFindRenderTarget(uint32_t& width, uint32_t& height, bool ortho)
 {
-    hsTArray<plRenderTarget*>* pool = nil;
-    uint32_t* iNext = nil;
+    std::vector<plRenderTarget*>* pool = nullptr;
+    uint32_t* iNext = nullptr;
     // NOT CURRENTLY SUPPORTING NON-SQUARE SHADOWS. IF WE DO, CHANGE THIS.
     switch(height)
     {
@@ -11018,7 +10935,7 @@ plRenderTarget* plDXPipeline::IFindRenderTarget(uint32_t& width, uint32_t& heigh
         iNext = &fRenderTargetNext[5];
         break;
     default:
-        return nil;
+        return nullptr;
     }
     plRenderTarget* rt = (*pool)[*iNext];
     if( !rt )
@@ -11028,7 +10945,7 @@ plRenderTarget* plDXPipeline::IFindRenderTarget(uint32_t& width, uint32_t& heigh
             return IFindRenderTarget(width >>= 1, height >>= 1, ortho);
 
         // We must be totally out. Oh well.
-        return nil;
+        return nullptr;
     }
     (*iNext)++;
 
@@ -11051,7 +10968,7 @@ bool plDXPipeline::IPushShadowCastState(plShadowSlave* slave)
 
     // Turn off fogging and specular.
     fD3DDevice->SetRenderState(D3DRS_FOGENABLE, FALSE);
-    fCurrFog.fEnvPtr = nil;
+    fCurrFog.fEnvPtr = nullptr;
     fD3DDevice->SetRenderState(D3DRS_SPECULARENABLE, FALSE);
     fLayerState[0].fShadeFlags &= ~hsGMatState::kShadeSpecular;
 
@@ -11092,7 +11009,7 @@ bool plDXPipeline::IPushShadowCastState(plShadowSlave* slave)
         castLUT = castLUT * c2w;
     }
 
-    D3DXMATRIX tXfm;
+    D3DMATRIX tXfm;
     IMatrix44ToD3DMatrix(tXfm, castLUT);
 
     fD3DDevice->SetTransform( sTextureStages[0], &tXfm );
@@ -11179,12 +11096,12 @@ bool plDXPipeline::IPushShadowCastState(plShadowSlave* slave)
     if( slave->ReverseZ() )
     {
         fD3DDevice->SetRenderState(D3DRS_ZFUNC, D3DCMP_GREATEREQUAL);
-        fD3DDevice->Clear(0, nil, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clearColor, 0.0f, 0L);
+        fD3DDevice->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clearColor, 0.0f, 0L);
     }
     else
     {
         fD3DDevice->SetRenderState(D3DRS_ZFUNC, D3DCMP_LESSEQUAL);
-        fD3DDevice->Clear(0, nil, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clearColor, 1.0f, 0L);
+        fD3DDevice->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clearColor, 1.0f, 0L);
     }
 
     // Bring the viewport in (AFTER THE CLEAR) to protect the alpha boundary.
@@ -11257,20 +11174,15 @@ void plDXPipeline::ISetupShadowLight(plShadowSlave* slave)
 // only keeps it for this render frame.
 plDXLightRef* plDXPipeline::INextShadowLight(plShadowSlave* slave)
 {
-    fLights.fShadowLights.ExpandAndZero(fLights.fNextShadowLight+1);
+    plDXLightRef* lightRef = fLights.fShadowLights.next([this] {
+        plDXLightRef* lRef = new plDXLightRef();
 
-    if( !fLights.fShadowLights[fLights.fNextShadowLight] )
-    {
-        plDXLightRef    *lRef = new plDXLightRef();
-            
         /// Assign stuff and update
         lRef->fD3DIndex = fLights.ReserveD3DIndex();
-        lRef->fOwner = nil;
+        lRef->fOwner = nullptr;
         lRef->fD3DDevice = fD3DDevice;
 
         lRef->Link( &fLights.fRefList );
-
-        fLights.fShadowLights[fLights.fNextShadowLight] = lRef;
 
         // Neutralize it until we need it.
         fD3DDevice->LightEnable(lRef->fD3DIndex, false);
@@ -11280,10 +11192,11 @@ plDXLightRef* plDXPipeline::INextShadowLight(plShadowSlave* slave)
         lRef->fD3DInfo.Ambient.r = lRef->fD3DInfo.Ambient.g = lRef->fD3DInfo.Ambient.b = 0;
         lRef->fD3DInfo.Specular.r = lRef->fD3DInfo.Specular.g = lRef->fD3DInfo.Specular.b = 0;
 
-    }
-    slave->fLightRefIdx = fLights.fNextShadowLight;
+        return lRef;
+    });
+    slave->fLightRefIdx = fLights.fShadowLights.size() - 1;
 
-    return fLights.fShadowLights[fLights.fNextShadowLight++];
+    return lightRef;
 }
 
 // IPopShadowCastState ///////////////////////////////////////////////////
@@ -11314,7 +11227,7 @@ void plDXPipeline::IMakeRenderTargetPools()
     // These numbers were set with multi-player in mind, so should be reconsidered.
     // But do keep in mind that there are many things in production assets that cast
     // shadows besides the avatar.
-    plConst(float)   kCount[kMaxRenderTargetNext] = {
+    plConst(size_t) kCount[kMaxRenderTargetNext] = {
         0, // 1x1
         0, // 2x2
         0, // 4x4
@@ -11329,7 +11242,7 @@ void plDXPipeline::IMakeRenderTargetPools()
     int i;
     for( i = 0; i < kMaxRenderTargetNext; i++ )
     {
-        hsTArray<plRenderTarget*>* pool = nil;
+        std::vector<plRenderTarget*>* pool = nullptr;
         switch( i )
         {
         default:
@@ -11358,11 +11271,10 @@ void plDXPipeline::IMakeRenderTargetPools()
         }
         if( pool )
         {
-            pool->SetCount((int)(kCount[i]+1));
-            (*pool)[0] = nil;
-            (*pool)[(int)(kCount[i])] = nil;
-            int j;
-            for( j = 0; j < kCount[i]; j++ )
+            pool->resize(kCount[i] + 1);
+            (*pool)[0] = nullptr;
+            (*pool)[kCount[i]] = nullptr;
+            for (size_t j = 0; j < kCount[i]; j++)
             {
                 uint16_t flags = plRenderTarget::kIsTexture | plRenderTarget::kIsProjected;
                 uint8_t bitDepth = 32;
@@ -11376,13 +11288,13 @@ void plDXPipeline::IMakeRenderTargetPools()
                 plRenderTarget* rt = new plRenderTarget(flags, width, height, bitDepth, zDepth, stencilDepth);
 
                 // If we've failed to create our render target ref, we're probably out of
-                // video memory. We'll return nil, and this guy just doesn't get a shadow
+                // video memory. We'll return nullptr, and this guy just doesn't get a shadow
                 // until more video memory turns up (not likely).
                 if( !SharedRenderTargetRef((*pool)[0], rt) )
                 {
                     delete rt;
-                    pool->SetCount(j+1);
-                    (*pool)[j] = nil;
+                    pool->resize(j + 1);
+                    (*pool)[j] = nullptr;
                     break;
                 }
                 (*pool)[j] = rt;
@@ -11401,11 +11313,11 @@ void plDXPipeline::IResetRenderTargetPools()
     for( i = 0; i < kMaxRenderTargetNext; i++ )
     {
         fRenderTargetNext[i] = 0;
-        fBlurScratchRTs[i] = nil;
-        fBlurDestRTs[i] = nil;
+        fBlurScratchRTs[i] = nullptr;
+        fBlurDestRTs[i] = nullptr;
     }
 
-    fLights.fNextShadowLight = 0;
+    fLights.fShadowLights.clear();
 }
 
 // IPrepShadowCaster ////////////////////////////////////////////////////////////////////////
@@ -11425,10 +11337,9 @@ bool plDXPipeline::IPrepShadowCaster(const plShadowCaster* caster)
 {
     static hsBitVector done;
     done.Clear();
-    const hsTArray<plShadowCastSpan>& castSpans = caster->Spans();
+    const std::vector<plShadowCastSpan>& castSpans = caster->Spans();
 
-    int i;
-    for( i = 0; i < castSpans.GetCount(); i++ )
+    for (size_t i = 0; i < castSpans.size(); i++)
     {
         if( !done.IsBitSet(i) )
         {
@@ -11437,9 +11348,9 @@ bool plDXPipeline::IPrepShadowCaster(const plShadowCaster* caster)
             plDrawableSpans* drawable = castSpans[i].fDraw;
 
             // Start a visList with this index.
-            static hsTArray<int16_t> visList;
-            visList.SetCount(0);
-            visList.Append((int16_t)(castSpans[i].fIndex));
+            static std::vector<int16_t> visList;
+            visList.clear();
+            visList.emplace_back((int16_t)(castSpans[i].fIndex));
             
             // We're about to have done this castSpan.
             done.SetBit(i);
@@ -11447,13 +11358,12 @@ bool plDXPipeline::IPrepShadowCaster(const plShadowCaster* caster)
             // Look forward through castSpans for any other spans
             // with the same drawable, and add them to visList.
             // We'll handle all the spans from this drawable at once.
-            int j;
-            for( j = i+1; j < castSpans.GetCount(); j++ )
+            for (size_t j = i + 1; j < castSpans.size(); j++)
             {
                 if( !done.IsBitSet(j) && (castSpans[j].fDraw == drawable) )
                 {
                     // Add to list
-                    visList.Append((int16_t)(castSpans[j].fIndex));
+                    visList.emplace_back((int16_t)(castSpans[j].fIndex));
 
                     // We're about to have done this castSpan.
                     done.SetBit(j);
@@ -11486,12 +11396,11 @@ bool plDXPipeline::IRenderShadowCaster(plShadowSlave* slave)
         return false;
 
     // for each shadowCaster.fSpans
-    int iSpan;
-    for( iSpan = 0; iSpan < caster->Spans().GetCount(); iSpan++ )
+    for (const plShadowCastSpan& castSpan : caster->Spans())
     {
-        plDrawableSpans* dr = caster->Spans()[iSpan].fDraw;
-        const plSpan* sp = caster->Spans()[iSpan].fSpan;
-        uint32_t spIdx = caster->Spans()[iSpan].fIndex;
+        plDrawableSpans* dr = castSpan.fDraw;
+        const plSpan* sp = castSpan.fSpan;
+        uint32_t spIdx = castSpan.fIndex;
 
         hsAssert(sp->fTypeMask & plSpan::kIcicleSpan, "Shadow casting from non-trimeshes not currently supported");
 
@@ -11551,15 +11460,14 @@ void plDXPipeline::IPreprocessShadows()
     // casters). The overall number is low in spite of the possible
     // permutation explosion, because a slave is only generated
     // for a caster being affected (in range etc.) by a light.
-    int iSlave;
-    for( iSlave = 0; iSlave < fShadows.GetCount(); iSlave++ )
+    for (size_t iSlave = 0; iSlave < fShadows.size(); iSlave++)
     {
         plShadowSlave* slave = fShadows[iSlave];
         
         // Any trouble, remove it from the list for this frame.
         if( !IRenderShadowCaster(slave) )
         {
-            fShadows.Remove(iSlave);
+            fShadows.erase(fShadows.begin() + iSlave);
             iSlave--;
             continue;
         }
@@ -11576,13 +11484,12 @@ void plDXPipeline::IPreprocessShadows()
 // At EndRender(), we need to clear our list of shadow slaves. They are only valid for one frame.
 void plDXPipeline::IClearShadowSlaves()
 {
-    int i;
-    for( i = 0; i < fShadows.GetCount(); i++ )
+    for (plShadowSlave* shadow : fShadows)
     {
-        const plShadowCaster* caster = fShadows[i]->fCaster;
+        const plShadowCaster* caster = shadow->fCaster;
         caster->GetKey()->UnRefObject();
     }
-    fShadows.SetCount(0);
+    fShadows.clear();
 }
 
 
@@ -11597,10 +11504,9 @@ void plDXPipeline::IRenderShadowsOntoSpan(const plRenderPrimFunc& render, const 
 
     bool first = true;
 
-    int i;
-    for( i = 0; i < fShadows.GetCount(); i++ )
+    for (plShadowSlave* shadow : fShadows)
     {
-        if( slaveBits.IsBitSet(fShadows[i]->fIndex) )
+        if (slaveBits.IsBitSet(shadow->fIndex))
         {
             // This slave affects this span.
             if( first )
@@ -11615,17 +11521,17 @@ void plDXPipeline::IRenderShadowsOntoSpan(const plRenderPrimFunc& render, const 
             }
 
             // Now setup any state specific to this shadow slave.
-            ISetupShadowSlaveTextures(fShadows[i]);
+            ISetupShadowSlaveTextures(shadow);
 
-            int selfShadowNow = span->IsShadowBitSet(fShadows[i]->fIndex);
+            int selfShadowNow = span->IsShadowBitSet(shadow->fIndex);
 
             // We vary the shadow intensity when self shadowing (see below),
             // so we cache whether the shadow light is set for regular or
             // self shadowing intensity. If what we're doing now is different
             // than what we're currently set for, set it again.
-            if( selfShadowNow != fShadows[i]->fSelfShadowOn )
+            if (selfShadowNow != shadow->fSelfShadowOn)
             {
-                plDXLightRef* lRef = fLights.fShadowLights[fShadows[i]->fLightRefIdx];
+                plDXLightRef* lRef = fLights.fShadowLights[shadow->fLightRefIdx];
 
                 // We lower the power on self shadowing, because the artists like to
                 // crank up the shadow strength to huge values to get a darker shadow
@@ -11636,7 +11542,7 @@ void plDXPipeline::IRenderShadowsOntoSpan(const plRenderPrimFunc& render, const 
                 if( selfShadowNow )
                 {
                     plConst(float) kMaxSelfPower = 0.3f;
-                    float power = fShadows[i]->fPower > kMaxSelfPower ? kMaxSelfPower : fShadows[i]->fPower;
+                    float power = shadow->fPower > kMaxSelfPower ? (float)kMaxSelfPower : shadow->fPower;
                     lRef->fD3DInfo.Diffuse.r 
                         = lRef->fD3DInfo.Diffuse.g 
                         = lRef->fD3DInfo.Diffuse.b
@@ -11647,16 +11553,16 @@ void plDXPipeline::IRenderShadowsOntoSpan(const plRenderPrimFunc& render, const 
                     lRef->fD3DInfo.Diffuse.r 
                         = lRef->fD3DInfo.Diffuse.g 
                         = lRef->fD3DInfo.Diffuse.b
-                        = fShadows[i]->fPower;
+                        = shadow->fPower;
                 }
                 fD3DDevice->SetLight(lRef->fD3DIndex, &lRef->fD3DInfo);
 
                 // record which our intensity is now set for.
-                fShadows[i]->fSelfShadowOn = selfShadowNow;
+                shadow->fSelfShadowOn = selfShadowNow;
             }
 
             // Enable the light.
-            fD3DDevice->LightEnable(fShadows[i]->fLightIndex, true);
+            fD3DDevice->LightEnable(shadow->fLightIndex, true);
             
 #ifdef HS_DEBUGGING
             DWORD nPass;
@@ -11671,7 +11577,7 @@ void plDXPipeline::IRenderShadowsOntoSpan(const plRenderPrimFunc& render, const 
                 render.RenderPrims();
             
             // Disable it again.
-            fD3DDevice->LightEnable(fShadows[i]->fLightIndex, false);
+            fD3DDevice->LightEnable(shadow->fLightIndex, false);
 
         }
     }
@@ -11684,7 +11590,7 @@ void plDXPipeline::IRenderShadowsOntoSpan(const plRenderPrimFunc& render, const 
 void plDXPipeline::ISetupShadowRcvTextureStages(hsGMaterial* mat)
 {
     // Setup for nil shaders to get us back to fixed function pipeline.
-    ISetShaders(nil, nil);
+    ISetShaders(nullptr, nullptr);
 
     // We're whacking about with renderstate independent of current material,
     // so make sure the next span processes it's material, even if it's the
@@ -11930,7 +11836,7 @@ void plDXPipeline::ISetupShadowRcvTextureStages(hsGMaterial* mat)
 // shadow map onto the surface.
 void plDXPipeline::ISetupShadowSlaveTextures(plShadowSlave* slave)
 {
-    D3DXMATRIX tXfm;
+    D3DMATRIX tXfm;
 
     hsMatrix44 c2w = GetCameraToWorld();
 
@@ -12020,23 +11926,26 @@ void plDXPipeline::IEnableShadowLight(plShadowSlave* slave)
 
 void plDXPipeline::SubmitClothingOutfit(plClothingOutfit* co)
 {
-    if (fClothingOutfits.Find(co) == fClothingOutfits.kMissingIndex)
+    auto iter = std::find(fClothingOutfits.cbegin(), fClothingOutfits.cend(), co);
+    if (iter == fClothingOutfits.cend())
     {
-        fClothingOutfits.Append(co);
-        if (!fPrevClothingOutfits.RemoveItem(co))
+        fClothingOutfits.emplace_back(co);
+        auto prevIter = std::find(fPrevClothingOutfits.cbegin(), fPrevClothingOutfits.cend(), co);
+        if (prevIter != fPrevClothingOutfits.cend())
+            fPrevClothingOutfits.erase(prevIter);
+        else
             co->GetKey()->RefObject();
     }
 }
 
-void plDXPipeline::IClearClothingOutfits(hsTArray<plClothingOutfit*>* outfits)
+void plDXPipeline::IClearClothingOutfits(std::vector<plClothingOutfit*>* outfits)
 {
-    int i;
-    for (i = outfits->GetCount() - 1; i >= 0; i--)
+    while (!outfits->empty())
     {
-        plClothingOutfit *co = outfits->Get(i);
-        outfits->Remove(i);
+        plClothingOutfit *co = outfits->back();
+        outfits->pop_back();
         IFreeAvRT((plRenderTarget*)co->fTargetLayer->GetTexture());
-        co->fTargetLayer->SetTexture(nil);
+        co->fTargetLayer->SetTexture(nullptr);
         co->GetKey()->UnRefObject();
     }
 }
@@ -12045,12 +11954,12 @@ void plDXPipeline::IFillAvRTPool()
 {
     fAvNextFreeRT = 0;
     fAvRTShrinkValidSince = hsTimer::GetSysSeconds();
-    int numRTs = 1;
-    if (fClothingOutfits.GetCount() > 1)
+    size_t numRTs = 1;
+    if (fClothingOutfits.size() > 1)
     {
         // Just jump to 8 for starters so we don't have to refresh for the 2nd, 4th, AND 8th player
         numRTs = 8;
-        while (numRTs < fClothingOutfits.GetCount())
+        while (numRTs < fClothingOutfits.size())
             numRTs *= 2;
     }
 
@@ -12068,9 +11977,8 @@ void plDXPipeline::IFillAvRTPool()
 
 bool plDXPipeline::IFillAvRTPool(uint16_t numRTs, uint16_t width)
 {
-    fAvRTPool.SetCount(numRTs);
-    int i;
-    for (i = 0; i < numRTs; i++)
+    fAvRTPool.resize(numRTs);
+    for (uint16_t i = 0; i < numRTs; i++)
     {
         uint16_t flags = plRenderTarget::kIsTexture | plRenderTarget::kIsProjected;
         uint8_t bitDepth = 32;
@@ -12081,8 +11989,7 @@ bool plDXPipeline::IFillAvRTPool(uint16_t numRTs, uint16_t width)
         // If anyone fails, release everyone we've created.
         if (!MakeRenderTargetRef(fAvRTPool[i]))
         {
-            int j;
-            for (j = 0; j <= i; j++)
+            for (uint16_t j = 0; j <= i; j++)
             {
                 delete fAvRTPool[j];
             }
@@ -12094,20 +12001,19 @@ bool plDXPipeline::IFillAvRTPool(uint16_t numRTs, uint16_t width)
 
 void plDXPipeline::IReleaseAvRTPool()
 {
-    int i;
-    for (i = 0; i < fClothingOutfits.GetCount(); i++)
+    for (plClothingOutfit* outfit : fClothingOutfits)
     {
-        fClothingOutfits[i]->fTargetLayer->SetTexture(nil);
+        outfit->fTargetLayer->SetTexture(nullptr);
     }
-    for (i = 0; i < fPrevClothingOutfits.GetCount(); i++)
+    for (plClothingOutfit* outfit : fPrevClothingOutfits)
     {
-        fPrevClothingOutfits[i]->fTargetLayer->SetTexture(nil);
-    }   
-    for (i = 0; i < fAvRTPool.GetCount(); i++)
-    {
-        delete(fAvRTPool[i]);
+        outfit->fTargetLayer->SetTexture(nullptr);
     }
-    fAvRTPool.Reset();
+    for (plRenderTarget* avRT : fAvRTPool)
+    {
+        delete(avRT);
+    }
+    fAvRTPool.clear();
 }
 
 plRenderTarget *plDXPipeline::IGetNextAvRT()
@@ -12117,11 +12023,11 @@ plRenderTarget *plDXPipeline::IGetNextAvRT()
 
 void plDXPipeline::IFreeAvRT(plRenderTarget* tex)
 {
-    uint32_t index = fAvRTPool.Find(tex);
-    if (index != fAvRTPool.kMissingIndex)
+    auto iter = std::find(fAvRTPool.begin(), fAvRTPool.end(), tex);
+    if (iter != fAvRTPool.end())
     {
-        hsAssert(index < fAvNextFreeRT, "Freeing an avatar RT that's already free?");
-        fAvRTPool[index] = fAvRTPool[fAvNextFreeRT - 1];
+        hsAssert(iter - fAvRTPool.begin() < fAvNextFreeRT, "Freeing an avatar RT that's already free?");
+        *iter = fAvRTPool[fAvNextFreeRT - 1];
         fAvRTPool[fAvNextFreeRT - 1] = tex;
         fAvNextFreeRT--;
     }
@@ -12135,8 +12041,8 @@ struct plAVTexVert
 
 void plDXPipeline::IPreprocessAvatarTextures()
 {   
-    plProfile_Set(AvRTPoolUsed, fClothingOutfits.GetCount());
-    plProfile_Set(AvRTPoolCount, fAvRTPool.GetCount());
+    plProfile_Set(AvRTPoolUsed, fClothingOutfits.size());
+    plProfile_Set(AvRTPoolCount, fAvRTPool.size());
     plProfile_Set(AvRTPoolRes, fAvRTWidth);
     plProfile_Set(AvRTShrinkTime, uint32_t(hsTimer::GetSysSeconds() - fAvRTShrinkValidSince));
 
@@ -12144,20 +12050,20 @@ void plDXPipeline::IPreprocessAvatarTextures()
 
     const uint32_t kVFormat = D3DFVF_XYZ | D3DFVF_TEX1 | D3DFVF_TEXCOORDSIZE2(0);
 
-    if (fClothingOutfits.GetCount() == 0)
+    if (fClothingOutfits.empty())
         return;
 
-    plMipmap *itemBufferTex = nil;
+    plMipmap *itemBufferTex = nullptr;
 
     fForceMatHandle = true;
-    ISetShaders(nil, nil); // Has a side effect of futzing with our cull settings...
+    ISetShaders(nullptr, nullptr); // Has a side effect of futzing with our cull settings...
 
-    // Even though we're going to use DrawPrimitiveUP, we explicitly set the current VB ref to nil,
+    // Even though we're going to use DrawPrimitiveUP, we explicitly set the current VB ref to nullptr,
     // otherwise we might try and use the same VB ref later, think it hasn't changed, and
     // not update our FVF. 
     hsRefCnt_SafeUnRef(fSettings.fCurrVertexBuffRef);
-    fSettings.fCurrVertexBuffRef = nil;
-    fD3DDevice->SetStreamSource(0, NULL, 0, 0);
+    fSettings.fCurrVertexBuffRef = nullptr;
+    fD3DDevice->SetStreamSource(0, nullptr, 0, 0);
     fD3DDevice->SetFVF(fSettings.fCurrFVFFormat = kVFormat);
     fD3DDevice->SetTransform(D3DTS_VIEW, &d3dIdentityMatrix);
     fD3DDevice->SetTransform(D3DTS_WORLD, &d3dIdentityMatrix);
@@ -12184,7 +12090,7 @@ void plDXPipeline::IPreprocessAvatarTextures()
     fD3DDevice->SetRenderState(D3DRS_SPECULARENABLE, FALSE);
     fLayerState[0].fShadeFlags &= ~hsGMatState::kShadeSpecular; 
     fD3DDevice->SetRenderState(D3DRS_FOGENABLE, FALSE);
-    fCurrFog.fEnvPtr = nil;
+    fCurrFog.fEnvPtr = nullptr;
     fD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
     fD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TFACTOR);
     fD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_TEXTURE);
@@ -12198,21 +12104,19 @@ void plDXPipeline::IPreprocessAvatarTextures()
     fLayerState[1].fBlendFlags = uint32_t(-1);
     inlEnsureLightingOff();
 
-    int oIdx;
-    for (oIdx = 0; oIdx < fClothingOutfits.GetCount(); oIdx++)
-    {   
-        plClothingOutfit *co = fClothingOutfits[oIdx];
-        if (co->fBase == nil || co->fBase->fBaseTexture == nil)
+    for (plClothingOutfit* co : fClothingOutfits)
+    {
+        if (co->fBase == nullptr || co->fBase->fBaseTexture == nullptr)
             continue;
 
         plRenderTarget *rt = plRenderTarget::ConvertNoRef(co->fTargetLayer->GetTexture());
-        if (rt != nil && co->fDirtyItems.Empty())
+        if (rt != nullptr && co->fDirtyItems.Empty())
         {
             // we've still got our valid RT from last frame and we have nothing to do.
             continue;
         }
 
-        if (rt == nil)
+        if (rt == nullptr)
         {
             rt = IGetNextAvRT();
             co->fTargetLayer->SetTexture(rt);
@@ -12233,18 +12137,16 @@ void plDXPipeline::IPreprocessAvatarTextures()
         IDrawClothingQuad(-1.f, -1.f, 2.f, 2.f, uOff, vOff, co->fBase->fBaseTexture);
         plClothingLayout *layout = plClothingMgr::GetClothingMgr()->GetLayout(co->fBase->fLayoutName);
 
-        int i, j, k;
-        for (i = 0; i < co->fItems.GetCount(); i++)
+        for (plClothingItem *item : co->fItems)
         {
-            plClothingItem *item = co->fItems[i];
             //if (!co->fDirtyItems.IsBitSet(item->fTileset))
             //  continue; // Not dirty, don't update
 
-            for (j = 0; j < item->fElements.GetCount(); j++)
+            for (size_t j = 0; j < item->fElements.size(); j++)
             {
-                for (k = 0; k < plClothingElement::kLayerMax; k++)
+                for (int k = 0; k < plClothingElement::kLayerMax; k++)
                 {
-                    if (item->fTextures[j][k] == nil)
+                    if (item->fTextures[j][k] == nullptr)
                         continue;
 
                     itemBufferTex = item->fTextures[j][k];
@@ -12267,7 +12169,7 @@ void plDXPipeline::IPreprocessAvatarTextures()
                     fD3DDevice->SetRenderState(D3DRS_TEXTUREFACTOR, tint.ToARGB32());
                     fLayerState[0].fBlendFlags = uint32_t(-1);
                     float screenW = (float)item->fElements[j]->fWidth / layout->fOrigWidth * 2.f;
-                    float screenH = (float)item->fElements[j]->fHeight / layout->fOrigWidth * 2.f;                
+                    float screenH = (float)item->fElements[j]->fHeight / layout->fOrigWidth * 2.f;
                     float screenX = (float)item->fElements[j]->fXPos / layout->fOrigWidth * 2.f - 1.f;
                     float screenY = (1.f - (float)item->fElements[j]->fYPos / layout->fOrigWidth) * 2.f - 1.f - screenH;
                     IDrawClothingQuad(screenX, screenY, screenW, screenH, uOff, vOff, itemBufferTex);
@@ -12281,7 +12183,7 @@ void plDXPipeline::IPreprocessAvatarTextures()
     fD3DDevice->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_GREEN | D3DCOLORWRITEENABLE_BLUE | D3DCOLORWRITEENABLE_ALPHA);
     fView.fXformResetFlags = fView.kResetAll;
 
-    fClothingOutfits.Swap(fPrevClothingOutfits);
+    fClothingOutfits.swap(fPrevClothingOutfits);
 }
 
 void plDXPipeline::IDrawClothingQuad(float x, float y, float w, float h, 
@@ -12291,7 +12193,7 @@ void plDXPipeline::IDrawClothingQuad(float x, float y, float w, float h,
     plDXTextureRef* ref = (plDXTextureRef*)tex->GetDeviceRef();
     if (!ref || ref->IsDirty())
     {
-        MakeTextureRef(nil, tex);
+        MakeTextureRef(nullptr, tex);
         ref = (plDXTextureRef*)tex->GetDeviceRef();
     }
     if (!ref->fD3DTexture)
@@ -12357,10 +12259,10 @@ plPipeline  *plPipelineCreate::ICreateDXPipeline( hsWinRef hWnd, const hsG3DDevi
     plDXPipeline    *pipe = new plDXPipeline( hWnd, devMode );
 
     // Taken out 8.1.2001 mcn - If we have an error, still return so the client can grab the string
-//  if( pipe->GetErrorString() != nil )
+//  if (pipe->GetErrorString() != nullptr)
 //  {
 //      delete pipe;
-//      pipe = nil;
+//      pipe = nullptr;
 //  }
 
     return pipe;

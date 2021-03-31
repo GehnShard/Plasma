@@ -40,19 +40,17 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
-#include "hsResMgr.h"
-#include "hsStream.h"
-#pragma hdrstop
-
 #include "plRideAnimatedPhysMsg.h"
 
+#include "hsResMgr.h"
+#include "hsStream.h"
+
 plRideAnimatedPhysMsg::plRideAnimatedPhysMsg()
-:fRegion(nil)
-,fEntering(false)
+    : fEntering()
 {   
 }
 plRideAnimatedPhysMsg::plRideAnimatedPhysMsg(const plKey &sender, const plKey &receiver, bool entering, plKey regionKey)
-: plMessage(sender, receiver, nil)
+: plMessage(sender, receiver, nullptr)
 ,fRegion(regionKey)
 ,fEntering(entering)
 {

@@ -49,7 +49,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "MaxMain/plMaxNode.h"
 
 #include "resource.h"
-#pragma hdrstop
 
 #include "plClickableComponent.h"
 
@@ -100,7 +99,7 @@ ParamBlockDesc2 gClickableBlock
 (
     plComponent::kBlkComp, _T("clickable"), 0, &gClickableDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_DETECTOR_CLICKABLE, IDS_COMP_DETECTOR_CLICKABLE, 0, 0, NULL,
+    IDD_COMP_DETECTOR_CLICKABLE, IDS_COMP_DETECTOR_CLICKABLE, 0, 0, nullptr,
 
     kClickableDirectional,      _T("directional"),      TYPE_BOOL,              0, 0,
         p_ui,               TYPE_SINGLECHEKBOX, IDC_COMP_CLICK_OMNI,
@@ -325,13 +324,13 @@ bool plClickableComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     if (fCompPB->GetInt(kClickableOneShot))
         logic->SetFlag(plLogicModBase::kOneShot);
 
-    hsTArray<plKey> receivers;
+    std::vector<plKey> receivers;
     IGetReceivers(node, receivers);
-    for (int i = 0; i < receivers.Count(); i++)
-        logic->AddNotifyReceiver(receivers[i]);
+    for (const plKey& receiver : receivers)
+        logic->AddNotifyReceiver(receiver);
 
         // Create the detector
-    plDetectorModifier *detector = nil;
+    plDetectorModifier *detector = nullptr;
     detector = new plPickingDetector;
 
     // Register the detector
@@ -369,7 +368,7 @@ bool plClickableComponent::Convert(plMaxNode *node, plErrorMsg *pErrMsg)
     int deg = fCompPB->GetInt(kClickableDegrees);
     if (deg > 180)
         deg = 180;
-    float rad = hsDegreesToRadians(deg);
+    float rad = hsDegreesToRadians(float(deg));
     facingCond->SetTolerance(cos(rad));
     plKey facingKey = hsgResMgr::ResMgr()->NewKey(IGetUniqueName(node), facingCond, loc);
     
@@ -398,13 +397,13 @@ class plNoBlkClickableComponent : public plComponent
 {
 public:
     plNoBlkClickableComponent();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
 
-    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg); 
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) { return true; }
-    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) { return true; } 
+    bool SetupProperties(plMaxNode *node, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override { return true; }
+    bool PreConvert(plMaxNode *node, plErrorMsg *pErrMsg) override { return true; }
 
-    virtual void CollectNonDrawables(INodeTab& nonDrawables) { AddTargetsToList(nonDrawables); }
+    void CollectNonDrawables(INodeTab& nonDrawables) override { AddTargetsToList(nonDrawables); }
 };
 
 OBSOLETE_CLASS_DESC(plNoBlkClickableComponent, gNoBlkClickableDesc, "(ex)Non Physical Clickable Proxy",  "(ex)Non Physical Clickable Proxy", COMP_TYPE_PHYSICAL, Class_ID(0x66325afc, 0x253a3760))

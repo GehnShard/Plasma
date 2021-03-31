@@ -47,14 +47,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 #include "hsStream.h"
-#pragma hdrstop
 
 #include "plPythonPack.h"
 
 #include "plFile/plSecureStream.h"
 #include "plFile/plStreamSource.h"
-
-static const char* kPackFilePath = ".\\Python\\";
 
 struct plPackOffsetInfo
 {
@@ -179,10 +176,8 @@ void plPythonPack::Close()
     int i;
     for (i=0; i<fPackStreams.size(); i++)
     {
-        hsStream* fPackStream = fPackStreams[i];
-
         // do NOT close or delete the streams, the preloader will do that for us
-        fPackStreams[i] = nil;
+        fPackStreams[i] = nullptr;
     }
 
     fPackStreams.clear();
@@ -192,7 +187,7 @@ void plPythonPack::Close()
 PyObject* plPythonPack::OpenPacked(const ST::string& fileName)
 {
     if (!Open())
-        return nil;
+        return nullptr;
 
     ST::string pythonName = fileName + ".py";
 
@@ -221,7 +216,7 @@ PyObject* plPythonPack::OpenPacked(const ST::string& fileName)
         }
     }
 
-    return nil;
+    return nullptr;
 }
 
 bool plPythonPack::IsPackedFile(const ST::string& fileName)

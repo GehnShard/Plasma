@@ -42,9 +42,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "HeadSpin.h"
 #include "plDynamicTextLayer.h"
 
-#include "iparamb2.h"
-#include "iparamm2.h"
-#include "stdmat.h"
+#include "MaxMain/MaxAPI.h"
 
 #include "../plBMSampler.h"
 #include "MaxMain/plPlasmaRefMsgs.h"
@@ -58,7 +56,7 @@ class DTLBitmapDlgProc : public ParamMap2UserDlgProc
 {
 public:
     /// Called to update the controls of the dialog
-    virtual void    Update( TimeValue t, Interval &valid, IParamMap2 *map )
+    void    Update(TimeValue t, Interval &valid, IParamMap2 *map) override
     {
         IParamBlock2    *pblock;
         BitmapInfo      bi;
@@ -86,7 +84,7 @@ public:
     }
 
     /// Main message proc
-    virtual BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
 
         switch (msg)
@@ -131,7 +129,7 @@ public:
             else if( LOWORD( wParam ) == IDC_INITIMAGE )
             {
                 plPlasmaMAXLayer *layer = (plPlasmaMAXLayer *)map->GetParamBlock()->GetOwner();
-                if( layer == nil )
+                if (layer == nullptr)
                     return FALSE;
                 BOOL selectedNewBitmap = layer->HandleBitmapSelection();        
                 if( selectedNewBitmap )
@@ -141,7 +139,7 @@ public:
                     ICustButton *bmSelectBtn = GetICustButton( GetDlgItem( hWnd, IDC_INITIMAGE ) );
                     PBBitmap *pbbm = layer->GetPBBitmap();
                     
-                    bmSelectBtn->SetText( pbbm != nil ? (TCHAR *)pbbm->bi.Filename() : "");
+                    bmSelectBtn->SetText(pbbm != nullptr ? (TCHAR *)pbbm->bi.Filename() : "");
                     
                     ReleaseICustButton( bmSelectBtn );                          
                 }
@@ -153,7 +151,7 @@ public:
 
         return FALSE;
     }
-    virtual void DeleteThis() {};
+    void DeleteThis() override { }
 
 protected:
     /// Clamp texture sizes to a power of 2
@@ -213,7 +211,7 @@ static DTLBitmapDlgProc gDTLBitmapDlgProc;
 class DTLPBAccessor : public PBAccessor
 {
 public:
-    void Set(PB2Value& val, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)
+    void Set(PB2Value& val, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override
     {
         if( !owner )
             return;
@@ -233,7 +231,7 @@ public:
                 break;
         }
     }
-    void Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t, Interval &valid)
+    void Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t, Interval &valid) override
     {
     }
 };
@@ -245,7 +243,7 @@ static DTLPBAccessor gDTLPBAccessor;
 
 static ParamBlockDesc2 gBitmapParamBlk
 (
-    plDynamicTextLayer::kBlkBitmap, _T("bitmap"),  0, GetDynamicTextLayerDesc(),//NULL,
+    plDynamicTextLayer::kBlkBitmap, _T("bitmap"),  0, GetDynamicTextLayerDesc(),//nullptr,
     P_AUTO_CONSTRUCT + P_AUTO_UI, plDynamicTextLayer::kRefBitmap,
 
     IDD_DYN_TEXT_LAYER, IDS_DYN_TEXT_LAYER_PROPS, 0, 0, &gDTLBitmapDlgProc,

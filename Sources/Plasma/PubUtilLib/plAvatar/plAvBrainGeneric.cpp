@@ -46,33 +46,27 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 // local
 #include "plAnimStage.h"
 #include "plArmatureMod.h"
-// #include "plAvatarTasks.h"
+#include "plAvatarMgr.h"
+#include "plAvBrainHuman.h"
 #include "plAvTask.h"
 #include "plAvTaskBrain.h"
-#include "plAvBrainHuman.h"
-#include "plAnimation/plAGAnimInstance.h"
-#include "plAnimation/plMatrixChannel.h"
 
 // global
 #include "hsTimer.h"
 #include "plgDispatch.h"
 
 // other
-#include "pnNetCommon/plSDLTypes.h"
 #include "pnMessage/plCameraMsg.h"
 #include "pnMessage/plNotifyMsg.h"
+#include "pnNetCommon/plSDLTypes.h"
+
+#include "plAnimation/plAGAnimInstance.h"
+#include "plAnimation/plMatrixChannel.h"
+#include "plInputCore/plAvatarInputInterface.h"
 #include "plMessage/plAvatarMsg.h"
 #include "plMessage/plInputEventMsg.h"
-#include "plMessage/plSimStateMsg.h"
-#include "plMessage/plConsoleMsg.h"
-#include "plPipeline/plDebugText.h"
-#include "plInputCore/plAvatarInputInterface.h"
 #include "plMessage/plInputIfaceMgrMsg.h"
-
-#ifdef DEBUG_MULTISTAGE
-#include "plAvatarMgr.h"
-#include "plStatusLog/plStatusLog.h"
-#endif
+#include "plPipeline/plDebugText.h"
 
 bool plAvBrainGeneric::fForce3rdPerson = true;
 const float plAvBrainGeneric::kDefaultFadeIn = 6.f; // 1/6th of a second to fade in
@@ -81,17 +75,16 @@ const float plAvBrainGeneric::kDefaultFadeOut = 0.f; // instant fade out.
 // plAvBrainGeneric ----------------
 // -----------------
 plAvBrainGeneric::plAvBrainGeneric()
-: fRecipient(nil),
-  fStages(new plAnimStageVec),
-  fCurStage(0),
+: fStages(new plAnimStageVec),
+  fCurStage(),
   fType(kGeneric),
   fExitFlags(kExitNormal),
   fMode(kEntering),
   fForward(true),
-  fStartMessage(nil),
-  fEndMessage(nil),
-  fFadeIn(0.0f),
-  fFadeOut(0.0f),
+  fStartMessage(),
+  fEndMessage(),
+  fFadeIn(),
+  fFadeOut(),
   fMoveMode(kMoveRelative),
   fBodyUsage(plAGAnim::kBodyUnknown)
 {
@@ -110,7 +103,7 @@ plAvBrainGeneric::plAvBrainGeneric(plAnimStageVec *stages,
 : plArmatureBrain(),
   fRecipient(recipient),
   fStages(stages),
-  fCurStage(0),
+  fCurStage(),
   fType(kGeneric),
   fExitFlags(exitFlags),
   fMode(kEntering),
@@ -126,15 +119,14 @@ plAvBrainGeneric::plAvBrainGeneric(plAnimStageVec *stages,
 
 // plAvBrainGeneric 
 plAvBrainGeneric::plAvBrainGeneric(uint32_t exitFlags, float fadeIn, float fadeOut, MoveMode moveMode)
-: fRecipient(nil),
-  fStages(nil),
-  fCurStage(0),
+: fStages(),
+  fCurStage(),
   fType(kGeneric),
   fExitFlags(exitFlags),
   fMode(kEntering),
   fForward(true),
-  fStartMessage(nil),
-  fEndMessage(nil),
+  fStartMessage(),
+  fEndMessage(),
   fFadeIn(fadeIn),
   fFadeOut(fadeOut),
   fMoveMode(moveMode),
@@ -153,7 +145,7 @@ plAvBrainGeneric::~plAvBrainGeneric()
     for(int i = 0; i < fNumStages; i++)
     {
         plAnimStage *stage = (*fStages)[i];
-        (*fStages)[i] = nil;
+        (*fStages)[i] = nullptr;
         stage->Detach(fAvMod);
         delete stage;
     }
@@ -192,7 +184,7 @@ void plAvBrainGeneric::Activate(plArmatureModBase *avMod)
         if(fStartMessage)
         {
             fStartMessage->Send();
-            fStartMessage = nil;
+            fStartMessage = nullptr;
         }
         
         if (plAvBrainGeneric::fForce3rdPerson && fAvMod->IsLocalAvatar())
@@ -273,7 +265,7 @@ void plAvBrainGeneric::Deactivate()
     if (fEndMessage)
     {
         fEndMessage->Send();
-        fEndMessage = nil;
+        fEndMessage = nullptr;
     }
     if (fMode != kAbort)        // we're being forcibly removed...
         IExitMoveMode();
@@ -408,8 +400,6 @@ bool plAvBrainGeneric::IProcessFadeIn(double time, float elapsed)
 
     if(fMode != kFadingIn)
     {
-        bool needFade = fFadeIn != 0.0f;
-
         if(fFadeIn == 0.0f)
         {
             IEnterMoveMode(time);   // if fadeIn's not zero, we have to wait until fade's done
@@ -774,9 +764,9 @@ void plAvBrainGeneric::Write(hsStream *stream, hsResMgr *mgr)
     }
 
     stream->WriteLE32(fCurStage);
-    stream->WriteLE32(fType);
+    stream->WriteLE32((uint32_t)fType);
     stream->WriteLE32(fExitFlags);
-    stream->WriteByte(fMode);
+    stream->WriteByte((uint8_t)fMode);
     stream->WriteBool(fForward);
 
     if(fStartMessage) {
@@ -793,10 +783,10 @@ void plAvBrainGeneric::Write(hsStream *stream, hsResMgr *mgr)
         stream->WriteBool(false);
     }
 
-    stream->WriteLEScalar(fFadeIn);
-    stream->WriteLEScalar(fFadeOut);
-    stream->WriteByte(fMoveMode);
-    stream->WriteByte(fBodyUsage);
+    stream->WriteLEFloat(fFadeIn);
+    stream->WriteLEFloat(fFadeOut);
+    stream->WriteByte((uint8_t)fMoveMode);
+    stream->WriteByte((uint8_t)fBodyUsage);
     mgr->WriteKey(stream, fRecipient);
 }
 
@@ -826,16 +816,16 @@ void plAvBrainGeneric::Read(hsStream *stream, hsResMgr *mgr)
     if(stream->ReadBool()) {
         fStartMessage = plMessage::ConvertNoRef(mgr->ReadCreatable(stream));
     } else {
-        fStartMessage = nil;
+        fStartMessage = nullptr;
     }
     if(stream->ReadBool()) {
         fEndMessage = plMessage::ConvertNoRef(mgr->ReadCreatable(stream));
     } else {
-        fEndMessage = nil;
+        fEndMessage = nullptr;
     }
 
-    fFadeIn = stream->ReadLEScalar();
-    fFadeOut = stream->ReadLEScalar();
+    fFadeIn = stream->ReadLEFloat();
+    fFadeOut = stream->ReadLEFloat();
     fMoveMode = static_cast<MoveMode>(stream->ReadByte());
     fBodyUsage = static_cast<plAGAnim::BodyUsage>(stream->ReadByte());
     fRecipient = mgr->ReadKey(stream);

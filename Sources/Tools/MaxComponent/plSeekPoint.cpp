@@ -47,10 +47,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plComponent.h"
 #include "plComponentReg.h"
 #include "MaxMain/plMaxNode.h"
-#include "resource.h"
+#include "MaxMain/MaxAPI.h"
 
-#include <windowsx.h>
-#pragma hdrstop
+#include "resource.h"
 
 #include "pnSceneObject/plSceneObject.h"
 
@@ -75,10 +74,10 @@ class plSeekPointComponent : public plComponent
 {
 public:
     plSeekPointComponent();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
     
-    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg);
-    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg);
+    bool PreConvert(plMaxNode *pNode, plErrorMsg *pErrMsg) override;
+    bool Convert(plMaxNode *node, plErrorMsg *pErrMsg) override;
     //bool IsValidNodeType(plMaxNode *pNode);
 };
 

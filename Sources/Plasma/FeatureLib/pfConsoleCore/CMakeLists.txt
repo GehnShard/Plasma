@@ -1,8 +1,3 @@
-include_directories(../../CoreLib)
-include_directories(../../FeatureLib)
-include_directories(../../NucleusLib)
-include_directories(../../PubUtilLib)
-
 set(pfConsoleCore_SOURCES
     pfConsoleCmd.cpp
     pfConsoleCommandsCore.cpp
@@ -16,7 +11,15 @@ set(pfConsoleCore_HEADERS
     pfConsoleEngine.h
 )
 
-add_library(pfConsoleCore STATIC ${pfConsoleCore_SOURCES} ${pfConsoleCore_HEADERS})
+plasma_library(pfConsoleCore SOURCES ${pfConsoleCore_SOURCES} ${pfConsoleCore_HEADERS})
+target_link_libraries(
+    pfConsoleCore
+    PUBLIC
+        CoreLib
+    PRIVATE
+        pnNetBase
+        plFile
+)
 
 source_group("Source Files" FILES ${pfConsoleCore_SOURCES})
 source_group("Header Files" FILES ${pfConsoleCore_HEADERS})

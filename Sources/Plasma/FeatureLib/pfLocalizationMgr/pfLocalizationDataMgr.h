@@ -50,10 +50,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define _pfLocalizationDataMgr_h
 
 #include "HeadSpin.h"
+#include "plFileSystem.h"
+
 #include <map>
+#include <vector>
 
 #include "pfLocalizedString.h"
-#include "plFileSystem.h"
+
 
 class plStatusLog;
 
@@ -123,7 +126,7 @@ public:
     static void Initialize(const plFileName & path);
     static void Shutdown();
     static pfLocalizationDataMgr &Instance() {return *fInstance;}
-    static bool InstanceValid() {return fInstance != nil;}
+    static bool InstanceValid() { return fInstance != nullptr; }
     static plStatusLog* GetLog() { return fLog; }
 
     void SetupData();

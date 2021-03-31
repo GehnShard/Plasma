@@ -41,13 +41,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 #include "HeadSpin.h"
 #include "hsExceptions.h"
-#include "hsWindows.h"
-#include <commdlg.h>
 
-#include <max.h>
-#include <bmmlib.h>
-#include <guplib.h>
-#pragma hdrstop
+#include "MaxMain/MaxAPI.h"
 
 #include "plExportLogErrorMsg.h"
 
@@ -75,7 +70,7 @@ plExportLogErrorMsg::~plExportLogErrorMsg()
     else
     {
         fErrfile = fopen(fErrfile_name, "wt");
-        setbuf(fErrfile, nil);
+        setbuf(fErrfile, nullptr);
         fprintf(fErrfile, "No errors found! Good job.");
         fclose(fErrfile);
     }
@@ -171,7 +166,7 @@ void plExportLogErrorMsg::IWriteErrorFile(const char* label, const char* msg)
         {
             // must be the first write... open the error file
             fErrfile = fopen(fErrfile_name, "wt");
-            setbuf(fErrfile, nil);
+            setbuf(fErrfile, nullptr);
             fNumberErrors = 0;
         }
         fprintf(fErrfile, "%s: %s\n", label, msg);

@@ -43,7 +43,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #define plAvLadderMod_INC
 
 #include "pnModifier/plSingleModifier.h"
-#include "pnMessage/plMessage.h"
 #include "hsGeometry3.h"
 
 // has a detector region. when a local avatar enters that region,
@@ -51,9 +50,25 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 class plAvLadderMod :  public plSingleModifier
 {
 public:
-    plAvLadderMod();
-    plAvLadderMod(bool goingUp, int type, int loops, bool enabled, hsVector3& ladderView);
-    virtual ~plAvLadderMod() {};
+    plAvLadderMod()
+        : plSingleModifier(),
+          fGoingUp(true),
+          fType(kBig),
+          fLoops(),
+          fEnabled(true),
+          fAvatarInBox(),
+          fAvatarMounting()
+    { }
+
+    plAvLadderMod(bool goingUp, int type, int loops, bool enabled, const hsVector3& ladderView)
+        : plSingleModifier(),
+          fGoingUp(goingUp),
+          fType(type),
+          fLoops(loops),
+          fEnabled(enabled),
+          fAvatarInBox(),
+          fLadderView(ladderView)
+    { }
 
     void EmitCommand(const plKey receiver);
 
@@ -61,10 +76,10 @@ public:
     GETINTERFACE_ANY( plAvLadderMod, plSingleModifier );
     
     // virtual void AddTarget(plSceneObject* so) {  SetTarget(so);  }
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
 
-    virtual void Read(hsStream* stream, hsResMgr* mgr);
-    virtual void Write(hsStream* stream, hsResMgr* mgr);
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
     
     bool GetGoingUp() const;
     void SetGoingUp(bool v);
@@ -78,7 +93,7 @@ public:
     void SetEnabled(bool enabled) { fEnabled = enabled; }
 
 protected:
-    virtual bool IEval(double secs, float del, uint32_t dirty) {return true;}
+    bool IEval(double secs, float del, uint32_t dirty) override { return true; }
     bool IIsReadyToClimb();
     void ITriggerSelf(plKey avKey);
 

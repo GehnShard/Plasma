@@ -40,6 +40,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
+#include "hsWindows.h"
+
+#include <vector>
+
 class plAgeDescription;
 class plAgeFile;
 class MaxAssBranchAccess;
@@ -81,10 +85,10 @@ public:
     // Open the dialog
     void Open();
     
-    static BOOL CALLBACK ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
-    BOOL DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+    static INT_PTR CALLBACK ForwardDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+    INT_PTR DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
-    static hsTArray<plFileName> BuildAgeFileList();
+    static std::vector<plFileName> BuildAgeFileList();
 
 protected:
     static int IFindAge(const char* ageName, std::vector<plAgeFile*>& ageFiles);

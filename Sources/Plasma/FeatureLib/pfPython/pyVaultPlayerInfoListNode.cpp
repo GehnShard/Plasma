@@ -46,8 +46,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //////////////////////////////////////////////////////////////////////
 
 #include <Python.h>
-#include <algorithm>
-#pragma hdrstop
 
 #include "pyVaultPlayerInfoListNode.h"
 #include "pyVaultFolderNode.h"
@@ -79,14 +77,14 @@ bool pyVaultPlayerInfoListNode::HasPlayer( uint32_t playerID )
     access.SetPlayerId(playerID);
 
     hsRef<RelVaultNode> rvn = fNode->GetChildNode(&templateNode, 1);
-    return rvn;
+    return rvn != nullptr;
 }
 
 //==================================================================
 
 static void IAddPlayer_NodesFound(ENetError result, void* param, unsigned nodeIdCount, const unsigned nodeIds[])
 {
-    hsRef<NetVaultNode> parent = static_cast<NetVaultNode*>(param);
+    hsWeakRef<NetVaultNode> parent = static_cast<NetVaultNode*>(param);
     if (nodeIdCount)
         VaultAddChildNode(parent->GetNodeId(), nodeIds[0], VaultGetPlayerId(), nullptr, nullptr);
 }
@@ -101,14 +99,14 @@ void pyVaultPlayerInfoListNode::AddPlayer( uint32_t playerID )
     VaultPlayerInfoNode access(&templateNode);
     access.SetPlayerId(playerID);
 
-    TArray<uint32_t> nodeIds;
+    std::vector<uint32_t> nodeIds;
     VaultLocalFindNodes(&templateNode, &nodeIds);
 
     // So, if we know about this node, we can take it easy. If not, we lazy load it.
-    if (nodeIds.Count())
+    if (!nodeIds.empty())
         VaultAddChildNode(fNode->GetNodeId(), nodeIds[0], VaultGetPlayerId(), nullptr, nullptr);
     else
-        VaultFindNodes(&templateNode, IAddPlayer_NodesFound, (NetVaultNode *)fNode);
+        VaultFindNodes(&templateNode, IAddPlayer_NodesFound, fNode.Get());
 }
 
 void pyVaultPlayerInfoListNode::RemovePlayer( uint32_t playerID )
@@ -122,7 +120,7 @@ void pyVaultPlayerInfoListNode::RemovePlayer( uint32_t playerID )
     access.SetPlayerId(playerID);
 
     if (hsRef<RelVaultNode> rvn = fNode->GetChildNode(&templateNode, 1))
-        VaultRemoveChildNode(fNode->GetNodeId(), rvn->GetNodeId(), nil, nil);
+        VaultRemoveChildNode(fNode->GetNodeId(), rvn->GetNodeId(), nullptr, nullptr);
 }
 
 PyObject * pyVaultPlayerInfoListNode::GetPlayer( uint32_t playerID )

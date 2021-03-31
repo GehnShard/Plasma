@@ -46,7 +46,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //
 // this message is to fake out a gadget to see if it would potentially trigger...
 //
-#include "pnMessage/plMessage.h"
+#include "plMessage.h"
 #include "hsBitVector.h"
 
 class hsStream;
@@ -81,11 +81,14 @@ public:
     void ClearCmd(int n) { fCmd.ClearBit(n); }
 
     // IO
-    void Read(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+    void Read(hsStream* stream, hsResMgr* mgr) override
+    {
         plMessage::IMsgRead(stream, mgr);
         fCmd.Read(stream);
     }
-    void Write(hsStream* stream, hsResMgr* mgr) HS_OVERRIDE {
+
+    void Write(hsStream* stream, hsResMgr* mgr) override
+    {
         plMessage::IMsgWrite(stream, mgr);
         fCmd.Write(stream);
     }

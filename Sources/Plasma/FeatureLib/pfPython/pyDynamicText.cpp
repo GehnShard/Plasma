@@ -49,7 +49,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <Python.h>
 #include "plgDispatch.h"
 #include "pyKey.h"
-#pragma hdrstop
 
 #include "pyDynamicText.h"
 #include "plMessage/plDynamicTextMsg.h"
@@ -59,47 +58,39 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 
 pyDynamicText::pyDynamicText()
+    : fClipLeft(), fClipTop(), fClipRight(), fClipBottom(), fWrapWidth(), fWrapHeight(),
+      fSenderKey(), fNetPropagate(), fNetForce(), fWrap(), fClip()
+{ }
+
+pyDynamicText::pyDynamicText(const pyKey& key)
+    : fClipLeft(), fClipTop(), fClipRight(), fClipBottom(), fWrapWidth(), fWrapHeight(),
+      fSenderKey(), fNetPropagate(), fNetForce(), fWrap(), fClip()
 {
-    IInit();
+    fReceivers.emplace_back(key.getKey());
 }
 
-pyDynamicText::pyDynamicText(pyKey& key) 
+pyDynamicText::pyDynamicText(plKey key)
+    : fClipLeft(), fClipTop(), fClipRight(), fClipBottom(), fWrapWidth(), fWrapHeight(),
+      fSenderKey(), fNetPropagate(), fNetForce(), fWrap(), fClip()
 {
-    IInit();
-    fReceivers.Append(key.getKey());
-}
-
-pyDynamicText::pyDynamicText(plKey key) 
-{
-    IInit();
-    fReceivers.Append(key);
-}
-
-
-void pyDynamicText::IInit()
-{
-    fSenderKey = nil;
-    fNetPropagate = false;
-    fNetForce = false;
-    fWrap = false;
-    fClip = false;
+    fReceivers.emplace_back(key);
 }
 
 
 // methods that will be exposed to Python
-void pyDynamicText::SetSender(pyKey& selfKey)
+void pyDynamicText::SetSender(const pyKey& selfKey)
 {
     fSenderKey = selfKey.getKey();
 }
 
 void pyDynamicText::ClearReceivers()
 {
-    fReceivers.Reset();
+    fReceivers.clear();
 }
 
-void pyDynamicText::AddReceiver(pyKey& key)
+void pyDynamicText::AddReceiver(const pyKey& key)
 {
-    fReceivers.Append(key.getKey());
+    fReceivers.emplace_back(key.getKey());
 }
 
 
@@ -120,7 +111,7 @@ void pyDynamicText::SetNetForce(bool force)
 plDynamicTextMsg* pyDynamicText::ICreateDTMsg()
 {
     // must have a receiver!
-    if ( fReceivers.Count() > 0 )
+    if (!fReceivers.empty())
     {
         plDynamicTextMsg* pMsg = new plDynamicTextMsg;
         if ( fSenderKey )
@@ -130,16 +121,13 @@ plDynamicTextMsg* pyDynamicText::ICreateDTMsg()
         if ( fNetForce )
             pMsg->SetBCastFlag(plMessage::kNetForce);
         // add all our receivers to the message receiver list
-        int i;
-        for ( i=0; i<fReceivers.Count(); i++ )
-        {
-            pMsg->AddReceiver(fReceivers[i]);
-        }
+        for (const plKey& rcKey : fReceivers)
+            pMsg->AddReceiver(rcKey);
 
         return pMsg;
     }
     else
-        return nil;
+        return nullptr;
 }
 
 //////////////////////////////////////////////
@@ -324,11 +312,11 @@ uint16_t  pyDynamicText::GetWidth()
     // We better just pick our first key. Note that the ONLY time we should be getting multiple receivers
     // is if the export process ends up creating multiple copies of the material. Now, WHY you'd be wanting
     // to draw all of them is a question for wiser men, but they should all be the same size regardless
-    if( fReceivers.GetCount() == 0 )
+    if (fReceivers.empty())
         return 0;
 
     plDynamicTextMap *dtMap = plDynamicTextMap::ConvertNoRef( fReceivers[ 0 ]->ObjectIsLoaded() );
-    if( dtMap == nil )
+    if (dtMap == nullptr)
         return 0;
 
     return (uint16_t)dtMap->GetWidth();
@@ -339,11 +327,11 @@ uint16_t  pyDynamicText::GetHeight()
     // We better just pick our first key. Note that the ONLY time we should be getting multiple receivers
     // is if the export process ends up creating multiple copies of the material. Now, WHY you'd be wanting
     // to draw all of them is a question for wiser men, but they should all be the same size regardless
-    if( fReceivers.GetCount() == 0 )
+    if (fReceivers.empty())
         return 0;
 
     plDynamicTextMap *dtMap = plDynamicTextMap::ConvertNoRef( fReceivers[ 0 ]->ObjectIsLoaded() );
-    if( dtMap == nil )
+    if (dtMap == nullptr)
         return 0;
 
     return (uint16_t)dtMap->GetHeight();
@@ -354,7 +342,7 @@ void pyDynamicText::CalcTextExtents(const ST::string& text, uint16_t& width, uin
     width = 0;
     height = 0;
 
-    if (fReceivers.GetCount() == 0)
+    if (fReceivers.empty())
         return;
 
     plDynamicTextMap* dtMap = plDynamicTextMap::ConvertNoRef(fReceivers[0]->ObjectIsLoaded());
@@ -384,8 +372,8 @@ void pyDynamicText::SetLineSpacing(int16_t spacing)
 
 plKey pyDynamicText::GetImage()
 {
-    if (fReceivers.GetCount() > 0)
+    if (!fReceivers.empty())
         return fReceivers[0];
     else
-        return nil;
+        return nullptr;
 }

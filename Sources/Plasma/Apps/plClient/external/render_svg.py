@@ -48,15 +48,21 @@ from __future__ import division
 
 import os
 import math
+import io
 from xml.dom.minidom import parse
 from optparse import OptionParser
 import scalergba
 
 try:
-	import rsvg
-	import cairo
+	import cairosvg
+	import cairocffi as cairo
 except ImportError as e:
-	print("Rendering SVG resources requires PyGTK.  Exiting...")
+	print("Rendering SVG resources requires CairoSVG.  Exiting...")
+	exit(1)
+try:
+	from PIL import Image, ImageFilter
+except ImportError:
+	print("Rendering SVG resources requires Pillow.  Exiting...")
 	exit(1)
 
 cursorList = {
@@ -117,6 +123,10 @@ def shift_all_layers(layers, shiftx, shifty):
 	for layer in layers:
 		layers[layer].setAttribute("transform", "translate(%g,%g)" % (shiftx, shifty))
 
+def rotate_layer(layer, angle, offX, offY):
+	# note: this assumes that this layer starts out with no transform of their own
+	layer.setAttribute("transform", "rotate(%g %g %g)" % (angle, offX, offY))
+
 def get_layers_from_svg(svgData):
 	inkscapeNS = "http://www.inkscape.org/namespaces/inkscape"
 	layers = {}
@@ -142,42 +152,57 @@ def render_cursors(inpath, outpath):
 		layers = get_layers_from_svg(cursorSVG)
 		svgwidth = float(cursorSVG.documentElement.getAttribute("width"))
 		svgheight = float(cursorSVG.documentElement.getAttribute("height"))
-		surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(math.ceil(scalefactor*svgwidth)), int(math.ceil(scalefactor*svgheight)))
+		cursorSVG.documentElement.setAttribute("width", str(scalefactor*svgwidth))
+		cursorSVG.documentElement.setAttribute("height", str(scalefactor*svgheight))
+		cursorSVG.documentElement.setAttribute("viewBox", "0 0 {} {}".format(svgwidth, svgheight))
 
-		for cursor in cursorList:
-			ctx = cairo.Context(surface)
-			ctx.save()
-			ctx.set_operator(cairo.OPERATOR_CLEAR)
-			ctx.paint()
-			ctx.restore()
+		# Render the mask for shadows of translucent arrows by appending its
+		# contents to the document as a plain layer. Remove the mask so that it
+		# isn't applied twice in case CairoSVG ever gains the ability to use it.
+		enable_only_layers([], layers)
+		maskelement = cursorSVG.getElementsByTagName("mask")[0]
+		maskelement.parentNode.removeChild(maskelement)
+		maskgroup = maskelement.getElementsByTagName("g")[0]
+		maskelement.removeChild(maskgroup)
+		cursorSVG.documentElement.appendChild(maskgroup)
+		maskelement.unlink()
+		shadowmaskbytes = cairosvg.svg2png(bytestring=cursorSVG.toxml().encode('utf-8'),
+					parent_width=scalefactor*svgwidth, parent_height=scalefactor*svgheight)
+		cursorSVG.documentElement.removeChild(maskgroup)
+		maskgroup.unlink()
+		shadowmaskimg = Image.open(io.BytesIO(shadowmaskbytes)).getchannel("R")
 
-			enabledlayers = cursorList[cursor]
-			enabledlayers = enabledlayers + [l + "Shadow" for l in enabledlayers]
+		def renderLayers(cursor, enabledlayers):
 			enable_only_layers(enabledlayers, layers)
-
 			shift_all_layers(layers, *cursorOffsetList.get(cursor, [0, 0]))
+			pngbytes = cairosvg.svg2png(bytestring=cursorSVG.toxml().encode('utf-8'),
+				parent_width=scalefactor*svgwidth, parent_height=scalefactor*svgheight)
+			return Image.open(io.BytesIO(pngbytes))
+			
+		for cursor in cursorList:
+			# Render foreground and shadows separately because CairoSVG does not
+			# support the blur effect.
+			foregroundimg = renderLayers(cursor, cursorList[cursor])
+			shadowimg = renderLayers(cursor, [l + "Shadow" for l in cursorList[cursor]])
 
-			svg = rsvg.Handle(data=cursorSVG.toxml())
-			ctx.scale(scalefactor, scalefactor)
-			svg.render_cairo(ctx)
-
-			outfile = os.path.join(outpath, cursor + ".png")
-			surface.write_to_png(outfile)
-			scalergba.scale(outfile, outfile, scalefactor)
+			# Composite everything
+			shadowimg = shadowimg.filter(ImageFilter.GaussianBlur(scalefactor*1.3))
+			outimg = Image.new("RGBA", foregroundimg.size, (0, 0, 0, 0))
+			outimg.paste(shadowimg, mask=shadowmaskimg if any("arrowTranslucent" in l for l in cursorList[cursor]) else None)
+			# this is empirical magic that brings the result closer to the original one from rsvg
+			outimg = Image.blend(Image.new("RGBA", foregroundimg.size, (0, 0, 0, 0)), outimg, 0.94)
+			outimg.alpha_composite(foregroundimg)
+			outimg = scalergba.scaleimage(outimg, scalefactor)
+			outimg.save(os.path.join(outpath, cursor + ".png"), "PNG")
 
 def render_loading_logo(inpath, outpath):
 	resSize = {"width":256, "height":256}
 	with open(os.path.join(inpath,"Writers_Logo.svg"), "r") as svgFile:
 		logoSVG = parse(svgFile)
 		layers = get_layers_from_svg(logoSVG)
-		ratioW = resSize["width"] / float(logoSVG.documentElement.getAttribute("width"))
-		ratioH = resSize["height"] / float(logoSVG.documentElement.getAttribute("height"))
 
 		numFrames = 180
 		for frame in range(0, numFrames):
-			surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, resSize["width"], resSize["height"])
-			ctx = cairo.Context(surface)
-
 			# Calculate Ray opacity for pulsing:
 			#  -- First half of the animation will fade in from 10% to 90% using QuadInOut
 			#  -- Second half will fade back out from 90% to 10% using CubicInOut
@@ -191,58 +216,35 @@ def render_loading_logo(inpath, outpath):
 
 			# Draw Book and Black Background
 			enable_only_layers(["Rays", "Hills", "Pen", "OuterCircle"],layers)
-			svg = rsvg.Handle(data=logoSVG.toxml())
-			ctx.save()
-			ctx.scale(ratioW, ratioH)
-			svg.render_cairo(ctx)
-			ctx.restore()
 
-			surface.write_to_png(os.path.join(outpath, "xLoading_Linking.{0:03}.png".format(frame)))
+			cairosvg.svg2png(bytestring=logoSVG.toxml().encode('utf-8'),
+				write_to=os.path.join(outpath, "xLoading_Linking.{0:03}.png".format(frame)),
+				parent_width=resSize["width"], parent_height=resSize["height"])
 
 def render_loading_text(inpath, outpath):
 	resSize = {"width":192, "height":41}
 	with open(os.path.join(inpath,"Loading_Text_rasterfont.svg"), "r") as svgFile:
 		textSVG = parse(svgFile)
 		layers = get_layers_from_svg(textSVG)
-		ratioW = resSize["width"] / float(textSVG.documentElement.getAttribute("width"))
-		ratioH = resSize["height"] / float(textSVG.documentElement.getAttribute("height"))
-		surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, resSize["width"], resSize["height"])
 
 		for textEntry in textList:
-			ctx = cairo.Context(surface)
-			ctx.save()
-			ctx.set_operator(cairo.OPERATOR_CLEAR)
-			ctx.paint()
-			ctx.restore()
 			enable_only_layers(textList[textEntry], layers)
-			svg = rsvg.Handle(data=textSVG.toxml())
-			ctx.scale(ratioW, ratioH)
-			svg.render_cairo(ctx)
-			surface.write_to_png(os.path.join(outpath, textEntry + ".png"))
+			cairosvg.svg2png(bytestring=textSVG.toxml().encode('utf-8'),
+				write_to=os.path.join(outpath, textEntry + ".png"), 
+				parent_width=resSize["width"], parent_height=resSize["height"])
 
 def render_voice_icons(inpath, outpath):
 	resSize = {"width":32, "height":32}
 	with open(os.path.join(inpath,"Voice_Chat.svg"), "r") as svgFile:
 		uiSVG = parse(svgFile)
 		layers = get_layers_from_svg(uiSVG)
-		ratioW = resSize["width"] / float(uiSVG.documentElement.getAttribute("width"))
-		ratioH = resSize["height"] / float(uiSVG.documentElement.getAttribute("height"))
-		surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, resSize["width"], resSize["height"])
 
 		for voiceUI in voiceList:
-			ctx = cairo.Context(surface)
-			ctx.save()
-			ctx.set_operator(cairo.OPERATOR_CLEAR)
-			ctx.paint()
-			ctx.restore()
-
 			enable_only_layers(voiceList[voiceUI], layers)
 
-			svg = rsvg.Handle(data=uiSVG.toxml())
-			ctx.scale(ratioW, ratioH)
-			svg.render_cairo(ctx)
-
-			surface.write_to_png(os.path.join(outpath, voiceUI + ".png"))
+			cairosvg.svg2png(bytestring=uiSVG.toxml().encode('utf-8'),
+				write_to=os.path.join(outpath, voiceUI + ".png"), 
+				parent_width=resSize["width"], parent_height=resSize["height"])
 
 
 ###

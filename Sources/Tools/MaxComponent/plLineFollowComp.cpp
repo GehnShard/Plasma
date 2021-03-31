@@ -46,10 +46,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plComponent.h"
 #include "plComponentReg.h"
 #include "MaxMain/plMaxNode.h"
-#include "resource.h"
+#include "MaxMain/MaxAPI.h"
 
-#include <iparamm2.h>
-#pragma hdrstop
+#include "resource.h"
 
 #include "MaxMain/plPlasmaRefMsgs.h"
 
@@ -110,7 +109,7 @@ enum
 class plLineObjAccessor : public PBAccessor
 {
 public:
-    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)
+    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override
     {
         if( (id == kFollowObjectSel) || (id == kPathObjectSel) )
         {
@@ -125,7 +124,7 @@ plLineObjAccessor gLineObjAccessor;
 class plLineFollowComponentProc : public ParamMap2UserDlgProc
 {
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -140,7 +139,7 @@ public:
                     else
                         map->Enable(kFollowObjectSel, FALSE);
             }
-            return true;
+            return TRUE;
 
 //////////////////
         case WM_COMMAND:
@@ -155,15 +154,15 @@ public:
                     else
                         map->Enable(kFollowObjectSel, FALSE);
                     
-                    return true;
+                    return TRUE;
                 }
             }
             
         }
 
-        return false;
+        return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plLineFollowComponentProc gLineFollowProc;
 
@@ -181,9 +180,9 @@ private:
 public:
     plLineFollowComponent();
 
-    bool SetupProperties(plMaxNode* pNode, plErrorMsg* pErrMsg);
-    bool PreConvert(plMaxNode* pNode, plErrorMsg* pErrMsg);
-    bool Convert(plMaxNode* node, plErrorMsg* pErrMsg);
+    bool SetupProperties(plMaxNode* pNode, plErrorMsg* pErrMsg) override;
+    bool PreConvert(plMaxNode* pNode, plErrorMsg* pErrMsg) override;
+    bool Convert(plMaxNode* node, plErrorMsg* pErrMsg) override;
 
     plLineFollowMod*    GetLineMod(plErrorMsg* pErrMsg);
 };
@@ -267,8 +266,8 @@ ParamBlockDesc2 gLineFollowBk
 );
 
 plLineFollowComponent::plLineFollowComponent()
-:   fValid(false),
-    fLineMod(nil)
+:   fValid(),
+    fLineMod()
 {
     fClassDesc = &gLineFollowDesc;
     fClassDesc->MakeAutoParamBlocks(this);
@@ -283,9 +282,7 @@ bool plLineFollowComponent::IMakeLineMod(plMaxNode* pNode, plErrorMsg* pErrMsg)
 
     if( plLineFollowMod::kFollowObject == mode )
     {
-        if(fCompPB->GetINode(kFollowObjectSel) != NULL)
-
-
+        if (fCompPB->GetINode(kFollowObjectSel) != nullptr)
         {
             plMaxNode* targNode = (plMaxNode*)fCompPB->GetINode(kFollowObjectSel);
             //plMaxNodeData* pMD = targNode->GetMaxNodeData();
@@ -372,7 +369,7 @@ bool plLineFollowComponent::IMakeLineMod(plMaxNode* pNode, plErrorMsg* pErrMsg)
 plLineFollowMod* plLineFollowComponent::GetLineMod(plErrorMsg* pErrMsg)
 {
     if( !fValid )
-        return nil;
+        return nullptr;
     if( !fLineMod )
     {
         int i;
@@ -409,7 +406,7 @@ bool plLineFollowComponent::Convert(plMaxNode* node, plErrorMsg* pErrMsg)
 bool plLineFollowComponent::SetupProperties(plMaxNode* pNode,  plErrorMsg* pErrMsg)
 {
     fValid = false;
-    fLineMod = nil;
+    fLineMod = nullptr;
 
     if( !fCompPB->GetINode(kPathObjectSel) )
     {
@@ -491,13 +488,13 @@ public:
 
 public:
     plStereizeComp();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    virtual bool SetupProperties(plMaxNode* node, plErrorMsg* pErrMsg);
-    virtual bool PreConvert(plMaxNode* node, plErrorMsg* pErrMsg);
-    virtual bool Convert(plMaxNode* node, plErrorMsg* pErrMsg);
+    bool SetupProperties(plMaxNode* node, plErrorMsg* pErrMsg) override;
+    bool PreConvert(plMaxNode* node, plErrorMsg* pErrMsg) override;
+    bool Convert(plMaxNode* node, plErrorMsg* pErrMsg) override;
 
     bool    Bail(plMaxNode* node, const char* msg, plErrorMsg* pErrMsg);
 
@@ -511,7 +508,7 @@ ParamBlockDesc2 gStereizeBk
 (   
     plComponent::kBlkComp, _T("Stereize"), 0, &gStereizeDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, plComponent::kRefComp,
 
-    IDD_COMP_STEREIZE, IDS_COMP_STEREIZE, 0, 0, NULL,
+    IDD_COMP_STEREIZE, IDS_COMP_STEREIZE, 0, 0, nullptr,
 
     plStereizeComp::kLeft,  _T("Left"), TYPE_BOOL,      0, 0,
         p_default,  FALSE,
@@ -629,7 +626,7 @@ plLineFollowMod* plStereizeComp::ISetMaster(plStereizer* stereo, plMaxNode* node
             }
         }
     }
-    return nil;
+    return nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -663,13 +660,13 @@ public:
 
 public:
     plSwivelComp();
-    void DeleteThis() { delete this; }
+    void DeleteThis() override { delete this; }
 
     // SetupProperties - Internal setup and write-only set properties on the MaxNode. No reading
     // of properties on the MaxNode, as it's still indeterminant.
-    virtual bool SetupProperties(plMaxNode* node, plErrorMsg* pErrMsg);
-    virtual bool PreConvert(plMaxNode* node, plErrorMsg* pErrMsg);
-    virtual bool Convert(plMaxNode* node, plErrorMsg* pErrMsg);
+    bool SetupProperties(plMaxNode* node, plErrorMsg* pErrMsg) override;
+    bool PreConvert(plMaxNode* node, plErrorMsg* pErrMsg) override;
+    bool Convert(plMaxNode* node, plErrorMsg* pErrMsg) override;
 
     bool    Bail(plMaxNode* node, const char* msg, plErrorMsg* pErrMsg);
 
@@ -679,7 +676,7 @@ public:
 class plSwivelComponentProc : public ParamMap2UserDlgProc
 {
 public:
-    BOOL DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         switch (msg)
         {
@@ -691,7 +688,7 @@ public:
                     else
                         map->Enable(plSwivelComp::kFaceObjectSel, FALSE);
             }
-            return true;
+            return TRUE;
 
 //////////////////
         case WM_COMMAND:
@@ -707,15 +704,15 @@ public:
                     else
                         map->Enable(plSwivelComp::kFaceObjectSel, FALSE);
                     
-                    return true;
+                    return TRUE;
                 }
             }
             
         }
 
-        return false;
+        return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plSwivelComponentProc gSwivelProc;
 

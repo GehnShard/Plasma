@@ -47,12 +47,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 #include <map>
+#include <vector>
 
 #include "plFileSystem.h"
 #include "hsGeometry3.h"
 
 #include "pnKeyedObject/hsKeyedObject.h"
-#include "plMessage/plLoadAvatarMsg.h"
 
 // This is still pretty much a hack, but it's a compartmentalized hack instead of the previous
 // interwoven spaghetti hack.
@@ -71,6 +71,7 @@ class plNotifyMsg;
 class plCoopCoordinator;
 class plLoadCloneMsg;
 class plStatusLog;
+class plAvTask;
 
 /** \class plAvatarMgr
     Gathering place for global animations and miscellaneous avatar data.
@@ -118,7 +119,7 @@ public:
     plKey LoadPlayer(const ST::string &name, const ST::string &account, const ST::string &linkName);
     plKey LoadPlayerFromFile(const ST::string &name, const ST::string &account, const plFileName &clothingFile);
     plKey LoadAvatar(ST::string name, const ST::string &accountName, bool isPlayer, plKey spawnPoint, plAvTask *initialTask,
-                     const ST::string &userStr = ST::null, const plFileName &clothingFile = ST::null);
+                     const ST::string &userStr = {}, const plFileName &clothingFile = {});
 
     /**
      * Unload an avatar clone
@@ -167,7 +168,7 @@ public:
     static void ShutDown();
 
 
-    bool MsgReceive(plMessage *msg);
+    bool MsgReceive(plMessage *msg) override;
     bool HandleCoopMsg(plAvCoopMsg *msg);
     bool HandleNotifyMsg(plNotifyMsg *msg);
     bool IPassMessageToActiveCoop(plMessage *msg, uint32_t id, uint16_t serial);
@@ -226,7 +227,7 @@ protected:
     typedef std::vector<const plSpawnModifier*> plSpawnVec;
     plSpawnVec  fSpawnPoints;
 
-    hsTArray<plMaintainersMarkerModifier*> fMaintainersMarkers;
+    std::vector<plMaintainersMarkerModifier*> fMaintainersMarkers;
 
     // we're using a multimap, which is a map which allows multiple entries to
     // share the same key. the key we use is the initiator's player id; in the vast
@@ -237,7 +238,7 @@ protected:
     typedef std::multimap<uint32_t, plCoopCoordinator *> plCoopMap;
     plCoopMap fActiveCoops;
 
-    hsTArray<plLoadCloneMsg*> fCloneMsgQueue;
+    std::vector<plLoadCloneMsg*> fCloneMsgQueue;
     plStatusLog *fLog;  
 };
 

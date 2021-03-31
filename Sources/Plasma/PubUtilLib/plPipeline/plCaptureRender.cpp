@@ -40,30 +40,32 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
-#include "HeadSpin.h"
 #include "plCaptureRender.h"
 
-#ifndef MF_FRONTBUFF_CAPTURE
+#include "plPipeline.h"
 
 #include "plGImage/plMipmap.h"
 #include "plMessage/plCaptureRenderMsg.h"
-#include "plPipeline.h"
+
+#ifndef MF_FRONTBUFF_CAPTURE
+
+#include "hsResMgr.h"
+
 #include "plRenderTarget.h"
+
+#include "pnKeyedObject/plUoid.h"
+
+#include "plGImage/plMipmap.h"
+#include "plMessage/plCaptureRenderMsg.h"
 #include "plScene/plPageTreeMgr.h"
 #include "plScene/plPostEffectMod.h"
-#include "hsResMgr.h"
-#include "pnKeyedObject/plUoid.h"
 
 #include "pfCamera/plVirtualCamNeu.h"
 #include "pfGameGUIMgr/pfGameGUIMgr.h"
 
 #else // MF_FRONTBUFF_CAPTURE
 
-#include "plPipeline.h"
 #include "plgDispatch.h"
-
-#include "plMessage/plCaptureRenderMsg.h"
-#include "plGImage/plMipmap.h"
 
 #endif // MF_FRONTBUFF_CAPTURE
 
@@ -105,30 +107,32 @@ void plCaptureRenderRequest::Render(plPipeline* pipe, plPageTreeMgr* pageMgr)
     SetRenderState(GetRenderState() | plPipeline::kRenderClearDepth);
     SetClearDepth(1);
 
-    // render all GUI items
-    std::vector<plPostEffectMod*> guiRenderMods = pfGameGUIMgr::GetInstance()->GetDlgRenderMods();
-    for (int i = (int)guiRenderMods.size() - 1; i >= 0; i--) // render in reverse, so dialogs on the bottom get rendered first
-    {
-        plPageTreeMgr* dlgPageMgr = guiRenderMods[i]->GetPageMgr();
-        if (dlgPageMgr)
-        {
-            SetViewTransform(guiRenderMods[i]->GetViewTransform());
+    // render all GUI items in reverse, so dialogs on the bottom get rendered first
+    pfGameGUIMgr::GetInstance()->SetAspectRatio((float)fRenderTarget->GetWidth() / (float)fRenderTarget->GetHeight());
+    auto guiRenderMods = pfGameGUIMgr::GetInstance()->GetDlgRenderMods();
+    for (auto it = guiRenderMods.rbegin(); it != guiRenderMods.rend(); ++it) {
+        plPageTreeMgr* dlgPageMgr = (*it)->GetPageMgr();
+        if (dlgPageMgr) {
+            auto dlgVt = (*it)->GetViewTransform();
+            dlgVt.SetViewPort(0, 0, fRenderTarget->GetWidth(), fRenderTarget->GetHeight());
+            SetViewTransform(dlgVt);
             pipe->PushRenderRequest(this);
             pipe->ClearRenderTarget();
             dlgPageMgr->Render(pipe);
             pipe->PopRenderRequest(this);
         }
     }
+    pfGameGUIMgr::GetInstance()->SetAspectRatio((float)pipe->Width() / (float)pipe->Height());
 
     // Callback on plCaptureRender to process the render target into a mipmap
     // and send it back to the requester.
     plCaptureRender::IProcess(pipe, GetAck(), GetRenderTarget());
 
     delete fRenderTarget;
-    fRenderTarget = nil;
+    fRenderTarget = nullptr;
 }
 
-hsTArray<plCaptureRenderMsg*>   plCaptureRender::fProcessed;
+std::vector<plCaptureRenderMsg*> plCaptureRender::fProcessed;
 
 // plCaptureRender::Capture
 bool plCaptureRender::Capture(const plKey& ack, uint16_t width, uint16_t height)
@@ -190,51 +194,41 @@ bool plCaptureRender::IProcess(plPipeline* pipe, const plKey& ack, plRenderTarge
 
     // Stash it, and send it off during the update phase.
     plCaptureRenderMsg* msg = new plCaptureRenderMsg(ack, mipMap);
-    fProcessed.Append(msg);
+    fProcessed.emplace_back(msg);
 
     return true;
 }
 
 void plCaptureRender::Update()
 {
-    int i;
-    for( i = 0; i < fProcessed.GetCount(); i++ )
-    {
-        fProcessed[i]->Send();
-    }
-    fProcessed.SetCount(0);
+    for (plCaptureRenderMsg* procMsg : fProcessed)
+        procMsg->Send();
+    fProcessed.clear();
 }
 
 
 #else // MF_FRONTBUFF_CAPTURE
 
-hsTArray<plCaptureRender::CapInfo>  plCaptureRender::fCapReqs;
+std::vector<plCaptureRender::CapInfo> plCaptureRender::fCapReqs;
 
 void plCaptureRender::Update(plPipeline* pipe)
 {
-    int i;
-
-    for( i = 0; i < fCapReqs.GetCount(); i++ )
+    for (const CapInfo& capInfo : fCapReqs)
     {
-        plMipmap* mipmap = new plMipmap(fCapReqs[i].fWidth, fCapReqs[i].fHeight, plMipmap::kARGB32Config, 1);
+        plMipmap* mipmap = new plMipmap(capInfo.fWidth, capInfo.fHeight, plMipmap::kARGB32Config, 1);
 
-        pipe->CaptureScreen(mipmap, false, fCapReqs[i].fWidth, fCapReqs[i].fHeight);
+        pipe->CaptureScreen(mipmap, false, capInfo.fWidth, capInfo.fHeight);
 
-        plCaptureRenderMsg* msg = new plCaptureRenderMsg(fCapReqs[i].fAck, mipmap);
+        plCaptureRenderMsg* msg = new plCaptureRenderMsg(capInfo.fAck, mipmap);
         msg->Send();
     }
 
-    fCapReqs.Reset();
+    fCapReqs.clear();
 }
 
 bool plCaptureRender::Capture(const plKey& ack, uint16_t width, uint16_t height)
 {
-    CapInfo capInfo;
-    capInfo.fAck = ack;
-    capInfo.fWidth = width;
-    capInfo.fHeight = height;
-
-    fCapReqs.Append(capInfo);
+    fCapReqs.emplace_back(ack, width, height);
 
     return true;
 }

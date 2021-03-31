@@ -44,6 +44,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "pnKeyedObject/plKey.h"
 #include "hsResMgr.h"
+#include "hsStream.h"
 
 //
 //  This is the data for the parameters (or attributes) for the PythonFile components
@@ -364,11 +365,11 @@ public:
                 break;
 
             case kFloat:
-                stream->ReadLE(&datarecord.fFloatNumber);
+                stream->ReadLEFloat(&datarecord.fFloatNumber);
                 break;
 
             case kbool:
-                datarecord.fBool = stream->ReadLE32();
+                datarecord.fBool = stream->ReadBOOL();
                 break;
 
             case kString:
@@ -378,12 +379,12 @@ public:
                 {
                     ST::char_buffer str;
                     str.allocate(count - 1);
-                    stream->ReadLE(count - 1, str.data());
+                    stream->Read(count - 1, str.data());
                     (void)stream->ReadByte();
                     fString = str;
                 }
                 else
-                    fString = ST::null;
+                    fString = ST::string();
                 break;
 
             case kSceneObject:
@@ -420,11 +421,11 @@ public:
                 break;
 
             case kFloat:
-                stream->WriteLE(datarecord.fFloatNumber);
+                stream->WriteLEFloat(datarecord.fFloatNumber);
                 break;
 
             case kbool:
-                stream->WriteLE32(datarecord.fBool);
+                stream->WriteBOOL(datarecord.fBool);
                 break;
 
             case kString:
@@ -433,8 +434,8 @@ public:
                     count = fString.size()+1;
                 else
                     count = 0;
-                stream->WriteLE(count);
-                stream->WriteLE(count, fString.c_str());
+                stream->WriteLE32(count);
+                stream->Write(count, fString.c_str());
                 break;
 
             case kSceneObject:

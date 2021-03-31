@@ -49,12 +49,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 //                                                                          //
 //////////////////////////////////////////////////////////////////////////////
 
-#include "HeadSpin.h"
 #include "plDTProgressMgr.h"
-#include "plPipeline.h"
-#include "plDebugText.h"
-#include "plPlates.h"
 
+#include "plDebugText.h"
+#include "plPipeline.h"
+#include "plPlates.h"
 #include "hsTimer.h"
 
 // Draw Colors
@@ -69,10 +68,10 @@ enum
 //// Constructor & Destructor ////////////////////////////////////////////////
 
 plDTProgressMgr::plDTProgressMgr() :
-    fCurrentImage(0),
-    fLastDraw(0.0f),
-    fStaticTextPlate(nil),
-    fActivePlate(nil)
+    fCurrentImage(),
+    fLastDraw(),
+    fStaticTextPlate(),
+    fActivePlate()
 {
 }
 
@@ -87,7 +86,7 @@ void    plDTProgressMgr::DeclareThyself()
 
 void    plDTProgressMgr::Activate()
 {
-    if (fStaticTextPlate == nil && fCurrentStaticText != plProgressMgr::kNone)
+    if (fStaticTextPlate == nullptr && fCurrentStaticText != plProgressMgr::kNone)
     {
         plPlateManager::Instance().CreatePlate(&fStaticTextPlate);
 
@@ -98,14 +97,14 @@ void    plDTProgressMgr::Activate()
         fStaticTextPlate->SetPosition(0, 0.5f, 0);
     }
 
-    if (fActivePlate == nil)
+    if (fActivePlate == nullptr)
     {
         plPlateManager::Instance().CreatePlate( &fActivePlate );
 
         fActivePlate->CreateFromResource(plProgressMgr::GetLoadingFrameID(fCurrentImage));
         fActivePlate->SetVisible(true);
         fActivePlate->SetOpacity(1.0f);
-        fActivePlate->SetSize(0.6, 0.6, true);
+        fActivePlate->SetSize(0.6f, 0.6f, true);
         fActivePlate->SetPosition(0, 0, 0);
     }
 }
@@ -116,14 +115,14 @@ void    plDTProgressMgr::Deactivate()
     {
         fStaticTextPlate->SetVisible(false);
         plPlateManager::Instance().DestroyPlate( fStaticTextPlate );
-        fStaticTextPlate = nil;
+        fStaticTextPlate = nullptr;
     }
 
     if (fActivePlate)
     {
         fActivePlate->SetVisible(false);
         plPlateManager::Instance().DestroyPlate( fActivePlate );
-        fActivePlate = nil;
+        fActivePlate = nullptr;
     }
 }
 
@@ -137,7 +136,7 @@ void    plDTProgressMgr::Draw( plPipeline *p )
     plOperationProgress *prog;
 
 
-    if( fOperations == nil )
+    if (fOperations == nullptr)
         return;
 
     scrnWidth = (uint16_t)p->Width();
@@ -165,12 +164,12 @@ void    plDTProgressMgr::Draw( plPipeline *p )
             fActivePlate->ReloadFromResource(plProgressMgr::GetLoadingFrameID(fCurrentImage));
             fActivePlate->SetVisible(true);
             fActivePlate->SetOpacity(1.0f);
-            fActivePlate->SetSize(0.6, 0.6, true);
+            fActivePlate->SetSize(0.6f, 0.6f, true);
             fActivePlate->SetPosition(0, 0, 0);
         }
     }
 
-    for( prog = fOperations; prog != nil; prog = prog->GetNext() )
+    for (prog = fOperations; prog != nullptr; prog = prog->GetNext())
     {
         if (IDrawTheStupidThing(p, prog, x, y, width, height))
             y -= text.GetFontSize() + 8 + height + 4;

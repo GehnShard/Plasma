@@ -42,7 +42,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plSDLModifier.h"
 
 #include "pnNetCommon/plSynchedObject.h"
-#include "pnDispatch/plDispatch.h"
 #include "pnSceneObject/plSceneObject.h"
 #include "pnMessage/plSDLModifierMsg.h"
 
@@ -50,7 +49,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plNetMessage/plNetMessage.h"
 #include "plSDL/plSDL.h"
 
-plSDLModifier::plSDLModifier() : fStateCache(nil), fSentOrRecvdState(false)
+plSDLModifier::plSDLModifier() : fStateCache(), fSentOrRecvdState()
 {
 }
 
@@ -61,7 +60,7 @@ plSDLModifier::~plSDLModifier()
 
 plKey plSDLModifier::GetStateOwnerKey() const
 { 
-    return GetTarget() ? GetTarget()->GetKey() : nil; 
+    return GetTarget() ? GetTarget()->GetKey() : nullptr;
 }
 
 void plSDLModifier::AddTarget(plSceneObject* so) 
@@ -182,7 +181,6 @@ void plSDLModifier::SendState(uint32_t sendFlags)
             plNetObjectDebugger::GetInstance()->IsDebugObject(GetStateOwnerKey()->ObjectIsLoaded()));
     
     bool force = (sendFlags & plSynchedObject::kForceFullSend) != 0;
-    bool broadcast = (sendFlags & plSynchedObject::kBCastToClients) != 0;
 
     // record current state
     plStateDataRecord* curState = new plStateDataRecord(GetSDLName());

@@ -85,18 +85,18 @@ public:
 
     // required functions for PyObject interoperability
     PYTHON_CLASS_NEW_FRIEND(ptBook);
-    static PyObject *New(std::string htmlSource, plKey coverImageKey = nil, plKey callbackKey = nil, const ST::string &guiName = ST::null);
-    static PyObject *New(std::wstring htmlSource, plKey coverImageKey = nil, plKey callbackKey = nil, const ST::string &guiName = ST::null);
+    static PyObject *New(std::string htmlSource, plKey coverImageKey = {}, plKey callbackKey = {}, const ST::string &guiName = {});
+    static PyObject *New(std::wstring htmlSource, plKey coverImageKey = {}, plKey callbackKey = {}, const ST::string &guiName = {});
     PYTHON_CLASS_CHECK_DEFINITION; // returns true if the PyObject is a pyJournalBook object
     PYTHON_CLASS_CONVERT_FROM_DEFINITION(pyJournalBook); // converts a PyObject to a pyJournalBook (throws error if not correct type)
 
     static void AddPlasmaClasses(PyObject *m);
-    static void AddPlasmaMethods(std::vector<PyMethodDef> &methods);
+    static void AddPlasmaMethods(PyObject* m);
     static void AddPlasmaConstantsClasses(PyObject *m);
 
     // Deletes the existing book and re-creates it, for use by the python glue
-    void MakeBook(std::string esHTMLSource, plKey coverImageKey = nil, plKey callbackKey = nil, const ST::string &guiName = ST::null);
-    void MakeBook(std::wstring esHTMLSource, plKey coverImageKey = nil, plKey callbackKey = nil, const ST::string &guiName = ST::null);
+    void MakeBook(std::string esHTMLSource, plKey coverImageKey = {}, plKey callbackKey = {}, const ST::string &guiName = {});
+    void MakeBook(std::wstring esHTMLSource, plKey coverImageKey = {}, plKey callbackKey = {}, const ST::string &guiName = {});
 
     // Interface functions per book
     virtual void    Show( bool startOpened );

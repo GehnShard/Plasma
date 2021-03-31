@@ -42,6 +42,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "plGeneric.h"
 
+#include "hsStream.h"
+
 plGeneric::plGeneric(): fType(kNull), fBoolVal(false), fIntVal(0), fFloatVal(0.0) {}
 
 plGeneric::plGeneric(const bool& val): fType(kBool), fBoolVal(val), fIntVal(0), fFloatVal(0.0) {}
@@ -108,11 +110,11 @@ int plGeneric::Write(hsStream* stream)
         break;
 
     case kInt:
-        stream->WriteLE(fIntVal);
+        stream->WriteLE32(fIntVal);
         break;
 
     case kFloat:
-        stream->WriteLE(fFloatVal);
+        stream->WriteLEDouble(fFloatVal);
         break;
 
     case kString:
@@ -136,11 +138,11 @@ int plGeneric::Read(hsStream* stream)
         break;
 
     case kInt:
-        stream->ReadLE(&fIntVal);
+        stream->ReadLE32(&fIntVal);
         break;
 
     case kFloat:
-        stream->ReadLE(&fFloatVal);
+        stream->ReadLEDouble(&fFloatVal);
         break;
 
     case kString:

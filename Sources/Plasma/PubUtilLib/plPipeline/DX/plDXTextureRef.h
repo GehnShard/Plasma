@@ -55,7 +55,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "hsMatrix44.h"
 #include "hsGeometry3.h"
-#include "hsTemplates.h"
 #include "plDXDeviceRef.h"
 
 
@@ -116,7 +115,7 @@ class plDXTextureRef : public plDXDeviceRef
         void            Link( plDXTextureRef **back ) { plDXDeviceRef::Link( (plDXDeviceRef **)back ); }
         plDXTextureRef  *GetNext() { return (plDXTextureRef *)fNext; }
 
-        void    Release();
+        void    Release() override;
 };
 
 class plDXCubeTextureRef : public plDXTextureRef

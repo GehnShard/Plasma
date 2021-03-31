@@ -40,13 +40,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "HeadSpin.h"
-#include "hsWindows.h"
-#include "../resource.h"
 
-#include <iparamm2.h>
-#include <maxicon.h>
-#include <stdmat.h>
-#pragma hdrstop
+#include "MaxMain/MaxAPI.h"
+
+#include "../resource.h"
 
 #include "plMultipassMtl.h"
 #include "plMultipassMtlPB.h"
@@ -80,14 +77,14 @@ plMultipassMtlDlg::plMultipassMtlDlg(HWND hwMtlEdit, IMtlParams *imp, plMultipas
     fDADMgr.Init(this);
 
     fhMtlEdit = hwMtlEdit;
-    fhRollup = NULL;
+    fhRollup = nullptr;
     fMtl = m;
     fPBlock = fMtl->GetParamBlockByID(plMultipassMtl::kBlkPasses);
     ip = imp;
     valid = FALSE;
 
     for (int i = 0; i < NSUBMTLS; i++)
-        fLayerBtns[i] = NULL;
+        fLayerBtns[i] = nullptr;
 
     curTime = imp->GetTime();
 
@@ -101,17 +98,17 @@ plMultipassMtlDlg::plMultipassMtlDlg(HWND hwMtlEdit, IMtlParams *imp, plMultipas
 
 plMultipassMtlDlg::~plMultipassMtlDlg()
 {
-    fMtl->SetParamDlg(NULL);
+    fMtl->SetParamDlg(nullptr);
     for (int i = 0; i < NSUBMTLS; i++)
     {
         ReleaseICustButton(fLayerBtns[i]);
-        fLayerBtns[i] = NULL; 
+        fLayerBtns[i] = nullptr;
     }
 
-    SetWindowLong(fhRollup, GWL_USERDATA, NULL);
+    SetWindowLongPtr(fhRollup, GWLP_USERDATA, 0L);
     ip->DeleteRollupPage(fhRollup);
 
-    fhRollup = NULL;
+    fhRollup = nullptr;
 }
 
 //-----------------------------------------------------------------------------
@@ -125,7 +122,7 @@ void plMultipassMtlDlg::SetThing(ReferenceTarget *m)
 
     // Bad?
     if (fMtl) 
-        fMtl->SetParamDlg(NULL);
+        fMtl->SetParamDlg(nullptr);
     fMtl = (plMultipassMtl *)m;
     if (fMtl)
         fMtl->SetParamDlg(this);
@@ -168,18 +165,18 @@ int plMultipassMtlDlg::FindSubMtlFromHWND(HWND hwnd)
     return -1;
 }
 
-BOOL plMultipassMtlDlg::ForwardProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam) 
+INT_PTR plMultipassMtlDlg::ForwardProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     plMultipassMtlDlg *theDlg;
     if (msg == WM_INITDIALOG)
     {
         theDlg = (plMultipassMtlDlg*)lParam;
         theDlg->fhRollup = hDlg;
-        SetWindowLong(hDlg, GWL_USERDATA, lParam);
+        SetWindowLongPtr(hDlg, GWLP_USERDATA, lParam);
     }
     else
     {
-        if ((theDlg = (plMultipassMtlDlg *)GetWindowLong(hDlg, GWL_USERDATA)) == NULL)
+        if (theDlg = (plMultipassMtlDlg *)GetWindowLongPtr(hDlg, GWLP_USERDATA); theDlg == nullptr)
             return FALSE; 
     }
 
@@ -191,7 +188,7 @@ BOOL plMultipassMtlDlg::ForwardProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM l
 //----------------------------------------------------------------------------
 // Layer panel processor
 //----------------------------------------------------------------------------
-BOOL plMultipassMtlDlg::LayerPanelProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR plMultipassMtlDlg::LayerPanelProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     int id = LOWORD(wParam);
     int code = HIWORD(wParam);
@@ -227,10 +224,10 @@ BOOL plMultipassMtlDlg::LayerPanelProc(HWND hDlg, UINT msg, WPARAM wParam, LPARA
         for (i = 0; i < NSUBMTLS; i++)
         {
             ReleaseICustButton(fLayerBtns[i]);
-            fLayerBtns[i] = NULL;
+            fLayerBtns[i] = nullptr;
         }
         ReleaseISpinner(fNumTexSpin);
-        fNumTexSpin = NULL;
+        fNumTexSpin = nullptr;
         break;
 
     case CC_SPINNER_CHANGE:

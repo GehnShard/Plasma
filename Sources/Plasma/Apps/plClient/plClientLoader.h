@@ -49,16 +49,16 @@ class plClientLoader : private hsThread
     class plClient* fClient;
     HWND fWindow;
 
-    virtual void OnQuit() HS_OVERRIDE
+    void OnQuit() override
     {
         SetQuit(true);
     }
 
     /** Does the heavy lifting of client init */
-    virtual void Run() HS_OVERRIDE;
+    void Run() override;
 
 public:
-    plClientLoader() : fClient(nullptr) { }
+    plClientLoader() : fClient(), fWindow() { }
 
     /**
      * Initializes the client asyncrhonouslynn including: loading the localization, 
@@ -94,7 +94,7 @@ public:
      * Launches the client window and starts the game.
      * This will block if the client is not initialized.
      */
-    void Start();
+    void Start() override;
 
     /**
      * Waits for the client to finish initing

@@ -48,9 +48,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNUTILS_PRIVATE_PNUTHASH_H
 #define PLASMA20_SOURCES_PLASMA_NUCLEUSLIB_PNUTILS_PRIVATE_PNUTHASH_H
 
-#include "Pch.h"
 #include "pnUtList.h"
-#include "pnUtArray.h"
 #include "pnUtStr.h"
 
 /****************************************************************************
@@ -227,7 +225,7 @@ private:
 
     LIST(T)            m_fullList;
     int                m_linkOffset;
-    TFArray<LIST(T)>   m_slotListArray;
+    std::vector<LIST(T)> m_slotListArray;
     unsigned           m_slotMask;  // always set to a power of two minus one
     unsigned           m_slotMaxCount;
 
@@ -267,9 +265,8 @@ public:
 
 //===========================================================================
 template<class T>
-TBaseHashTable<T>::TBaseHashTable () {
-    m_slotMask     = 0;
-    m_slotMaxCount = kDefaultSlotMaxCount;
+TBaseHashTable<T>::TBaseHashTable ()
+    : m_slotMask(), m_slotMaxCount(kDefaultSlotMaxCount), m_linkOffset() {
     // more initialization done during call to SetLinkOffset()
 }
 
@@ -420,7 +417,7 @@ const T * TBaseHashTable<T>::Prev (const T * object) const {
 template<class T>
 void TBaseHashTable<T>::SetLinkOffset (int linkOffset, unsigned maxSize) {
     ASSERT(!m_fullList.Head());
-    ASSERT(!m_slotListArray.Count());
+    ASSERT(m_slotListArray.empty());
     ASSERT(!m_slotMask);
 
     m_linkOffset = linkOffset;
@@ -446,8 +443,8 @@ void TBaseHashTable<T>::SetSlotCount (unsigned count) {
         return;
     m_slotMask = count - 1;
 
-    m_slotListArray.ZeroCount();
-    m_slotListArray.SetCount(count);
+    m_slotListArray.clear();
+    m_slotListArray.resize(count);
     for (unsigned loop = 0; loop < count; ++loop)
         m_slotListArray[loop].SetLinkOffset(m_linkOffset + offsetof(THashLink<T>, m_linkToSlot));
 
@@ -534,7 +531,7 @@ const T * THashTable<T,K>::Find (const K & key) const {
     for (const T * curr = slotList.Head(); curr; curr = slotList.Next(curr))
         if ((this->GetHash(curr) == hash) && (*curr == key))
             return curr;
-    return nil;
+    return nullptr;
 }
 
 //===========================================================================
@@ -545,7 +542,7 @@ const T * THashTable<T,K>::FindNext (const K & key, const T * object) const {
     for (const T * curr = slotList.Next(object); curr; curr = slotList.Next(curr))
         if ((this->GetHash(curr) == hash) && (*curr == key))
             return curr;
-    return nil;
+    return nullptr;
 }
 
 //===========================================================================
@@ -610,112 +607,4 @@ protected:
     T m_value;
 };
 
-
-/****************************************************************************
-*
-*   CHashKeyStrPtr / CHashKeyStrPtrI
-*
-***/
-
-//===========================================================================
-template<class C>
-class THashKeyStrBase {
-public:
-    const C * GetString () const {
-        return m_str;
-    }
-
-protected:
-    THashKeyStrBase () : m_str(nil) { }
-    THashKeyStrBase (const C str[]) : m_str(str) { }
-    virtual ~THashKeyStrBase () { }
-
-    const C * m_str;
-};
-
-//===========================================================================
-template<class C>
-class THashKeyStrCmp : public THashKeyStrBase<C> {
-public:
-    bool operator== (const THashKeyStrCmp & rhs) const {
-        return StrCmp(this->m_str, rhs.m_str) == 0;
-    }
-    unsigned GetHash () const {
-        return StrHash(this->m_str);
-    }
-
-protected:
-    THashKeyStrCmp () { }
-    THashKeyStrCmp (const C str[]) : THashKeyStrBase<C>(str) { }
-};
-
-//===========================================================================
-template<class C>
-class THashKeyStrCmpI : public THashKeyStrBase<C> {
-public:
-    bool operator== (const THashKeyStrCmpI & rhs) const {
-        return StrCmpI(this->m_str, rhs.m_str) == 0;
-    }
-    unsigned GetHash () const {
-        return StrHashI(this->m_str);
-    }
-protected:
-
-    THashKeyStrCmpI () { }
-    THashKeyStrCmpI (const C str[]) : THashKeyStrBase<C>(str) { }
-};
-
-
-/****************************************************************************
-*
-*   THashKeyStrPtr
-*
-***/
-
-template <class C, class T>
-class THashKeyStrPtr : public T {
-public:
-    THashKeyStrPtr () { }
-    THashKeyStrPtr (const C str[]) : T(str) { }
-    void SetString (const C str[]) {
-        this->m_str = str;
-    }
-};
-
-typedef THashKeyStrPtr< wchar_t, THashKeyStrCmp<wchar_t> >  CHashKeyStrPtr;
-typedef THashKeyStrPtr< wchar_t, THashKeyStrCmpI<wchar_t> > CHashKeyStrPtrI;
-typedef THashKeyStrPtr< char, THashKeyStrCmp<char> >    CHashKeyStrPtrChar;
-typedef THashKeyStrPtr< char, THashKeyStrCmpI<char> >   CHashKeyStrPtrCharI;
-
-
-/****************************************************************************
-*
-*   THashKeyStr
-*
-***/
-
-template <class C, class T>
-class THashKeyStr : public T {
-public:
-    THashKeyStr () { }
-    THashKeyStr (const C str[]) { SetString(str); }
-    THashKeyStr (const THashKeyStr &);              // intentionally unimplemented
-    THashKeyStr & operator= (const THashKeyStr &);  // intentionally unimplemented
-    ~THashKeyStr () {
-        SetString(nil);
-    }
-    void SetString (const C str[]) {  // deprecated
-        if (this->m_str)
-            free(const_cast<C *>(this->m_str));
-        if (str)
-            this->m_str = StrDup(str);
-        else
-            this->m_str = nil;
-    }
-};
-
-typedef THashKeyStr< wchar_t, THashKeyStrCmp<wchar_t> >  CHashKeyStr;
-typedef THashKeyStr< wchar_t, THashKeyStrCmpI<wchar_t> > CHashKeyStrI;
-typedef THashKeyStr< char, THashKeyStrCmp<char> >    CHashKeyStrChar;
-typedef THashKeyStr< char, THashKeyStrCmpI<char> >   CHashKeyStrCharI;
 #endif

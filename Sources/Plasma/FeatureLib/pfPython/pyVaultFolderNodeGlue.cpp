@@ -41,7 +41,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 
 #include <Python.h>
-#pragma hdrstop
 
 #include "pyVaultFolderNode.h"
 
@@ -79,7 +78,7 @@ PYTHON_METHOD_DEFINITION(ptVaultFolderNode, folderSetType, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultFolderNode, folderGetType)
 {
-    return PyInt_FromLong(self->fThis->Folder_GetType());
+    return PyLong_FromLong(self->fThis->Folder_GetType());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultFolderNode, folderSetName, args)
@@ -96,7 +95,7 @@ PYTHON_METHOD_DEFINITION(ptVaultFolderNode, folderSetName, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultFolderNode, folderGetName)
 {
-    return PyString_FromSTString(self->fThis->Folder_GetName());
+    return PyUnicode_FromSTString(self->fThis->Folder_GetName());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultFolderNode, setFolderType, args)
@@ -113,7 +112,7 @@ PYTHON_METHOD_DEFINITION(ptVaultFolderNode, setFolderType, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultFolderNode, getFolderType)
 {
-    return PyInt_FromLong(self->fThis->Folder_GetType());
+    return PyLong_FromLong(self->fThis->Folder_GetType());
 }
 
 PYTHON_METHOD_DEFINITION(ptVaultFolderNode, setFolderName, args)
@@ -138,19 +137,9 @@ PYTHON_METHOD_DEFINITION(ptVaultFolderNode, setFolderNameW, args)
     }
     if (PyUnicode_Check(textObj))
     {
-        int strLen = PyUnicode_GetSize(textObj);
-        wchar_t* name = new wchar_t[strLen + 1];
-        PyUnicode_AsWideChar((PyUnicodeObject*)textObj, name, strLen);
-        name[strLen] = L'\0';
+        wchar_t* name = PyUnicode_AsWideCharString(textObj, nullptr);
         self->fThis->Folder_SetNameW(name);
-        delete [] name;
-        PYTHON_RETURN_NONE;
-    }
-    else if (PyString_Check(textObj))
-    {
-        // we'll allow this, just in case something goes weird
-        char* name = PyString_AsString(textObj);
-        self->fThis->Folder_SetName(name);
+        PyMem_Free(name);
         PYTHON_RETURN_NONE;
     }
     PyErr_SetString(PyExc_TypeError, "setFolderNameW expects a unicode string");
@@ -159,7 +148,7 @@ PYTHON_METHOD_DEFINITION(ptVaultFolderNode, setFolderNameW, args)
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultFolderNode, getFolderName)
 {
-    return PyString_FromSTString(self->fThis->Folder_GetName());
+    return PyUnicode_FromSTString(self->fThis->Folder_GetName());
 }
 
 PYTHON_METHOD_DEFINITION_NOARGS(ptVaultFolderNode, getFolderNameW)

@@ -109,7 +109,9 @@ class plRIFFHeader
 
 //// Constructor/Destructor //////////////////////////////////////////////////
 
-plFastWAV::plFastWAV( const plFileName &path, plAudioCore::ChannelSelect whichChan ) : fFileHandle( nil )
+plFastWAV::plFastWAV(const plFileName &path, plAudioCore::ChannelSelect whichChan)
+    : fFileHandle(), fHeader(), fFakeHeader(), fDataStartPos(), fDataSize(),
+      fCurrDataPos(), fChunkStart(), fChannelAdjust(), fChannelOffset()
 {
     hsAssert(path.IsValid(), "Invalid path specified in plFastWAV reader");
 
@@ -117,7 +119,7 @@ plFastWAV::plFastWAV( const plFileName &path, plAudioCore::ChannelSelect whichCh
     fWhichChannel = whichChan;
 
     fFileHandle = plFileSystem::Open(path, "rb");
-    if( fFileHandle != nil )
+    if (fFileHandle != nullptr)
     {
         /// Read in our header and calc our start position
         plRIFFHeader    riffHdr( fFileHandle );
@@ -192,7 +194,7 @@ plFastWAV::plFastWAV( const plFileName &path, plAudioCore::ChannelSelect whichCh
 
 plFastWAV::~plFastWAV()
 {
-    if( fFileHandle != nil )
+    if (fFileHandle != nullptr)
         fclose( fFileHandle );
 }
 
@@ -235,10 +237,10 @@ void plFastWAV::Open()
 
 void    plFastWAV::Close()
 {
-    if( fFileHandle != nil )
+    if (fFileHandle != nullptr)
     {
         fclose( fFileHandle );
-        fFileHandle = nil;
+        fFileHandle = nullptr;
     }
 }
 

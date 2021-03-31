@@ -40,24 +40,23 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
+#include "plProduct.h"
+#include "hsStream.h"
 #include "hsTimer.h"
-#include "plResMgr/plResManager.h"
-#include "plResMgr/plResMgrSettings.h"
+
+#include "pnKeyedObject/plKeyImp.h"
 
 #include "plAgeDescription/plAgeManifest.h"
-
+#include "plAudioCore/plSoundBuffer.h"
 #include "plResMgr/plRegistryHelpers.h"
 #include "plResMgr/plRegistryNode.h"
-
-#include "plAudioCore/plSoundBuffer.h"
-#include "hsStream.h"
-
-#include "plProduct.h"
+#include "plResMgr/plResManager.h"
+#include "plResMgr/plResMgrSettings.h"
 
 
 //// Globals /////////////////////////////////////////////////////////////////
 
-plResManager* gResMgr = nil;
+plResManager* gResMgr = nullptr;
 
 bool DumpStats(const plFileName& patchDir);
 bool DumpSounds();
@@ -148,7 +147,7 @@ public:
     plSoundBufferCollector(std::set<plKey>& keyArray)
                 : plKeyCollector(keyArray) {}
 
-    bool EatPage(plRegistryPageNode* page)
+    bool EatPage(plRegistryPageNode* page) override
     {
         page->LoadKeys();
         return page->IterateKeys(this, plSoundBuffer::Index());
@@ -206,8 +205,6 @@ bool DumpSounds()
 
 //////////////////////////////////////////////////////////////////////////
 
-#include "../pnKeyedObject/plKeyImp.h"
-
 class plStatDumpIterator : public plRegistryPageIterator, public plRegistryKeyIterator
 {
 protected:
@@ -217,7 +214,7 @@ protected:
 public:
     plStatDumpIterator(const plFileName& outputDir) : fOutputDir(outputDir) {}
 
-    bool EatKey(const plKey& key)
+    bool EatKey(const plKey& key) override
     {
         plKeyImp* imp = (plKey)key;
 
@@ -235,7 +232,7 @@ public:
         return true;
     }
 
-    bool EatPage(plRegistryPageNode* page)
+    bool EatPage(plRegistryPageNode* page) override
     {
         const plPageInfo& info = page->GetPageInfo();
 

@@ -44,6 +44,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "pnMessage/plMessage.h"
 #include "pnUUID/pnUUID.h"
+#include <string_theory/string>
 
 
 //
@@ -78,11 +79,11 @@ public:
     int GetPlayerID() const { return fPlayerID; }
     
     // IO 
-    void Read(hsStream* stream, hsResMgr* mgr);
-    void Write(hsStream* stream, hsResMgr* mgr);
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 
-    void ReadVersion(hsStream* s, hsResMgr* mgr);
-    void WriteVersion(hsStream* s, hsResMgr* mgr);
+    void ReadVersion(hsStream* s, hsResMgr* mgr) override;
+    void WriteVersion(hsStream* s, hsResMgr* mgr) override;
 };
 
 //
@@ -110,11 +111,11 @@ public:
     CLASSNAME_REGISTER( plLinkInDoneMsg );
     GETINTERFACE_ANY( plLinkInDoneMsg, plMessage ); 
 
-    void Read(hsStream* stream, hsResMgr* mgr) { IMsgRead(stream, mgr); }
-    void Write(hsStream* stream, hsResMgr* mgr) { IMsgWrite(stream, mgr);   }
+    void Read(hsStream* stream, hsResMgr* mgr) override { IMsgRead(stream, mgr); }
+    void Write(hsStream* stream, hsResMgr* mgr) override { IMsgWrite(stream, mgr); }
 
-    void ReadVersion(hsStream* stream, hsResMgr* mgr) { IMsgRead(stream, mgr);  };
-    void WriteVersion(hsStream* stream, hsResMgr* mgr) {  IMsgWrite(stream, mgr);   };
+    void ReadVersion(hsStream* stream, hsResMgr* mgr) override { IMsgRead(stream, mgr); }
+    void WriteVersion(hsStream* stream, hsResMgr* mgr) override { IMsgWrite(stream, mgr); }
 
 };
 

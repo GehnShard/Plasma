@@ -40,26 +40,28 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
+#include "plFileSystem.h"
+#include "plProduct.h"
+
 #include "HeadSpin.h"
 
 #if HS_BUILD_FOR_WIN32
 #   include "hsWindows.h"
 #   include <shlobj.h>
 #else
-#   include <limits.h>
-#   include <unistd.h>
-#   include <sys/types.h>
-#   include <dirent.h>
-#   include <fnmatch.h>
 #   include <cstdlib>
 #   include <functional>
 #   include <memory>
+
+#   include <fnmatch.h>
+#   include <dirent.h>
+#   include <limits.h>
+#   include <sys/types.h>
+#   include <unistd.h>
 #endif
 #include <sys/stat.h>
-#pragma hdrstop
 
-#include "plFileSystem.h"
-#include "plProduct.h"
+
 #include <string_theory/format>
 
 /* NOTE For this file:  Windows uses UTF-16 filenames, and does not support
@@ -91,7 +93,7 @@ ST::string plFileName::GetFileExt() const
     if (dot > end)
         return fName.substr(dot + 1);
 
-    return ST::null;
+    return ST::string();
 }
 
 ST::string plFileName::GetFileNameNoExt() const
@@ -268,7 +270,7 @@ FILE *plFileSystem::Open(const plFileName &filename, const char *mode)
 #if HS_BUILD_FOR_WIN32
     wchar_t wmode[8];
     size_t mlen = strlen(mode);
-    hsAssert(mlen < arrsize(wmode), "Mode string too long");
+    hsAssert(mlen < std::size(wmode), "Mode string too long");
 
     // Quick and dirty, because mode should only ever be ANSI chars
     for (size_t i = 0; i < mlen; ++i) {
@@ -322,7 +324,7 @@ bool plFileSystem::Copy(const plFileName &from, const plFileName &to)
     size_t count;
     uint8_t buffer[4096];
     while (!feof(ffrom.get())) {
-        count = fread(buffer, sizeof(uint8_t), arrsize(buffer), ffrom.get());
+        count = fread(buffer, sizeof(uint8_t), std::size(buffer), ffrom.get());
         if (ferror(ffrom.get()))
             return false;
         fwrite(buffer, sizeof(uint8_t), count, fto.get());
@@ -386,7 +388,7 @@ std::vector<plFileName> plFileSystem::ListDir(const plFileName &path, const char
         return contents;
 
     struct dirent *de;
-    while (de = readdir(dir)) {
+    while (de = readdir(dir), de) {
         plFileName dir_name = plFileName::Join(path, de->d_name);
         if (plFileInfo(dir_name).IsDirectory()) {
             // Should also handle . and ..
@@ -432,7 +434,7 @@ std::vector<plFileName> plFileSystem::ListSubdirs(const plFileName &path)
         return contents;
 
     struct dirent *de;
-    while (de = readdir(dir)) {
+    while (de = readdir(dir), de) {
         if (plFileInfo(plFileName::Join(path, de->d_name)).IsDirectory()) {
             plFileName name = de->d_name;
             if (name != "." && name != "..")
@@ -453,7 +455,7 @@ plFileName plFileSystem::GetUserDataPath()
     if (!_userData.IsValid()) {
 #if HS_BUILD_FOR_WIN32
         wchar_t path[MAX_PATH];
-        if (!SHGetSpecialFolderPathW(NULL, path, CSIDL_LOCAL_APPDATA, TRUE))
+        if (!SHGetSpecialFolderPathW(nullptr, path, CSIDL_LOCAL_APPDATA, TRUE))
             return "";
 
         _userData = plFileName::Join(ST::string::from_wchar(path), plProduct::LongName());
@@ -503,10 +505,10 @@ plFileName plFileSystem::GetCurrentAppPath()
     // Neither OS makes this one simple...
 #if HS_BUILD_FOR_WIN32
     wchar_t path[MAX_PATH];
-    size_t size = GetModuleFileNameW(nullptr, path, MAX_PATH);
+    DWORD size = GetModuleFileNameW(nullptr, path, MAX_PATH);
     if (size >= MAX_PATH) {
         // Buffer not big enough
-        size_t bigger = MAX_PATH;
+        DWORD bigger = MAX_PATH;
         do {
             bigger *= 2;
             wchar_t *path_lg = new wchar_t[bigger];
@@ -536,6 +538,7 @@ plFileName plFileSystem::GetCurrentAppPath()
         return appPath;
 
     FATAL("Your OS doesn't make life easy, does it?");
+    return ".";
 #endif
 }
 
@@ -546,7 +549,7 @@ ST::string plFileSystem::ConvertFileSize(uint64_t size)
         return ST::format("{} B", size);
 
     uint64_t last_div = size;
-    for (size_t i = 0; i < arrsize(labels); ++i) {
+    for (size_t i = 0; i < std::size(labels); ++i) {
         uint64_t my_div = last_div / 1024;
         if (my_div < 1024) {
             float decimal = static_cast<float>(last_div) / 1024.f;
@@ -560,5 +563,5 @@ ST::string plFileSystem::ConvertFileSize(uint64_t size)
     }
 
     // this should never happen
-    return ST::format("{} {}", last_div, labels[arrsize(labels) - 1]);
+    return ST::format("{} {}", last_div, labels[std::size(labels) - 1]);
 }

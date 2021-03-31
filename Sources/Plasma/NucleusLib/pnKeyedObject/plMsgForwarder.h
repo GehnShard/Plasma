@@ -44,16 +44,15 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include <map>
 #include "hsKeyedObject.h"
-#include "hsTemplates.h"
 
 
 class plMessageWithCallbacks;
-class plForwardCallback;
+struct plForwardCallback;
 
 class plMsgForwarder : public hsKeyedObject
 {
 protected:
-    hsTArray<plKey> fForwardKeys;
+    std::vector<plKey> fForwardKeys;
 
     typedef std::map<plMessage*, plForwardCallback*> CallbackMap;
     CallbackMap fCallbacks;
@@ -68,10 +67,10 @@ public:
     CLASSNAME_REGISTER(plMsgForwarder);
     GETINTERFACE_ANY(plMsgForwarder, hsKeyedObject);
 
-    void Read(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
-    void Write(hsStream* s, hsResMgr* mgr) HS_OVERRIDE;
+    void Read(hsStream* s, hsResMgr* mgr) override;
+    void Write(hsStream* s, hsResMgr* mgr) override;
 
-    bool MsgReceive(plMessage* msg) HS_OVERRIDE;
+    bool MsgReceive(plMessage* msg) override;
 
     void AddForwardKey(plKey key);
 };

@@ -42,17 +42,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 #include "hsExceptionStack.h"
-#include "hsHashTable.h"
 #include "hsStringTokenizer.h"
 #include "hsResMgr.h"
 #include <cmath>
 
-#include <max.h>
-#include <stdmat.h>
-#if MAX_VERSION_MAJOR >= 13
-#   include <INamedSelectionSetManager.h>
-#endif
-#pragma hdrstop
+#include "MaxMain/MaxAPI.h"
 
 #include "hsConverterUtils.h"
 #include "MaxMain/MaxCompat.h"
@@ -78,7 +72,7 @@ namespace {
     public:
         ObjectInstancedEnumProc() : fInstanceCount(0) { }
         
-        int proc(ReferenceMaker *rmaker)
+        int proc(ReferenceMaker *rmaker) override
         {
             hsGuardBegin("ObjectInstancedEnumProc::proc");
 
@@ -107,9 +101,9 @@ hsConverterUtils& hsConverterUtils::Instance()
 
 hsConverterUtils::hsConverterUtils() :
 fInterface(GetCOREInterface()),
-fErrorMsg(nil),
-fSuppressMangling(false),
-fWarned(0)
+fErrorMsg(),
+fSuppressMangling(),
+fWarned()
 {
 }
 
@@ -194,7 +188,7 @@ bool hsConverterUtils::IsReservedKeyword(const char* nodeName)
 {
     hsGuardBegin("hsConverterUtils::IsReservedKeyword");
 
-    return (nodeName!=nil &&
+    return (nodeName != nullptr &&
         (  !_stricmp(nodeName, "theplayer")
         || !_stricmp(nodeName, "the_player")
         || !_stricmp(nodeName, "thecamera")
@@ -252,11 +246,11 @@ char *hsConverterUtils::MangleReference(char *mangName, INode *node, const char*
     hsGuardBegin("hsConverterUtils::MangleReference");
 
     if (!node)
-        return nil;
+        return nullptr;
 
     ST::string tempName;
     char *nodeName = node->GetName();
-    char *roomName = nil;
+    char *roomName = nullptr;
     TSTR sdata;
     hsStringTokenizer toker;
     if (gUserPropMgr.GetUserPropString(node, "Rooms", sdata)) 
@@ -322,7 +316,7 @@ INode* hsConverterUtils::FindINodeFromMangledName(const char* mangName)
     hsGuardBegin("hsConverterUtils::FindINodeFromMangledName");
 
     if( !(mangName && *mangName) )
-        return nil;
+        return nullptr;
 
     const char* nodeName = mangName;
 
@@ -355,7 +349,7 @@ INode* hsConverterUtils::FindINodeFromKeyedObject(hsKeyedObject* obj)
             return retVal;
     }
 */
-    return nil;
+    return nullptr;
     hsGuardEnd; 
 }
 
@@ -459,7 +453,7 @@ INode* hsConverterUtils::IGetINodeByNameRecur(INode* node, const char* wantName)
     hsGuardBegin("hsConverterUtils::IGetINodeByNameRecur");
 
     if (!node || !node->GetName())
-        return nil;
+        return nullptr;
 
     char* nodeName=node->GetName();
     if (!_stricmp(nodeName, wantName))
@@ -475,7 +469,7 @@ INode* hsConverterUtils::IGetINodeByNameRecur(INode* node, const char* wantName)
             return ret;
     }
     
-    return nil;
+    return nullptr;
     hsGuardEnd; 
 }
 
@@ -488,14 +482,14 @@ INode* hsConverterUtils::GetINodeByName(const char* name, bool caseSensitive)
 
     if (!name)
     {
-        return nil;
+        return nullptr;
     }
 
     if (fNodeSearchCache)
     {
         CacheNode cNode(name);
         cNode.SetCaseSensitive(caseSensitive);
-        hsHashTableIterator<CacheNode> it = fNodeSearchCache->find(cNode);
+        auto it = fNodeSearchCache->find(cNode);
         return it->GetNode();
     }
 
@@ -504,7 +498,7 @@ INode* hsConverterUtils::GetINodeByName(const char* name, bool caseSensitive)
     {
         fErrorMsg->Set(true, "Get INode by Name Error", "nil fInterface in hsConverterUtils::GetINodeByName()").Show();
         fErrorMsg->Set();
-        return NULL;        
+        return nullptr;
     }
 
 
@@ -521,7 +515,7 @@ void hsConverterUtils::CreateNodeSearchCache()
 {
     if (!fNodeSearchCache)
     {
-        fNodeSearchCache = new hsHashTable<CacheNode>();
+        fNodeSearchCache = new std::unordered_set<CacheNode>;
     }
     fNodeSearchCache->clear();
 
@@ -531,7 +525,7 @@ void hsConverterUtils::CreateNodeSearchCache()
 void hsConverterUtils::DestroyNodeSearchCache()
 {
     delete fNodeSearchCache;
-    fNodeSearchCache = nil;
+    fNodeSearchCache = nullptr;
 }
 
 void hsConverterUtils::IBuildNodeSearchCacheRecur(INode* node)

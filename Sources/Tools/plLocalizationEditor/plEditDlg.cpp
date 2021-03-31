@@ -43,16 +43,15 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plEditDlg.h"
 #include "plLocTreeView.h"
 #include "plAddDlgs.h"
+#include "res/ui_EditDialog.h"
 
 #include "pfLocalizationMgr/pfLocalizationMgr.h"
 #include "pfLocalizationMgr/pfLocalizationDataMgr.h"
 
-#include <QDialog>
-#include <QMessageBox>
-#include <QFileDialog>
-#include "ui_EditDialog.h"
-
 #include <functional>
+#include <QDialog>
+#include <QFileDialog>
+#include <QMessageBox>
 
 static void IAboutDialog(QWidget *parent)
 {
@@ -312,7 +311,7 @@ void EditDialog::AddClicked()
             else
             {
                 ST::string path = ST::format("{}.{}", key, newLanguage);
-                fCurrentLocPath = ST::null;
+                fCurrentLocPath = ST::string();
                 fUI->fLocalizationTree->clear();
                 fUI->fLocalizationTree->LoadData(path);
                 LoadLocalization(path);
@@ -366,7 +365,7 @@ void EditDialog::DeleteClicked()
 void SplitLocalizationPath(const ST::string &path, ST::string &ageName,
         ST::string &setName, ST::string &locName, ST::string &locLanguage)
 {
-    ageName = setName = locName = locLanguage = ST::null;
+    ageName = setName = locName = locLanguage = ST::string();
 
     std::vector<ST::string> tokens = path.tokenize(".");
     if (tokens.size() >= 1)

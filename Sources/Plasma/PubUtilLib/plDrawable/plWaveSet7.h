@@ -43,11 +43,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plWaveSet7_inc
 #define plWaveSet7_inc
 
+#include <vector>
 
 #include "hsGeometry3.h"
-#include "hsTemplates.h"
 #include "pnEncryption/plRandom.h"
 #include "hsBounds.h"
+#include "plStatusLog/plStatusLog.h"
 
 #include "plFixedWaterState7.h"
 
@@ -209,14 +210,14 @@ protected:
 
     plKey               fSceneNode;
 
-    hsTArray<plDynaDecalMgr*>       fDecalMgrs;
+    std::vector<plDynaDecalMgr*>    fDecalMgrs;
 
-    hsTArray<plSceneObject*>        fBuoys; 
-    hsTArray<plSceneObject*>        fShores;
-    hsTArray<plSceneObject*>        fDecals;
+    std::vector<plSceneObject*>     fBuoys;
+    std::vector<plSceneObject*>     fShores;
+    std::vector<plSceneObject*>     fDecals;
     plSceneObject*                  fRefObj;
 
-    hsTArray<hsBounds3Ext>          fTargBnds;
+    std::vector<hsBounds3Ext>       fTargBnds;
 
     plLayer*                        fBiasLayer[2];
     plLayer*                        fBumpLayers[kNumTexWaves];
@@ -478,8 +479,8 @@ protected:
     void                IUpdateDecVShader(int t, plPipeline* pipe);
     void                IUpdateDecVShaders(plPipeline* pipe, const hsMatrix44& l2w, const hsMatrix44& w2l);
 
-    virtual int IShoreRef() const { return kRefShore; }
-    virtual int IDecalRef() const { return kRefDecal; }
+    int IShoreRef() const override { return kRefShore; }
+    int IDecalRef() const override { return kRefDecal; }
 
     template<typename... _Args>
     void Log(const char *format, _Args&&... args) const
@@ -510,14 +511,14 @@ public:
     CLASSNAME_REGISTER( plWaveSet7 );
     GETINTERFACE_ANY( plWaveSet7, plWaveSetBase );
 
-    virtual bool MsgReceive(plMessage* msg);
+    bool MsgReceive(plMessage* msg) override;
 
-    virtual bool IEval(double secs, float del, uint32_t dirty) { return false; }
+    bool IEval(double secs, float del, uint32_t dirty) override { return false; }
 
     int32_t       GetNumProperties() const { return kNumProps; }
 
-    virtual void Read(hsStream* stream, hsResMgr* mgr);
-    virtual void Write(hsStream* stream, hsResMgr* mgr);
+    void Read(hsStream* stream, hsResMgr* mgr) override;
+    void Write(hsStream* stream, hsResMgr* mgr) override;
 
     float            EvalPoint(hsPoint3& pos, hsVector3& norm);
 
@@ -605,7 +606,7 @@ public:
 
     float GetRippleScale() const { return fState.fRippleScale; }
 
-    hsVector3 GetWindDir() const { return fState.fWindDir; }
+    hsVector3 GetWindDir() const override { return fState.fWindDir; }
 
     float GetSpecularNoise() const { hsVector3 spec = fState.fSpecVec; return spec[plFixedWaterState7::kNoise]; }
     float GetSpecularStart() const { hsVector3 spec = fState.fSpecVec; return spec[plFixedWaterState7::kSpecStart]; }
@@ -651,9 +652,9 @@ public:
     void            AddBuoy(plKey soKey);
     void            RemoveBuoy(plKey soKey);
 
-    virtual bool            SetupRippleMat(hsGMaterial* mat, const plRipVSConsts& ripConsts);
+    bool            SetupRippleMat(hsGMaterial* mat, const plRipVSConsts& ripConsts) override;
 
-    virtual float        GetHeight() const { return State().fWaterHeight; }
+    float        GetHeight() const override { return State().fWaterHeight; }
 
     const plFixedWaterState7::WaveState& GeoState() const { return State().fGeoState; }
     const plFixedWaterState7::WaveState& TexState() const { return State().fTexState; }
@@ -665,10 +666,10 @@ public:
 
     void StopLog();
     void StartLog();
-    bool Logging() const { return fStatusLog != nil; }
+    bool Logging() const { return fStatusLog != nullptr; }
     void StartGraph();
     void StopGraph();
-    bool Graphing() const { return fStatusGraph != nil; }
+    bool Graphing() const { return fStatusGraph != nullptr; }
 };
 
 #endif // plWaveSet7_inc

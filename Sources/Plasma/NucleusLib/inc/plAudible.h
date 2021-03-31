@@ -43,7 +43,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plAudible_inc
 #define plAudible_inc
 
-#include "hsTemplates.h"
 #include "pnKeyedObject/hsKeyedObject.h"
 
 class plSound;
@@ -68,8 +67,8 @@ public:
 
     virtual plAudible& SetTransform(const hsMatrix44& l2w, const hsMatrix44& w2l, int index = -1) { return *this; }
     
-    virtual void Read(hsStream* s, hsResMgr* mgr){hsKeyedObject::Read(s, mgr);}
-    virtual void Write(hsStream* s, hsResMgr* mgr){hsKeyedObject::Write(s, mgr);}
+    void Read(hsStream* s, hsResMgr* mgr) override { hsKeyedObject::Read(s, mgr); }
+    void Write(hsStream* s, hsResMgr* mgr) override { hsKeyedObject::Write(s, mgr); }
     
     virtual void  SetSceneObject(plKey obj) = 0;
     virtual plKey GetSceneObject() const = 0;
@@ -98,8 +97,8 @@ public:
     virtual void        RemoveCallbacks(plSoundMsg* pMsg) = 0;
     virtual void        AddCallbacks(plSoundMsg* pMsg) = 0;
     virtual void        GetStatus(plSoundMsg* pMsg) = 0;
-    virtual int         GetNumSounds() const = 0;   
-    virtual plSound*    GetSound(int i) const = 0;
+    virtual size_t      GetNumSounds() const = 0;
+    virtual plSound*    GetSound(size_t i) const = 0;
     virtual int         GetSoundIndex(const char *keyname) const = 0;
     virtual void        Init(bool isLocal) { }
     virtual void        SetVolume(const float volume,int index = -1) = 0;
@@ -110,9 +109,6 @@ public:
     virtual void        SetFilename(int index, const char *filename, bool isCompressed) = 0;  // set filename for a streaming sound
     virtual void        SetFadeIn( const int type, const float length, int index = -1 ) = 0;
     virtual void        SetFadeOut( const int type, const float length, int index = -1 ) = 0;
-
-protected:
-    hsTArray<plEventCallbackMsg*> fCallbacks;
 };
 
 #endif // plAudible_inc

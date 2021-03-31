@@ -42,18 +42,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 
+#include "MaxMain/MaxAPI.h"
+
 #include "plComponent.h"
 #include "plComponentReg.h"
 #include "MaxMain/plMaxNode.h"
 
-#include <bmmlib.h>
-#include <commdlg.h>
-#include <iparamm2.h>
-#include <meshdlib.h>
-#include <stdmat.h>
-
 #include "resource.h"
-#pragma hdrstop
 
 #include "MaxMain/plPlasmaRefMsgs.h"
 
@@ -110,8 +105,7 @@ struct plColorChanStringValPair
     const char*                     fString;
 };
 
-static const int kNumColorChanOptions = 13;
-static plColorChanStringValPair kProbColorChanStrings[kNumColorChanOptions] =
+static plColorChanStringValPair kColorChanStrings[] =
 {
     { plDistributor::kRed, "Red" },
     { plDistributor::kGreen, "Green" },
@@ -207,12 +201,12 @@ class plDistCompNilProc : public plRollupMgrProc
 public:
     plDistCompNilProc(int iRoll) : plRollupMgrProc(iRoll) {}
 
-    BOOL DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         IHandleRollupState(map, hWnd, msg);
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 
 class plDistCompActionProc : public plRollupMgrProc
@@ -220,11 +214,11 @@ class plDistCompActionProc : public plRollupMgrProc
 public:
     plDistCompActionProc() : plRollupMgrProc(plDistribComponent::kRollAction) {}
 
-    BOOL DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         IHandleRollupState(map, hWnd, msg);
 
-        HWND cbox = NULL;
+        HWND cbox = nullptr;
         switch (msg)
         {
         case WM_INITDIALOG:
@@ -249,7 +243,7 @@ public:
         }
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plDistCompActionProc gDistCompActionProc;
 
@@ -259,11 +253,11 @@ private:
 public:
     plDistCompSpaceProc() : plRollupMgrProc(plDistribComponent::kRollSpacing) {}
 
-    BOOL DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         IHandleRollupState(map, hWnd, msg);
 
-        HWND cbox = NULL;
+        HWND cbox = nullptr;
         switch (msg)
         {
 
@@ -284,7 +278,7 @@ public:
             {
             case IDC_COMP_DISTRIB_SEPARATION:
                 {
-                    map->GetParamBlock()->SetValue(plDistribComponent::kSeparation, t, SendMessage(GetDlgItem(hWnd, LOWORD(wParam)), CB_GETCURSEL, 0, 0));
+                    map->GetParamBlock()->SetValue(plDistribComponent::kSeparation, t, (int)SendMessage(GetDlgItem(hWnd, LOWORD(wParam)), CB_GETCURSEL, 0, 0));
                     return TRUE;
                 }
                 break;
@@ -293,7 +287,7 @@ public:
         }
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plDistCompSpaceProc gDistCompSpaceProc;
 
@@ -302,11 +296,11 @@ class plDistCompConformProc : public plRollupMgrProc
 private:
 public:
     plDistCompConformProc() : plRollupMgrProc(plDistribComponent::kRollConform) {}
-    BOOL DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         IHandleRollupState(map, hWnd, msg);
 
-        HWND cbox = NULL;
+        HWND cbox = nullptr;
         switch (msg)
         {
 
@@ -327,7 +321,7 @@ public:
             {
             case IDC_COMP_DISTRIB_CONFORMTYPE:
                 {
-                    map->GetParamBlock()->SetValue(plDistribComponent::kConformType, t, SendMessage(GetDlgItem(hWnd, LOWORD(wParam)), CB_GETCURSEL, 0, 0));
+                    map->GetParamBlock()->SetValue(plDistribComponent::kConformType, t, (int)SendMessage(GetDlgItem(hWnd, LOWORD(wParam)), CB_GETCURSEL, 0, 0));
                     return TRUE;
                 }
                 break;
@@ -337,7 +331,7 @@ public:
 
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plDistCompConformProc gDistCompConformProc;
 
@@ -386,11 +380,11 @@ private:
 public:
     plDistCompScaleProc() : plRollupMgrProc(plDistribComponent::kRollScale) {}
 
-    BOOL DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         IHandleRollupState(map, hWnd, msg);
 
-        HWND cbox = NULL;
+        HWND cbox = nullptr;
         switch (msg)
         {
 
@@ -413,7 +407,7 @@ public:
 
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plDistCompScaleProc gDistCompScaleProc;
 
@@ -422,22 +416,19 @@ class plDistCompBitmapProc : public plRollupMgrProc
 private:
 public:
     plDistCompBitmapProc() : plRollupMgrProc(plDistribComponent::kRollBitmap) {}
-    BOOL DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         IHandleRollupState(map, hWnd, msg);
 
-        HWND cbox = NULL;
+        HWND cbox = nullptr;
         switch (msg)
         {
         case WM_INITDIALOG:
             PostMessage(hWnd, WM_ROLLOUT_OPEN, 0, 0);
 
             cbox = GetDlgItem(hWnd, IDC_COMP_DISTRIB_PROBCOLORCHAN);
-            int i;
-            for( i = 0; i < kNumColorChanOptions; i++ )
-            {
-                SendMessage(cbox, CB_ADDSTRING, 0, (LPARAM)kProbColorChanStrings[i].fString);
-            }
+            for (const auto& i : kColorChanStrings)
+                SendMessage(cbox, CB_ADDSTRING, 0, (LPARAM)i.fString);
             SendMessage(cbox, CB_SETCURSEL, map->GetParamBlock()->GetInt(plDistribComponent::kProbColorChan), 0);
             return TRUE;
 
@@ -446,7 +437,7 @@ public:
             {
                 case IDC_COMP_DISTRIB_PROBCOLORCHAN:
                 {
-                    map->GetParamBlock()->SetValue(plDistribComponent::kProbColorChan, t, SendMessage(GetDlgItem(hWnd, LOWORD(wParam)), CB_GETCURSEL, 0, 0));
+                    map->GetParamBlock()->SetValue(plDistribComponent::kProbColorChan, t, (int)SendMessage(GetDlgItem(hWnd, LOWORD(wParam)), CB_GETCURSEL, 0, 0));
                     return TRUE;
                 }
                 break;
@@ -455,7 +446,7 @@ public:
         }
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plDistCompBitmapProc gDistCompBitmapProc;
 
@@ -464,11 +455,11 @@ class plDistCompFadeProc : public plRollupMgrProc
 private:
 public:
     plDistCompFadeProc() : plRollupMgrProc(plDistribComponent::kRollFade) {}
-    BOOL DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    INT_PTR DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
     {
         IHandleRollupState(map, hWnd, msg);
 
-        HWND cbox = NULL;
+        HWND cbox = nullptr;
         switch (msg)
         {
         case WM_INITDIALOG:
@@ -513,7 +504,7 @@ public:
         }
         return FALSE;
     }
-    void DeleteThis() {}
+    void DeleteThis() override { }
 };
 static plDistCompFadeProc gDistCompFadeProc;
 
@@ -525,7 +516,7 @@ CLASS_DESC(plDistribComponent, gDistribCompDesc, "Distributor",  "Distributor", 
 class plDistribCompAccessor : public PBAccessor
 {
 public:
-    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)
+    void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override
     {
         if( id == plDistribComponent::kTemplates )
         {
@@ -1071,7 +1062,7 @@ BOOL plDistribComponent::IsFlexible() const
 
 void plDistribComponent::ISetProbTexmap(plDistributor& distrib)
 {
-    distrib.SetProbabilityBitmapTex(nil);
+    distrib.SetProbabilityBitmapTex(nullptr);
 
     Texmap* tex = fCompPB->GetTexmap(kProbTexmap);
     if( tex )
@@ -1095,7 +1086,7 @@ float plDistribComponent::GetIsoPriority() const
 
 plDistributor::ColorChan plDistribComponent::GetProbabilityChan() const
 {
-    return kProbColorChanStrings[fCompPB->GetInt(kProbColorChan)].fValue;
+    return kColorChanStrings[fCompPB->GetInt(kProbColorChan)].fValue;
 }
 
 plDistributor::ConformType plDistribComponent::GetConformity() const
@@ -1139,7 +1130,7 @@ void plDistribComponent::Preview()
     bar.Start("Preview", NumTargets() << 4);
 
     plDistTree distTree;
-    Distribute(replicants, nil, bar, &distTree);
+    Distribute(replicants, nullptr, bar, &distTree);
 
     IMakeOne(replicants);
 
@@ -1152,7 +1143,7 @@ void plDistribComponent::Preview()
 INode* plDistribComponent::IMakeOne(plDistribInstTab& nodes)
 {
     if( !nodes.Count() )
-        return nil;
+        return nullptr;
 
     int iStartNode = 0;
 
@@ -1205,7 +1196,7 @@ INode* plDistribComponent::IMakeOne(plDistribInstTab& nodes)
         fCompPB->Append(kReplicants, 1, &outNode);
     }
 
-    return nil;
+    return nullptr;
 }
 
 Box3 plDistribComponent::GetFade()

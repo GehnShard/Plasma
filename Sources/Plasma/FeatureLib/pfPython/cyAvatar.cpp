@@ -44,7 +44,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plgDispatch.h"
 #include "pyKey.h"
 #include "plPhysical.h"
-#pragma hdrstop
 
 #include "cyAvatar.h"
 
@@ -93,27 +92,26 @@ bool IExitTopmostGenericMode();
 
 cyAvatar::cyAvatar(plKey sender, plKey recvr)
 {
-    SetSender(sender);
-    AddRecvr(recvr);
+    SetSender(std::move(sender));
+    AddRecvr(std::move(recvr));
     fNetForce = false;
 }
 
 // setters
-void cyAvatar::SetSender(plKey &sender)
+void cyAvatar::SetSender(plKey sender)
 {
-    fSender = sender;
+    fSender = std::move(sender);
 }
 
-void cyAvatar::AddRecvr(plKey &recvr)
+void cyAvatar::AddRecvr(plKey recvr)
 {
-    if ( recvr != nil )
-        fRecvr.Append(recvr);
+    if (recvr != nullptr)
+        fRecvr.emplace_back(std::move(recvr));
 }
 
-void cyAvatar::SetSenderKey(pyKey& pKey)
+void cyAvatar::SetSenderKey(const pyKey& pKey)
 {
-    plKey k = pKey.getKey();
-    SetSender(k);
+    SetSender(pKey.getKey());
 }
 
 
@@ -130,8 +128,7 @@ const plArmatureMod* cyAvatar::IFindArmatureMod(plKey avKey)
     if ( avObj )
     {
         // search through its modifiers to see if one of them is an avatar modifier
-        int i;
-        for ( i=0; i<avObj->GetNumModifiers(); i++ )
+        for (size_t i = 0; i < avObj->GetNumModifiers(); i++)
         {
             const plModifier* mod = avObj->GetModifier(i);
             // see if it is an avatar mod base class
@@ -141,7 +138,7 @@ const plArmatureMod* cyAvatar::IFindArmatureMod(plKey avKey)
         }
     }
     // otherwise we didn't find anything
-    return nil;
+    return nullptr;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -157,7 +154,7 @@ plKey cyAvatar::IFindArmatureModKey(plKey avKey)
     if ( avatar )
         return avatar->GetKey();
     // otherwise we didn't find anything
-    return nil;
+    return nullptr;
 }
 
 
@@ -171,12 +168,12 @@ plKey cyAvatar::IFindArmatureModKey(plKey avKey)
 void cyAvatar::OneShot(pyKey &seekKey, float duration, bool usePhysics,
                const ST::string &animName, bool drivable, bool reversible)
 {
-    if ( fRecvr.Count() > 0 )
+    if (!fRecvr.empty())
     {
         // create message
         plAvOneShotMsg* pMsg = new plAvOneShotMsg(
             (plKey )fSender,
-            nil,
+            nullptr,
             seekKey.getKey(),   // Mark D told me to do it ...paulg
             duration,  
             usePhysics,  
@@ -194,11 +191,8 @@ void cyAvatar::OneShot(pyKey &seekKey, float duration, bool usePhysics,
         // must have a receiver!
         pMsg->SetBCastFlag(plMessage::kPropagateToModifiers);
         // add all our receivers to the message receiver list
-        int i;
-        for ( i=0; i<fRecvr.Count(); i++ )
-        {
-            pMsg->AddReceiver(fRecvr[i]);
-        }
+        for (const plKey& rcKey : fRecvr)
+            pMsg->AddReceiver(rcKey);
 
         plgDispatch::MsgSend( pMsg );   // whoosh... off it goes
     }
@@ -215,7 +209,7 @@ void cyAvatar::OneShot(pyKey &seekKey, float duration, bool usePhysics,
 void cyAvatar::RunBehavior(pyKey &behKey, bool netForce, bool netProp)
 {
     // first there is someone to send to and make sure that we an avatar to send this to
-    if ( behKey.getKey() && fRecvr.Count() > 0)
+    if (behKey.getKey() && !fRecvr.empty())
     {
         // must determine if the behKey is pointing to Single or Multi Shot behavior
         if (plOneShotMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()))
@@ -226,10 +220,10 @@ void cyAvatar::RunBehavior(pyKey &behKey, bool netForce, bool netProp)
             pMsg->SetBCastFlag(plMessage::kNetForce, netForce);
             pMsg->SetSender(fSender);
             pMsg->AddReceiver(behKey.getKey());
-            for (int i = 0; i < fRecvr.Count(); i++) {
+            for (const plKey& rcKey : fRecvr) {
                 // make sure there is an avatar to set
-                if (fRecvr[i]) {
-                    pMsg->fPlayerKey = fRecvr[i];
+                if (rcKey) {
+                    pMsg->fPlayerKey = rcKey;
                     pMsg->SendAndKeep(); // gotta keep the message so we can keep sending it
                                          // there should really only be one avatar, though...
                 }
@@ -237,7 +231,7 @@ void cyAvatar::RunBehavior(pyKey &behKey, bool netForce, bool netProp)
             pMsg->UnRef(); // done with our reference
         }
         // else if it is a Multistage guy
-        else if ( plMultistageBehMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()) != nil )
+        else if (plMultistageBehMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()) != nullptr)
         {
             // its a multistage thingy... need to send it a plNotifyMsg
             // create new notify message to do the actual send with
@@ -266,9 +260,9 @@ void cyAvatar::RunBehavior(pyKey &behKey, bool netForce, bool netProp)
             // copy data and event records to new NotifyMsg
             pNMsg->fState = 1.0;
             // need to recreate all the events in the new message by Adding them
-            if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+            if (!fRecvr.empty() && fRecvr[0] != nullptr)
             {
-                pNMsg->AddPickEvent( (plKey)fRecvr[0], nil, true, hsPoint3(0,0,0) );
+                pNMsg->AddPickEvent((plKey)fRecvr[0], nullptr, true, {});
             }
 
             // add receivers
@@ -320,9 +314,9 @@ void cyAvatar::RunBehaviorAndReply(pyKey& behKey, pyKey& replyKey, bool netForce
         // copy data and event records to new NotifyMsg
         pNMsg->fState = 1.0;
         // need to recreate all the events in the new message by Adding them
-        if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+        if (!fRecvr.empty() && fRecvr[0] != nullptr)
         {
-            pNMsg->AddPickEvent( (plKey)fRecvr[0], nil, true, hsPoint3(0,0,0) );
+            pNMsg->AddPickEvent((plKey)fRecvr[0], nullptr, true, {});
         }
 
         // add receivers
@@ -349,7 +343,7 @@ void cyAvatar::RunBehaviorAndReply(pyKey& behKey, pyKey& replyKey, bool netForce
 //
 bool cyAvatar::RunCoopAnim(pyKey& targetKey, ST::string activeAvatarAnim, ST::string targetAvatarAnim, float range, float dist, bool move)
 {
-    if (fRecvr.Count() > 0 && fRecvr[0]) {
+    if (!fRecvr.empty() && fRecvr[0]) {
         // get the participating avatars
         plArmatureMod* activeAv = plAvatarMgr::FindAvatar(fRecvr[0]);
         plArmatureMod* targetAv = plAvatarMgr::FindAvatar(targetKey.getKey());
@@ -415,10 +409,10 @@ void cyAvatar::NextStage(pyKey &behKey, float transTime, bool setTime, float new
                         bool setDirection, bool isForward, bool netForce)
 {
     // first there is someone to send to and make sure that we an avatar to send this to
-    if ( behKey.getKey() != nil && fRecvr.Count() > 0)
+    if (behKey.getKey() != nullptr && !fRecvr.empty())
     {
         // if it is a Multistage guy
-        if ( plMultistageBehMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()) != nil )
+        if (plMultistageBehMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()) != nullptr)
         {
             plKey avKey = IFindArmatureModKey( (plKey)fRecvr[0] );
             if ( avKey )
@@ -454,10 +448,10 @@ void cyAvatar::PreviousStage(pyKey &behKey, float transTime, bool setTime, float
                         bool setDirection, bool isForward, bool netForce)
 {
     // first there is someone to send to and make sure that we an avatar to send this to
-    if ( behKey.getKey() != nil && fRecvr.Count() > 0)
+    if (behKey.getKey() != nullptr && !fRecvr.empty())
     {
         // if it is a Multistage guy
-        if ( plMultistageBehMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()) != nil )
+        if (plMultistageBehMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()) != nullptr)
         {
             plKey avKey = IFindArmatureModKey( (plKey)fRecvr[0] );
             if ( avKey )
@@ -494,10 +488,10 @@ void cyAvatar::GoToStage(pyKey &behKey, int32_t stage, float transTime, bool set
                         bool setDirection, bool isForward, bool netForce)
 {
     // first there is someone to send to and make sure that we an avatar to send this to
-    if ( behKey.getKey() != nil && fRecvr.Count() > 0)
+    if (behKey.getKey() != nullptr && !fRecvr.empty())
     {
         // if it is a Multistage guy
-        if ( plMultistageBehMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()) != nil )
+        if (plMultistageBehMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()) != nullptr)
         {
             plKey avKey = IFindArmatureModKey( (plKey)fRecvr[0] );
             if ( avKey )
@@ -521,9 +515,9 @@ void cyAvatar::GoToStage(pyKey &behKey, int32_t stage, float transTime, bool set
 void cyAvatar::SetLoopCount(pyKey &behKey, int32_t stage, int32_t loopCount, bool netForce)
 {
     // if it is a Multistage guy
-    if ( plMultistageBehMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()) != nil )
+    if (plMultistageBehMod::ConvertNoRef(behKey.getKey()->GetObjectPtr()) != nullptr)
     {
-        plMultistageModMsg* pMsg = new plMultistageModMsg((plKey)nil, behKey.getKey());
+        plMultistageModMsg* pMsg = new plMultistageModMsg({}, behKey.getKey());
         pMsg->SetCommand(plMultistageModMsg::kSetLoopCount);
         pMsg->fStageNum = (uint8_t)stage;
         pMsg->fNumLoops = (uint8_t)loopCount;
@@ -549,11 +543,11 @@ void cyAvatar::SetLoopCount(pyKey &behKey, int32_t stage, int32_t loopCount, boo
 void cyAvatar::Seek(pyKey &seekKey, float duration, bool usePhysics)
 {
     // must have a receiver!
-    if ( fRecvr.Count() > 0 )
+    if (!fRecvr.empty())
     {
         // create message
         plAvSeekMsg* pMsg = new plAvSeekMsg(
-            (plKey)fSender,nil, seekKey.getKey(),duration,usePhysics);
+            (plKey)fSender, nullptr, seekKey.getKey(), duration, usePhysics);
 
         // check if this needs to be network forced to all clients
         if (fNetForce )
@@ -564,11 +558,8 @@ void cyAvatar::Seek(pyKey &seekKey, float duration, bool usePhysics)
         }
         pMsg->SetBCastFlag(plMessage::kPropagateToModifiers);
         // add all our receivers to the message receiver list
-        int i;
-        for ( i=0; i<fRecvr.Count(); i++ )
-        {
-            pMsg->AddReceiver(fRecvr[i]);
-        }
+        for (const plKey& rcKey : fRecvr)
+            pMsg->AddReceiver(rcKey);
 
         plgDispatch::MsgSend( pMsg );   // whoosh... off it goes
     }
@@ -585,13 +576,13 @@ void cyAvatar::Seek(pyKey &seekKey, float duration, bool usePhysics)
 int32_t cyAvatar::GetAvatarClothingGroup()
 {
     // find the avatar's armature modifier
-    const plArmatureMod *avMod = nil;
+    const plArmatureMod *avMod = nullptr;
 
     // we can really only talk to one avatar, so just get the first one (which is probably the only one)
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
             if ( avMod )
@@ -614,13 +605,13 @@ int32_t cyAvatar::GetAvatarClothingGroup()
 std::vector<ST::string> cyAvatar::GetEntireClothingList(int32_t clothing_type)
 {
     // Currently, just all the clothing available will be returned
-    hsTArray<plClothingItem*> clothingList = plClothingMgr::GetClothingMgr()->GetItemList();
-    int numItems = clothingList.GetCount();
+    const std::vector<plClothingItem*> &clothingList = plClothingMgr::GetClothingMgr()->GetItemList();
 
     // create the string list to send to python...
     std::vector<ST::string> retVal;
-    for (int i = 0; i < numItems; i++)
-        retVal.push_back(clothingList[i]->GetName());
+    retVal.reserve(clothingList.size());
+    for (plClothingItem* item : clothingList)
+        retVal.emplace_back(item->GetName());
 
     return retVal;
 }
@@ -638,26 +629,23 @@ std::vector<PyObject*> cyAvatar::GetClosetClothingList(int32_t clothing_type)
     std::vector<PyObject*> retVal;
 
     // find the avatar's armature modifier
-    const plArmatureMod *avMod = nil;
+    const plArmatureMod *avMod = nullptr;
 
     // we can really only talk to one avatar, so just get the first one (which is probably the only one)
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
             if ( avMod )
             {
                 // Get all the clothes that we can wear
-                hsTArray<plClothingItem*> clothingList;
+                std::vector<plClothingItem*> clothingList;
                 plClothingMgr::GetClothingMgr()->GetItemsByGroup(avMod->GetClothingOutfit()->fGroup, clothingList);
-                int numItems = clothingList.GetCount();
                 // create the string list to send to python... as a python object
-                int i;
-                for ( i=0; i<numItems; i++ )
+                for (plClothingItem* item : clothingList)
                 {
-                    plClothingItem* item = clothingList[i];
                     if ( clothing_type == -1 || item->fType == clothing_type )
                     {
                         // add this event record to the main event list (lists within a list)
@@ -665,23 +653,23 @@ std::vector<PyObject*> cyAvatar::GetClosetClothingList(int32_t clothing_type)
                         PyObject* clothingItem = PyList_New(5);
 
                         // [0] = clothing name
-                        PyList_SetItem(clothingItem, 0, PyString_FromSTString(item->GetName()));
+                        PyList_SetItem(clothingItem, 0, PyUnicode_FromSTString(item->GetName()));
                         
                         // [1] = clothing type
-                        PyList_SetItem(clothingItem, 1, PyInt_FromLong(item->fType));
+                        PyList_SetItem(clothingItem, 1, PyLong_FromLong(item->fType));
 
                         // [2] = description
-                        PyList_SetItem(clothingItem, 2, PyString_FromSTString(item->fDescription));
+                        PyList_SetItem(clothingItem, 2, PyUnicode_FromSTString(item->fDescription));
 
                         // [3] = ptImage of icon
-                        if ( item->fThumbnail != nil )
+                        if (item->fThumbnail != nullptr)
                             // create a ptImage
                             PyList_SetItem(clothingItem, 3, pyImage::New(item->fThumbnail->GetKey()));
                         else
-                            PyList_SetItem(clothingItem, 3, PyInt_FromLong(0));
+                            PyList_SetItem(clothingItem, 3, PyLong_FromLong(0));
 
                         // [4] = fCustomText
-                        PyList_SetItem(clothingItem, 4, PyString_FromSTString(item->fCustomText));
+                        PyList_SetItem(clothingItem, 4, PyUnicode_FromSTString(item->fCustomText));
 
                         retVal.push_back(clothingItem);
                     }
@@ -704,46 +692,43 @@ std::vector<PyObject*> cyAvatar::GetAvatarClothingList()
 {
     std::vector<PyObject*> retVal;
     // find the avatar's armature modifier
-    const plArmatureMod *avMod = nil;
+    const plArmatureMod *avMod = nullptr;
     // we can really only talk to one avatar, so just get the first one (which is probably the only one)
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
             if ( avMod )
             {
                 // Currently, just all the clothing available will be returned
-                hsTArray<plClothingItem*> clothingList = avMod->GetClothingOutfit()->GetItemList();
-                int numItems = clothingList.GetCount();
+                const std::vector<plClothingItem*> &clothingList = avMod->GetClothingOutfit()->GetItemList();
                 // create the string list to send to python... as a python object
-                int i;
-                for ( i=0; i<numItems; i++ )
+                for (plClothingItem* item : clothingList)
                 {
                     // add this event record to the main event list (lists within a list)
                     // create list
                     PyObject* clothingItem = PyList_New(5);
-                    plClothingItem* item = clothingList[i];
 
                     // [0] = clothing name
-                    PyList_SetItem(clothingItem, 0, PyString_FromSTString(item->GetName()));
+                    PyList_SetItem(clothingItem, 0, PyUnicode_FromSTString(item->GetName()));
 
                     // [1] = clothing type
-                    PyList_SetItem(clothingItem, 1, PyInt_FromLong(item->fType));
+                    PyList_SetItem(clothingItem, 1, PyLong_FromLong(item->fType));
 
                     // [2] = description
-                    PyList_SetItem(clothingItem, 2, PyString_FromSTString(item->fDescription));
+                    PyList_SetItem(clothingItem, 2, PyUnicode_FromSTString(item->fDescription));
 
                     // [3] = ptImage of icon
-                    if ( item->fThumbnail != nil )
+                    if (item->fThumbnail != nullptr)
                         // create a ptImage
                         PyList_SetItem(clothingItem, 3, pyImage::New(item->fThumbnail->GetKey()));
                     else
-                        PyList_SetItem(clothingItem, 3, PyInt_FromLong(0));
+                        PyList_SetItem(clothingItem, 3, PyLong_FromLong(0));
 
                     // [4] = fCustomText
-                    PyList_SetItem(clothingItem, 4, PyString_FromSTString(item->fCustomText));
+                    PyList_SetItem(clothingItem, 4, PyUnicode_FromSTString(item->fCustomText));
 
                     retVal.push_back(clothingItem);
                 }
@@ -763,41 +748,39 @@ std::vector<PyObject*> cyAvatar::GetAvatarClothingList()
 std::vector<PyObject*> cyAvatar::GetWardrobeClothingList()
 {
     std::vector<PyObject*> retVal;
-    hsTArray<plClosetItem> closetList;
+    std::vector<plClosetItem> closetList;
     plClothingMgr::GetClothingMgr()->GetClosetItems(closetList);
-    int numItems = closetList.GetCount();
     // create the string list to send to python... as a python object
-    int i;
-    for ( i=0; i<numItems; i++ )
+    for (const plClosetItem& item : closetList)
     {
         // add this event record to the main event list (lists within a list)
         // create list
         PyObject* closetItem = PyList_New(7);
 
         // [0] = clothing name
-        PyList_SetItem(closetItem, 0, PyString_FromSTString(closetList[i].fItem->GetName()));
+        PyList_SetItem(closetItem, 0, PyUnicode_FromSTString(item.fItem->GetName()));
         
         // [1] = clothing type
-        PyList_SetItem(closetItem, 1, PyInt_FromLong(closetList[i].fItem->fType));
+        PyList_SetItem(closetItem, 1, PyLong_FromLong(item.fItem->fType));
         
         // [2] = description
-        PyList_SetItem(closetItem, 2, PyString_FromSTString(closetList[i].fItem->fDescription));
+        PyList_SetItem(closetItem, 2, PyUnicode_FromSTString(item.fItem->fDescription));
 
         // [3] = ptImage of icon
-        if ( closetList[i].fItem->fThumbnail != nil )
+        if (item.fItem->fThumbnail != nullptr)
             // create a ptImage
-            PyList_SetItem(closetItem, 3, pyImage::New(closetList[i].fItem->fThumbnail->GetKey()));
+            PyList_SetItem(closetItem, 3, pyImage::New(item.fItem->fThumbnail->GetKey()));
         else
-            PyList_SetItem(closetItem, 3, PyInt_FromLong(0));
+            PyList_SetItem(closetItem, 3, PyLong_FromLong(0));
 
         // [4] = fCustomText
-        PyList_SetItem(closetItem, 4, PyString_FromSTString(closetList[i].fItem->fCustomText));
+        PyList_SetItem(closetItem, 4, PyUnicode_FromSTString(item.fItem->fCustomText));
 
         // [5] = fTint1
-        PyList_SetItem(closetItem, 5, pyColor::New(closetList[i].fOptions.fTint1));
+        PyList_SetItem(closetItem, 5, pyColor::New(item.fOptions.fTint1));
         
         // [6] = fTint2
-        PyList_SetItem(closetItem, 6, pyColor::New(closetList[i].fOptions.fTint2));
+        PyList_SetItem(closetItem, 6, pyColor::New(item.fOptions.fTint2));
 
         retVal.push_back(closetItem);
     }
@@ -818,8 +801,7 @@ void cyAvatar::AddWardrobeClothingItem(const ST::string& clothing_name,pyColor& 
     plClothingItem *item = plClothingMgr::GetClothingMgr()->FindItemByName(clothing_name);
     if ( item )
     {
-        hsTArray<plClosetItem> items;
-        items.SetCount(1);
+        std::vector<plClosetItem> items(1);
         items[0].fItem = item;
         items[0].fOptions.fTint1.Set(tint1.getRed(), tint1.getGreen(), tint1.getBlue(), 1.f);
         items[0].fOptions.fTint2.Set(tint2.getRed(), tint2.getGreen(), tint2.getBlue(), 1.f);
@@ -842,27 +824,24 @@ std::vector<PyObject*> cyAvatar::GetUniqueMeshList(int32_t clothing_type)
     std::vector<PyObject*> retVal;
 
     // find the avatar's armature modifier
-    const plArmatureMod *avMod = nil;
+    const plArmatureMod *avMod = nullptr;
 
     // we can really only talk to one avatar, so just get the first one (which is probably the only one)
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
             if ( avMod )
             {
                 // Get all the clothes that we can wear
-                hsTArray<plClothingItem*> clothingList;
+                std::vector<plClothingItem*> clothingList;
                 plClothingMgr::GetClothingMgr()->GetItemsByGroup(avMod->GetClothingOutfit()->fGroup, clothingList);
                 plClothingMgr::GetClothingMgr()->FilterUniqueMeshes(clothingList); // filter all redundant meshes
-                int numItems = clothingList.GetCount();
                 // create the string list to send to python... as a python object
-                int i;
-                for ( i=0; i<numItems; i++ )
+                for (plClothingItem* item : clothingList)
                 {
-                    plClothingItem* item = clothingList[i];
                     if ( clothing_type == -1 || item->fType == clothing_type )
                     {
                         // add this event record to the main event list (lists within a list)
@@ -870,23 +849,23 @@ std::vector<PyObject*> cyAvatar::GetUniqueMeshList(int32_t clothing_type)
                         PyObject* clothingItem = PyList_New(5);
 
                         // [0] = clothing name
-                        PyList_SetItem(clothingItem, 0, PyString_FromSTString(item->GetName()));
+                        PyList_SetItem(clothingItem, 0, PyUnicode_FromSTString(item->GetName()));
 
                         // [1] = clothing type
-                        PyList_SetItem(clothingItem, 1, PyInt_FromLong(item->fType));
+                        PyList_SetItem(clothingItem, 1, PyLong_FromLong(item->fType));
 
                         // [2] = description
-                        PyList_SetItem(clothingItem, 2, PyString_FromSTString(item->fDescription));
+                        PyList_SetItem(clothingItem, 2, PyUnicode_FromSTString(item->fDescription));
 
                         // [3] = ptImage of icon
-                        if ( item->fThumbnail != nil )
+                        if (item->fThumbnail != nullptr)
                             // create a ptImage
                             PyList_SetItem(clothingItem, 3, pyImage::New(item->fThumbnail->GetKey()));
                         else
-                            PyList_SetItem(clothingItem, 3, PyInt_FromLong(0));
+                            PyList_SetItem(clothingItem, 3, PyLong_FromLong(0));
 
                         // [4] = fCustomText
-                        PyList_SetItem(clothingItem, 4, PyString_FromSTString(item->fCustomText));
+                        PyList_SetItem(clothingItem, 4, PyUnicode_FromSTString(item->fCustomText));
 
                         retVal.push_back(clothingItem);
                     }
@@ -910,48 +889,45 @@ std::vector<PyObject*> cyAvatar::GetAllWithSameMesh(const ST::string& clothing_n
     std::vector<PyObject*> retVal;
 
     // find the avatar's armature modifier
-    const plArmatureMod *avMod = nil;
+    const plArmatureMod *avMod = nullptr;
 
     // we can really only talk to one avatar, so just get the first one (which is probably the only one)
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
             if ( avMod )
             {
                 // Get all clothes with the same mesh as the one passed in
-                hsTArray<plClothingItem*> clothingList;
+                std::vector<plClothingItem*> clothingList;
                 plClothingMgr::GetClothingMgr()->GetAllWithSameMesh(plClothingMgr::GetClothingMgr()->FindItemByName(clothing_name), clothingList);
-                int numItems = clothingList.GetCount();
                 // create the string list to send to python... as a python object
-                int i;
-                for ( i=0; i<numItems; i++ )
+                for (plClothingItem* item : clothingList)
                 {
                     // add this event record to the main event list (lists within a list)
                     // create list
                     PyObject* clothingItem = PyList_New(5);
-                    plClothingItem* item = clothingList[i];
 
                     // [0] = clothing name
-                    PyList_SetItem(clothingItem, 0, PyString_FromSTString(item->GetName()));
+                    PyList_SetItem(clothingItem, 0, PyUnicode_FromSTString(item->GetName()));
 
                     // [1] = clothing type
-                    PyList_SetItem(clothingItem, 1, PyInt_FromLong(item->fType));
+                    PyList_SetItem(clothingItem, 1, PyLong_FromLong(item->fType));
 
                     // [2] = description
-                    PyList_SetItem(clothingItem, 2, PyString_FromSTString(item->fDescription));
+                    PyList_SetItem(clothingItem, 2, PyUnicode_FromSTString(item->fDescription));
 
                     // [3] = ptImage of icon
-                    if ( item->fThumbnail != nil )
+                    if (item->fThumbnail != nullptr)
                         // create a ptImage
                         PyList_SetItem(clothingItem, 3, pyImage::New(item->fThumbnail->GetKey()));
                     else
-                        PyList_SetItem(clothingItem, 3, PyInt_FromLong(0));
+                        PyList_SetItem(clothingItem, 3, PyLong_FromLong(0));
 
                     // [4] = fCustomText
-                    PyList_SetItem(clothingItem, 4, PyString_FromSTString(item->fCustomText));
+                    PyList_SetItem(clothingItem, 4, PyUnicode_FromSTString(item->fCustomText));
 
                     retVal.push_back(clothingItem);
                 }
@@ -979,28 +955,28 @@ PyObject* cyAvatar::GetMatchingClothingItem(const ST::string& clothing_name)
         PyObject* clothingItem = PyList_New(5);
         
         // [0] = clothing name
-        PyList_SetItem(clothingItem, 0, PyString_FromSTString(match->GetName()));
+        PyList_SetItem(clothingItem, 0, PyUnicode_FromSTString(match->GetName()));
 
         // [1] = clothing type
-        PyList_SetItem(clothingItem, 1, PyInt_FromLong(match->fType));
+        PyList_SetItem(clothingItem, 1, PyLong_FromLong(match->fType));
 
         // [2] = description
-        PyList_SetItem(clothingItem, 2, PyString_FromSTString(match->fDescription));
+        PyList_SetItem(clothingItem, 2, PyUnicode_FromSTString(match->fDescription));
 
         // [3] = ptImage of icon
-        if ( match->fThumbnail != nil )
+        if (match->fThumbnail != nullptr)
             // create a ptImage
             PyList_SetItem(clothingItem, 3, pyImage::New(match->fThumbnail->GetKey()));
         else
-            PyList_SetItem(clothingItem, 3, PyInt_FromLong(0));
+            PyList_SetItem(clothingItem, 3, PyLong_FromLong(0));
 
         // [4] = fCustomText
-        PyList_SetItem(clothingItem, 4, PyString_FromSTString(match->fCustomText));
+        PyList_SetItem(clothingItem, 4, PyUnicode_FromSTString(match->fCustomText));
 
         return clothingItem;
     }
     else
-        return PyInt_FromLong(0);
+        return PyLong_FromLong(0);
 }
 
 
@@ -1067,12 +1043,12 @@ bool cyAvatar::TintClothingItemLayer(const ST::string& clothing_name, pyColor& t
 //
 bool cyAvatar::WearClothingItemU(const ST::string& clothing_name, bool update)
 {
-    const plArmatureMod *avMod = nil;
+    const plArmatureMod *avMod = nullptr;
     // we can really only talk to one avatar, so just get the first one (which is probably the only one)
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
             plClothingItem *item = plClothingMgr::GetClothingMgr()->FindItemByName(clothing_name);
@@ -1101,12 +1077,12 @@ bool cyAvatar::WearClothingItemU(const ST::string& clothing_name, bool update)
 //
 bool cyAvatar::RemoveClothingItemU(const ST::string& clothing_name, bool update)
 {
-    const plArmatureMod *avMod = nil;
+    const plArmatureMod *avMod = nullptr;
     // we can really only talk to one avatar, so just get the first one (which is probably the only one)
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
 
@@ -1135,12 +1111,12 @@ bool cyAvatar::RemoveClothingItemU(const ST::string& clothing_name, bool update)
 //
 bool cyAvatar::TintClothingItemU(const ST::string& clothing_name, pyColor& tint, bool update)
 {
-    const plArmatureMod *avMod = nil;
+    const plArmatureMod *avMod = nullptr;
     // we can really only talk to one avatar, so just get the first one (which is probably the only one)
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
 
@@ -1168,12 +1144,12 @@ bool cyAvatar::TintClothingItemU(const ST::string& clothing_name, pyColor& tint,
 //
 bool cyAvatar::TintClothingItemLayerU(const ST::string& clothing_name, pyColor& tint, uint8_t layer, bool update)
 {
-    const plArmatureMod *avMod = nil;
+    const plArmatureMod *avMod = nullptr;
     // we can really only talk to one avatar, so just get the first one (which is probably the only one)
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
 
@@ -1204,12 +1180,12 @@ bool cyAvatar::TintClothingItemLayerU(const ST::string& clothing_name, pyColor& 
 //
 ST::string cyAvatar::GetClothingItemParameterString(const ST::string& clothing_name)
 {
-    const plArmatureMod *avMod = nil;
+    const plArmatureMod *avMod = nullptr;
     // we can really only talk to one avatar, so just get the first one (which is probably the only one)
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
 
@@ -1247,12 +1223,12 @@ PyObject* cyAvatar::GetTintClothingItem(const ST::string& clothing_name)
 //
 PyObject* cyAvatar::GetTintClothingItemL(const ST::string& clothing_name, uint8_t layer)
 {
-    const plArmatureMod *avMod = nil;
+    const plArmatureMod *avMod = nullptr;
     // we can really only talk to one avatar, so just get the first one (which is probably the only one)
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
 
@@ -1273,8 +1249,8 @@ PyObject* cyAvatar::GetTintClothingItemL(const ST::string& clothing_name, uint8_
 
     ST::string errmsg = ST::format("Cannot find clothing item {} to find out what tint it is", clothing_name);
     PyErr_SetString(PyExc_KeyError, errmsg.c_str());
-    // returning nil means an error occurred
-    return nil;
+    // returning nullptr means an error occurred
+    return nullptr;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1299,12 +1275,12 @@ void cyAvatar::TintSkin(pyColor& tint)
 //
 void cyAvatar::TintSkinU(pyColor& tint, bool update)
 {
-    const plArmatureMod *avMod = nil;
+    const plArmatureMod *avMod = nullptr;
     // we can really only talk to one avatar, so just get the first one (which is probably the only one)
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
             avMod->GetClothingOutfit()->TintSkin(tint.getRed(),tint.getGreen(),tint.getBlue(),update,true);
@@ -1322,12 +1298,12 @@ void cyAvatar::TintSkinU(pyColor& tint, bool update)
 //
 PyObject* cyAvatar::GetTintSkin()
 {
-    const plArmatureMod *avMod = nil;
+    const plArmatureMod *avMod = nullptr;
     // we can really only talk to one avatar, so just get the first one (which is probably the only one)
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
             hsColorRGBA tint = avMod->GetClothingOutfit()->fSkinTint;
@@ -1337,24 +1313,23 @@ PyObject* cyAvatar::GetTintSkin()
     }
 
     PyErr_SetString(PyExc_KeyError, "Cannot find the skin of the player. Whatever that means!");
-    // returning nil means an error occurred
-    return nil;
+    // returning nullptr means an error occurred
+    return nullptr;
 }
 
 plMorphSequence* cyAvatar::LocalMorphSequence()
 {
     plArmatureMod *avMod = plAvatarMgr::GetInstance()->GetLocalAvatar();
     if (!avMod)
-        return nil;
+        return nullptr;
     
 
     const plSceneObject *so = avMod->GetClothingSO(0); // grabbing the high LOD node
     if (!so)
-        return nil;
+        return nullptr;
 
-    const plModifier* constSeq = nil;
-    int i;
-    for (i = 0; i < so->GetNumModifiers(); i++)
+    const plModifier* constSeq = nullptr;
+    for (size_t i = 0; i < so->GetNumModifiers(); i++)
     {
         constSeq = so->GetModifier(i);
         if (constSeq && plMorphSequence::ConvertNoRef(constSeq))
@@ -1363,7 +1338,7 @@ plMorphSequence* cyAvatar::LocalMorphSequence()
         }
     }
 
-    return nil;
+    return nullptr;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1401,10 +1376,10 @@ void cyAvatar::SetMorph(const ST::string& clothing_name, uint8_t layer, float va
         wgtPlus = 0;
     }
     
-    if ( fRecvr.Count() > 0 && fRecvr[0] != nil )
+    if (!fRecvr.empty() && fRecvr[0] != nullptr)
     {
         plSceneObject *so = plSceneObject::ConvertNoRef(fRecvr[0]->GetObjectPtr());
-        if (so != nil)
+        if (so != nullptr)
         {
             const plArmatureMod *avMod = (plArmatureMod*)so->GetModifierByType(plArmatureMod::Index());
             if (avMod && avMod->GetClothingOutfit())
@@ -1526,7 +1501,7 @@ void cyAvatar::SaveClothing()
 void cyAvatar::EnterSubWorld(pySceneObject& object)
 {
     // make sure that there is atleast one avatar scene object attached (should be)
-    if ( fRecvr.Count() > 0)
+    if (!fRecvr.empty())
     {
         // find the armature modifier
         plArmatureMod* avatar = (plArmatureMod*)IFindArmatureMod((plKey)fRecvr[0]);
@@ -1560,7 +1535,7 @@ void cyAvatar::EnterSubWorld(pySceneObject& object)
 void cyAvatar::ExitSubWorld()
 {
     // make sure that there is atleast one avatar scene object attached (should be)
-    if ( fRecvr.Count() > 0)
+    if (!fRecvr.empty())
     {
         // find the armature modifier
         plArmatureMod* avatar = (plArmatureMod*)IFindArmatureMod((plKey)fRecvr[0]);
@@ -1585,7 +1560,7 @@ void cyAvatar::ExitSubWorld()
 void cyAvatar::PlaySimpleAnimation(const ST::string& animName)
 {
     // make sure that there is atleast one avatar scene object attached (should be)
-    if ( fRecvr.Count() > 0)
+    if (!fRecvr.empty())
     {
         // find the armature modifier
         plArmatureMod* avatar = (plArmatureMod*)IFindArmatureMod((plKey)fRecvr[0]);
@@ -1606,7 +1581,7 @@ void cyAvatar::PlaySimpleAnimation(const ST::string& animName)
 //
 bool cyAvatar::SaveClothingToFile(plFileName filename)
 {
-    if (fRecvr.Count() > 0) {
+    if (!fRecvr.empty()) {
         plArmatureMod* avatar = plAvatarMgr::FindAvatar(fRecvr[0]);
         if (avatar) {
             plClothingOutfit* cl = avatar->GetClothingOutfit();
@@ -1634,7 +1609,7 @@ bool cyAvatar::SaveClothingToFile(plFileName filename)
 //
 bool cyAvatar::LoadClothingFromFile(plFileName filename)
 {
-    if (fRecvr.Count() > 0) {
+    if (!fRecvr.empty()) {
         plArmatureMod* avatar = plAvatarMgr::FindAvatar(fRecvr[0]);
         if (avatar) {
             plClothingOutfit* cl = avatar->GetClothingOutfit();
@@ -1813,7 +1788,7 @@ bool cyAvatar::EnterAnimMode(const ST::string& animName)
 int cyAvatar::GetCurrentMode()
 {
     // make sure that there is atleast one avatar scene object attached (should be)
-    if ( fRecvr.Count() > 0)
+    if (!fRecvr.empty())
     {
         // find the armature modifier
         plArmatureMod* avatar = (plArmatureMod*)IFindArmatureMod((plKey)fRecvr[0]);
@@ -1939,7 +1914,7 @@ void cyAvatar::SpawnNext()
 void cyAvatar::RegisterForBehaviorNotify(pyKey &selfKey)
 {
     // make sure that there is atleast one avatar scene object attached (should be)
-    if ( fRecvr.Count() > 0)
+    if (!fRecvr.empty())
     {
         // find the armature modifier
         plArmatureMod* avatar = (plArmatureMod*)IFindArmatureMod((plKey)fRecvr[0]);
@@ -1961,7 +1936,7 @@ void cyAvatar::RegisterForBehaviorNotify(pyKey &selfKey)
 void cyAvatar::UnRegisterForBehaviorNotify(pyKey &selfKey)
 {
     // make sure that there is atleast one avatar scene object attached (should be)
-    if ( fRecvr.Count() > 0)
+    if (!fRecvr.empty())
     {
         // find the armature modifier
         plArmatureMod* avatar = (plArmatureMod*)IFindArmatureMod((plKey)fRecvr[0]);
@@ -2004,7 +1979,7 @@ bool IExitTopmostGenericMode()
 {
     plArmatureMod *avatar = plAvatarMgr::GetInstance()->GetLocalAvatar();
 
-    plAvBrainGenericMsg* pMsg = new plAvBrainGenericMsg(nil, avatar->GetKey(),
+    plAvBrainGenericMsg* pMsg = new plAvBrainGenericMsg(nullptr, avatar->GetKey(),
         plAvBrainGenericMsg::kGotoStage, 2, false, 0.0,
         false, false, 0.0);
 

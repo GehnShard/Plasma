@@ -44,7 +44,6 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "pnKeyedObject/hsKeyedObject.h"
 #include "plLoadMask.h"
-#include "hsTemplates.h"
 #include "plRenderLevel.h"
 
 class plSpaceTree;
@@ -176,8 +175,8 @@ public:
     virtual void            SetDISpanVisSet(uint32_t diIndex, hsKeyedObject* reg, bool on) = 0;
 
     // Taking span index. DI Index doesn't make sense here, because one object's DI can dereference into many materials etc.
-    virtual hsGMaterial*    GetSubMaterial(int index) const = 0;
-    virtual bool            GetSubVisDists(int index, float& minDist, float& maxDist) const = 0; // return true if span invisible before minDist and/or after maxDist
+    virtual hsGMaterial*    GetSubMaterial(size_t index) const = 0;
+    virtual bool            GetSubVisDists(size_t index, float& minDist, float& maxDist) const = 0; // return true if span invisible before minDist and/or after maxDist
 
     // Should implement hsKeyedObject Read/Write/Save/Load as well
 
