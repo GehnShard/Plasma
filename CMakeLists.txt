@@ -14,14 +14,14 @@ include(VcpkgToolchain)
 project(Plasma)
 
 # Set up Product Identification parameters
-set(PRODUCT_BRANCH_ID   "1"         CACHE STRING "Branch ID")
-set(PRODUCT_BUILD_ID    "918"       CACHE STRING "Build ID")
-set(PRODUCT_BUILD_TYPE  "50"        CACHE STRING "Build Type")
-set(PRODUCT_CORE_NAME   "UruLive"   CACHE STRING "Product Core Name")
-set(PRODUCT_SHORT_NAME  "UruLive"   CACHE STRING "Product Short Name")
-set(PRODUCT_LONG_NAME   "Uru Live"  CACHE STRING "Product Long Name")
+set(PRODUCT_BRANCH_ID   "1"                 CACHE STRING "Branch ID")
+set(PRODUCT_BUILD_ID    "28"                CACHE STRING "Build ID")
+set(PRODUCT_BUILD_TYPE  "50"                CACHE STRING "Build Type")
+set(PRODUCT_CORE_NAME   "UruGehn"           CACHE STRING "Product Core Name")
+set(PRODUCT_SHORT_NAME  "UruGehn"           CACHE STRING "Product Short Name")
+set(PRODUCT_LONG_NAME   "Uru - Gehn Shard"  CACHE STRING "Product Long Name")
 set(PRODUCT_UUID        "ea489821-6c35-4bd0-9dae-bb17c585e680"
-                                    CACHE STRING "Product UUID")
+                                            CACHE STRING "Product UUID")
 option(PRODUCT_EMBED_BUILD_INFO "Embed build revision information into plProduct" ON)
 cmake_dependent_option(PRODUCT_EMBED_BUILD_TIME "Embed build time into plProduct" ON [[PRODUCT_EMBED_BUILD_INFO]] OFF)
 
