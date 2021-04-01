@@ -37,6 +37,12 @@ if(PLASMA_EXTERNAL_RELEASE)
     set_target_properties(plUruLauncher PROPERTIES OUTPUT_NAME UruLauncher)
 endif(PLASMA_EXTERNAL_RELEASE)
 
+install(
+    FILES $<TARGET_PDB_FILE:plUruLauncher>
+    DESTINATION client
+    OPTIONAL
+)
+
 source_group("Source Files" FILES ${plUruLauncher_SOURCES})
 source_group("Header Files" FILES ${plUruLauncher_HEADERS})
 source_group("Resource Files" FILES ${plUruLauncher_RESOURCES})
