@@ -40,10 +40,10 @@
 #
 # *==LICENSE==*/
 
-STATEDESC Vothol
+STATEDESC vothol
 {
     VERSION 1
-    
+
     VAR BOOL        votholChisoBookVis[1]            DEFAULT=1    DEFAULTOPTION=VAULT
 
 }

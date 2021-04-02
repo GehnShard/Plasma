@@ -43,7 +43,7 @@
 from Plasma import *
 from PlasmaTypes import *
 
-class Vothol(ptResponder):
+class vothol(ptResponder):
     def __init__(self):
         ptResponder.__init__(self)
         self.id = -1
