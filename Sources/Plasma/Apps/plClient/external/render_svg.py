@@ -219,7 +219,7 @@ def render_loading_logo(inpath, outpath):
 
 			cairosvg.svg2png(bytestring=logoSVG.toxml().encode('utf-8'),
 				write_to=os.path.join(outpath, "xLoading_Linking.{0:03}.png".format(frame)),
-				parent_width=resSize["width"], parent_height=resSize["height"])
+				output_width=resSize["width"], output_height=resSize["height"])
 
 def render_loading_text(inpath, outpath):
 	resSize = {"width":192, "height":41}
@@ -231,7 +231,7 @@ def render_loading_text(inpath, outpath):
 			enable_only_layers(textList[textEntry], layers)
 			cairosvg.svg2png(bytestring=textSVG.toxml().encode('utf-8'),
 				write_to=os.path.join(outpath, textEntry + ".png"), 
-				parent_width=resSize["width"], parent_height=resSize["height"])
+				output_width=resSize["width"], output_height=resSize["height"])
 
 def render_voice_icons(inpath, outpath):
 	resSize = {"width":32, "height":32}
@@ -244,7 +244,7 @@ def render_voice_icons(inpath, outpath):
 
 			cairosvg.svg2png(bytestring=uiSVG.toxml().encode('utf-8'),
 				write_to=os.path.join(outpath, voiceUI + ".png"), 
-				parent_width=resSize["width"], parent_height=resSize["height"])
+				output_width=resSize["width"], output_height=resSize["height"])
 
 
 ###
